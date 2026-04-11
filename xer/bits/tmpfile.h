@@ -26,7 +26,7 @@ namespace xer {
  * @return Opened binary stream on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline std::expected<binary_stream, error<void>> tmpfile() noexcept {
+[[nodiscard]] inline auto tmpfile() noexcept -> std::expected<binary_stream, error<void>> {
     std::FILE* const file = std::tmpfile();
     if (file == nullptr) {
         return std::unexpected(make_error(error_t::runtime_error));
@@ -63,8 +63,8 @@ namespace xer {
  * @return Opened text stream on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline std::expected<text_stream, error<void>> tmpfile(
-    encoding_t encoding) noexcept {
+[[nodiscard]] inline auto tmpfile(
+    encoding_t encoding) noexcept -> std::expected<text_stream, error<void>> {
     if (encoding == encoding_t::auto_detect) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }

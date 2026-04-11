@@ -20,7 +20,7 @@ namespace xer {
  * @return true if the error indicator is set.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool ferror(const binary_stream& stream) noexcept {
+[[nodiscard]] constexpr auto ferror(const binary_stream& stream) noexcept -> bool {
     return stream.error();
 }
 
@@ -31,7 +31,7 @@ namespace xer {
  * @return true if the error indicator is set.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool ferror(const text_stream& stream) noexcept {
+[[nodiscard]] constexpr auto ferror(const text_stream& stream) noexcept -> bool {
     return stream.error();
 }
 

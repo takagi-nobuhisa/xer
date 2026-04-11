@@ -28,7 +28,7 @@ namespace xer::detail {
  * @param handle Opaque stream handle.
  * @return Non-negative on success, negative on failure.
  */
-inline int standard_text_state_close(text_stream_handle_t handle) noexcept {
+inline auto standard_text_state_close(text_stream_handle_t handle) noexcept -> int {
     text_stream_state* const state = text_handle_to_state(handle);
     if (state == nullptr) {
         return -1;
@@ -45,9 +45,9 @@ inline int standard_text_state_close(text_stream_handle_t handle) noexcept {
  * @param out Destination byte.
  * @return 1 if one byte was read, 0 on EOF, negative on failure.
  */
-[[nodiscard]] inline int standard_text_state_read_byte(
+[[nodiscard]] inline auto standard_text_state_read_byte(
     text_stream_state& state,
-    unsigned char& out) noexcept {
+    unsigned char& out) noexcept -> int {
     if (!std::holds_alternative<text_stream_file_source>(state.source)) {
         return -1;
     }
@@ -87,9 +87,9 @@ inline int standard_text_state_close(text_stream_handle_t handle) noexcept {
  * @param out Destination code point.
  * @return 1 if one code point was read, 0 on EOF, negative on failure.
  */
-[[nodiscard]] inline int standard_text_state_read_utf8_char(
+[[nodiscard]] inline auto standard_text_state_read_utf8_char(
     text_stream_state& state,
-    char32_t& out) noexcept {
+    char32_t& out) noexcept -> int {
     unsigned char b1 = 0;
     const int r1 = standard_text_state_read_byte(state, b1);
     if (r1 <= 0) {
@@ -160,9 +160,9 @@ inline int standard_text_state_close(text_stream_handle_t handle) noexcept {
  * @param out Destination code point.
  * @return 1 if one code point was read, 0 on EOF, negative on failure.
  */
-[[nodiscard]] inline int standard_text_state_read_cp932_char(
+[[nodiscard]] inline auto standard_text_state_read_cp932_char(
     text_stream_state& state,
-    char32_t& out) noexcept {
+    char32_t& out) noexcept -> int {
     unsigned char b1 = 0;
     const int r1 = standard_text_state_read_byte(state, b1);
     if (r1 <= 0) {
@@ -199,10 +199,10 @@ inline int standard_text_state_close(text_stream_handle_t handle) noexcept {
  * @param n Maximum number of characters to read.
  * @return Number of characters read on success, negative on failure.
  */
-[[nodiscard]] inline int standard_text_state_read(
+[[nodiscard]] inline auto standard_text_state_read(
     text_stream_handle_t handle,
     char32_t* s,
-    int n) noexcept {
+    int n) noexcept -> int {
     if (s == nullptr || n < 0) {
         return -1;
     }
@@ -254,9 +254,9 @@ inline int standard_text_state_close(text_stream_handle_t handle) noexcept {
  * @param ch Source code point.
  * @return Number of bytes written on success, negative on failure.
  */
-[[nodiscard]] inline int standard_text_state_write_utf8_char(
+[[nodiscard]] inline auto standard_text_state_write_utf8_char(
     std::FILE* file,
-    char32_t ch) noexcept {
+    char32_t ch) noexcept -> int {
     if (file == nullptr) {
         return -1;
     }
@@ -296,9 +296,9 @@ inline int standard_text_state_close(text_stream_handle_t handle) noexcept {
  * @param ch Source code point.
  * @return Number of bytes written on success, negative on failure.
  */
-[[nodiscard]] inline int standard_text_state_write_cp932_char(
+[[nodiscard]] inline auto standard_text_state_write_cp932_char(
     std::FILE* file,
-    char32_t ch) noexcept {
+    char32_t ch) noexcept -> int {
     if (file == nullptr) {
         return -1;
     }
@@ -330,10 +330,10 @@ inline int standard_text_state_close(text_stream_handle_t handle) noexcept {
  * @param n Number of characters to write.
  * @return Number of characters written on success, negative on failure.
  */
-[[nodiscard]] inline int standard_text_state_write(
+[[nodiscard]] inline auto standard_text_state_write(
     text_stream_handle_t handle,
     const char32_t* s,
-    int n) noexcept {
+    int n) noexcept -> int {
     if (s == nullptr || n < 0) {
         return -1;
     }
@@ -390,9 +390,9 @@ inline int standard_text_state_close(text_stream_handle_t handle) noexcept {
  * @param encoding Stream encoding.
  * @return Created standard text stream, or an empty stream on allocation failure.
  */
-[[nodiscard]] inline text_stream make_standard_text_stream(
+[[nodiscard]] inline auto make_standard_text_stream(
     std::FILE* file,
-    text_stream_encoding_t encoding) noexcept {
+    text_stream_encoding_t encoding) noexcept -> text_stream {
     auto* const state = new (std::nothrow) text_stream_state();
     if (state == nullptr) {
         return {};

@@ -20,7 +20,7 @@ namespace xer {
  *
  * @param stream Target binary stream.
  */
-constexpr void clearerr(binary_stream& stream) noexcept {
+constexpr auto clearerr(binary_stream& stream) noexcept -> void {
     if (!stream.has_value()) {
         return;
     }
@@ -35,7 +35,7 @@ constexpr void clearerr(binary_stream& stream) noexcept {
  *
  * @param stream Target text stream.
  */
-constexpr void clearerr(text_stream& stream) noexcept {
+constexpr auto clearerr(text_stream& stream) noexcept -> void {
     if (!stream.has_value()) {
         return;
     }

@@ -102,7 +102,7 @@ namespace detail {
  *
  * @return Always returns 0.
  */
-inline int text_stream_close_empty(text_stream_handle_t) noexcept {
+inline auto text_stream_close_empty(text_stream_handle_t) noexcept -> int {
     return 0;
 }
 
@@ -111,7 +111,7 @@ inline int text_stream_close_empty(text_stream_handle_t) noexcept {
  *
  * @return Always returns -1.
  */
-inline int text_stream_close_error(text_stream_handle_t) noexcept {
+inline auto text_stream_close_error(text_stream_handle_t) noexcept -> int {
     return -1;
 }
 
@@ -120,7 +120,7 @@ inline int text_stream_close_error(text_stream_handle_t) noexcept {
  *
  * @return Always returns -1.
  */
-inline int text_stream_read_error(text_stream_handle_t, char32_t*, int) noexcept {
+inline auto text_stream_read_error(text_stream_handle_t, char32_t*, int) noexcept -> int {
     return -1;
 }
 
@@ -129,7 +129,7 @@ inline int text_stream_read_error(text_stream_handle_t, char32_t*, int) noexcept
  *
  * @return Always returns -1.
  */
-inline int text_stream_write_error(text_stream_handle_t, const char32_t*, int) noexcept {
+inline auto text_stream_write_error(text_stream_handle_t, const char32_t*, int) noexcept -> int {
     return -1;
 }
 
@@ -138,7 +138,7 @@ inline int text_stream_write_error(text_stream_handle_t, const char32_t*, int) n
  *
  * @return Always returns -1.
  */
-inline text_stream_pos_t text_stream_getpos_error(text_stream_handle_t) noexcept {
+inline auto text_stream_getpos_error(text_stream_handle_t) noexcept -> text_stream_pos_t {
     return -1;
 }
 
@@ -147,7 +147,7 @@ inline text_stream_pos_t text_stream_getpos_error(text_stream_handle_t) noexcept
  *
  * @return Always returns -1.
  */
-inline int text_stream_setpos_error(text_stream_handle_t, text_stream_pos_t) noexcept {
+inline auto text_stream_setpos_error(text_stream_handle_t, text_stream_pos_t) noexcept -> int {
     return -1;
 }
 
@@ -156,7 +156,7 @@ inline int text_stream_setpos_error(text_stream_handle_t, text_stream_pos_t) noe
  *
  * @return Always returns -1.
  */
-inline int text_stream_seek_end_error(text_stream_handle_t) noexcept {
+inline auto text_stream_seek_end_error(text_stream_handle_t) noexcept -> int {
     return -1;
 }
 
@@ -239,7 +239,7 @@ public:
      * @param other Source stream.
      * @return Reference to this object.
      */
-    constexpr text_stream& operator=(text_stream&& other) noexcept {
+    constexpr auto operator=(text_stream&& other) noexcept -> text_stream& {
         if (this != &other) {
             (void)close();
 
@@ -280,7 +280,7 @@ public:
      *
      * @return Non-negative on success, negative on failure.
      */
-    int close() noexcept {
+    auto close() noexcept -> int {
         if (!has_value_) {
             return 0;
         }
@@ -296,7 +296,7 @@ public:
      * @return true if the stream is open.
      * @return false otherwise.
      */
-    [[nodiscard]] constexpr bool has_value() const noexcept {
+    [[nodiscard]] constexpr auto has_value() const noexcept -> bool {
         return has_value_;
     }
 
@@ -306,7 +306,7 @@ public:
      * @return true if the stream is at end-of-file state.
      * @return false otherwise.
      */
-    [[nodiscard]] constexpr bool eof() const noexcept {
+    [[nodiscard]] constexpr auto eof() const noexcept -> bool {
         return eof_;
     }
 
@@ -316,7 +316,7 @@ public:
      * @return true if the stream is at error state.
      * @return false otherwise.
      */
-    [[nodiscard]] constexpr bool error() const noexcept {
+    [[nodiscard]] constexpr auto error() const noexcept -> bool {
         return error_;
     }
 
@@ -325,7 +325,7 @@ public:
      *
      * @param value New EOF state.
      */
-    constexpr void set_eof(bool value) noexcept {
+    constexpr auto set_eof(bool value) noexcept -> void {
         eof_ = value;
     }
 
@@ -334,14 +334,14 @@ public:
      *
      * @param value New error state.
      */
-    constexpr void set_error(bool value) noexcept {
+    constexpr auto set_error(bool value) noexcept -> void {
         error_ = value;
     }
 
     /**
      * @brief Clears both EOF and error indicators.
      */
-    constexpr void clear_indicators() noexcept {
+    constexpr auto clear_indicators() noexcept -> void {
         eof_ = false;
         error_ = false;
     }
@@ -352,7 +352,7 @@ public:
      * @return true if one character has been pushed back.
      * @return false otherwise.
      */
-    [[nodiscard]] constexpr bool has_unget_char() const noexcept {
+    [[nodiscard]] constexpr auto has_unget_char() const noexcept -> bool {
         return has_unget_char_;
     }
 
@@ -363,7 +363,7 @@ public:
      *
      * @return Stored pushed-back character.
      */
-    [[nodiscard]] constexpr char32_t unget_char() const noexcept {
+    [[nodiscard]] constexpr auto unget_char() const noexcept -> char32_t {
         return unget_char_;
     }
 
@@ -372,7 +372,7 @@ public:
      *
      * @param ch Character to store.
      */
-    constexpr void set_unget_char(char32_t ch) noexcept {
+    constexpr auto set_unget_char(char32_t ch) noexcept -> void {
         has_unget_char_ = true;
         unget_char_ = ch;
     }
@@ -380,7 +380,7 @@ public:
     /**
      * @brief Clears the pushed-back character slot.
      */
-    constexpr void clear_unget_char() noexcept {
+    constexpr auto clear_unget_char() noexcept -> void {
         has_unget_char_ = false;
         unget_char_ = U'\0';
     }
@@ -390,7 +390,7 @@ public:
      *
      * @return Stored stream handle.
      */
-    [[nodiscard]] constexpr text_stream_handle_t handle() const noexcept {
+    [[nodiscard]] constexpr auto handle() const noexcept -> text_stream_handle_t {
         return handle_;
     }
 
@@ -399,7 +399,7 @@ public:
      *
      * @return Close function pointer.
      */
-    [[nodiscard]] constexpr text_stream_close_fn_t close_fn() const noexcept {
+    [[nodiscard]] constexpr auto close_fn() const noexcept -> text_stream_close_fn_t {
         return close_fn_;
     }
 
@@ -408,7 +408,7 @@ public:
      *
      * @return Read function pointer.
      */
-    [[nodiscard]] constexpr text_stream_read_fn_t read_fn() const noexcept {
+    [[nodiscard]] constexpr auto read_fn() const noexcept -> text_stream_read_fn_t {
         return read_fn_;
     }
 
@@ -417,7 +417,7 @@ public:
      *
      * @return Write function pointer.
      */
-    [[nodiscard]] constexpr text_stream_write_fn_t write_fn() const noexcept {
+    [[nodiscard]] constexpr auto write_fn() const noexcept -> text_stream_write_fn_t {
         return write_fn_;
     }
 
@@ -426,7 +426,7 @@ public:
      *
      * @return Get-position function pointer.
      */
-    [[nodiscard]] constexpr text_stream_getpos_fn_t getpos_fn() const noexcept {
+    [[nodiscard]] constexpr auto getpos_fn() const noexcept -> text_stream_getpos_fn_t {
         return getpos_fn_;
     }
 
@@ -435,7 +435,7 @@ public:
      *
      * @return Set-position function pointer.
      */
-    [[nodiscard]] constexpr text_stream_setpos_fn_t setpos_fn() const noexcept {
+    [[nodiscard]] constexpr auto setpos_fn() const noexcept -> text_stream_setpos_fn_t {
         return setpos_fn_;
     }
 
@@ -444,7 +444,7 @@ public:
      *
      * @return Seek-end function pointer.
      */
-    [[nodiscard]] constexpr text_stream_seek_end_fn_t seek_end_fn() const noexcept {
+    [[nodiscard]] constexpr auto seek_end_fn() const noexcept -> text_stream_seek_end_fn_t {
         return seek_end_fn_;
     }
 
@@ -453,7 +453,7 @@ public:
      *
      * @param other Target stream.
      */
-    constexpr void swap(text_stream& other) noexcept {
+    constexpr auto swap(text_stream& other) noexcept -> void {
         std::swap(handle_, other.handle_);
         std::swap(close_fn_, other.close_fn_);
         std::swap(read_fn_, other.read_fn_);
@@ -472,7 +472,7 @@ private:
     /**
      * @brief Resets the stream to the empty state.
      */
-    constexpr void reset() noexcept {
+    constexpr auto reset() noexcept -> void {
         handle_ = 0;
         close_fn_ = detail::text_stream_close_empty;
         read_fn_ = detail::text_stream_read_error;
@@ -507,7 +507,7 @@ private:
  * @param lhs Left stream.
  * @param rhs Right stream.
  */
-constexpr void swap(text_stream& lhs, text_stream& rhs) noexcept {
+constexpr auto swap(text_stream& lhs, text_stream& rhs) noexcept -> void {
     lhs.swap(rhs);
 }
 

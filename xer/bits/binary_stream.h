@@ -87,7 +87,7 @@ namespace detail {
  *
  * @return Always returns 0.
  */
-inline int binary_stream_close_empty(binary_stream_handle_t) noexcept {
+inline auto binary_stream_close_empty(binary_stream_handle_t) noexcept -> int {
     return 0;
 }
 
@@ -96,7 +96,7 @@ inline int binary_stream_close_empty(binary_stream_handle_t) noexcept {
  *
  * @return Always returns -1.
  */
-inline int binary_stream_close_error(binary_stream_handle_t) noexcept {
+inline auto binary_stream_close_error(binary_stream_handle_t) noexcept -> int {
     return -1;
 }
 
@@ -105,7 +105,7 @@ inline int binary_stream_close_error(binary_stream_handle_t) noexcept {
  *
  * @return Always returns -1.
  */
-inline int binary_stream_read_error(binary_stream_handle_t, void*, int) noexcept {
+inline auto binary_stream_read_error(binary_stream_handle_t, void*, int) noexcept -> int {
     return -1;
 }
 
@@ -114,7 +114,7 @@ inline int binary_stream_read_error(binary_stream_handle_t, void*, int) noexcept
  *
  * @return Always returns -1.
  */
-inline int binary_stream_write_error(binary_stream_handle_t, const void*, int) noexcept {
+inline auto binary_stream_write_error(binary_stream_handle_t, const void*, int) noexcept -> int {
     return -1;
 }
 
@@ -123,7 +123,7 @@ inline int binary_stream_write_error(binary_stream_handle_t, const void*, int) n
  *
  * @return Always returns -1.
  */
-inline int binary_stream_seek_error(binary_stream_handle_t, std::int64_t, int) noexcept {
+inline auto binary_stream_seek_error(binary_stream_handle_t, std::int64_t, int) noexcept -> int {
     return -1;
 }
 
@@ -132,7 +132,7 @@ inline int binary_stream_seek_error(binary_stream_handle_t, std::int64_t, int) n
  *
  * @return Always returns -1.
  */
-inline std::int64_t binary_stream_tell_error(binary_stream_handle_t) noexcept {
+inline auto binary_stream_tell_error(binary_stream_handle_t) noexcept -> std::int64_t {
     return -1;
 }
 
@@ -207,7 +207,7 @@ public:
      * @param other Source stream.
      * @return Reference to this object.
      */
-    constexpr binary_stream& operator=(binary_stream&& other) noexcept {
+    constexpr auto operator=(binary_stream&& other) noexcept -> binary_stream& {
         if (this != &other) {
             (void)close();
 
@@ -245,7 +245,7 @@ public:
      *
      * @return Non-negative on success, negative on failure.
      */
-    int close() noexcept {
+    auto close() noexcept -> int {
         if (!has_value_) {
             return 0;
         }
@@ -261,7 +261,7 @@ public:
      * @return true if the stream is open.
      * @return false otherwise.
      */
-    [[nodiscard]] constexpr bool has_value() const noexcept {
+    [[nodiscard]] constexpr auto has_value() const noexcept -> bool {
         return has_value_;
     }
 
@@ -271,7 +271,7 @@ public:
      * @return true if the stream is at end-of-file state.
      * @return false otherwise.
      */
-    [[nodiscard]] constexpr bool eof() const noexcept {
+    [[nodiscard]] constexpr auto eof() const noexcept -> bool {
         return eof_;
     }
 
@@ -281,7 +281,7 @@ public:
      * @return true if the stream is at error state.
      * @return false otherwise.
      */
-    [[nodiscard]] constexpr bool error() const noexcept {
+    [[nodiscard]] constexpr auto error() const noexcept -> bool {
         return error_;
     }
 
@@ -290,7 +290,7 @@ public:
      *
      * @param value New EOF state.
      */
-    constexpr void set_eof(bool value) noexcept {
+    constexpr auto set_eof(bool value) noexcept -> void {
         eof_ = value;
     }
 
@@ -299,14 +299,14 @@ public:
      *
      * @param value New error state.
      */
-    constexpr void set_error(bool value) noexcept {
+    constexpr auto set_error(bool value) noexcept -> void {
         error_ = value;
     }
 
     /**
      * @brief Clears both EOF and error indicators.
      */
-    constexpr void clear_indicators() noexcept {
+    constexpr auto clear_indicators() noexcept -> void {
         eof_ = false;
         error_ = false;
     }
@@ -316,7 +316,7 @@ public:
      *
      * @return Stored stream handle.
      */
-    [[nodiscard]] constexpr binary_stream_handle_t handle() const noexcept {
+    [[nodiscard]] constexpr auto handle() const noexcept -> binary_stream_handle_t {
         return handle_;
     }
 
@@ -325,7 +325,7 @@ public:
      *
      * @return Close function pointer.
      */
-    [[nodiscard]] constexpr binary_stream_close_fn_t close_fn() const noexcept {
+    [[nodiscard]] constexpr auto close_fn() const noexcept -> binary_stream_close_fn_t {
         return close_fn_;
     }
 
@@ -334,7 +334,7 @@ public:
      *
      * @return Read function pointer.
      */
-    [[nodiscard]] constexpr binary_stream_read_fn_t read_fn() const noexcept {
+    [[nodiscard]] constexpr auto read_fn() const noexcept -> binary_stream_read_fn_t {
         return read_fn_;
     }
 
@@ -343,7 +343,7 @@ public:
      *
      * @return Write function pointer.
      */
-    [[nodiscard]] constexpr binary_stream_write_fn_t write_fn() const noexcept {
+    [[nodiscard]] constexpr auto write_fn() const noexcept -> binary_stream_write_fn_t {
         return write_fn_;
     }
 
@@ -352,7 +352,7 @@ public:
      *
      * @return Seek function pointer.
      */
-    [[nodiscard]] constexpr binary_stream_seek_fn_t seek_fn() const noexcept {
+    [[nodiscard]] constexpr auto seek_fn() const noexcept -> binary_stream_seek_fn_t {
         return seek_fn_;
     }
 
@@ -361,7 +361,7 @@ public:
      *
      * @return Tell function pointer.
      */
-    [[nodiscard]] constexpr binary_stream_tell_fn_t tell_fn() const noexcept {
+    [[nodiscard]] constexpr auto tell_fn() const noexcept -> binary_stream_tell_fn_t {
         return tell_fn_;
     }
 
@@ -370,7 +370,7 @@ public:
      *
      * @param other Target stream.
      */
-    constexpr void swap(binary_stream& other) noexcept {
+    constexpr auto swap(binary_stream& other) noexcept -> void {
         std::swap(handle_, other.handle_);
         std::swap(close_fn_, other.close_fn_);
         std::swap(read_fn_, other.read_fn_);
@@ -386,7 +386,7 @@ private:
     /**
      * @brief Resets the stream to the empty state.
      */
-    constexpr void reset() noexcept {
+    constexpr auto reset() noexcept -> void {
         handle_ = 0;
         close_fn_ = detail::binary_stream_close_empty;
         read_fn_ = detail::binary_stream_read_error;
@@ -415,7 +415,7 @@ private:
  * @param lhs Left stream.
  * @param rhs Right stream.
  */
-constexpr void swap(binary_stream& lhs, binary_stream& rhs) noexcept {
+constexpr auto swap(binary_stream& lhs, binary_stream& rhs) noexcept -> void {
     lhs.swap(rhs);
 }
 

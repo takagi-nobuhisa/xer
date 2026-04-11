@@ -32,9 +32,9 @@ namespace detail {
  * @param offset Current byte offset. Advanced on success.
  * @return Decoded code point on success.
  */
-[[nodiscard]] inline std::expected<char32_t, error<void>> decode_utf8_char(
+[[nodiscard]] inline auto decode_utf8_char(
     std::u8string_view text,
-    std::size_t& offset) {
+    std::size_t& offset) -> std::expected<char32_t, error<void>> {
     if (offset >= text.size()) {
         return std::unexpected(make_error(error_t::not_found));
     }
@@ -118,8 +118,8 @@ namespace detail {
  * @param text Source UTF-8 text.
  * @return Decoded UTF-32 sequence on success.
  */
-[[nodiscard]] inline std::expected<std::u32string, error<void>> decode_utf8_string(
-    std::u8string_view text) {
+[[nodiscard]] inline auto decode_utf8_string(
+    std::u8string_view text) -> std::expected<std::u32string, error<void>> {
     std::u32string result;
     result.reserve(text.size());
 
@@ -143,7 +143,7 @@ namespace detail {
  * @return true if encodable.
  * @return false otherwise.
  */
-[[nodiscard]] inline bool is_valid_text_char(char32_t ch) noexcept {
+[[nodiscard]] inline auto is_valid_text_char(char32_t ch) noexcept -> bool {
     return advanced::utf32_to_packed_utf8(ch) != advanced::detail::invalid_packed_utf8;
 }
 
@@ -153,8 +153,8 @@ namespace detail {
  * @param stream Target stream.
  * @return Read code point on success.
  */
-[[nodiscard]] inline std::expected<char32_t, error<void>> text_stream_read_char(
-    text_stream& stream) {
+[[nodiscard]] inline auto text_stream_read_char(
+    text_stream& stream) -> std::expected<char32_t, error<void>> {
     if (!stream.has_value()) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -190,9 +190,9 @@ namespace detail {
  * @param ch Source code point.
  * @return Success or error.
  */
-[[nodiscard]] inline std::expected<void, error<void>> text_stream_write_char(
+[[nodiscard]] inline auto text_stream_write_char(
     text_stream& stream,
-    char32_t ch) {
+    char32_t ch) -> std::expected<void, error<void>> {
     if (!stream.has_value()) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -217,9 +217,9 @@ namespace detail {
  * @param keep_newline Whether to keep the trailing newline.
  * @return UTF-8 line text on success.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> text_stream_read_line(
+[[nodiscard]] inline auto text_stream_read_line(
     text_stream& stream,
-    bool keep_newline) {
+    bool keep_newline) -> std::expected<std::u8string, error<void>> {
     std::u8string result;
 
     while (true) {
@@ -258,10 +258,10 @@ namespace detail {
  * @param append_newline Whether to append a trailing newline.
  * @return Number of UTF-8 code units requested for output on success.
  */
-[[nodiscard]] inline std::expected<std::size_t, error<void>> text_stream_write_text(
+[[nodiscard]] inline auto text_stream_write_text(
     text_stream& stream,
     std::u8string_view text,
-    bool append_newline) {
+    bool append_newline) -> std::expected<std::size_t, error<void>> {
     if (!stream.has_value()) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -308,9 +308,9 @@ namespace detail {
  * @param stream Target stream.
  * @return The pushed-back character on success.
  */
-[[nodiscard]] inline std::expected<char32_t, error<void>> text_stream_unget_char(
+[[nodiscard]] inline auto text_stream_unget_char(
     char32_t ch,
-    text_stream& stream) {
+    text_stream& stream) -> std::expected<char32_t, error<void>> {
     if (!stream.has_value()) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -336,7 +336,7 @@ namespace detail {
  * @param stream Target stream.
  * @return Read code point on success.
  */
-[[nodiscard]] inline std::expected<char32_t, error<void>> fgetc(text_stream& stream) {
+[[nodiscard]] inline auto fgetc(text_stream& stream) -> std::expected<char32_t, error<void>> {
     return detail::text_stream_read_char(stream);
 }
 
@@ -345,7 +345,7 @@ namespace detail {
  *
  * @return Read code point on success.
  */
-[[nodiscard]] inline std::expected<char32_t, error<void>> getchar() {
+[[nodiscard]] inline auto getchar() -> std::expected<char32_t, error<void>> {
     return fgetc(standard_input);
 }
 
@@ -358,9 +358,9 @@ namespace detail {
  * @param stream Target stream.
  * @return The pushed-back character on success.
  */
-[[nodiscard]] inline std::expected<char32_t, error<void>> ungetc(
+[[nodiscard]] inline auto ungetc(
     char32_t ch,
-    text_stream& stream) {
+    text_stream& stream) -> std::expected<char32_t, error<void>> {
     return detail::text_stream_unget_char(ch, stream);
 }
 
@@ -371,9 +371,9 @@ namespace detail {
  * @param stream Target stream.
  * @return The written code point on success.
  */
-[[nodiscard]] inline std::expected<char32_t, error<void>> fputc(
+[[nodiscard]] inline auto fputc(
     char32_t ch,
-    text_stream& stream) {
+    text_stream& stream) -> std::expected<char32_t, error<void>> {
     const auto result = detail::text_stream_write_char(stream, ch);
     if (!result.has_value()) {
         return std::unexpected(result.error());
@@ -388,7 +388,7 @@ namespace detail {
  * @param ch Source code point.
  * @return The written code point on success.
  */
-[[nodiscard]] inline std::expected<char32_t, error<void>> putchar(char32_t ch) {
+[[nodiscard]] inline auto putchar(char32_t ch) -> std::expected<char32_t, error<void>> {
     return fputc(ch, standard_output);
 }
 
@@ -399,9 +399,9 @@ namespace detail {
  * @param keep_newline Whether to keep the trailing newline.
  * @return UTF-8 line text on success.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> fgets(
+[[nodiscard]] inline auto fgets(
     text_stream& stream,
-    bool keep_newline = true) {
+    bool keep_newline = true) -> std::expected<std::u8string, error<void>> {
     return detail::text_stream_read_line(stream, keep_newline);
 }
 
@@ -411,8 +411,8 @@ namespace detail {
  * @param keep_newline Whether to keep the trailing newline.
  * @return UTF-8 line text on success.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> gets(
-    bool keep_newline = false) {
+[[nodiscard]] inline auto gets(
+    bool keep_newline = false) -> std::expected<std::u8string, error<void>> {
     return fgets(standard_input, keep_newline);
 }
 
@@ -424,10 +424,10 @@ namespace detail {
  * @param append_newline Whether to append a trailing newline.
  * @return Number of UTF-8 code units requested for output on success.
  */
-[[nodiscard]] inline std::expected<std::size_t, error<void>> fputs(
+[[nodiscard]] inline auto fputs(
     std::u8string_view text,
     text_stream& stream,
-    bool append_newline = false) {
+    bool append_newline = false) -> std::expected<std::size_t, error<void>> {
     return detail::text_stream_write_text(stream, text, append_newline);
 }
 
@@ -437,8 +437,8 @@ namespace detail {
  * @param text Source UTF-8 text.
  * @return Number of UTF-8 code units requested for output on success.
  */
-[[nodiscard]] inline std::expected<std::size_t, error<void>> puts(
-    std::u8string_view text) {
+[[nodiscard]] inline auto puts(
+    std::u8string_view text) -> std::expected<std::size_t, error<void>> {
     return fputs(text, standard_output, true);
 }
 

@@ -20,7 +20,7 @@ namespace xer {
  * @return true if the EOF indicator is set.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool feof(const binary_stream& stream) noexcept {
+[[nodiscard]] constexpr auto feof(const binary_stream& stream) noexcept -> bool {
     return stream.eof();
 }
 
@@ -31,7 +31,7 @@ namespace xer {
  * @return true if the EOF indicator is set.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool feof(const text_stream& stream) noexcept {
+[[nodiscard]] constexpr auto feof(const text_stream& stream) noexcept -> bool {
     return stream.eof();
 }
 

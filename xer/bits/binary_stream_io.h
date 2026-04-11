@@ -24,8 +24,8 @@ namespace xer::detail {
  * @param size Source byte count.
  * @return Converted count on success.
  */
-[[nodiscard]] inline std::expected<int, error<void>> binary_stream_io_size_to_int(
-    std::size_t size) noexcept {
+[[nodiscard]] inline auto binary_stream_io_size_to_int(
+    std::size_t size) noexcept -> std::expected<int, error<void>> {
     if (size > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
@@ -47,9 +47,9 @@ namespace xer {
  * @param stream Source stream.
  * @return Number of bytes read on success.
  */
-[[nodiscard]] inline std::expected<std::size_t, error<void>> fread(
+[[nodiscard]] inline auto fread(
     std::span<std::byte> buffer,
-    binary_stream& stream) noexcept {
+    binary_stream& stream) noexcept -> std::expected<std::size_t, error<void>> {
     const auto count = detail::binary_stream_io_size_to_int(buffer.size());
     if (!count.has_value()) {
         return std::unexpected(count.error());
@@ -77,9 +77,9 @@ namespace xer {
  * @param stream Destination stream.
  * @return Number of bytes written on success.
  */
-[[nodiscard]] inline std::expected<std::size_t, error<void>> fwrite(
+[[nodiscard]] inline auto fwrite(
     std::span<const std::byte> buffer,
-    binary_stream& stream) noexcept {
+    binary_stream& stream) noexcept -> std::expected<std::size_t, error<void>> {
     const auto count = detail::binary_stream_io_size_to_int(buffer.size());
     if (!count.has_value()) {
         return std::unexpected(count.error());
@@ -105,8 +105,8 @@ namespace xer {
  * @param stream Source stream.
  * @return Read byte on success.
  */
-[[nodiscard]] inline std::expected<std::byte, error<void>> fgetb(
-    binary_stream& stream) noexcept {
+[[nodiscard]] inline auto fgetb(
+    binary_stream& stream) noexcept -> std::expected<std::byte, error<void>> {
     std::byte value{};
     const int result = stream.read_fn()(stream.handle(), &value, 1);
 
@@ -128,9 +128,9 @@ namespace xer {
  * @param stream Destination stream.
  * @return Success or error.
  */
-[[nodiscard]] inline std::expected<void, error<void>> fputb(
+[[nodiscard]] inline auto fputb(
     std::byte value,
-    binary_stream& stream) noexcept {
+    binary_stream& stream) noexcept -> std::expected<std::byte, error<void>> {
     const int result = stream.write_fn()(stream.handle(), &value, 1);
 
     if (result < 0) {

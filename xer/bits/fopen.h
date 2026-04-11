@@ -57,7 +57,7 @@ enum class open_mode {
  * @return true if the mode reads from the stream.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool is_read_mode(open_mode mode) noexcept {
+[[nodiscard]] constexpr auto is_read_mode(open_mode mode) noexcept -> bool {
     return mode == open_mode::r || mode == open_mode::rp || mode == open_mode::wp ||
            mode == open_mode::ap;
 }
@@ -69,7 +69,7 @@ enum class open_mode {
  * @return true if the mode writes to the stream.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool is_write_mode(open_mode mode) noexcept {
+[[nodiscard]] constexpr auto is_write_mode(open_mode mode) noexcept -> bool {
     return mode == open_mode::rp || mode == open_mode::w || mode == open_mode::wp ||
            mode == open_mode::a || mode == open_mode::ap;
 }
@@ -81,7 +81,7 @@ enum class open_mode {
  * @return true if the mode appends to the stream.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool is_append_mode(open_mode mode) noexcept {
+[[nodiscard]] constexpr auto is_append_mode(open_mode mode) noexcept -> bool {
     return mode == open_mode::a || mode == open_mode::ap;
 }
 
@@ -92,7 +92,7 @@ enum class open_mode {
  * @return true if the mode enables both reading and writing.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool is_update_mode(open_mode mode) noexcept {
+[[nodiscard]] constexpr auto is_update_mode(open_mode mode) noexcept -> bool {
     return mode == open_mode::rp || mode == open_mode::wp || mode == open_mode::ap;
 }
 
@@ -108,7 +108,7 @@ enum class open_mode {
  * @param mode Source mode string.
  * @return Parsed open mode on success, open_mode::error on failure.
  */
-[[nodiscard]] inline open_mode parse_binary_open_mode(const char* mode) noexcept {
+[[nodiscard]] inline auto parse_binary_open_mode(const char* mode) noexcept -> open_mode {
     if (mode == nullptr || *mode == '\0') {
         return open_mode::error;
     }
@@ -191,7 +191,7 @@ enum class open_mode {
  * @param mode Source mode string.
  * @return Parsed open mode on success, open_mode::error on failure.
  */
-[[nodiscard]] inline open_mode parse_text_open_mode(const char* mode) noexcept {
+[[nodiscard]] inline auto parse_text_open_mode(const char* mode) noexcept -> open_mode {
     if (mode == nullptr || *mode == '\0') {
         return open_mode::error;
     }
@@ -269,7 +269,7 @@ enum class open_mode {
  * @param text_mode Whether to generate a text mode string.
  * @return Native mode string.
  */
-[[nodiscard]] inline const char* to_native_mode_string(
+[[nodiscard]] inline auto to_native_mode_string(
     open_mode mode,
     bool text_mode) noexcept {
     switch (mode) {
@@ -304,9 +304,9 @@ enum class open_mode {
  * @param mode Native fopen mode string.
  * @return Opened FILE pointer on success, nullptr on failure.
  */
-[[nodiscard]] inline std::FILE* open_native_file(
+[[nodiscard]] inline auto open_native_file(
     const path& filename,
-    const char* mode) noexcept {
+    const char* mode) noexcept -> std::FILE* {
     const auto native_path = to_native_path(filename);
     if (!native_path.has_value()) {
         return nullptr;
@@ -356,8 +356,8 @@ struct binary_stream_state {
  * @param handle Opaque stream handle.
  * @return Underlying state pointer.
  */
-[[nodiscard]] inline binary_stream_state* binary_handle_to_state(
-    binary_stream_handle_t handle) noexcept {
+[[nodiscard]] inline auto binary_handle_to_state(
+    binary_stream_handle_t handle) noexcept -> binary_stream_state* {
     return reinterpret_cast<binary_stream_state*>(handle);
 }
 
@@ -367,7 +367,7 @@ struct binary_stream_state {
  * @param handle Opaque stream handle.
  * @return Non-negative on success, negative on failure.
  */
-inline int binary_state_close(binary_stream_handle_t handle) noexcept {
+inline auto binary_state_close(binary_stream_handle_t handle) noexcept -> int {
     binary_stream_state* const state = binary_handle_to_state(handle);
     if (state == nullptr) {
         return -1;
@@ -396,7 +396,7 @@ inline int binary_state_close(binary_stream_handle_t handle) noexcept {
  * @param n Maximum number of bytes to read.
  * @return Number of bytes read on success, negative on failure.
  */
-inline int binary_state_read(binary_stream_handle_t handle, void* s, int n) noexcept {
+inline auto binary_state_read(binary_stream_handle_t handle, void* s, int n) noexcept -> int {
     if (s == nullptr || n < 0) {
         return -1;
     }
@@ -447,7 +447,7 @@ inline int binary_state_read(binary_stream_handle_t handle, void* s, int n) noex
  * @param n Number of bytes to write.
  * @return Number of bytes written on success, negative on failure.
  */
-inline int binary_state_write(binary_stream_handle_t handle, const void* s, int n) noexcept {
+inline auto binary_state_write(binary_stream_handle_t handle, const void* s, int n) noexcept -> int {
     if (s == nullptr || n < 0) {
         return -1;
     }
@@ -514,7 +514,7 @@ inline int binary_state_write(binary_stream_handle_t handle, const void* s, int 
  * @param whence Seek origin.
  * @return Non-negative on success, negative on failure.
  */
-inline int binary_state_seek(
+inline auto binary_state_seek(
     binary_stream_handle_t handle,
     std::int64_t pos,
     int whence) noexcept {
@@ -573,7 +573,7 @@ inline int binary_state_seek(
  * @param handle Opaque stream handle.
  * @return Current position on success, negative on failure.
  */
-inline std::int64_t binary_state_tell(binary_stream_handle_t handle) noexcept {
+inline auto binary_state_tell(binary_stream_handle_t handle) noexcept -> std::int64_t {
     binary_stream_state* const state = binary_handle_to_state(handle);
     if (state == nullptr) {
         return -1;
@@ -661,7 +661,7 @@ struct text_stream_state {
  * @param handle Opaque stream handle.
  * @return Underlying state pointer.
  */
-[[nodiscard]] inline text_stream_state* text_handle_to_state(text_stream_handle_t handle) noexcept {
+[[nodiscard]] inline auto text_handle_to_state(text_stream_handle_t handle) noexcept -> text_stream_state* {
     return reinterpret_cast<text_stream_state*>(handle);
 }
 
@@ -670,7 +670,7 @@ struct text_stream_state {
  *
  * @param state Target text stream state.
  */
-inline void reset_text_stream_runtime_state(text_stream_state& state) noexcept {
+inline auto reset_text_stream_runtime_state(text_stream_state& state) noexcept -> void {
     state.buffer_size = 0;
     state.buffer_pos = 0;
     state.mbstate.pending[0] = 0;
@@ -686,7 +686,7 @@ inline void reset_text_stream_runtime_state(text_stream_state& state) noexcept {
  * @param handle Opaque stream handle.
  * @return Non-negative on success, negative on failure.
  */
-inline int text_state_close(text_stream_handle_t handle) noexcept {
+inline auto text_state_close(text_stream_handle_t handle) noexcept -> int {
     text_stream_state* const state = text_handle_to_state(handle);
     if (state == nullptr) {
         return -1;
@@ -713,7 +713,7 @@ inline int text_state_close(text_stream_handle_t handle) noexcept {
  * @param handle Opaque stream handle.
  * @return Current position on success, negative on failure.
  */
-inline text_stream_pos_t text_state_getpos(text_stream_handle_t handle) noexcept {
+inline auto text_state_getpos(text_stream_handle_t handle) noexcept -> text_stream_pos_t {
     text_stream_state* const state = text_handle_to_state(handle);
     if (state == nullptr) {
         return -1;
@@ -752,7 +752,7 @@ inline text_stream_pos_t text_state_getpos(text_stream_handle_t handle) noexcept
  * @param pos Position previously obtained by getpos.
  * @return Non-negative on success, negative on failure.
  */
-inline int text_state_setpos(text_stream_handle_t handle, text_stream_pos_t pos) noexcept {
+inline auto text_state_setpos(text_stream_handle_t handle, text_stream_pos_t pos) noexcept -> int {
     text_stream_state* const state = text_handle_to_state(handle);
     if (state == nullptr || pos < 0) {
         return -1;
@@ -802,7 +802,7 @@ inline int text_state_setpos(text_stream_handle_t handle, text_stream_pos_t pos)
  * @param handle Opaque stream handle.
  * @return Non-negative on success, negative on failure.
  */
-inline int text_state_seek_end(text_stream_handle_t handle) noexcept {
+inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
     text_stream_state* const state = text_handle_to_state(handle);
     if (state == nullptr) {
         return -1;
@@ -851,9 +851,9 @@ inline int text_state_seek_end(text_stream_handle_t handle) noexcept {
  * @return Opened binary stream on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline std::expected<binary_stream, error<void>> fopen(
+[[nodiscard]] inline auto fopen(
     const path& filename,
-    const char* mode) noexcept {
+    const char* mode) noexcept -> std::expected<binary_stream, error<void>> {
     const detail::open_mode parsed = detail::parse_binary_open_mode(mode);
     if (parsed == detail::open_mode::error) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -897,10 +897,10 @@ inline int text_state_seek_end(text_stream_handle_t handle) noexcept {
  * @return Opened text stream on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline std::expected<text_stream, error<void>> fopen(
+[[nodiscard]] inline auto fopen(
     const path& filename,
     const char* mode,
-    encoding_t encoding) noexcept {
+    encoding_t encoding) noexcept -> std::expected<text_stream, error<void>> {
     const detail::open_mode parsed = detail::parse_text_open_mode(mode);
     if (parsed == detail::open_mode::error) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -963,9 +963,9 @@ inline int text_state_seek_end(text_stream_handle_t handle) noexcept {
  * @return Opened binary stream on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline std::expected<binary_stream, error<void>> memopen(
+[[nodiscard]] inline auto memopen(
     std::span<std::byte> mem,
-    const char* mode) noexcept {
+    const char* mode) noexcept -> std::expected<binary_stream, error<void>> {
     const detail::open_mode parsed = detail::parse_binary_open_mode(mode);
     if (parsed == detail::open_mode::error) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -1011,9 +1011,9 @@ inline int text_state_seek_end(text_stream_handle_t handle) noexcept {
  * @return Opened text stream on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline std::expected<text_stream, error<void>> stropen(
+[[nodiscard]] inline auto stropen(
     std::u8string_view str,
-    const char* mode) noexcept {
+    const char* mode) noexcept -> std::expected<text_stream, error<void>> {
     const detail::open_mode parsed = detail::parse_text_open_mode(mode);
     if (parsed == detail::open_mode::error) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -1051,9 +1051,9 @@ inline int text_state_seek_end(text_stream_handle_t handle) noexcept {
  * @return Opened text stream on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline std::expected<text_stream, error<void>> stropen(
+[[nodiscard]] inline auto stropen(
     std::u8string& str,
-    const char* mode) noexcept {
+    const char* mode) noexcept -> std::expected<text_stream, error<void>> {
     const detail::open_mode parsed = detail::parse_text_open_mode(mode);
     if (parsed == detail::open_mode::error) {
         return std::unexpected(make_error(error_t::invalid_argument));

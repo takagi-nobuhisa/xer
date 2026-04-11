@@ -27,7 +27,7 @@ namespace xer {
  * @return Empty expected on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline std::expected<void, error<void>> fflush(binary_stream& stream) noexcept {
+[[nodiscard]] inline auto fflush(binary_stream& stream) noexcept -> std::expected<void, error<void>> {
     if (!stream.has_value()) {
         return std::unexpected(make_error(error_t::runtime_error));
     }
@@ -64,7 +64,7 @@ namespace xer {
  * @return Empty expected on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline std::expected<void, error<void>> fflush(text_stream& stream) noexcept {
+[[nodiscard]] inline auto fflush(text_stream& stream) noexcept -> std::expected<void, error<void>> {
     if (!stream.has_value()) {
         return std::unexpected(make_error(error_t::runtime_error));
     }
