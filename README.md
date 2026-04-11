@@ -113,6 +113,7 @@ Current public headers:
 - `xer/stdint.h`
 - `xer/arithmetic.h`
 - `xer/time.h`
+- `xer/version.h`
 
 Headers under `xer/bits/` are internal implementation details.
 
