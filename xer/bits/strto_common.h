@@ -18,7 +18,7 @@ namespace xer::detail {
  * @param ch Character to test.
  * @return true if the character is an ASCII whitespace.
  */
-[[nodiscard]] constexpr bool is_ascii_space(char8_t ch) noexcept
+[[nodiscard]] constexpr auto is_ascii_space(char8_t ch) noexcept -> bool
 {
     switch (ch) {
         case u8' ':
@@ -39,7 +39,7 @@ namespace xer::detail {
  * @param ch Character to convert.
  * @return Digit value, or -1 if the character is not a supported digit.
  */
-[[nodiscard]] constexpr int ascii_digit_value(char8_t ch) noexcept
+[[nodiscard]] constexpr auto ascii_digit_value(char8_t ch) noexcept -> int
 {
     if (ch >= u8'0' && ch <= u8'9') {
         return static_cast<int>(ch - u8'0');

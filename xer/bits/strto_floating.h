@@ -28,7 +28,7 @@ namespace detail {
 template<typename T>
 concept strto_floating_point = std::floating_point<std::remove_cv_t<T>>;
 
-[[nodiscard]] constexpr char8_t ascii_to_lower(char8_t ch) noexcept
+[[nodiscard]] constexpr auto ascii_to_lower(char8_t ch) noexcept -> char8_t
 {
     if (ch >= u8'A' && ch <= u8'Z') {
         return static_cast<char8_t>(ch - u8'A' + u8'a');
@@ -37,15 +37,15 @@ concept strto_floating_point = std::floating_point<std::remove_cv_t<T>>;
     return ch;
 }
 
-[[nodiscard]] constexpr bool ascii_iequal(char8_t lhs, char8_t rhs) noexcept
+[[nodiscard]] constexpr auto ascii_iequal(char8_t lhs, char8_t rhs) noexcept -> bool
 {
     return ascii_to_lower(lhs) == ascii_to_lower(rhs);
 }
 
-[[nodiscard]] constexpr bool starts_with_ascii_icase(
+[[nodiscard]] constexpr auto starts_with_ascii_icase(
     std::u8string_view str,
     std::size_t offset,
-    std::u8string_view keyword) noexcept
+    std::u8string_view keyword) noexcept -> bool
 {
     if (offset + keyword.size() > str.size()) {
         return false;
@@ -65,10 +65,10 @@ struct floating_special_result {
     std::size_t end_offset;
 };
 
-[[nodiscard]] inline std::expected<floating_special_result, error<void>> parse_special_floating(
+[[nodiscard]] inline auto parse_special_floating(
     std::u8string_view str,
     std::size_t offset,
-    bool negative)
+    bool negative) -> std::expected<floating_special_result, error<void>>
 {
     if (starts_with_ascii_icase(str, offset, u8"infinity")) {
         const long double value = negative
@@ -115,9 +115,9 @@ struct floating_parse_result {
     std::size_t end_offset;
 };
 
-[[nodiscard]] inline long double scale_by_power_of_two(
+[[nodiscard]] inline auto scale_by_power_of_two(
     long double value,
-    long long exponent)
+    long long exponent) -> long double
 {
     if (value == 0.0L) {
         return 0.0L;
@@ -144,9 +144,9 @@ struct floating_parse_result {
     return result;
 }
 
-[[nodiscard]] inline long double scale_by_power_of_ten(
+[[nodiscard]] inline auto scale_by_power_of_ten(
     long double value,
-    long long exponent)
+    long long exponent) -> long double
 {
     if (value == 0.0L) {
         return 0.0L;
@@ -184,10 +184,10 @@ struct floating_parse_result {
     return result;
 }
 
-[[nodiscard]] inline long double apply_floating_exponent(
+[[nodiscard]] inline auto apply_floating_exponent(
     long double significand,
     bool hexadecimal,
-    long long exponent)
+    long long exponent) -> long double
 {
     if (hexadecimal) {
         return scale_by_power_of_two(significand, exponent);
@@ -197,8 +197,8 @@ struct floating_parse_result {
 }
 
 template<strto_floating_point T>
-[[nodiscard]] inline std::expected<floating_parse_result<T>, error<void>> parse_floating_view(
-    std::u8string_view str)
+[[nodiscard]] inline auto parse_floating_view(
+    std::u8string_view str) -> std::expected<floating_parse_result<T>, error<void>>
 {
     std::size_t offset = 0;
     while (offset < str.size() && is_ascii_space(str[offset])) {
@@ -424,9 +424,9 @@ template<strto_floating_point T>
 }
 
 template<strto_floating_point T>
-[[nodiscard]] inline std::expected<T, error<void>> strto_from_view(
+[[nodiscard]] inline auto strto_from_view(
     std::u8string_view str,
-    std::size_t* end_offset)
+    std::size_t* end_offset) -> std::expected<T, error<void>>
 {
     const auto parsed = parse_floating_view<T>(str);
     if (!parsed) {
@@ -447,9 +447,9 @@ template<strto_floating_point T>
 } // namespace detail
 
 template<detail::strto_floating_point T>
-[[nodiscard]] inline std::expected<T, error<void>> strto(
+[[nodiscard]] inline auto strto(
     std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr)
+    std::u8string_view::const_iterator* endit = nullptr) -> std::expected<T, error<void>>
 {
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(str, &end_offset);
@@ -462,9 +462,9 @@ template<detail::strto_floating_point T>
 }
 
 template<detail::strto_floating_point T>
-[[nodiscard]] inline std::expected<T, error<void>> strto(
+[[nodiscard]] inline auto strto(
     const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr)
+    std::u8string::const_iterator* endit = nullptr) -> std::expected<T, error<void>>
 {
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(std::u8string_view(str), &end_offset);
@@ -477,9 +477,9 @@ template<detail::strto_floating_point T>
 }
 
 template<detail::strto_floating_point T>
-[[nodiscard]] inline std::expected<T, error<void>> strto(
+[[nodiscard]] inline auto strto(
     std::u8string& str,
-    std::u8string::iterator* endit = nullptr)
+    std::u8string::iterator* endit = nullptr) -> std::expected<T, error<void>>
 {
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(std::u8string_view(str), &end_offset);
@@ -492,9 +492,9 @@ template<detail::strto_floating_point T>
 }
 
 template<detail::strto_floating_point T>
-[[nodiscard]] inline std::expected<T, error<void>> strto(
+[[nodiscard]] inline auto strto(
     const char8_t* str,
-    const char8_t** endptr = nullptr)
+    const char8_t** endptr = nullptr) -> std::expected<T, error<void>>
 {
     const std::u8string_view view(str);
     std::size_t end_offset = 0;
@@ -508,9 +508,9 @@ template<detail::strto_floating_point T>
 }
 
 template<detail::strto_floating_point T>
-[[nodiscard]] inline std::expected<T, error<void>> strto(
+[[nodiscard]] inline auto strto(
     char8_t* str,
-    char8_t** endptr = nullptr)
+    char8_t** endptr = nullptr) -> std::expected<T, error<void>>
 {
     const std::u8string_view view(str);
     std::size_t end_offset = 0;
@@ -523,121 +523,121 @@ template<detail::strto_floating_point T>
     return result;
 }
 
-[[nodiscard]] inline std::expected<float, error<void>> strtof(
+[[nodiscard]] inline auto strtof(
     std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr)
+    std::u8string_view::const_iterator* endit = nullptr) -> std::expected<float, error<void>>
 {
     return strto<float>(str, endit);
 }
 
-[[nodiscard]] inline std::expected<float, error<void>> strtof(
+[[nodiscard]] inline auto strtof(
     const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr)
+    std::u8string::const_iterator* endit = nullptr) -> std::expected<float, error<void>>
 {
     return strto<float>(str, endit);
 }
 
-[[nodiscard]] inline std::expected<float, error<void>> strtof(
+[[nodiscard]] inline auto strtof(
     std::u8string& str,
-    std::u8string::iterator* endit = nullptr)
+    std::u8string::iterator* endit = nullptr) -> std::expected<float, error<void>>
 {
     return strto<float>(str, endit);
 }
 
-[[nodiscard]] inline std::expected<float, error<void>> strtof(
+[[nodiscard]] inline auto strtof(
     const char8_t* str,
-    const char8_t** endptr = nullptr)
+    const char8_t** endptr = nullptr) -> std::expected<float, error<void>>
 {
     return strto<float>(str, endptr);
 }
 
-[[nodiscard]] inline std::expected<float, error<void>> strtof(
+[[nodiscard]] inline auto strtof(
     char8_t* str,
-    char8_t** endptr = nullptr)
+    char8_t** endptr = nullptr) -> std::expected<float, error<void>>
 {
     return strto<float>(str, endptr);
 }
 
-[[nodiscard]] inline std::expected<double, error<void>> strtod(
+[[nodiscard]] inline auto strtod(
     std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr)
+    std::u8string_view::const_iterator* endit = nullptr) -> std::expected<double, error<void>>
 {
     return strto<double>(str, endit);
 }
 
-[[nodiscard]] inline std::expected<double, error<void>> strtod(
+[[nodiscard]] inline auto strtod(
     const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr)
+    std::u8string::const_iterator* endit = nullptr) -> std::expected<double, error<void>>
 {
     return strto<double>(str, endit);
 }
 
-[[nodiscard]] inline std::expected<double, error<void>> strtod(
+[[nodiscard]] inline auto strtod(
     std::u8string& str,
-    std::u8string::iterator* endit = nullptr)
+    std::u8string::iterator* endit = nullptr) -> std::expected<double, error<void>>
 {
     return strto<double>(str, endit);
 }
 
-[[nodiscard]] inline std::expected<double, error<void>> strtod(
+[[nodiscard]] inline auto strtod(
     const char8_t* str,
-    const char8_t** endptr = nullptr)
+    const char8_t** endptr = nullptr) -> std::expected<double, error<void>>
 {
     return strto<double>(str, endptr);
 }
 
-[[nodiscard]] inline std::expected<double, error<void>> strtod(
+[[nodiscard]] inline auto strtod(
     char8_t* str,
-    char8_t** endptr = nullptr)
+    char8_t** endptr = nullptr) -> std::expected<double, error<void>>
 {
     return strto<double>(str, endptr);
 }
 
-[[nodiscard]] inline std::expected<long double, error<void>> strtold(
+[[nodiscard]] inline auto strtold(
     std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr)
+    std::u8string_view::const_iterator* endit = nullptr) -> std::expected<long double, error<void>>
 {
     return strto<long double>(str, endit);
 }
 
-[[nodiscard]] inline std::expected<long double, error<void>> strtold(
+[[nodiscard]] inline auto strtold(
     const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr)
+    std::u8string::const_iterator* endit = nullptr) -> std::expected<long double, error<void>>
 {
     return strto<long double>(str, endit);
 }
 
-[[nodiscard]] inline std::expected<long double, error<void>> strtold(
+[[nodiscard]] inline auto strtold(
     std::u8string& str,
-    std::u8string::iterator* endit = nullptr)
+    std::u8string::iterator* endit = nullptr) -> std::expected<long double, error<void>>
 {
     return strto<long double>(str, endit);
 }
 
-[[nodiscard]] inline std::expected<long double, error<void>> strtold(
+[[nodiscard]] inline auto strtold(
     const char8_t* str,
-    const char8_t** endptr = nullptr)
+    const char8_t** endptr = nullptr) -> std::expected<long double, error<void>>
 {
     return strto<long double>(str, endptr);
 }
 
-[[nodiscard]] inline std::expected<long double, error<void>> strtold(
+[[nodiscard]] inline auto strtold(
     char8_t* str,
-    char8_t** endptr = nullptr)
+    char8_t** endptr = nullptr) -> std::expected<long double, error<void>>
 {
     return strto<long double>(str, endptr);
 }
 
-[[nodiscard]] inline std::expected<float, error<void>> strtof32(
+[[nodiscard]] inline auto strtof32(
     std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr)
+    std::u8string_view::const_iterator* endit = nullptr) -> std::expected<float, error<void>>
 {
     return strto<float>(str, endit);
 }
 
-[[nodiscard]] inline std::expected<double, error<void>> strtof64(
+[[nodiscard]] inline auto strtof64(
     std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr)
+    std::u8string_view::const_iterator* endit = nullptr) -> std::expected<double, error<void>>
 {
     return strto<double>(str, endit);
 }

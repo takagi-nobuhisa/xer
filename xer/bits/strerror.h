@@ -25,7 +25,7 @@ namespace xer::detail {
  * @return Underlying integer value.
  */
 template<typename Enum>
-[[nodiscard]] constexpr std::underlying_type_t<Enum> to_underlying(Enum value) noexcept {
+[[nodiscard]] constexpr auto to_underlying(Enum value) noexcept -> std::underlying_type_t<Enum> {
     return static_cast<std::underlying_type_t<Enum>>(value);
 }
 
@@ -35,7 +35,7 @@ template<typename Enum>
  * @param code Error code.
  * @return Unexpected error result.
  */
-[[nodiscard]] constexpr std::unexpected<error<void>> make_unexpected_error(error_t code) noexcept {
+[[nodiscard]] constexpr auto make_unexpected_error(error_t code) noexcept -> std::unexpected<error<void>> {
     return std::unexpected(make_error(code));
 }
 
@@ -53,7 +53,7 @@ namespace xer {
  * @param code Error code.
  * @return English error message on success.
  */
-[[nodiscard]] constexpr std::expected<std::u8string_view, error<void>> strerror(error_t code) noexcept {
+[[nodiscard]] constexpr auto strerror(error_t code) noexcept -> std::expected<std::u8string_view, error<void>> {
     switch (code) {
     case error_t::perm:
         return u8"Operation not permitted";
@@ -183,7 +183,7 @@ namespace xer {
  * @param code Error code.
  * @return Enumerator name on success.
  */
-[[nodiscard]] constexpr std::expected<std::u8string_view, error<void>> get_error_name(error_t code) noexcept {
+[[nodiscard]] constexpr auto get_error_name(error_t code) noexcept -> std::expected<std::u8string_view, error<void>> {
     switch (code) {
     case error_t::perm:
         return u8"perm";
@@ -316,7 +316,7 @@ namespace xer {
  * @param code Error code.
  * @return errno macro name on success.
  */
-[[nodiscard]] constexpr std::expected<std::u8string_view, error<void>> get_errno_name(error_t code) noexcept {
+[[nodiscard]] constexpr auto get_errno_name(error_t code) noexcept -> std::expected<std::u8string_view, error<void>> {
     switch (code) {
     case error_t::perm:
         return u8"EPERM";

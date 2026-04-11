@@ -34,10 +34,10 @@ struct parsed_integer_prefix {
     int base;
 };
 
-[[nodiscard]] constexpr parsed_integer_prefix parse_integer_prefix(
+[[nodiscard]] constexpr auto parse_integer_prefix(
     std::u8string_view str,
     std::size_t offset,
-    int base)
+    int base) -> parsed_integer_prefix
 {
     if (base != 0 && (base < 2 || base > 36)) {
         return parsed_integer_prefix{offset, -1};
@@ -80,9 +80,9 @@ struct strto_result {
 };
 
 template<strto_integer T>
-[[nodiscard]] constexpr std::expected<strto_result<T>, error<void>> parse_integer_view(
+[[nodiscard]] constexpr auto parse_integer_view(
     std::u8string_view str,
-    int base)
+    int base) -> std::expected<strto_result<T>, error<void>>
 {
     using value_type = std::remove_cv_t<T>;
 
@@ -174,10 +174,10 @@ template<strto_integer T>
 }
 
 template<strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> strto_from_view(
+[[nodiscard]] constexpr auto strto_from_view(
     std::u8string_view str,
     std::size_t* end_offset,
-    int base)
+    int base) -> std::expected<T, error<void>>
 {
     const auto parsed = parse_integer_view<T>(str, base);
     if (!parsed) {
@@ -195,7 +195,7 @@ template<strto_integer T>
 }
 
 template<strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> ato_from_view(std::u8string_view str)
+[[nodiscard]] constexpr auto ato_from_view(std::u8string_view str) -> std::expected<T, error<void>>
 {
     return strto_from_view<T>(str, nullptr, 10);
 }
@@ -203,34 +203,34 @@ template<strto_integer T>
 } // namespace detail
 
 template<detail::strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> ato(std::u8string_view str)
+[[nodiscard]] constexpr auto ato(std::u8string_view str) -> std::expected<T, error<void>>
 {
     return detail::ato_from_view<T>(str);
 }
 
 template<detail::strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> ato(const std::u8string& str)
+[[nodiscard]] constexpr auto ato(const std::u8string& str) -> std::expected<T, error<void>>
 {
     return detail::ato_from_view<T>(std::u8string_view(str));
 }
 
 template<detail::strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> ato(const char8_t* str)
+[[nodiscard]] constexpr auto ato(const char8_t* str) -> std::expected<T, error<void>>
 {
     return detail::ato_from_view<T>(std::u8string_view(str));
 }
 
 template<detail::strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> ato(char8_t* str)
+[[nodiscard]] constexpr auto ato(char8_t* str) -> std::expected<T, error<void>>
 {
     return detail::ato_from_view<T>(std::u8string_view(str));
 }
 
 template<detail::strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> strto(
+[[nodiscard]] constexpr auto strto(
     std::u8string_view str,
     std::u8string_view::const_iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<T, error<void>>
 {
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(str, &end_offset, base);
@@ -243,10 +243,10 @@ template<detail::strto_integer T>
 }
 
 template<detail::strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> strto(
+[[nodiscard]] constexpr auto strto(
     const std::u8string& str,
     std::u8string::const_iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<T, error<void>>
 {
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(std::u8string_view(str), &end_offset, base);
@@ -259,10 +259,10 @@ template<detail::strto_integer T>
 }
 
 template<detail::strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> strto(
+[[nodiscard]] constexpr auto strto(
     std::u8string& str,
     std::u8string::iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<T, error<void>>
 {
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(std::u8string_view(str), &end_offset, base);
@@ -275,10 +275,10 @@ template<detail::strto_integer T>
 }
 
 template<detail::strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> strto(
+[[nodiscard]] constexpr auto strto(
     const char8_t* str,
     const char8_t** endptr = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<T, error<void>>
 {
     const std::u8string_view view(str);
     std::size_t end_offset = 0;
@@ -292,10 +292,10 @@ template<detail::strto_integer T>
 }
 
 template<detail::strto_integer T>
-[[nodiscard]] constexpr std::expected<T, error<void>> strto(
+[[nodiscard]] constexpr auto strto(
     char8_t* str,
     char8_t** endptr = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<T, error<void>>
 {
     const std::u8string_view view(str);
     std::size_t end_offset = 0;
@@ -308,222 +308,222 @@ template<detail::strto_integer T>
     return result;
 }
 
-[[nodiscard]] constexpr std::expected<int, error<void>> atoi(std::u8string_view str)
+[[nodiscard]] constexpr auto atoi(std::u8string_view str) -> std::expected<int, error<void>>
 {
     return ato<int>(str);
 }
 
-[[nodiscard]] constexpr std::expected<int, error<void>> atoi(const std::u8string& str)
+[[nodiscard]] constexpr auto atoi(const std::u8string& str) -> std::expected<int, error<void>>
 {
     return ato<int>(str);
 }
 
-[[nodiscard]] constexpr std::expected<int, error<void>> atoi(const char8_t* str)
+[[nodiscard]] constexpr auto atoi(const char8_t* str) -> std::expected<int, error<void>>
 {
     return ato<int>(str);
 }
 
-[[nodiscard]] constexpr std::expected<int, error<void>> atoi(char8_t* str)
+[[nodiscard]] constexpr auto atoi(char8_t* str) -> std::expected<int, error<void>>
 {
     return ato<int>(str);
 }
 
-[[nodiscard]] constexpr std::expected<long, error<void>> atol(std::u8string_view str)
+[[nodiscard]] constexpr auto atol(std::u8string_view str) -> std::expected<long, error<void>>
 {
     return ato<long>(str);
 }
 
-[[nodiscard]] constexpr std::expected<long, error<void>> atol(const std::u8string& str)
+[[nodiscard]] constexpr auto atol(const std::u8string& str) -> std::expected<long, error<void>>
 {
     return ato<long>(str);
 }
 
-[[nodiscard]] constexpr std::expected<long, error<void>> atol(const char8_t* str)
+[[nodiscard]] constexpr auto atol(const char8_t* str) -> std::expected<long, error<void>>
 {
     return ato<long>(str);
 }
 
-[[nodiscard]] constexpr std::expected<long, error<void>> atol(char8_t* str)
+[[nodiscard]] constexpr auto atol(char8_t* str) -> std::expected<long, error<void>>
 {
     return ato<long>(str);
 }
 
-[[nodiscard]] constexpr std::expected<long long, error<void>> atoll(std::u8string_view str)
+[[nodiscard]] constexpr auto atoll(std::u8string_view str) -> std::expected<long long, error<void>>
 {
     return ato<long long>(str);
 }
 
-[[nodiscard]] constexpr std::expected<long long, error<void>> atoll(const std::u8string& str)
+[[nodiscard]] constexpr auto atoll(const std::u8string& str) -> std::expected<long long, error<void>>
 {
     return ato<long long>(str);
 }
 
-[[nodiscard]] constexpr std::expected<long long, error<void>> atoll(const char8_t* str)
+[[nodiscard]] constexpr auto atoll(const char8_t* str) -> std::expected<long long, error<void>>
 {
     return ato<long long>(str);
 }
 
-[[nodiscard]] constexpr std::expected<long long, error<void>> atoll(char8_t* str)
+[[nodiscard]] constexpr auto atoll(char8_t* str) -> std::expected<long long, error<void>>
 {
     return ato<long long>(str);
 }
 
-[[nodiscard]] constexpr std::expected<long, error<void>> strtol(
+[[nodiscard]] constexpr auto strtol(
     std::u8string_view str,
     std::u8string_view::const_iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<long, error<void>> strtol(
+[[nodiscard]] constexpr auto strtol(
     const std::u8string& str,
     std::u8string::const_iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<long, error<void>> strtol(
+[[nodiscard]] constexpr auto strtol(
     std::u8string& str,
     std::u8string::iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<long, error<void>> strtol(
+[[nodiscard]] constexpr auto strtol(
     const char8_t* str,
     const char8_t** endptr = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<long>(str, endptr, base);
 }
 
-[[nodiscard]] constexpr std::expected<long, error<void>> strtol(
+[[nodiscard]] constexpr auto strtol(
     char8_t* str,
     char8_t** endptr = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<long>(str, endptr, base);
 }
 
-[[nodiscard]] constexpr std::expected<long long, error<void>> strtoll(
+[[nodiscard]] constexpr auto strtoll(
     std::u8string_view str,
     std::u8string_view::const_iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<long long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<long long, error<void>> strtoll(
+[[nodiscard]] constexpr auto strtoll(
     const std::u8string& str,
     std::u8string::const_iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<long long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<long long, error<void>> strtoll(
+[[nodiscard]] constexpr auto strtoll(
     std::u8string& str,
     std::u8string::iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<long long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<long long, error<void>> strtoll(
+[[nodiscard]] constexpr auto strtoll(
     const char8_t* str,
     const char8_t** endptr = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<long long>(str, endptr, base);
 }
 
-[[nodiscard]] constexpr std::expected<long long, error<void>> strtoll(
+[[nodiscard]] constexpr auto strtoll(
     char8_t* str,
     char8_t** endptr = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<long long>(str, endptr, base);
 }
 
-[[nodiscard]] constexpr std::expected<unsigned long, error<void>> strtoul(
+[[nodiscard]] constexpr auto strtoul(
     std::u8string_view str,
     std::u8string_view::const_iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<unsigned long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<unsigned long, error<void>> strtoul(
+[[nodiscard]] constexpr auto strtoul(
     const std::u8string& str,
     std::u8string::const_iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<unsigned long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<unsigned long, error<void>> strtoul(
+[[nodiscard]] constexpr auto strtoul(
     std::u8string& str,
     std::u8string::iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<unsigned long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<unsigned long, error<void>> strtoul(
+[[nodiscard]] constexpr auto strtoul(
     const char8_t* str,
     const char8_t** endptr = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<unsigned long>(str, endptr, base);
 }
 
-[[nodiscard]] constexpr std::expected<unsigned long, error<void>> strtoul(
+[[nodiscard]] constexpr auto strtoul(
     char8_t* str,
     char8_t** endptr = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<unsigned long>(str, endptr, base);
 }
 
-[[nodiscard]] constexpr std::expected<unsigned long long, error<void>> strtoull(
+[[nodiscard]] constexpr auto strtoull(
     std::u8string_view str,
     std::u8string_view::const_iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<unsigned long long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<unsigned long long, error<void>> strtoull(
+[[nodiscard]] constexpr auto strtoull(
     const std::u8string& str,
     std::u8string::const_iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<unsigned long long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<unsigned long long, error<void>> strtoull(
+[[nodiscard]] constexpr auto strtoull(
     std::u8string& str,
     std::u8string::iterator* endit = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<unsigned long long>(str, endit, base);
 }
 
-[[nodiscard]] constexpr std::expected<unsigned long long, error<void>> strtoull(
+[[nodiscard]] constexpr auto strtoull(
     const char8_t* str,
     const char8_t** endptr = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<unsigned long long>(str, endptr, base);
 }
 
-[[nodiscard]] constexpr std::expected<unsigned long long, error<void>> strtoull(
+[[nodiscard]] constexpr auto strtoull(
     char8_t* str,
     char8_t** endptr = nullptr,
-    int base = 0)
+    int base = 0) -> std::expected<long, error<void>>
 {
     return strto<unsigned long long>(str, endptr, base);
 }

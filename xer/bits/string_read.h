@@ -43,8 +43,8 @@ struct decoded_code_point {
  * @return Unexpected error result.
  */
 template<typename T>
-[[nodiscard]] inline std::expected<T, error<void>> unexpected_string_error(
-    const error_t code)
+[[nodiscard]] inline auto unexpected_string_error(
+    const error_t code) -> std::expected<T, error<void>>
 {
     return std::unexpected(make_error(code));
 }
@@ -55,7 +55,7 @@ template<typename T>
  * @param value Code point to test.
  * @return true if valid, otherwise false.
  */
-[[nodiscard]] constexpr bool is_valid_code_point(const char32_t value) noexcept
+[[nodiscard]] constexpr auto is_valid_code_point(const char32_t value) noexcept -> bool
 {
     return value <= static_cast<char32_t>(0x10FFFF) &&
            !xer::advanced::detail::is_surrogate(value);
@@ -68,9 +68,9 @@ template<typename T>
  * @param index Starting index.
  * @return Decoded code point on success.
  */
-[[nodiscard]] inline std::expected<decoded_code_point, error<void>> decode_utf8_at(
+[[nodiscard]] inline auto decode_utf8_at(
     const std::u8string_view source,
-    const std::size_t index)
+    const std::size_t index) -> std::expected<decoded_code_point, error<void>>
 {
     if (index >= source.size()) {
         return unexpected_string_error<decoded_code_point>(error_t::out_of_range);
@@ -120,9 +120,9 @@ template<typename T>
  * @param index Starting index.
  * @return Decoded code point on success.
  */
-[[nodiscard]] inline std::expected<decoded_code_point, error<void>> decode_utf16_at(
+[[nodiscard]] inline auto decode_utf16_at(
     const std::u16string_view source,
-    const std::size_t index)
+    const std::size_t index) -> std::expected<decoded_code_point, error<void>>
 {
     if (index >= source.size()) {
         return unexpected_string_error<decoded_code_point>(error_t::out_of_range);
@@ -165,9 +165,9 @@ template<typename T>
  * @param index Starting index.
  * @return Decoded code point on success.
  */
-[[nodiscard]] inline std::expected<decoded_code_point, error<void>> decode_utf32_at(
+[[nodiscard]] inline auto decode_utf32_at(
     const std::u32string_view source,
-    const std::size_t index)
+    const std::size_t index) -> std::expected<decoded_code_point, error<void>>
 {
     if (index >= source.size()) {
         return unexpected_string_error<decoded_code_point>(error_t::out_of_range);
@@ -190,9 +190,9 @@ template<typename T>
  * @return true if found, otherwise false.
  */
 template<supported_string_character CharT>
-[[nodiscard]] constexpr bool contains_char(
+[[nodiscard]] constexpr auto contains_char(
     const std::basic_string_view<CharT> set,
-    const CharT value) noexcept
+    const CharT value) noexcept -> bool
 {
     for (const CharT candidate : set) {
         if (candidate == value) {
@@ -215,8 +215,8 @@ namespace xer {
  * @return Code-unit length of the source string.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<std::size_t, error<void>> strlen(
-    const std::basic_string_view<CharT> source)
+[[nodiscard]] constexpr auto strlen(
+    const std::basic_string_view<CharT> source) -> std::expected<std::size_t, error<void>>
 {
     return source.size();
 }
@@ -233,9 +233,9 @@ template<detail::supported_string_character CharT>
  * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<int, error<void>> strcmp(
+[[nodiscard]] constexpr auto strcmp(
     const std::basic_string_view<CharT> lhs,
-    const std::basic_string_view<CharT> rhs)
+    const std::basic_string_view<CharT> rhs) -> std::expected<int, error<void>>
 {
     const std::size_t common_size = lhs.size() < rhs.size() ? lhs.size() : rhs.size();
 
@@ -270,10 +270,10 @@ template<detail::supported_string_character CharT>
  * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<int, error<void>> strncmp(
+[[nodiscard]] constexpr auto strncmp(
     const std::basic_string_view<CharT> lhs,
     const std::basic_string_view<CharT> rhs,
-    const std::size_t count)
+    const std::size_t count) -> std::expected<int, error<void>>
 {
     const std::size_t lhs_size = lhs.size() < count ? lhs.size() : count;
     const std::size_t rhs_size = rhs.size() < count ? rhs.size() : count;
@@ -313,12 +313,11 @@ template<detail::supported_string_character CharT>
  * @return Iterator pointing to the found code unit.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<
+[[nodiscard]] constexpr auto strchr(
+    const std::basic_string_view<CharT> source,
+    const CharT value) -> std::expected<
     typename std::basic_string_view<CharT>::const_iterator,
     error<void>>
-strchr(
-    const std::basic_string_view<CharT> source,
-    const CharT value)
 {
     for (auto it = source.begin(); it != source.end(); ++it) {
         if (*it == value) {
@@ -338,12 +337,11 @@ strchr(
  * @return Iterator pointing to the found code unit.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<
+[[nodiscard]] constexpr auto strrchr(
+    const std::basic_string_view<CharT> source,
+    const CharT value) -> std::expected<
     typename std::basic_string_view<CharT>::const_iterator,
     error<void>>
-strrchr(
-    const std::basic_string_view<CharT> source,
-    const CharT value)
 {
     for (auto it = source.end(); it != source.begin();) {
         --it;
@@ -362,9 +360,9 @@ strrchr(
  * @param value Code point to search for.
  * @return Iterator pointing to the first code unit of the found code point.
  */
-[[nodiscard]] inline std::expected<std::u8string_view::const_iterator, error<void>> strchr(
+[[nodiscard]] inline auto strchr(
     const std::u8string_view source,
-    const char32_t value)
+    const char32_t value) -> std::expected<std::u8string_view::const_iterator, error<void>>
 {
     if (!detail::is_valid_code_point(value)) {
         return std::unexpected(make_error(error_t::ilseq));
@@ -393,9 +391,9 @@ strrchr(
  * @param value Code point to search for.
  * @return Iterator pointing to the first code unit of the found code point.
  */
-[[nodiscard]] inline std::expected<std::u16string_view::const_iterator, error<void>> strchr(
+[[nodiscard]] inline auto strchr(
     const std::u16string_view source,
-    const char32_t value)
+    const char32_t value) -> std::expected<std::u16string_view::const_iterator, error<void>>
 {
     if (!detail::is_valid_code_point(value)) {
         return std::unexpected(make_error(error_t::ilseq));
@@ -424,9 +422,9 @@ strrchr(
  * @param value Code point to search for.
  * @return Iterator pointing to the found code point.
  */
-[[nodiscard]] inline std::expected<std::u32string_view::const_iterator, error<void>> strchr(
+[[nodiscard]] inline auto strchr(
     const std::u32string_view source,
-    const char32_t value)
+    const char32_t value) -> std::expected<std::u32string_view::const_iterator, error<void>>
 {
     if (!detail::is_valid_code_point(value)) {
         return std::unexpected(make_error(error_t::ilseq));
@@ -452,9 +450,9 @@ strrchr(
  * @param value Code point to search for.
  * @return Iterator pointing to the first code unit of the found code point.
  */
-[[nodiscard]] inline std::expected<std::u8string_view::const_iterator, error<void>> strrchr(
+[[nodiscard]] inline auto strrchr(
     const std::u8string_view source,
-    const char32_t value)
+    const char32_t value) -> std::expected<std::u8string_view::const_iterator, error<void>>
 {
     if (!detail::is_valid_code_point(value)) {
         return std::unexpected(make_error(error_t::ilseq));
@@ -491,9 +489,9 @@ strrchr(
  * @param value Code point to search for.
  * @return Iterator pointing to the first code unit of the found code point.
  */
-[[nodiscard]] inline std::expected<std::u16string_view::const_iterator, error<void>> strrchr(
+[[nodiscard]] inline auto strrchr(
     const std::u16string_view source,
-    const char32_t value)
+    const char32_t value) -> std::expected<std::u16string_view::const_iterator, error<void>>
 {
     if (!detail::is_valid_code_point(value)) {
         return std::unexpected(make_error(error_t::ilseq));
@@ -530,9 +528,9 @@ strrchr(
  * @param value Code point to search for.
  * @return Iterator pointing to the found code point.
  */
-[[nodiscard]] inline std::expected<std::u32string_view::const_iterator, error<void>> strrchr(
+[[nodiscard]] inline auto strrchr(
     const std::u32string_view source,
-    const char32_t value)
+    const char32_t value) -> std::expected<std::u32string_view::const_iterator, error<void>>
 {
     if (!detail::is_valid_code_point(value)) {
         return std::unexpected(make_error(error_t::ilseq));
@@ -562,12 +560,11 @@ strrchr(
  * @return Iterator pointing to the beginning of the found substring.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<
+[[nodiscard]] constexpr auto strstr(
+    const std::basic_string_view<CharT> source,
+    const std::basic_string_view<CharT> pattern) -> std::expected<
     typename std::basic_string_view<CharT>::const_iterator,
     error<void>>
-strstr(
-    const std::basic_string_view<CharT> source,
-    const std::basic_string_view<CharT> pattern)
 {
     if (pattern.empty()) {
         return source.begin();
@@ -605,12 +602,11 @@ strstr(
  * @return Iterator pointing to the found code unit.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<
+[[nodiscard]] constexpr auto strpbrk(
+    const std::basic_string_view<CharT> source,
+    const std::basic_string_view<CharT> accept) -> std::expected<
     typename std::basic_string_view<CharT>::const_iterator,
     error<void>>
-strpbrk(
-    const std::basic_string_view<CharT> source,
-    const std::basic_string_view<CharT> accept)
 {
     for (auto it = source.begin(); it != source.end(); ++it) {
         if (detail::contains_char(accept, *it)) {
@@ -631,9 +627,9 @@ strpbrk(
  * @return Length of the initial accepted segment.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<std::size_t, error<void>> strspn(
+[[nodiscard]] constexpr auto strspn(
     const std::basic_string_view<CharT> source,
-    const std::basic_string_view<CharT> accept)
+    const std::basic_string_view<CharT> accept) -> std::expected<std::size_t, error<void>>
 {
     std::size_t count = 0;
 
@@ -658,9 +654,9 @@ template<detail::supported_string_character CharT>
  * @return Length of the initial rejected segment.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<std::size_t, error<void>> strcspn(
+[[nodiscard]] constexpr auto strcspn(
     const std::basic_string_view<CharT> source,
-    const std::basic_string_view<CharT> reject)
+    const std::basic_string_view<CharT> reject) -> std::expected<std::size_t, error<void>>
 {
     std::size_t count = 0;
 

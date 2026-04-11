@@ -30,9 +30,9 @@ namespace xer::detail {
  * @return true if the pair is valid.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool is_valid_string_argument(
+[[nodiscard]] constexpr auto is_valid_string_argument(
     const void* ptr,
-    const std::size_t count) noexcept
+    const std::size_t count) noexcept -> bool
 {
     return ptr != nullptr || count == 0;
 }
@@ -47,9 +47,9 @@ namespace xer::detail {
  * @return Index of the terminating NUL character on success.
  */
 template<supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<std::size_t, error<void>> find_terminator(
+[[nodiscard]] constexpr auto find_terminator(
     const CharT* destination,
-    const std::size_t destination_size) noexcept
+    const std::size_t destination_size) noexcept -> std::expected<std::size_t, error<void>>
 {
     if (!is_valid_string_argument(destination, destination_size)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -79,10 +79,10 @@ namespace xer {
  * @return Destination pointer on success.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<CharT*, error<void>> strcpy(
+[[nodiscard]] constexpr auto strcpy(
     CharT* destination,
     const std::size_t destination_size,
-    const std::basic_string_view<CharT> source) noexcept
+    const std::basic_string_view<CharT> source) noexcept -> std::expected<CharT*, error<void>>
 {
     if (!detail::is_valid_string_argument(destination, destination_size)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -115,8 +115,9 @@ template<detail::supported_string_character CharT>
  */
 template<typename Destination, typename CharT>
     requires detail::mutable_character_contiguous_range<Destination, CharT>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<Destination>, error<void>>
-strcpy(Destination& destination, const std::basic_string_view<CharT> source) noexcept
+[[nodiscard]] constexpr auto strcpy(
+    Destination& destination,
+    const std::basic_string_view<CharT> source) noexcept -> std::expected<std::ranges::iterator_t<Destination>, error<void>>
 {
     const auto result = xer::strcpy(
         std::ranges::data(destination),
@@ -147,11 +148,11 @@ strcpy(Destination& destination, const std::basic_string_view<CharT> source) noe
  * @return Destination pointer on success.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<CharT*, error<void>> strncpy(
+[[nodiscard]] constexpr auto strncpy(
     CharT* destination,
     const std::size_t destination_size,
     const std::basic_string_view<CharT> source,
-    const std::size_t count) noexcept
+    const std::size_t count) noexcept -> std::expected<CharT*, error<void>>
 {
     if (!detail::is_valid_string_argument(destination, destination_size)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -187,11 +188,10 @@ template<detail::supported_string_character CharT>
  */
 template<typename Destination, typename CharT>
     requires detail::mutable_character_contiguous_range<Destination, CharT>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<Destination>, error<void>>
-strncpy(
+[[nodiscard]] constexpr auto strncpy(
     Destination& destination,
     const std::basic_string_view<CharT> source,
-    const std::size_t count) noexcept
+    const std::size_t count) noexcept -> std::expected<std::ranges::iterator_t<Destination>, error<void>>
 {
     const auto result = xer::strncpy(
         std::ranges::data(destination),
@@ -220,10 +220,10 @@ strncpy(
  * @return Destination pointer on success.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<CharT*, error<void>> strcat(
+[[nodiscard]] constexpr auto strcat(
     CharT* destination,
     const std::size_t destination_size,
-    const std::basic_string_view<CharT> source) noexcept
+    const std::basic_string_view<CharT> source) noexcept -> std::expected<CharT*, error<void>>
 {
     const auto terminator_result =
         detail::find_terminator(destination, destination_size);
@@ -260,8 +260,9 @@ template<detail::supported_string_character CharT>
  */
 template<typename Destination, typename CharT>
     requires detail::mutable_character_contiguous_range<Destination, CharT>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<Destination>, error<void>>
-strcat(Destination& destination, const std::basic_string_view<CharT> source) noexcept
+[[nodiscard]] constexpr auto strcat(
+    Destination& destination,
+    const std::basic_string_view<CharT> source) noexcept -> std::expected<std::ranges::iterator_t<Destination>, error<void>>
 {
     const auto result = xer::strcat(
         std::ranges::data(destination),
@@ -290,11 +291,11 @@ strcat(Destination& destination, const std::basic_string_view<CharT> source) noe
  * @return Destination pointer on success.
  */
 template<detail::supported_string_character CharT>
-[[nodiscard]] constexpr std::expected<CharT*, error<void>> strncat(
+[[nodiscard]] constexpr auto strncat(
     CharT* destination,
     const std::size_t destination_size,
     const std::basic_string_view<CharT> source,
-    const std::size_t count) noexcept
+    const std::size_t count) noexcept -> std::expected<CharT*, error<void>>
 {
     const auto terminator_result =
         detail::find_terminator(destination, destination_size);
@@ -333,11 +334,10 @@ template<detail::supported_string_character CharT>
  */
 template<typename Destination, typename CharT>
     requires detail::mutable_character_contiguous_range<Destination, CharT>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<Destination>, error<void>>
-strncat(
+[[nodiscard]] constexpr auto strncat(
     Destination& destination,
     const std::basic_string_view<CharT> source,
-    const std::size_t count) noexcept
+    const std::size_t count) noexcept -> std::expected<std::ranges::iterator_t<Destination>, error<void>>
 {
     const auto result = xer::strncat(
         std::ranges::data(destination),
