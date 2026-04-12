@@ -1,6 +1,6 @@
 ﻿/**
  * @file xer/bits/isctype.h
- * @brief ASCII-only character classification functions.
+ * @brief ASCII and Latin-1 character classification functions.
  */
 
 #pragma once
@@ -13,7 +13,11 @@
 namespace xer {
 
 /**
- * @brief Identifiers for ASCII-only character classes.
+ * @brief Identifiers for character classes.
+ *
+ * ASCII-only identifiers keep their original meanings.
+ * latin1_* identifiers extend classification to Latin-1 characters and also
+ * include the ASCII range where applicable.
  */
 enum class ctype_id {
     alpha,
@@ -31,6 +35,12 @@ enum class ctype_id {
     ascii,
     octal,
     binary,
+    latin1_alpha,
+    latin1_upper,
+    latin1_lower,
+    latin1_alnum,
+    latin1_graph,
+    latin1_print,
 };
 
 /**
@@ -39,7 +49,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the ASCII range.
  */
-[[nodiscard]] constexpr auto isascii(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isascii(char32_t c) noexcept -> bool
+{
     return c >= U'\0' && c <= U'\x7f';
 }
 
@@ -49,7 +60,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range 'A'..'Z'.
  */
-[[nodiscard]] constexpr auto isupper(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isupper(char32_t c) noexcept -> bool
+{
     return c >= U'A' && c <= U'Z';
 }
 
@@ -59,7 +71,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range 'a'..'z'.
  */
-[[nodiscard]] constexpr auto islower(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto islower(char32_t c) noexcept -> bool
+{
     return c >= U'a' && c <= U'z';
 }
 
@@ -69,7 +82,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range '0'..'9'.
  */
-[[nodiscard]] constexpr auto isdigit(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isdigit(char32_t c) noexcept -> bool
+{
     return c >= U'0' && c <= U'9';
 }
 
@@ -79,7 +93,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is an ASCII letter.
  */
-[[nodiscard]] constexpr auto isalpha(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isalpha(char32_t c) noexcept -> bool
+{
     return isupper(c) || islower(c);
 }
 
@@ -89,7 +104,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is an ASCII letter or digit.
  */
-[[nodiscard]] constexpr auto isalnum(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isalnum(char32_t c) noexcept -> bool
+{
     return isalpha(c) || isdigit(c);
 }
 
@@ -99,7 +115,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is space or horizontal tab.
  */
-[[nodiscard]] constexpr auto isblank(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isblank(char32_t c) noexcept -> bool
+{
     return c == U' ' || c == U'\t';
 }
 
@@ -109,7 +126,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is one of the C locale whitespace characters.
  */
-[[nodiscard]] constexpr auto isspace(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isspace(char32_t c) noexcept -> bool
+{
     return c == U' ' || (c >= U'\t' && c <= U'\r');
 }
 
@@ -119,7 +137,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the ASCII control range.
  */
-[[nodiscard]] constexpr auto iscntrl(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto iscntrl(char32_t c) noexcept -> bool
+{
     return (c >= U'\0' && c <= U'\x1f') || c == U'\x7f';
 }
 
@@ -129,7 +148,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range 0x20..0x7E.
  */
-[[nodiscard]] constexpr auto isprint(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isprint(char32_t c) noexcept -> bool
+{
     return c >= U'\x20' && c <= U'\x7e';
 }
 
@@ -139,7 +159,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range 0x21..0x7E.
  */
-[[nodiscard]] constexpr auto isgraph(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isgraph(char32_t c) noexcept -> bool
+{
     return c >= U'\x21' && c <= U'\x7e';
 }
 
@@ -149,10 +170,9 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is 0-9, A-F, or a-f.
  */
-[[nodiscard]] constexpr auto isxdigit(char32_t c) noexcept -> bool {
-    return isdigit(c) ||
-           (c >= U'A' && c <= U'F') ||
-           (c >= U'a' && c <= U'f');
+[[nodiscard]] constexpr auto isxdigit(char32_t c) noexcept -> bool
+{
+    return isdigit(c) || (c >= U'A' && c <= U'F') || (c >= U'a' && c <= U'f');
 }
 
 /**
@@ -161,7 +181,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range '0'..'7'.
  */
-[[nodiscard]] constexpr auto isoctal(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isoctal(char32_t c) noexcept -> bool
+{
     return c >= U'0' && c <= U'7';
 }
 
@@ -171,7 +192,8 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is '0' or '1'.
  */
-[[nodiscard]] constexpr auto isbinary(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto isbinary(char32_t c) noexcept -> bool
+{
     return c == U'0' || c == U'1';
 }
 
@@ -181,18 +203,107 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is printable and neither alnum nor space.
  */
-[[nodiscard]] constexpr auto ispunct(char32_t c) noexcept -> bool {
+[[nodiscard]] constexpr auto ispunct(char32_t c) noexcept -> bool
+{
     return isgraph(c) && !isalnum(c);
 }
 
 /**
- * @brief Classifies a code point by the specified ASCII-only class identifier.
+ * @brief Returns whether the code point is a Latin-1 uppercase letter.
+ *
+ * ASCII uppercase letters are included.
+ *
+ * @param c Code point to test.
+ * @return True if the code point is an uppercase Latin-1 letter.
+ */
+[[nodiscard]] constexpr auto islatin1_upper(char32_t c) noexcept -> bool
+{
+    return isupper(c) || (c >= U'\u00c0' && c <= U'\u00d6') ||
+           (c >= U'\u00d8' && c <= U'\u00de');
+}
+
+/**
+ * @brief Returns whether the code point is a Latin-1 lowercase letter.
+ *
+ * ASCII lowercase letters are included.
+ *
+ * @param c Code point to test.
+ * @return True if the code point is a lowercase Latin-1 letter.
+ */
+[[nodiscard]] constexpr auto islatin1_lower(char32_t c) noexcept -> bool
+{
+    return islower(c) || c == U'\u00aa' || c == U'\u00ba' || c == U'\u00df' ||
+           (c >= U'\u00e0' && c <= U'\u00f6') ||
+           (c >= U'\u00f8' && c <= U'\u00ff');
+}
+
+/**
+ * @brief Returns whether the code point is a Latin-1 alphabetic letter.
+ *
+ * ASCII letters are included.
+ *
+ * @param c Code point to test.
+ * @return True if the code point is an alphabetic Latin-1 character.
+ */
+[[nodiscard]] constexpr auto islatin1_alpha(char32_t c) noexcept -> bool
+{
+    return islatin1_upper(c) || islatin1_lower(c);
+}
+
+/**
+ * @brief Returns whether the code point is a Latin-1 alphanumeric character.
+ *
+ * ASCII digits are included.
+ *
+ * @param c Code point to test.
+ * @return True if the code point is a Latin-1 letter or an ASCII digit.
+ */
+[[nodiscard]] constexpr auto islatin1_alnum(char32_t c) noexcept -> bool
+{
+    return islatin1_alpha(c) || isdigit(c);
+}
+
+/**
+ * @brief Returns whether the code point is a printable Latin-1 character.
+ *
+ * ASCII printable characters are included. In the Latin-1 supplement block,
+ * U+00A0..U+00FF are treated as printable.
+ *
+ * @param c Code point to test.
+ * @return True if the code point is printable in Latin-1.
+ */
+[[nodiscard]] constexpr auto islatin1_print(char32_t c) noexcept -> bool
+{
+    return isprint(c) || (c >= U'\u00a0' && c <= U'\u00ff');
+}
+
+/**
+ * @brief Returns whether the code point is a graphic Latin-1 character.
+ *
+ * ASCII graphic characters are included. In the Latin-1 supplement block,
+ * U+00A1..U+00FF are treated as graphic.
+ *
+ * @param c Code point to test.
+ * @return True if the code point is graphic in Latin-1.
+ */
+[[nodiscard]] constexpr auto islatin1_graph(char32_t c) noexcept -> bool
+{
+    return isgraph(c) || (c >= U'\u00a1' && c <= U'\u00ff');
+}
+
+/**
+ * @brief Classifies a code point by the specified character class identifier.
+ *
+ * ASCII-only identifiers keep their original meanings.
+ * latin1_* identifiers include ASCII where appropriate and extend
+ * classification to Latin-1 characters.
  *
  * @param c Code point to test.
  * @param id Character class identifier.
  * @return Classification result.
  */
-[[nodiscard]] constexpr auto isctype(char32_t c, ctype_id id) noexcept -> bool {
+[[nodiscard]] constexpr auto isctype(char32_t c, ctype_id id) noexcept -> bool
+{
     switch (id) {
         case ctype_id::alpha:
             return isalpha(c);
@@ -224,6 +335,18 @@ enum class ctype_id {
             return isoctal(c);
         case ctype_id::binary:
             return isbinary(c);
+        case ctype_id::latin1_alpha:
+            return islatin1_alpha(c);
+        case ctype_id::latin1_upper:
+            return islatin1_upper(c);
+        case ctype_id::latin1_lower:
+            return islatin1_lower(c);
+        case ctype_id::latin1_alnum:
+            return islatin1_alnum(c);
+        case ctype_id::latin1_graph:
+            return islatin1_graph(c);
+        case ctype_id::latin1_print:
+            return islatin1_print(c);
     }
 
     return false;
