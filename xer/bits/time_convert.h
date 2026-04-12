@@ -24,7 +24,7 @@ namespace xer::detail {
  * @param value Source broken-down time.
  * @return Converted C broken-down time.
  */
-[[nodiscard]] inline std::tm to_std_tm(const xer::tm& value) noexcept
+[[nodiscard]] inline auto to_std_tm(const xer::tm& value) noexcept -> std::tm
 {
     std::tm result {};
     result.tm_sec = value.tm_sec;
@@ -46,7 +46,7 @@ namespace xer::detail {
  * @param microsec Microsecond part.
  * @return Converted XER broken-down time.
  */
-[[nodiscard]] inline xer::tm from_std_tm(const std::tm& value, int microsec) noexcept
+[[nodiscard]] inline auto from_std_tm(const std::tm& value, int microsec) noexcept -> xer::tm
 {
     xer::tm result {};
     result.tm_sec = value.tm_sec;
@@ -68,7 +68,7 @@ namespace xer::detail {
  * @param value Source broken-down time.
  * @return `true` if valid; otherwise `false`.
  */
-[[nodiscard]] constexpr bool has_valid_microsec(const xer::tm& value) noexcept
+[[nodiscard]] constexpr auto has_valid_microsec(const xer::tm& value) noexcept -> bool
 {
     return value.tm_microsec >= 0 && value.tm_microsec <= 999999;
 }
@@ -81,7 +81,7 @@ namespace xer::detail {
  * @param microsec_out Receives the microseconds in the range `0..999999`.
  * @return `true` on success; otherwise `false`.
  */
-[[nodiscard]] inline bool split_time(xer::time_t value, std::time_t& seconds_out, int& microsec_out) noexcept
+[[nodiscard]] inline auto split_time(xer::time_t value, std::time_t& seconds_out, int& microsec_out) noexcept -> bool
 {
     if (!(value >= 0.0)) {
         return false;
@@ -113,7 +113,7 @@ namespace xer::detail {
  * @param out Receives the converted broken-down time.
  * @return `true` on success; otherwise `false`.
  */
-[[nodiscard]] inline bool gmtime_impl(std::time_t value, std::tm& out) noexcept
+[[nodiscard]] inline auto gmtime_impl(std::time_t value, std::tm& out) noexcept -> bool
 {
 #if defined(_WIN32)
     return ::gmtime_s(&out, &value) == 0;
@@ -140,7 +140,7 @@ namespace xer::detail {
  * @param out Receives the converted broken-down time.
  * @return `true` on success; otherwise `false`.
  */
-[[nodiscard]] inline bool localtime_impl(std::time_t value, std::tm& out) noexcept
+[[nodiscard]] inline auto localtime_impl(std::time_t value, std::tm& out) noexcept -> bool
 {
 #if defined(_WIN32)
     return ::localtime_s(&out, &value) == 0;
@@ -172,7 +172,7 @@ namespace xer {
  * @return An error with @ref error_t::invalid_argument if `value` is negative.
  * @return An error with @ref error_t::runtime_error on conversion failure.
  */
-[[nodiscard]] inline std::expected<tm, error<void>> gmtime(time_t value) noexcept
+[[nodiscard]] inline auto gmtime(time_t value) noexcept -> std::expected<tm, error<void>>
 {
     std::time_t seconds = 0;
     int microsec = 0;
@@ -198,7 +198,7 @@ namespace xer {
  * @return An error with @ref error_t::invalid_argument if `value` is negative.
  * @return An error with @ref error_t::runtime_error on conversion failure.
  */
-[[nodiscard]] inline std::expected<tm, error<void>> localtime(time_t value) noexcept
+[[nodiscard]] inline auto localtime(time_t value) noexcept -> std::expected<tm, error<void>>
 {
     std::time_t seconds = 0;
     int microsec = 0;
@@ -226,7 +226,7 @@ namespace xer {
  *         microsecond field.
  * @return An error with @ref error_t::runtime_error on conversion failure.
  */
-[[nodiscard]] inline std::expected<time_t, error<void>> mktime(const tm& value) noexcept
+[[nodiscard]] inline auto mktime(const tm& value) noexcept -> std::expected<time_t, error<void>>
 {
     if (!detail::has_valid_microsec(value)) {
         return std::unexpected(make_error(error_t::invalid_argument));

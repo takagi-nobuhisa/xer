@@ -36,7 +36,7 @@ using clock_t = std::clock_t;
  * @return The current calendar time on success.
  * @return An error with @ref error_t::runtime_error on failure.
  */
-[[nodiscard]] inline std::expected<time_t, error<void>> time() noexcept {
+[[nodiscard]] inline auto time() noexcept -> std::expected<time_t, error<void>> {
 #if defined(TIME_UTC)
     std::timespec ts {};
 
@@ -75,7 +75,7 @@ using clock_t = std::clock_t;
  * @return The processor time on success.
  * @return An error with @ref error_t::runtime_error on failure.
  */
-[[nodiscard]] inline std::expected<clock_t, error<void>> clock() noexcept {
+[[nodiscard]] inline auto clock() noexcept -> std::expected<clock_t, error<void>> {
     const std::clock_t value = std::clock();
 
     if (value == static_cast<std::clock_t>(-1)) {
@@ -94,7 +94,7 @@ using clock_t = std::clock_t;
  * @param right Right operand.
  * @return Difference in seconds.
  */
-[[nodiscard]] constexpr double difftime(time_t left, time_t right) noexcept {
+[[nodiscard]] constexpr auto difftime(time_t left, time_t right) noexcept -> double {
     return left - right;
 }
 

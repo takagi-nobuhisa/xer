@@ -29,7 +29,7 @@ namespace xer::detail {
  * @param value Source broken-down time.
  * @return Converted C broken-down time.
  */
-[[nodiscard]] inline std::tm time_format_to_std_tm(const xer::tm& value) noexcept
+[[nodiscard]] inline auto time_format_to_std_tm(const xer::tm& value) noexcept -> std::tm
 {
     std::tm result {};
     result.tm_sec = value.tm_sec;
@@ -50,7 +50,7 @@ namespace xer::detail {
  * @param value Source broken-down time.
  * @return `true` if valid; otherwise `false`.
  */
-[[nodiscard]] constexpr bool time_format_has_valid_microsec(const xer::tm& value) noexcept
+[[nodiscard]] constexpr auto time_format_has_valid_microsec(const xer::tm& value) noexcept -> bool
 {
     return value.tm_microsec >= 0 && value.tm_microsec <= 999999;
 }
@@ -61,7 +61,7 @@ namespace xer::detail {
  * @param out Destination string.
  * @param value Source text.
  */
-inline void append_text(std::u8string& out, std::u8string_view value)
+inline auto append_text(std::u8string& out, std::u8string_view value) -> void
 {
     out.append(value.data(), value.size());
 }
@@ -73,7 +73,7 @@ inline void append_text(std::u8string& out, std::u8string_view value)
  * @param value Integer value.
  * @param width Minimum decimal width.
  */
-inline void append_zero_padded_decimal(std::u8string& out, int value, std::size_t width)
+inline auto append_zero_padded_decimal(std::u8string& out, int value, std::size_t width) -> void
 {
     char buffer[32] {};
     const auto result = std::to_chars(buffer, buffer + sizeof(buffer), value);
@@ -100,7 +100,7 @@ inline void append_zero_padded_decimal(std::u8string& out, int value, std::size_
  * @param format Format string.
  * @return `true` if supported; otherwise `false`.
  */
-[[nodiscard]] constexpr bool is_supported_strftime_format(std::u8string_view format) noexcept
+[[nodiscard]] constexpr auto is_supported_strftime_format(std::u8string_view format) noexcept -> bool
 {
     for (std::size_t index = 0; index < format.size(); ++index) {
         if (format[index] != u8'%') {
@@ -130,7 +130,7 @@ inline void append_zero_padded_decimal(std::u8string& out, int value, std::size_
  * @param value Source broken-down time.
  * @return Formatted UTF-8 string.
  */
-[[nodiscard]] inline std::u8string format_ctime_string(const xer::tm& value)
+[[nodiscard]] inline auto format_ctime_string(const xer::tm& value) -> std::u8string
 {
     static constexpr std::u8string_view weekday_names[] = {
         u8"Sun",
@@ -204,9 +204,9 @@ inline void append_zero_padded_decimal(std::u8string& out, int value, std::size_
  * @return Formatted narrow string on success.
  * @return `std::nullopt` on failure.
  */
-[[nodiscard]] inline std::optional<std::string> format_single_strftime_spec(
+[[nodiscard]] inline auto format_single_strftime_spec(
     std::string_view spec,
-    const std::tm& value) noexcept
+    const std::tm& value) noexcept -> std::optional<std::string>
 {
     std::string buffer(64, '\0');
 
@@ -245,7 +245,7 @@ namespace xer {
  * @param value Broken-down time.
  * @return Formatted UTF-8 string.
  */
-[[nodiscard]] inline std::u8string ctime(const tm& value)
+[[nodiscard]] inline auto ctime(const tm& value) -> std::u8string
 {
     return detail::format_ctime_string(value);
 }
@@ -259,7 +259,7 @@ namespace xer {
  * @param value Calendar time.
  * @return Formatted UTF-8 string. Returns an empty string on conversion failure.
  */
-[[nodiscard]] inline std::u8string ctime(time_t value)
+[[nodiscard]] inline auto ctime(time_t value) -> std::u8string
 {
     const auto broken = xer::localtime(value);
 
@@ -286,9 +286,9 @@ namespace xer {
  *         `tm_microsec` is invalid.
  * @return An error with @ref error_t::runtime_error on formatting failure.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> strftime(
+[[nodiscard]] inline auto strftime(
     std::u8string_view format,
-    const tm& value) noexcept
+    const tm& value) noexcept -> std::expected<std::u8string, error<void>>
 {
     if (!detail::time_format_has_valid_microsec(value)) {
         return std::unexpected(make_error(error_t::invalid_argument));
