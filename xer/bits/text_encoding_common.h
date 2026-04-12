@@ -27,7 +27,7 @@ namespace xer::detail {
  * @param value Source UTF-8 string.
  * @return Converted byte string.
  */
-[[nodiscard]] inline std::string to_byte_string(std::u8string_view value)
+[[nodiscard]] inline auto to_byte_string(std::u8string_view value) -> std::string
 {
     return std::string(
         reinterpret_cast<const char*>(value.data()),
@@ -40,7 +40,7 @@ namespace xer::detail {
  * @param value Source byte string.
  * @return Converted UTF-8 string.
  */
-[[nodiscard]] inline std::u8string to_u8string(std::string_view value)
+[[nodiscard]] inline auto to_u8string(std::string_view value) -> std::u8string
 {
     std::u8string result;
     result.reserve(value.size());
@@ -59,7 +59,7 @@ namespace xer::detail {
  * @return true if the input is valid UTF-8.
  * @return false otherwise.
  */
-[[nodiscard]] inline bool is_valid_utf8(std::string_view value) noexcept
+[[nodiscard]] inline auto is_valid_utf8(std::string_view value) noexcept -> bool
 {
     std::size_t i = 0;
 
@@ -217,8 +217,8 @@ namespace xer::detail {
  * @param value Source UTF-8 byte string.
  * @return Converted wide string on success.
  */
-[[nodiscard]] inline std::expected<std::wstring, error<void>> utf8_to_wstring(
-    std::string_view value)
+[[nodiscard]] inline auto utf8_to_wstring(
+    std::string_view value) -> std::expected<std::wstring, error<void>>
 {
     if (value.empty()) {
         return std::wstring();
@@ -259,8 +259,8 @@ namespace xer::detail {
  * @param value Source wide string.
  * @return Converted UTF-8 string on success.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> wstring_to_utf8(
-    std::wstring_view value)
+[[nodiscard]] inline auto wstring_to_utf8(
+    std::wstring_view value) -> std::expected<std::u8string, error<void>>
 {
     if (value.empty()) {
         return std::u8string();

@@ -76,9 +76,8 @@ public:
      * @param bytes Serialized byte representation.
      * @return Restored context on success, or an error on failure.
      */
-    [[nodiscard]] static std::expected<rand_context, error<void>> from_bytes(
-        const bytes_type& bytes) noexcept
-    {
+    [[nodiscard]] static auto from_bytes(
+        const bytes_type& bytes) noexcept -> std::expected<rand_context, error<void>> {
         const std::uint64_t state0 = load_u64_le(bytes.data());
         const std::uint64_t state1 = load_u64_le(bytes.data() + 8);
 
@@ -98,8 +97,7 @@ private:
      *
      * @return Generated random value.
      */
-    [[nodiscard]] std::uint64_t next() noexcept
-    {
+    [[nodiscard]] auto next() noexcept -> std::uint64_t {
         const std::uint64_t result = std::rotl(state1_ * 5ull, 7) * 9ull;
         const std::uint64_t xored = state1_ ^ state0_;
 
@@ -114,8 +112,7 @@ private:
      *
      * @param seed_value Seed value.
      */
-    void seed(std::uint64_t seed_value) noexcept
-    {
+    auto seed(std::uint64_t seed_value) noexcept -> void {
         std::uint64_t value = seed_value;
         state0_ = splitmix64(value);
         state1_ = splitmix64(value);
@@ -131,8 +128,7 @@ private:
      * @param value SplitMix64 state.
      * @return Generated value.
      */
-    [[nodiscard]] static std::uint64_t splitmix64(std::uint64_t& value) noexcept
-    {
+    [[nodiscard]] static auto splitmix64(std::uint64_t& value) noexcept -> std::uint64_t {
         value += 0x9E3779B97F4A7C15ull;
 
         std::uint64_t z = value;
@@ -146,8 +142,7 @@ private:
      *
      * @return Randomly generated seed value.
      */
-    [[nodiscard]] static std::uint64_t detail_random_seed()
-    {
+    [[nodiscard]] static auto detail_random_seed() -> std::uint64_t {
         std::random_device device;
         std::uint64_t seed_value = 0;
 
@@ -165,8 +160,7 @@ private:
      * @param destination Destination byte pointer.
      * @param value Value to store.
      */
-    static void store_u64_le(std::byte* destination, std::uint64_t value) noexcept
-    {
+    static auto store_u64_le(std::byte* destination, std::uint64_t value) noexcept -> void {
         for (int index = 0; index < 8; ++index) {
             destination[index] =
                 static_cast<std::byte>((value >> (index * 8)) & 0xffu);
@@ -179,8 +173,7 @@ private:
      * @param source Source byte pointer.
      * @return Loaded value.
      */
-    [[nodiscard]] static std::uint64_t load_u64_le(const std::byte* source) noexcept
-    {
+    [[nodiscard]] static auto load_u64_le(const std::byte* source) noexcept -> std::uint64_t {
         std::uint64_t value = 0;
 
         for (int index = 0; index < 8; ++index) {
@@ -204,9 +197,9 @@ private:
     {
     }
 
-    friend std::uint64_t rand() noexcept;
-    friend std::uint64_t rand(rand_context& context) noexcept;
-    friend void srand(std::uint64_t seed_value) noexcept;
+    friend auto rand() noexcept -> std::uint64_t ;
+    friend auto rand(rand_context& context) noexcept -> std::uint64_t ;
+    friend auto srand(std::uint64_t seed_value) noexcept -> void ;
 };
 
 namespace detail {
@@ -223,8 +216,7 @@ inline rand_context default_rand_context{};
  *
  * @return Generated random value.
  */
-[[nodiscard]] inline std::uint64_t rand() noexcept
-{
+[[nodiscard]] inline auto rand() noexcept -> std::uint64_t {
     return detail::default_rand_context.next();
 }
 
@@ -234,8 +226,7 @@ inline rand_context default_rand_context{};
  * @param context Random generator context.
  * @return Generated random value.
  */
-[[nodiscard]] inline std::uint64_t rand(rand_context& context) noexcept
-{
+[[nodiscard]] inline auto rand(rand_context& context) noexcept -> std::uint64_t {
     return context.next();
 }
 
@@ -244,8 +235,7 @@ inline rand_context default_rand_context{};
  *
  * @param seed_value Seed value.
  */
-inline void srand(std::uint64_t seed_value) noexcept
-{
+inline auto srand(std::uint64_t seed_value) noexcept -> void {
     detail::default_rand_context.seed(seed_value);
 }
 

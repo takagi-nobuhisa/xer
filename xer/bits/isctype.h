@@ -39,7 +39,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the ASCII range.
  */
-[[nodiscard]] constexpr bool isascii(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isascii(char32_t c) noexcept -> bool {
     return c >= U'\0' && c <= U'\x7f';
 }
 
@@ -49,7 +49,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range 'A'..'Z'.
  */
-[[nodiscard]] constexpr bool isupper(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isupper(char32_t c) noexcept -> bool {
     return c >= U'A' && c <= U'Z';
 }
 
@@ -59,7 +59,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range 'a'..'z'.
  */
-[[nodiscard]] constexpr bool islower(char32_t c) noexcept {
+[[nodiscard]] constexpr auto islower(char32_t c) noexcept -> bool {
     return c >= U'a' && c <= U'z';
 }
 
@@ -69,7 +69,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range '0'..'9'.
  */
-[[nodiscard]] constexpr bool isdigit(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isdigit(char32_t c) noexcept -> bool {
     return c >= U'0' && c <= U'9';
 }
 
@@ -79,7 +79,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is an ASCII letter.
  */
-[[nodiscard]] constexpr bool isalpha(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isalpha(char32_t c) noexcept -> bool {
     return isupper(c) || islower(c);
 }
 
@@ -89,7 +89,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is an ASCII letter or digit.
  */
-[[nodiscard]] constexpr bool isalnum(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isalnum(char32_t c) noexcept -> bool {
     return isalpha(c) || isdigit(c);
 }
 
@@ -99,7 +99,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is space or horizontal tab.
  */
-[[nodiscard]] constexpr bool isblank(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isblank(char32_t c) noexcept -> bool {
     return c == U' ' || c == U'\t';
 }
 
@@ -109,7 +109,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is one of the C locale whitespace characters.
  */
-[[nodiscard]] constexpr bool isspace(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isspace(char32_t c) noexcept -> bool {
     return c == U' ' || (c >= U'\t' && c <= U'\r');
 }
 
@@ -119,7 +119,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the ASCII control range.
  */
-[[nodiscard]] constexpr bool iscntrl(char32_t c) noexcept {
+[[nodiscard]] constexpr auto iscntrl(char32_t c) noexcept -> bool {
     return (c >= U'\0' && c <= U'\x1f') || c == U'\x7f';
 }
 
@@ -129,7 +129,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range 0x20..0x7E.
  */
-[[nodiscard]] constexpr bool isprint(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isprint(char32_t c) noexcept -> bool {
     return c >= U'\x20' && c <= U'\x7e';
 }
 
@@ -139,7 +139,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range 0x21..0x7E.
  */
-[[nodiscard]] constexpr bool isgraph(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isgraph(char32_t c) noexcept -> bool {
     return c >= U'\x21' && c <= U'\x7e';
 }
 
@@ -149,7 +149,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is 0-9, A-F, or a-f.
  */
-[[nodiscard]] constexpr bool isxdigit(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isxdigit(char32_t c) noexcept -> bool {
     return isdigit(c) ||
            (c >= U'A' && c <= U'F') ||
            (c >= U'a' && c <= U'f');
@@ -161,7 +161,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is in the range '0'..'7'.
  */
-[[nodiscard]] constexpr bool isoctal(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isoctal(char32_t c) noexcept -> bool {
     return c >= U'0' && c <= U'7';
 }
 
@@ -171,7 +171,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is '0' or '1'.
  */
-[[nodiscard]] constexpr bool isbinary(char32_t c) noexcept {
+[[nodiscard]] constexpr auto isbinary(char32_t c) noexcept -> bool {
     return c == U'0' || c == U'1';
 }
 
@@ -181,7 +181,7 @@ enum class ctype_id {
  * @param c Code point to test.
  * @return True if the code point is printable and neither alnum nor space.
  */
-[[nodiscard]] constexpr bool ispunct(char32_t c) noexcept {
+[[nodiscard]] constexpr auto ispunct(char32_t c) noexcept -> bool {
     return isgraph(c) && !isalnum(c);
 }
 
@@ -192,7 +192,7 @@ enum class ctype_id {
  * @param id Character class identifier.
  * @return Classification result.
  */
-[[nodiscard]] constexpr bool isctype(char32_t c, ctype_id id) noexcept {
+[[nodiscard]] constexpr auto isctype(char32_t c, ctype_id id) noexcept -> bool {
     switch (id) {
         case ctype_id::alpha:
             return isalpha(c);

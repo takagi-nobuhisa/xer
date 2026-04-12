@@ -162,8 +162,7 @@ using unsigned_div_result_t = make_unsigned_ex_t<signed_div_result_t<A, B>>;
  */
 template<typename T>
     requires(is_canonical_div_integer_v<T>)
-[[nodiscard]] constexpr std::pair<bool, xer::uint128_t> to_sign_magnitude(T value) noexcept
-{
+[[nodiscard]] constexpr auto to_sign_magnitude(T value) noexcept -> std::pair<bool, xer::uint128_t> {
     if constexpr (is_unsigned_integer_ex_v<T>) {
         return {false, static_cast<xer::uint128_t>(value)};
     } else {
@@ -188,10 +187,9 @@ template<typename T>
  */
 template<typename T>
     requires(is_signed_integer_ex_v<T>)
-[[nodiscard]] constexpr std::expected<T, error<void>> from_sign_magnitude_signed(
+[[nodiscard]] constexpr auto from_sign_magnitude_signed(
     bool negative,
-    xer::uint128_t magnitude) noexcept
-{
+    xer::uint128_t magnitude) noexcept -> std::expected<T, error<void>> {
     constexpr xer::uint128_t positive_limit =
         static_cast<xer::uint128_t>(std::numeric_limits<T>::max());
     constexpr xer::uint128_t negative_limit = positive_limit + 1;
@@ -224,9 +222,8 @@ template<typename T>
  */
 template<typename T>
     requires(is_unsigned_integer_ex_v<T>)
-[[nodiscard]] constexpr std::expected<T, error<void>> from_magnitude_unsigned(
-    xer::uint128_t magnitude) noexcept
-{
+[[nodiscard]] constexpr auto from_magnitude_unsigned(
+    xer::uint128_t magnitude) noexcept -> std::expected<T, error<void>> {
     constexpr xer::uint128_t positive_limit =
         static_cast<xer::uint128_t>(std::numeric_limits<T>::max());
 
@@ -244,10 +241,9 @@ template<typename T>
  * @param rhs_mag Divisor magnitude.
  * @return Quotient and remainder magnitudes.
  */
-[[nodiscard]] constexpr std::pair<xer::uint128_t, xer::uint128_t> divide_magnitude(
+[[nodiscard]] constexpr auto divide_magnitude(
     xer::uint128_t lhs_mag,
-    xer::uint128_t rhs_mag) noexcept
-{
+    xer::uint128_t rhs_mag) noexcept -> std::pair<xer::uint128_t, xer::uint128_t> {
     return {lhs_mag / rhs_mag, lhs_mag % rhs_mag};
 }
 

@@ -271,8 +271,7 @@ template<printf_pointer T>
  * @param ch Byte value.
  * @param count Repeat count.
  */
-inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t count)
-{
+inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t count) -> void {
     out.append(count, ch);
 }
 
@@ -284,11 +283,10 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param upper Whether hex digits should be uppercase.
  * @return ASCII digit string.
  */
-[[nodiscard]] inline std::u8string unsigned_to_ascii(
+[[nodiscard]] inline auto unsigned_to_ascii(
     std::uintmax_t value,
     unsigned base,
-    bool upper = false)
-{
+    bool upper = false) -> std::u8string {
     if (base < 2 || base > 16) {
         return {};
     }
@@ -319,10 +317,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param index Current parsing position.
  * @return Parsed value on success.
  */
-[[nodiscard]] inline std::optional<int> parse_decimal(
+[[nodiscard]] inline auto parse_decimal(
     std::u8string_view format,
-    std::size_t& index) noexcept
-{
+    std::size_t& index) noexcept -> std::optional<int> {
     if (index >= format.size() || format[index] < u8'0' || format[index] > u8'9') {
         return std::nullopt;
     }
@@ -349,10 +346,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param index Current parsing position. Must point just after '%'.
  * @return Parsed conversion token on success.
  */
-[[nodiscard]] inline std::expected<printf_conversion_spec, error<void>> parse_printf_conversion(
+[[nodiscard]] inline auto parse_printf_conversion(
     std::u8string_view format,
-    std::size_t& index) noexcept
-{
+    std::size_t& index) noexcept -> std::expected<printf_conversion_spec, error<void>> {
     printf_conversion_spec spec{};
 
     const std::size_t original_index = index;
@@ -496,9 +492,8 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param format Format string.
  * @return Parsed token sequence on success.
  */
-[[nodiscard]] inline std::expected<std::vector<printf_token>, error<void>> parse_printf_tokens(
-    std::u8string_view format) noexcept
-{
+[[nodiscard]] inline auto parse_printf_tokens(
+    std::u8string_view format) noexcept -> std::expected<std::vector<printf_token>, error<void>> {
     std::vector<printf_token> tokens;
     std::u8string literal;
 
@@ -557,11 +552,10 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param next_index Sequential argument cursor.
  * @return Selected argument on success.
  */
-[[nodiscard]] inline std::expected<const printf_argument*, error<void>> select_printf_argument(
+[[nodiscard]] inline auto select_printf_argument(
     const std::vector<printf_argument>& args,
     const printf_conversion_spec& spec,
-    std::size_t& next_index) noexcept
-{
+    std::size_t& next_index) noexcept -> std::expected<const printf_argument*, error<void>> {
     std::size_t index = 0;
 
     if (spec.positional) {
@@ -587,12 +581,11 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param next_index Sequential argument cursor.
  * @return Extracted integer value on success.
  */
-[[nodiscard]] inline std::expected<int, error<void>> select_printf_int_argument(
+[[nodiscard]] inline auto select_printf_int_argument(
     const std::vector<printf_argument>& args,
     bool positional,
     std::size_t position,
-    std::size_t& next_index) noexcept
-{
+    std::size_t& next_index) noexcept -> std::expected<int, error<void>> {
     std::size_t index = 0;
 
     if (positional) {
@@ -630,11 +623,10 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param prefix_size Prefix length that should precede zero padding.
  * @return Padded field.
  */
-[[nodiscard]] inline std::u8string apply_printf_width(
+[[nodiscard]] inline auto apply_printf_width(
     std::u8string field,
     const printf_conversion_spec& spec,
-    std::size_t prefix_size = 0)
-{
+    std::size_t prefix_size = 0) -> std::u8string {
     if (!spec.width.has_value()) {
         return field;
     }
@@ -676,10 +668,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param spec Conversion spec.
  * @return Formatted field.
  */
-[[nodiscard]] inline std::u8string format_printf_signed(
+[[nodiscard]] inline auto format_printf_signed(
     std::intmax_t value,
-    const printf_conversion_spec& spec)
-{
+    const printf_conversion_spec& spec) -> std::u8string {
     bool negative = value < 0;
     std::uintmax_t magnitude = 0;
 
@@ -726,10 +717,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param spec Conversion spec.
  * @return Formatted field.
  */
-[[nodiscard]] inline std::u8string format_printf_unsigned(
+[[nodiscard]] inline auto format_printf_unsigned(
     std::uintmax_t value,
-    const printf_conversion_spec& spec)
-{
+    const printf_conversion_spec& spec) -> std::u8string {
     unsigned base = 10;
     bool upper = false;
     std::u8string alt_prefix;
@@ -787,10 +777,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param spec Conversion spec.
  * @return Formatted field on success.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> format_printf_character(
+[[nodiscard]] inline auto format_printf_character(
     char32_t value,
-    const printf_conversion_spec& spec)
-{
+    const printf_conversion_spec& spec) -> std::expected<std::u8string, error<void>> {
     std::u8string field;
     const auto appended = append_utf8_char(field, value);
     if (!appended.has_value()) {
@@ -807,10 +796,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param spec Conversion spec.
  * @return Formatted field.
  */
-[[nodiscard]] inline std::u8string format_printf_utf8_string(
+[[nodiscard]] inline auto format_printf_utf8_string(
     std::u8string_view value,
-    const printf_conversion_spec& spec)
-{
+    const printf_conversion_spec& spec) -> std::u8string {
     std::u8string field(value);
 
     if (spec.precision.has_value() &&
@@ -828,10 +816,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param spec Conversion spec.
  * @return Formatted field.
  */
-[[nodiscard]] inline std::u8string format_printf_c_string(
+[[nodiscard]] inline auto format_printf_c_string(
     const char* value,
-    const printf_conversion_spec& spec)
-{
+    const printf_conversion_spec& spec) -> std::u8string {
     if (value == nullptr) {
         return format_printf_utf8_string(u8"(null)", spec);
     }
@@ -854,10 +841,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param spec Conversion spec.
  * @return Formatted field.
  */
-[[nodiscard]] inline std::u8string format_printf_pointer(
+[[nodiscard]] inline auto format_printf_pointer(
     const void* value,
-    const printf_conversion_spec& spec)
-{
+    const printf_conversion_spec& spec) -> std::u8string {
     const auto raw = reinterpret_cast<std::uintptr_t>(value);
 
     printf_conversion_spec hex_spec = spec;
@@ -877,10 +863,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param spec Conversion spec.
  * @return Formatted field on success.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> format_printf_floating(
+[[nodiscard]] inline auto format_printf_floating(
     long double value,
-    const printf_conversion_spec& spec)
-{
+    const printf_conversion_spec& spec) -> std::expected<std::u8string, error<void>> {
     std::string format = "%";
 
     if (spec.left_justify) {
@@ -945,10 +930,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param spec Conversion spec.
  * @return Formatted field on success.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> format_printf_argument(
+[[nodiscard]] inline auto format_printf_argument(
     const printf_argument& arg,
-    const printf_conversion_spec& spec)
-{
+    const printf_conversion_spec& spec) -> std::expected<std::u8string, error<void>> {
     switch (spec.conversion) {
     case U'@':
         switch (arg.kind) {
@@ -1043,10 +1027,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param args Runtime arguments.
  * @return Formatted UTF-8 string on success.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> format_printf_tokens(
+[[nodiscard]] inline auto format_printf_tokens(
     const std::vector<printf_token>& tokens,
-    const std::vector<printf_argument>& args)
-{
+    const std::vector<printf_argument>& args) -> std::expected<std::u8string, error<void>> {
     std::u8string output;
     std::size_t next_arg_index = 0;
     bool saw_positional = false;
@@ -1131,10 +1114,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @param args Runtime arguments.
  * @return Formatted UTF-8 string on success.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> vformat_printf(
+[[nodiscard]] inline auto vformat_printf(
     std::u8string_view format,
-    const std::vector<printf_argument>& args)
-{
+    const std::vector<printf_argument>& args) -> std::expected<std::u8string, error<void>> {
     const auto tokens = parse_printf_tokens(format);
     if (!tokens.has_value()) {
         return std::unexpected(tokens.error());
@@ -1144,10 +1126,9 @@ inline void append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
 }
 
 template<typename... Args>
-[[nodiscard]] inline std::expected<std::u8string, error<void>> format_printf(
+[[nodiscard]] inline auto format_printf(
     std::u8string_view format,
-    Args&&... args)
-{
+    Args&&... args) -> std::expected<std::u8string, error<void>> {
     std::vector<printf_argument> runtime_args;
     runtime_args.reserve(sizeof...(Args));
     (runtime_args.push_back(make_printf_argument(std::forward<Args>(args))), ...);

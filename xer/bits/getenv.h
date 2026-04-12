@@ -35,9 +35,8 @@ namespace xer {
  * @return Environment variable value in UTF-8 on success.
  * @return error<void> on failure.
  */
-[[nodiscard]] inline std::expected<std::u8string, error<void>> getenv(
-    std::u8string_view name)
-{
+[[nodiscard]] inline auto getenv(
+    std::u8string_view name) -> std::expected<std::u8string, error<void>> {
     if (name.empty()) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }

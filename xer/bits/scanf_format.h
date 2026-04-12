@@ -143,7 +143,7 @@ struct scan_format_t {
  * @return true if the byte is an ASCII digit.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool scan_is_ascii_digit(char8_t ch) noexcept {
+[[nodiscard]] constexpr auto scan_is_ascii_digit(char8_t ch) noexcept -> bool {
     return ch >= u8'0' && ch <= u8'9';
 }
 
@@ -154,7 +154,7 @@ struct scan_format_t {
  * @return true if the byte is an ASCII whitespace character.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool scan_is_ascii_space(char8_t ch) noexcept {
+[[nodiscard]] constexpr auto scan_is_ascii_space(char8_t ch) noexcept -> bool {
     return ch == u8' ' || ch == u8'\t' || ch == u8'\n' || ch == u8'\r' || ch == u8'\v' ||
            ch == u8'\f';
 }
@@ -166,7 +166,7 @@ struct scan_format_t {
  * @return true if the byte is ASCII.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool scan_is_ascii_byte(char8_t ch) noexcept {
+[[nodiscard]] constexpr auto scan_is_ascii_byte(char8_t ch) noexcept -> bool {
     return static_cast<unsigned char>(ch) <= 0x7fu;
 }
 
@@ -177,9 +177,9 @@ struct scan_format_t {
  * @param index In/out byte index.
  * @return Decoded code point on success.
  */
-[[nodiscard]] inline std::expected<char32_t, error<void>> scan_decode_one_utf8(
+[[nodiscard]] inline auto scan_decode_one_utf8(
     std::u8string_view text,
-    std::size_t& index) {
+    std::size_t& index) -> std::expected<char32_t, error<void>> {
     if (index >= text.size()) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -270,10 +270,10 @@ struct scan_format_t {
  * @return true if a decimal number was parsed.
  * @return false otherwise.
  */
-[[nodiscard]] inline bool scan_parse_decimal_number(
+[[nodiscard]] inline auto scan_parse_decimal_number(
     std::u8string_view format,
     std::size_t& index,
-    std::size_t& value) noexcept {
+    std::size_t& value) noexcept -> bool {
     if (index >= format.size() || !scan_is_ascii_digit(format[index])) {
         return false;
     }
@@ -296,9 +296,9 @@ struct scan_format_t {
  * @param token_mode Token mode to apply.
  * @return Success on success.
  */
-[[nodiscard]] inline std::expected<void, error<void>> scan_apply_argument_mode(
+[[nodiscard]] inline auto scan_apply_argument_mode(
     scan_argument_mode_t& format_mode,
-    scan_argument_mode_t token_mode) {
+    scan_argument_mode_t token_mode) -> std::expected<void, error<void>> {
     if (token_mode == scan_argument_mode_t::unresolved) {
         return {};
     }
@@ -322,10 +322,10 @@ struct scan_format_t {
  * @param index In/out byte index.
  * @param length Output length modifier.
  */
-inline void scan_parse_length_modifier(
+inline auto scan_parse_length_modifier(
     std::u8string_view format,
     std::size_t& index,
-    scan_length_t& length) noexcept {
+    scan_length_t& length) noexcept -> void {
     length = scan_length_t::none;
 
     if (index >= format.size()) {
@@ -387,7 +387,7 @@ inline void scan_parse_length_modifier(
  * @param scanset Target scanset.
  * @param value Code point to add.
  */
-inline void scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexcept {
+inline auto scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexcept -> void {
     if (value <= 0x7f) {
         scanset.ascii_table[static_cast<unsigned char>(value)] = true;
         return;
@@ -404,10 +404,10 @@ inline void scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
  * @param scanset Output scanset.
  * @return Success on success.
  */
-[[nodiscard]] inline std::expected<void, error<void>> scan_parse_scanset_body(
+[[nodiscard]] inline auto scan_parse_scanset_body(
     std::u8string_view format,
     std::size_t& index,
-    scan_scanset_t& scanset) {
+    scan_scanset_t& scanset) -> std::expected<void, error<void>> {
     scanset = scan_scanset_t{};
 
     if (index >= format.size()) {
@@ -541,10 +541,10 @@ inline void scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
  * @param result Output token.
  * @return Success on success.
  */
-[[nodiscard]] inline std::expected<void, error<void>> scan_parse_percent_token(
+[[nodiscard]] inline auto scan_parse_percent_token(
     std::u8string_view format,
     std::size_t& index,
-    scan_token_t& result) {
+    scan_token_t& result) -> std::expected<void, error<void>> {
     if (index >= format.size()) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -718,8 +718,8 @@ inline void scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
  * @param format Source UTF-8 format string.
  * @return Parsed format on success.
  */
-[[nodiscard]] inline std::expected<scan_format_t, error<void>> parse_scan_format(
-    std::u8string_view format) {
+[[nodiscard]] inline auto parse_scan_format(
+    std::u8string_view format) -> std::expected<scan_format_t, error<void>> {
     scan_format_t result;
     std::size_t index = 0;
 

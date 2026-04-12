@@ -96,9 +96,8 @@ template<class SignedInteger>
  * @return Absolute value on success, or overflow_error on failure.
  */
 template<class SignedInteger>
-[[nodiscard]] constexpr std::expected<SignedInteger, error<void>> signed_abs(
-    SignedInteger value) noexcept
-{
+[[nodiscard]] constexpr auto signed_abs(
+    SignedInteger value) noexcept -> std::expected<SignedInteger, error<void>> {
     if (value == std::numeric_limits<SignedInteger>::min()) {
         return std::unexpected(make_error(error_t::overflow_error));
     }
@@ -119,9 +118,8 @@ template<class SignedInteger>
  * @return Normalized expected absolute value.
  */
 template<class T, class E>
-[[nodiscard]] constexpr std::expected<T, error<void>> abs_expected(
-    const std::expected<T, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto abs_expected(
+    const std::expected<T, E>& value) noexcept -> std::expected<T, error<void>> {
     if (!value) {
         return std::unexpected(to_error_void(value.error()));
     }
@@ -139,9 +137,8 @@ template<class T, class E>
  * @return Normalized expected unsigned absolute value.
  */
 template<class T, class U, class E>
-[[nodiscard]] constexpr std::expected<U, error<void>> uabs_expected(
-    const std::expected<T, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto uabs_expected(
+    const std::expected<T, E>& value) noexcept -> std::expected<U, error<void>> {
     if (!value) {
         return std::unexpected(to_error_void(value.error()));
     }
@@ -161,8 +158,7 @@ template<class T, class U, class E>
  * @param value Source value.
  * @return Absolute value on success, or overflow_error on failure.
  */
-[[nodiscard]] constexpr std::expected<int, error<void>> abs(int value) noexcept
-{
+[[nodiscard]] constexpr auto abs(int value) noexcept -> std::expected<int, error<void>> {
     return detail::signed_abs(value);
 }
 
@@ -172,8 +168,7 @@ template<class T, class U, class E>
  * @param value Source value.
  * @return Absolute value on success, or overflow_error on failure.
  */
-[[nodiscard]] constexpr std::expected<long, error<void>> abs(long value) noexcept
-{
+[[nodiscard]] constexpr auto abs(long value) noexcept -> std::expected<long, error<void>> {
     return detail::signed_abs(value);
 }
 
@@ -183,8 +178,7 @@ template<class T, class U, class E>
  * @param value Source value.
  * @return Absolute value on success, or overflow_error on failure.
  */
-[[nodiscard]] constexpr std::expected<long long, error<void>> abs(long long value) noexcept
-{
+[[nodiscard]] constexpr auto abs(long long value) noexcept -> std::expected<long long, error<void>> {
     return detail::signed_abs(value);
 }
 
@@ -195,8 +189,7 @@ template<class T, class U, class E>
  * @param value Source value.
  * @return Absolute value on success, or overflow_error on failure.
  */
-[[nodiscard]] constexpr std::expected<__int128, error<void>> abs(__int128 value) noexcept
-{
+[[nodiscard]] constexpr auto abs(__int128 value) noexcept -> std::expected<__int128, error<void>> {
     return detail::signed_abs(value);
 }
 #endif
@@ -209,9 +202,8 @@ template<class T, class U, class E>
  * @return Absolute value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<int, error<void>> abs(
-    const std::expected<int, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto abs(
+    const std::expected<int, E>& value) noexcept -> std::expected<int, error<void>> {
     return detail::abs_expected(value);
 }
 
@@ -223,9 +215,8 @@ template<class E>
  * @return Absolute value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<long, error<void>> abs(
-    const std::expected<long, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto abs(
+    const std::expected<long, E>& value) noexcept -> std::expected<long, error<void>> {
     return detail::abs_expected(value);
 }
 
@@ -237,9 +228,8 @@ template<class E>
  * @return Absolute value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<long long, error<void>> abs(
-    const std::expected<long long, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto abs(
+    const std::expected<long long, E>& value) noexcept -> std::expected<long long, error<void>> {
     return detail::abs_expected(value);
 }
 
@@ -252,9 +242,8 @@ template<class E>
  * @return Absolute value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<__int128, error<void>> abs(
-    const std::expected<__int128, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto abs(
+    const std::expected<__int128, E>& value) noexcept -> std::expected<__int128, error<void>> {
     return detail::abs_expected(value);
 }
 #endif
@@ -265,8 +254,7 @@ template<class E>
  * @param value Source value.
  * @return Unsigned absolute value.
  */
-[[nodiscard]] constexpr std::expected<unsigned int, error<void>> uabs(int value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(int value) noexcept -> std::expected<unsigned int, error<void>> {
     return detail::signed_uabs(value);
 }
 
@@ -276,9 +264,8 @@ template<class E>
  * @param value Source value.
  * @return Same value.
  */
-[[nodiscard]] constexpr std::expected<unsigned int, error<void>> uabs(
-    unsigned int value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    unsigned int value) noexcept -> std::expected<unsigned int, error<void>> {
     return value;
 }
 
@@ -288,8 +275,7 @@ template<class E>
  * @param value Source value.
  * @return Unsigned absolute value.
  */
-[[nodiscard]] constexpr std::expected<unsigned long, error<void>> uabs(long value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(long value) noexcept -> std::expected<unsigned long, error<void>> {
     return detail::signed_uabs(value);
 }
 
@@ -299,9 +285,8 @@ template<class E>
  * @param value Source value.
  * @return Same value.
  */
-[[nodiscard]] constexpr std::expected<unsigned long, error<void>> uabs(
-    unsigned long value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    unsigned long value) noexcept -> std::expected<unsigned long, error<void>> {
     return value;
 }
 
@@ -311,9 +296,8 @@ template<class E>
  * @param value Source value.
  * @return Unsigned absolute value.
  */
-[[nodiscard]] constexpr std::expected<unsigned long long, error<void>> uabs(
-    long long value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    long long value) noexcept -> std::expected<unsigned long long, error<void>> {
     return detail::signed_uabs(value);
 }
 
@@ -323,9 +307,8 @@ template<class E>
  * @param value Source value.
  * @return Same value.
  */
-[[nodiscard]] constexpr std::expected<unsigned long long, error<void>> uabs(
-    unsigned long long value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    unsigned long long value) noexcept -> std::expected<unsigned long long, error<void>> {
     return value;
 }
 
@@ -336,9 +319,8 @@ template<class E>
  * @param value Source value.
  * @return Unsigned absolute value.
  */
-[[nodiscard]] constexpr std::expected<unsigned __int128, error<void>> uabs(
-    __int128 value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    __int128 value) noexcept -> std::expected<unsigned __int128, error<void>> {
     return detail::signed_uabs(value);
 }
 
@@ -348,9 +330,8 @@ template<class E>
  * @param value Source value.
  * @return Same value.
  */
-[[nodiscard]] constexpr std::expected<unsigned __int128, error<void>> uabs(
-    unsigned __int128 value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    unsigned __int128 value) noexcept -> std::expected<unsigned __int128, error<void>> {
     return value;
 }
 #endif
@@ -363,9 +344,8 @@ template<class E>
  * @return Unsigned absolute value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<unsigned int, error<void>> uabs(
-    const std::expected<int, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    const std::expected<int, E>& value) noexcept -> std::expected<unsigned int, error<void>> {
     return detail::uabs_expected<int, unsigned int>(value);
 }
 
@@ -377,9 +357,8 @@ template<class E>
  * @return Same value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<unsigned int, error<void>> uabs(
-    const std::expected<unsigned int, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    const std::expected<unsigned int, E>& value) noexcept -> std::expected<unsigned int, error<void>> {
     return detail::uabs_expected<unsigned int, unsigned int>(value);
 }
 
@@ -391,9 +370,8 @@ template<class E>
  * @return Unsigned absolute value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<unsigned long, error<void>> uabs(
-    const std::expected<long, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    const std::expected<long, E>& value) noexcept -> std::expected<unsigned long, error<void>> {
     return detail::uabs_expected<long, unsigned long>(value);
 }
 
@@ -405,9 +383,8 @@ template<class E>
  * @return Same value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<unsigned long, error<void>> uabs(
-    const std::expected<unsigned long, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    const std::expected<unsigned long, E>& value) noexcept -> std::expected<unsigned long, error<void>> {
     return detail::uabs_expected<unsigned long, unsigned long>(value);
 }
 
@@ -419,9 +396,8 @@ template<class E>
  * @return Unsigned absolute value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<unsigned long long, error<void>> uabs(
-    const std::expected<long long, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    const std::expected<long long, E>& value) noexcept -> std::expected<unsigned long long, error<void>> {
     return detail::uabs_expected<long long, unsigned long long>(value);
 }
 
@@ -433,9 +409,8 @@ template<class E>
  * @return Same value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<unsigned long long, error<void>> uabs(
-    const std::expected<unsigned long long, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    const std::expected<unsigned long long, E>& value) noexcept -> std::expected<unsigned long long, error<void>> {
     return detail::uabs_expected<unsigned long long, unsigned long long>(value);
 }
 
@@ -448,9 +423,8 @@ template<class E>
  * @return Unsigned absolute value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<unsigned __int128, error<void>> uabs(
-    const std::expected<__int128, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    const std::expected<__int128, E>& value) noexcept -> std::expected<unsigned __int128, error<void>> {
     return detail::uabs_expected<__int128, unsigned __int128>(value);
 }
 
@@ -462,9 +436,8 @@ template<class E>
  * @return Same value on success, or normalized error on failure.
  */
 template<class E>
-[[nodiscard]] constexpr std::expected<unsigned __int128, error<void>> uabs(
-    const std::expected<unsigned __int128, E>& value) noexcept
-{
+[[nodiscard]] constexpr auto uabs(
+    const std::expected<unsigned __int128, E>& value) noexcept -> std::expected<unsigned __int128, error<void>> {
     return detail::uabs_expected<unsigned __int128, unsigned __int128>(value);
 }
 #endif

@@ -78,7 +78,7 @@ struct mbstate_t {
      *
      * @return `true` if no incomplete sequence is buffered, otherwise `false`.
      */
-    [[nodiscard]] constexpr bool empty() const noexcept {
+    [[nodiscard]] constexpr auto empty() const noexcept -> bool {
         return size == 0;
     }
 };
