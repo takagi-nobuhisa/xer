@@ -172,7 +172,7 @@ namespace xer {
  * @return An error with @ref error_t::invalid_argument if `value` is negative.
  * @return An error with @ref error_t::runtime_error on conversion failure.
  */
-[[nodiscard]] inline auto gmtime(time_t value) noexcept -> std::expected<tm, error<void>>
+[[nodiscard]] inline auto gmtime(time_t value) noexcept -> result<tm>
 {
     std::time_t seconds = 0;
     int microsec = 0;
@@ -198,7 +198,7 @@ namespace xer {
  * @return An error with @ref error_t::invalid_argument if `value` is negative.
  * @return An error with @ref error_t::runtime_error on conversion failure.
  */
-[[nodiscard]] inline auto localtime(time_t value) noexcept -> std::expected<tm, error<void>>
+[[nodiscard]] inline auto localtime(time_t value) noexcept -> result<tm>
 {
     std::time_t seconds = 0;
     int microsec = 0;
@@ -226,7 +226,7 @@ namespace xer {
  *         microsecond field.
  * @return An error with @ref error_t::runtime_error on conversion failure.
  */
-[[nodiscard]] inline auto mktime(const tm& value) noexcept -> std::expected<time_t, error<void>>
+[[nodiscard]] inline auto mktime(const tm& value) noexcept -> result<time_t>
 {
     if (!detail::has_valid_microsec(value)) {
         return std::unexpected(make_error(error_t::invalid_argument));

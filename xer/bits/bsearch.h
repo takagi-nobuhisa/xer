@@ -43,7 +43,7 @@ concept bsearch_pointer_compare =
  * @return Found pointer on success, or an error on failure.
  */
 template<typename T, typename Compare>
-[[nodiscard]] constexpr std::expected<T*, error<void>> bsearch_pointer_impl(
+[[nodiscard]] constexpr result<T*> bsearch_pointer_impl(
     const T* key,
     T* base,
     std::size_t count,
@@ -88,7 +88,7 @@ template<typename T, typename Compare>
  * @return Found pointer on success, or an error on failure.
  */
 template<typename T, typename Compare>
-[[nodiscard]] constexpr std::expected<const T*, error<void>> bsearch_pointer_impl(
+[[nodiscard]] constexpr result<const T*> bsearch_pointer_impl(
     const T* key,
     const T* base,
     std::size_t count,
@@ -132,7 +132,7 @@ template<typename T, typename Compare>
  * @return Found iterator on success, or an error on failure.
  */
 template<typename Range, typename Compare>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<Range>, error<void>>
+[[nodiscard]] constexpr result<std::ranges::iterator_t<Range>>
 bsearch_range_impl(
     const std::ranges::range_value_t<Range>* key,
     Range& base,
@@ -178,7 +178,7 @@ bsearch_range_impl(
  * @return Found iterator on success, or an error on failure.
  */
 template<typename Range, typename Compare>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<const Range>, error<void>>
+[[nodiscard]] constexpr result<std::ranges::iterator_t<const Range>>
 bsearch_range_impl(
     const std::ranges::range_value_t<Range>* key,
     const Range& base,
@@ -230,7 +230,7 @@ namespace xer {
  */
 template<typename T, typename Compare>
     requires(detail::bsearch_pointer_compare<Compare, T>)
-[[nodiscard]] constexpr std::expected<T*, error<void>> bsearch(
+[[nodiscard]] constexpr result<T*> bsearch(
     const T* key,
     T* base,
     std::size_t count,
@@ -252,7 +252,7 @@ template<typename T, typename Compare>
  */
 template<typename T, typename Compare>
     requires(detail::bsearch_pointer_compare<Compare, T>)
-[[nodiscard]] constexpr std::expected<const T*, error<void>> bsearch(
+[[nodiscard]] constexpr result<const T*> bsearch(
     const T* key,
     const T* base,
     std::size_t count,
@@ -274,7 +274,7 @@ template<typename T, typename Compare>
  */
 template<typename T, std::size_t N, typename Compare>
     requires(detail::bsearch_pointer_compare<Compare, T>)
-[[nodiscard]] constexpr std::expected<T*, error<void>> bsearch(
+[[nodiscard]] constexpr result<T*> bsearch(
     const T* key,
     T (&base)[N],
     Compare comp)
@@ -295,7 +295,7 @@ template<typename T, std::size_t N, typename Compare>
  */
 template<typename T, std::size_t N, typename Compare>
     requires(detail::bsearch_pointer_compare<Compare, T>)
-[[nodiscard]] constexpr std::expected<const T*, error<void>> bsearch(
+[[nodiscard]] constexpr result<const T*> bsearch(
     const T* key,
     const T (&base)[N],
     Compare comp)
@@ -317,7 +317,7 @@ template<typename Range, typename Compare>
     requires(
         detail::mutable_random_access_searchable_range<Range> &&
         detail::bsearch_pointer_compare<Compare, std::ranges::range_value_t<Range>>)
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<Range>, error<void>> bsearch(
+[[nodiscard]] constexpr result<std::ranges::iterator_t<Range>> bsearch(
     const std::ranges::range_value_t<Range>* key,
     Range& base,
     Compare comp)
@@ -339,7 +339,7 @@ template<typename Range, typename Compare>
     requires(
         detail::random_access_searchable_range<const Range> &&
         detail::bsearch_pointer_compare<Compare, std::ranges::range_value_t<Range>>)
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<const Range>, error<void>> bsearch(
+[[nodiscard]] constexpr result<std::ranges::iterator_t<const Range>> bsearch(
     const std::ranges::range_value_t<Range>* key,
     const Range& base,
     Compare comp)

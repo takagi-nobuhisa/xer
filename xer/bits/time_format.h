@@ -288,7 +288,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto strftime(
     std::u8string_view format,
-    const tm& value) noexcept -> std::expected<std::u8string, error<void>>
+    const tm& value) noexcept -> result<std::u8string>
 {
     if (!detail::time_format_has_valid_microsec(value)) {
         return std::unexpected(make_error(error_t::invalid_argument));

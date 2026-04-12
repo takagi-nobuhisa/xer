@@ -335,8 +335,8 @@ template<typename A, typename B>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> eq(
-    const std::expected<T, error<void>>& lhs,
+[[nodiscard]] constexpr result<bool> eq(
+    const result<T>& lhs,
     U rhs) noexcept
 {
     if (!lhs) {
@@ -348,9 +348,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> eq(
+[[nodiscard]] constexpr result<bool> eq(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+    const result<U>& rhs) noexcept
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -361,9 +361,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> eq(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+[[nodiscard]] constexpr result<bool> eq(
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -377,8 +377,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> ne(
-    const std::expected<T, error<void>>& lhs,
+[[nodiscard]] constexpr result<bool> ne(
+    const result<T>& lhs,
     U rhs) noexcept
 {
     if (!lhs) {
@@ -390,9 +390,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> ne(
+[[nodiscard]] constexpr result<bool> ne(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+    const result<U>& rhs) noexcept
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -403,9 +403,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> ne(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+[[nodiscard]] constexpr result<bool> ne(
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -419,8 +419,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> lt(
-    const std::expected<T, error<void>>& lhs,
+[[nodiscard]] constexpr result<bool> lt(
+    const result<T>& lhs,
     U rhs) noexcept
 {
     if (!lhs) {
@@ -432,9 +432,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> lt(
+[[nodiscard]] constexpr result<bool> lt(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+    const result<U>& rhs) noexcept
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -445,9 +445,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> lt(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+[[nodiscard]] constexpr result<bool> lt(
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -461,8 +461,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> le(
-    const std::expected<T, error<void>>& lhs,
+[[nodiscard]] constexpr result<bool> le(
+    const result<T>& lhs,
     U rhs) noexcept
 {
     if (!lhs) {
@@ -474,9 +474,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> le(
+[[nodiscard]] constexpr result<bool> le(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+    const result<U>& rhs) noexcept
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -487,9 +487,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> le(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+[[nodiscard]] constexpr result<bool> le(
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -503,8 +503,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> gt(
-    const std::expected<T, error<void>>& lhs,
+[[nodiscard]] constexpr result<bool> gt(
+    const result<T>& lhs,
     U rhs) noexcept
 {
     if (!lhs) {
@@ -516,9 +516,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> gt(
+[[nodiscard]] constexpr result<bool> gt(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+    const result<U>& rhs) noexcept
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -529,9 +529,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> gt(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+[[nodiscard]] constexpr result<bool> gt(
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -545,8 +545,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> ge(
-    const std::expected<T, error<void>>& lhs,
+[[nodiscard]] constexpr result<bool> ge(
+    const result<T>& lhs,
     U rhs) noexcept
 {
     if (!lhs) {
@@ -558,9 +558,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> ge(
+[[nodiscard]] constexpr result<bool> ge(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+    const result<U>& rhs) noexcept
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -571,9 +571,9 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
-[[nodiscard]] constexpr std::expected<bool, error<void>> ge(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+[[nodiscard]] constexpr result<bool> ge(
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept
 {
     if (!lhs) {
         return std::unexpected(lhs.error());

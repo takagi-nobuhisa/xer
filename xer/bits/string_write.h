@@ -49,7 +49,7 @@ namespace xer::detail {
 template<supported_string_character CharT>
 [[nodiscard]] constexpr auto find_terminator(
     const CharT* destination,
-    const std::size_t destination_size) noexcept -> std::expected<std::size_t, error<void>>
+    const std::size_t destination_size) noexcept -> result<std::size_t>
 {
     if (!is_valid_string_argument(destination, destination_size)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -82,7 +82,7 @@ template<detail::supported_string_character CharT>
 [[nodiscard]] constexpr auto strcpy(
     CharT* destination,
     const std::size_t destination_size,
-    const std::basic_string_view<CharT> source) noexcept -> std::expected<CharT*, error<void>>
+    const std::basic_string_view<CharT> source) noexcept -> result<CharT*>
 {
     if (!detail::is_valid_string_argument(destination, destination_size)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -117,7 +117,7 @@ template<typename Destination, typename CharT>
     requires detail::mutable_character_contiguous_range<Destination, CharT>
 [[nodiscard]] constexpr auto strcpy(
     Destination& destination,
-    const std::basic_string_view<CharT> source) noexcept -> std::expected<std::ranges::iterator_t<Destination>, error<void>>
+    const std::basic_string_view<CharT> source) noexcept -> result<std::ranges::iterator_t<Destination>>
 {
     const auto result = xer::strcpy(
         std::ranges::data(destination),
@@ -152,7 +152,7 @@ template<detail::supported_string_character CharT>
     CharT* destination,
     const std::size_t destination_size,
     const std::basic_string_view<CharT> source,
-    const std::size_t count) noexcept -> std::expected<CharT*, error<void>>
+    const std::size_t count) noexcept -> result<CharT*>
 {
     if (!detail::is_valid_string_argument(destination, destination_size)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -191,7 +191,7 @@ template<typename Destination, typename CharT>
 [[nodiscard]] constexpr auto strncpy(
     Destination& destination,
     const std::basic_string_view<CharT> source,
-    const std::size_t count) noexcept -> std::expected<std::ranges::iterator_t<Destination>, error<void>>
+    const std::size_t count) noexcept -> result<std::ranges::iterator_t<Destination>>
 {
     const auto result = xer::strncpy(
         std::ranges::data(destination),
@@ -223,7 +223,7 @@ template<detail::supported_string_character CharT>
 [[nodiscard]] constexpr auto strcat(
     CharT* destination,
     const std::size_t destination_size,
-    const std::basic_string_view<CharT> source) noexcept -> std::expected<CharT*, error<void>>
+    const std::basic_string_view<CharT> source) noexcept -> result<CharT*>
 {
     const auto terminator_result =
         detail::find_terminator(destination, destination_size);
@@ -262,7 +262,7 @@ template<typename Destination, typename CharT>
     requires detail::mutable_character_contiguous_range<Destination, CharT>
 [[nodiscard]] constexpr auto strcat(
     Destination& destination,
-    const std::basic_string_view<CharT> source) noexcept -> std::expected<std::ranges::iterator_t<Destination>, error<void>>
+    const std::basic_string_view<CharT> source) noexcept -> result<std::ranges::iterator_t<Destination>>
 {
     const auto result = xer::strcat(
         std::ranges::data(destination),
@@ -295,7 +295,7 @@ template<detail::supported_string_character CharT>
     CharT* destination,
     const std::size_t destination_size,
     const std::basic_string_view<CharT> source,
-    const std::size_t count) noexcept -> std::expected<CharT*, error<void>>
+    const std::size_t count) noexcept -> result<CharT*>
 {
     const auto terminator_result =
         detail::find_terminator(destination, destination_size);
@@ -337,7 +337,7 @@ template<typename Destination, typename CharT>
 [[nodiscard]] constexpr auto strncat(
     Destination& destination,
     const std::basic_string_view<CharT> source,
-    const std::size_t count) noexcept -> std::expected<std::ranges::iterator_t<Destination>, error<void>>
+    const std::size_t count) noexcept -> result<std::ranges::iterator_t<Destination>>
 {
     const auto result = xer::strncat(
         std::ranges::data(destination),

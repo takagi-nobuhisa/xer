@@ -25,7 +25,7 @@ namespace xer::detail {
  * @return Converted count on success.
  */
 [[nodiscard]] inline auto binary_stream_io_size_to_int(
-    std::size_t size) noexcept -> std::expected<int, error<void>> {
+    std::size_t size) noexcept -> result<int> {
     if (size > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
@@ -49,7 +49,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto fread(
     std::span<std::byte> buffer,
-    binary_stream& stream) noexcept -> std::expected<std::size_t, error<void>> {
+    binary_stream& stream) noexcept -> result<std::size_t> {
     const auto count = detail::binary_stream_io_size_to_int(buffer.size());
     if (!count.has_value()) {
         return std::unexpected(count.error());
@@ -79,7 +79,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto fwrite(
     std::span<const std::byte> buffer,
-    binary_stream& stream) noexcept -> std::expected<std::size_t, error<void>> {
+    binary_stream& stream) noexcept -> result<std::size_t> {
     const auto count = detail::binary_stream_io_size_to_int(buffer.size());
     if (!count.has_value()) {
         return std::unexpected(count.error());
@@ -106,7 +106,7 @@ namespace xer {
  * @return Read byte on success.
  */
 [[nodiscard]] inline auto fgetb(
-    binary_stream& stream) noexcept -> std::expected<std::byte, error<void>> {
+    binary_stream& stream) noexcept -> result<std::byte> {
     std::byte value{};
     const int result = stream.read_fn()(stream.handle(), &value, 1);
 
@@ -130,7 +130,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto fputb(
     std::byte value,
-    binary_stream& stream) noexcept -> std::expected<std::byte, error<void>> {
+    binary_stream& stream) noexcept -> result<std::byte> {
     const int result = stream.write_fn()(stream.handle(), &value, 1);
 
     if (result < 0) {

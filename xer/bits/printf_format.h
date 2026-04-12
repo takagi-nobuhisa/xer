@@ -348,7 +348,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  */
 [[nodiscard]] inline auto parse_printf_conversion(
     std::u8string_view format,
-    std::size_t& index) noexcept -> std::expected<printf_conversion_spec, error<void>> {
+    std::size_t& index) noexcept -> result<printf_conversion_spec> {
     printf_conversion_spec spec{};
 
     const std::size_t original_index = index;
@@ -493,7 +493,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  * @return Parsed token sequence on success.
  */
 [[nodiscard]] inline auto parse_printf_tokens(
-    std::u8string_view format) noexcept -> std::expected<std::vector<printf_token>, error<void>> {
+    std::u8string_view format) noexcept -> result<std::vector<printf_token>> {
     std::vector<printf_token> tokens;
     std::u8string literal;
 
@@ -555,7 +555,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
 [[nodiscard]] inline auto select_printf_argument(
     const std::vector<printf_argument>& args,
     const printf_conversion_spec& spec,
-    std::size_t& next_index) noexcept -> std::expected<const printf_argument*, error<void>> {
+    std::size_t& next_index) noexcept -> result<const printf_argument*> {
     std::size_t index = 0;
 
     if (spec.positional) {
@@ -585,7 +585,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
     const std::vector<printf_argument>& args,
     bool positional,
     std::size_t position,
-    std::size_t& next_index) noexcept -> std::expected<int, error<void>> {
+    std::size_t& next_index) noexcept -> result<int> {
     std::size_t index = 0;
 
     if (positional) {
@@ -779,7 +779,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  */
 [[nodiscard]] inline auto format_printf_character(
     char32_t value,
-    const printf_conversion_spec& spec) -> std::expected<std::u8string, error<void>> {
+    const printf_conversion_spec& spec) -> result<std::u8string> {
     std::u8string field;
     const auto appended = append_utf8_char(field, value);
     if (!appended.has_value()) {
@@ -865,7 +865,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  */
 [[nodiscard]] inline auto format_printf_floating(
     long double value,
-    const printf_conversion_spec& spec) -> std::expected<std::u8string, error<void>> {
+    const printf_conversion_spec& spec) -> result<std::u8string> {
     std::string format = "%";
 
     if (spec.left_justify) {
@@ -932,7 +932,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  */
 [[nodiscard]] inline auto format_printf_argument(
     const printf_argument& arg,
-    const printf_conversion_spec& spec) -> std::expected<std::u8string, error<void>> {
+    const printf_conversion_spec& spec) -> result<std::u8string> {
     switch (spec.conversion) {
     case U'@':
         switch (arg.kind) {
@@ -1029,7 +1029,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  */
 [[nodiscard]] inline auto format_printf_tokens(
     const std::vector<printf_token>& tokens,
-    const std::vector<printf_argument>& args) -> std::expected<std::u8string, error<void>> {
+    const std::vector<printf_argument>& args) -> result<std::u8string> {
     std::u8string output;
     std::size_t next_arg_index = 0;
     bool saw_positional = false;
@@ -1116,7 +1116,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
  */
 [[nodiscard]] inline auto vformat_printf(
     std::u8string_view format,
-    const std::vector<printf_argument>& args) -> std::expected<std::u8string, error<void>> {
+    const std::vector<printf_argument>& args) -> result<std::u8string> {
     const auto tokens = parse_printf_tokens(format);
     if (!tokens.has_value()) {
         return std::unexpected(tokens.error());
@@ -1128,7 +1128,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
 template<typename... Args>
 [[nodiscard]] inline auto format_printf(
     std::u8string_view format,
-    Args&&... args) -> std::expected<std::u8string, error<void>> {
+    Args&&... args) -> result<std::u8string> {
     std::vector<printf_argument> runtime_args;
     runtime_args.reserve(sizeof...(Args));
     (runtime_args.push_back(make_printf_argument(std::forward<Args>(args))), ...);

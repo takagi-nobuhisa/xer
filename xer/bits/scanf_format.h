@@ -179,7 +179,7 @@ struct scan_format_t {
  */
 [[nodiscard]] inline auto scan_decode_one_utf8(
     std::u8string_view text,
-    std::size_t& index) -> std::expected<char32_t, error<void>> {
+    std::size_t& index) -> result<char32_t> {
     if (index >= text.size()) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -298,7 +298,7 @@ struct scan_format_t {
  */
 [[nodiscard]] inline auto scan_apply_argument_mode(
     scan_argument_mode_t& format_mode,
-    scan_argument_mode_t token_mode) -> std::expected<void, error<void>> {
+    scan_argument_mode_t token_mode) -> result<void> {
     if (token_mode == scan_argument_mode_t::unresolved) {
         return {};
     }
@@ -407,7 +407,7 @@ inline auto scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
 [[nodiscard]] inline auto scan_parse_scanset_body(
     std::u8string_view format,
     std::size_t& index,
-    scan_scanset_t& scanset) -> std::expected<void, error<void>> {
+    scan_scanset_t& scanset) -> result<void> {
     scanset = scan_scanset_t{};
 
     if (index >= format.size()) {
@@ -544,7 +544,7 @@ inline auto scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
 [[nodiscard]] inline auto scan_parse_percent_token(
     std::u8string_view format,
     std::size_t& index,
-    scan_token_t& result) -> std::expected<void, error<void>> {
+    scan_token_t& result) -> xer::result<void> {
     if (index >= format.size()) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -719,7 +719,7 @@ inline auto scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
  * @return Parsed format on success.
  */
 [[nodiscard]] inline auto parse_scan_format(
-    std::u8string_view format) -> std::expected<scan_format_t, error<void>> {
+    std::u8string_view format) -> result<scan_format_t> {
     scan_format_t result;
     std::size_t index = 0;
 

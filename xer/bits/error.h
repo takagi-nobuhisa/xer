@@ -1,6 +1,6 @@
 ﻿/**
  * @file xer/bits/error.h
- * @brief Defines error_t, error, and make_error.
+ * @brief Defines error_t, error, result, and make_error.
  */
 
 #pragma once
@@ -10,6 +10,7 @@
 
 #include <cerrno>
 #include <concepts>
+#include <expected>
 #include <cstdint>
 #include <source_location>
 #include <type_traits>
@@ -95,6 +96,15 @@ enum class error_t : std::int32_t {
 
 template<class Detail = void>
 struct error;
+
+/**
+ * @brief Standard XER result type.
+ *
+ * @tparam T Success value type.
+ * @tparam Detail Additional error detail type.
+ */
+template<class T, class Detail = void>
+using result = std::expected<T, error<Detail>>;
 
 namespace detail {
 

@@ -82,7 +82,7 @@ struct encoded_char {
  * @return Unexpected error result.
  */
 template<typename T>
-[[nodiscard]] inline auto unexpected_error(error_t code) -> std::expected<T, error<void>> {
+[[nodiscard]] inline auto unexpected_error(error_t code) -> result<T> {
     return std::unexpected(make_error(code));
 }
 
@@ -195,7 +195,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @param value Code point.
  * @return Success or error.
  */
-[[nodiscard]] inline auto write_tc(wchar_t* out, char32_t value) -> std::expected<void, error<void>> {
+[[nodiscard]] inline auto write_tc(wchar_t* out, char32_t value) -> result<void> {
     if (out == nullptr) {
         return {};
     }
@@ -224,7 +224,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @param value Code point.
  * @return Success or error.
  */
-[[nodiscard]] inline auto write_tc(char16_t* out, char32_t value) -> std::expected<void, error<void>> {
+[[nodiscard]] inline auto write_tc(char16_t* out, char32_t value) -> result<void> {
     if (out == nullptr) {
         return {};
     }
@@ -244,7 +244,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @param value Code point.
  * @return Success or error.
  */
-[[nodiscard]] inline auto write_tc(char32_t* out, char32_t value) -> std::expected<void, error<void>> {
+[[nodiscard]] inline auto write_tc(char32_t* out, char32_t value) -> result<void> {
     if (is_invalid_utf32(value)) {
         return std::unexpected(make_error(error_t::ilseq));
     }
@@ -261,7 +261,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @param value Source value.
  * @return Code point or error.
  */
-[[nodiscard]] inline auto read_tc(wchar_t value) -> std::expected<char32_t, error<void>> {
+[[nodiscard]] inline auto read_tc(wchar_t value) -> result<char32_t> {
     if constexpr (sizeof(wchar_t) == 2) {
         const char32_t cp = static_cast<char32_t>(static_cast<char16_t>(value));
         if (is_surrogate(cp)) {
@@ -285,7 +285,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @param value Source value.
  * @return Code point or error.
  */
-[[nodiscard]] inline auto read_tc(char16_t value) -> std::expected<char32_t, error<void>> {
+[[nodiscard]] inline auto read_tc(char16_t value) -> result<char32_t> {
     const char32_t cp = static_cast<char32_t>(value);
     if (is_surrogate(cp)) {
         return std::unexpected(make_error(error_t::ilseq));
@@ -299,7 +299,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @param value Source value.
  * @return Code point or error.
  */
-[[nodiscard]] inline auto read_tc(char32_t value) -> std::expected<char32_t, error<void>> {
+[[nodiscard]] inline auto read_tc(char32_t value) -> result<char32_t> {
     if (is_invalid_utf32(value) || is_surrogate(value)) {
         return std::unexpected(make_error(error_t::ilseq));
     }
@@ -317,7 +317,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
 [[nodiscard]] inline auto decode_utf8_char(
     const std::uint8_t* bytes,
     std::size_t size,
-    bool allow_incomplete) -> std::expected<decoded_char, error<void>> {
+    bool allow_incomplete) -> result<decoded_char> {
     if (size == 0) {
         return unexpected_error<decoded_char>(error_t::ilseq);
     }
@@ -385,7 +385,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
 [[nodiscard]] inline auto decode_cp932_char(
     const std::uint8_t* bytes,
     std::size_t size,
-    bool allow_incomplete) -> std::expected<decoded_char, error<void>> {
+    bool allow_incomplete) -> result<decoded_char> {
     if (size == 0) {
         return unexpected_error<decoded_char>(error_t::ilseq);
     }
@@ -470,7 +470,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
     const std::uint8_t* bytes,
     std::size_t size,
     multibyte_encoding encoding,
-    bool allow_incomplete) -> std::expected<decoded_char, error<void>> {
+    bool allow_incomplete) -> result<decoded_char> {
     switch (encoding) {
     case multibyte_encoding::cp932:
         return decode_cp932_char(bytes, size, allow_incomplete);
@@ -489,7 +489,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @param value Source code point.
  * @return Encoded result or error.
  */
-[[nodiscard]] inline auto encode_utf8_mb_char(char32_t value) -> std::expected<encoded_char, error<void>> {
+[[nodiscard]] inline auto encode_utf8_mb_char(char32_t value) -> result<encoded_char> {
     if (is_invalid_utf32(value) || is_surrogate(value)) {
         return unexpected_error<encoded_char>(error_t::ilseq);
     }
@@ -526,7 +526,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @param value Source code point.
  * @return Encoded result or error.
  */
-[[nodiscard]] inline auto encode_cp932_char(char32_t value) -> std::expected<encoded_char, error<void>> {
+[[nodiscard]] inline auto encode_cp932_char(char32_t value) -> result<encoded_char> {
     if (is_invalid_utf32(value) || is_surrogate(value)) {
         return unexpected_error<encoded_char>(error_t::ilseq);
     }
@@ -568,7 +568,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  */
 [[nodiscard]] inline auto encode_mb_char(
     char32_t value,
-    multibyte_encoding encoding) -> std::expected<encoded_char, error<void>> {
+    multibyte_encoding encoding) -> result<encoded_char> {
     switch (encoding) {
     case multibyte_encoding::cp932:
         return encode_cp932_char(value);
@@ -623,7 +623,7 @@ template<typename TcType, typename MbType>
     const MbType* s,
     std::size_t n,
     multibyte_encoding encoding,
-    xer::mbstate_t* ps) -> std::expected<std::size_t, error<void>> {
+    xer::mbstate_t* ps) -> result<std::size_t> {
     if (s == nullptr) {
         return unexpected_error<std::size_t>(error_t::invalid_argument);
     }
@@ -696,7 +696,7 @@ template<typename MbType, typename TcType>
     std::size_t n,
     TcType value,
     multibyte_encoding encoding,
-    xer::mbstate_t* ps) -> std::expected<std::size_t, error<void>> {
+    xer::mbstate_t* ps) -> result<std::size_t> {
     const auto cp = read_tc(value);
     if (!cp.has_value()) {
         return std::unexpected(cp.error());
@@ -745,7 +745,7 @@ template<typename TcType, typename MbType>
     const MbType* s,
     std::size_t n,
     multibyte_encoding encoding,
-    xer::mbstate_t* ps) -> std::expected<std::size_t, error<void>> {
+    xer::mbstate_t* ps) -> result<std::size_t> {
     if (s == nullptr) {
         return unexpected_error<std::size_t>(error_t::invalid_argument);
     }
@@ -808,7 +808,7 @@ template<typename MbType, typename TcType>
     std::size_t n,
     const TcType* s,
     multibyte_encoding encoding,
-    xer::mbstate_t* ps) -> std::expected<std::size_t, error<void>> {
+    xer::mbstate_t* ps) -> result<std::size_t> {
     if (s == nullptr) {
         return unexpected_error<std::size_t>(error_t::invalid_argument);
     }
@@ -876,7 +876,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto mblen(
     const char* s,
-    std::size_t n) -> std::expected<std::size_t, error<void>> {
+    std::size_t n) -> result<std::size_t> {
     return detail::mbtotc_impl(
         static_cast<char32_t*>(nullptr),
         s,
@@ -894,7 +894,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto mblen(
     const unsigned char* s,
-    std::size_t n) -> std::expected<std::size_t, error<void>> {
+    std::size_t n) -> result<std::size_t> {
     return detail::mbtotc_impl(
         static_cast<char32_t*>(nullptr),
         s,
@@ -912,7 +912,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto mblen(
     const char8_t* s,
-    std::size_t n) -> std::expected<std::size_t, error<void>> {
+    std::size_t n) -> result<std::size_t> {
     return detail::mbtotc_impl(
         static_cast<char32_t*>(nullptr),
         s,
@@ -932,7 +932,7 @@ namespace xer {
 [[nodiscard]] inline auto mblen(
     const char* s,
     std::size_t n,
-    mbstate_t* ps) -> std::expected<std::size_t, error<void>> {
+    mbstate_t* ps) -> result<std::size_t> {
     return detail::mbtotc_impl(
         static_cast<char32_t*>(nullptr),
         s,
@@ -952,7 +952,7 @@ namespace xer {
 [[nodiscard]] inline auto mblen(
     const unsigned char* s,
     std::size_t n,
-    mbstate_t* ps) -> std::expected<std::size_t, error<void>> {
+    mbstate_t* ps) -> result<std::size_t> {
     return detail::mbtotc_impl(
         static_cast<char32_t*>(nullptr),
         s,
@@ -972,7 +972,7 @@ namespace xer {
 [[nodiscard]] inline auto mblen(
     const char8_t* s,
     std::size_t n,
-    mbstate_t* ps) -> std::expected<std::size_t, error<void>> {
+    mbstate_t* ps) -> result<std::size_t> {
     return detail::mbtotc_impl(
         static_cast<char32_t*>(nullptr),
         s,
@@ -985,40 +985,40 @@ namespace xer {
     [[nodiscard]] inline auto mbtotc( \
         tc_type* out, \
         const char* s, \
-        std::size_t n) -> std::expected<std::size_t, error<void>> { \
+        std::size_t n) -> result<std::size_t> { \
         return detail::mbtotc_impl(out, s, n, detail::default_char_encoding(), nullptr); \
     } \
     [[nodiscard]] inline auto mbtotc( \
         tc_type* out, \
         const unsigned char* s, \
-        std::size_t n) -> std::expected<std::size_t, error<void>> { \
+        std::size_t n) -> result<std::size_t> { \
         return detail::mbtotc_impl(out, s, n, detail::multibyte_encoding::cp932, nullptr); \
     } \
     [[nodiscard]] inline auto mbtotc( \
         tc_type* out, \
         const char8_t* s, \
-        std::size_t n) -> std::expected<std::size_t, error<void>> { \
+        std::size_t n) -> result<std::size_t> { \
         return detail::mbtotc_impl(out, s, n, detail::multibyte_encoding::utf8, nullptr); \
     } \
     [[nodiscard]] inline auto mbtotc( \
         tc_type* out, \
         const char* s, \
         std::size_t n, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::mbtotc_impl(out, s, n, detail::default_char_encoding(), ps); \
     } \
     [[nodiscard]] inline auto mbtotc( \
         tc_type* out, \
         const unsigned char* s, \
         std::size_t n, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::mbtotc_impl(out, s, n, detail::multibyte_encoding::cp932, ps); \
     } \
     [[nodiscard]] inline auto mbtotc( \
         tc_type* out, \
         const char8_t* s, \
         std::size_t n, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::mbtotc_impl(out, s, n, detail::multibyte_encoding::utf8, ps); \
     }
 
@@ -1032,40 +1032,40 @@ XER_DEFINE_MBTOTC_FOR_TC(char32_t)
     [[nodiscard]] inline auto tctomb( \
         char* out, \
         std::size_t n, \
-        tc_type value) -> std::expected<std::size_t, error<void>> { \
+        tc_type value) -> result<std::size_t> { \
         return detail::tctomb_impl(out, n, value, detail::default_char_encoding(), nullptr); \
     } \
     [[nodiscard]] inline auto tctomb( \
         unsigned char* out, \
         std::size_t n, \
-        tc_type value) -> std::expected<std::size_t, error<void>> { \
+        tc_type value) -> result<std::size_t> { \
         return detail::tctomb_impl(out, n, value, detail::multibyte_encoding::cp932, nullptr); \
     } \
     [[nodiscard]] inline auto tctomb( \
         char8_t* out, \
         std::size_t n, \
-        tc_type value) -> std::expected<std::size_t, error<void>> { \
+        tc_type value) -> result<std::size_t> { \
         return detail::tctomb_impl(out, n, value, detail::multibyte_encoding::utf8, nullptr); \
     } \
     [[nodiscard]] inline auto tctomb( \
         char* out, \
         std::size_t n, \
         tc_type value, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::tctomb_impl(out, n, value, detail::default_char_encoding(), ps); \
     } \
     [[nodiscard]] inline auto tctomb( \
         unsigned char* out, \
         std::size_t n, \
         tc_type value, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::tctomb_impl(out, n, value, detail::multibyte_encoding::cp932, ps); \
     } \
     [[nodiscard]] inline auto tctomb( \
         char8_t* out, \
         std::size_t n, \
         tc_type value, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::tctomb_impl(out, n, value, detail::multibyte_encoding::utf8, ps); \
     }
 
@@ -1079,40 +1079,40 @@ XER_DEFINE_TCTOMB_FOR_TC(char32_t)
     [[nodiscard]] inline auto mbstotcs( \
         tc_type* out, \
         const char* s, \
-        std::size_t n) -> std::expected<std::size_t, error<void>> { \
+        std::size_t n) -> result<std::size_t> { \
         return detail::mbstotcs_impl(out, s, n, detail::default_char_encoding(), nullptr); \
     } \
     [[nodiscard]] inline auto mbstotcs( \
         tc_type* out, \
         const unsigned char* s, \
-        std::size_t n) -> std::expected<std::size_t, error<void>> { \
+        std::size_t n) -> result<std::size_t> { \
         return detail::mbstotcs_impl(out, s, n, detail::multibyte_encoding::cp932, nullptr); \
     } \
     [[nodiscard]] inline auto mbstotcs( \
         tc_type* out, \
         const char8_t* s, \
-        std::size_t n) -> std::expected<std::size_t, error<void>> { \
+        std::size_t n) -> result<std::size_t> { \
         return detail::mbstotcs_impl(out, s, n, detail::multibyte_encoding::utf8, nullptr); \
     } \
     [[nodiscard]] inline auto mbstotcs( \
         tc_type* out, \
         const char* s, \
         std::size_t n, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::mbstotcs_impl(out, s, n, detail::default_char_encoding(), ps); \
     } \
     [[nodiscard]] inline auto mbstotcs( \
         tc_type* out, \
         const unsigned char* s, \
         std::size_t n, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::mbstotcs_impl(out, s, n, detail::multibyte_encoding::cp932, ps); \
     } \
     [[nodiscard]] inline auto mbstotcs( \
         tc_type* out, \
         const char8_t* s, \
         std::size_t n, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::mbstotcs_impl(out, s, n, detail::multibyte_encoding::utf8, ps); \
     }
 
@@ -1126,40 +1126,40 @@ XER_DEFINE_MBSTOTCS_FOR_TC(char32_t)
     [[nodiscard]] inline auto tcstombs( \
         char* out, \
         std::size_t n, \
-        const tc_type* s) -> std::expected<std::size_t, error<void>> { \
+        const tc_type* s) -> result<std::size_t> { \
         return detail::tcstombs_impl(out, n, s, detail::default_char_encoding(), nullptr); \
     } \
     [[nodiscard]] inline auto tcstombs( \
         unsigned char* out, \
         std::size_t n, \
-        const tc_type* s) -> std::expected<std::size_t, error<void>> { \
+        const tc_type* s) -> result<std::size_t> { \
         return detail::tcstombs_impl(out, n, s, detail::multibyte_encoding::cp932, nullptr); \
     } \
     [[nodiscard]] inline auto tcstombs( \
         char8_t* out, \
         std::size_t n, \
-        const tc_type* s) -> std::expected<std::size_t, error<void>> { \
+        const tc_type* s) -> result<std::size_t> { \
         return detail::tcstombs_impl(out, n, s, detail::multibyte_encoding::utf8, nullptr); \
     } \
     [[nodiscard]] inline auto tcstombs( \
         char* out, \
         std::size_t n, \
         const tc_type* s, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::tcstombs_impl(out, n, s, detail::default_char_encoding(), ps); \
     } \
     [[nodiscard]] inline auto tcstombs( \
         unsigned char* out, \
         std::size_t n, \
         const tc_type* s, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::tcstombs_impl(out, n, s, detail::multibyte_encoding::cp932, ps); \
     } \
     [[nodiscard]] inline auto tcstombs( \
         char8_t* out, \
         std::size_t n, \
         const tc_type* s, \
-        mbstate_t* ps) -> std::expected<std::size_t, error<void>> { \
+        mbstate_t* ps) -> result<std::size_t> { \
         return detail::tcstombs_impl(out, n, s, detail::multibyte_encoding::utf8, ps); \
     }
 

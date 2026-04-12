@@ -28,7 +28,7 @@ namespace xer::detail {
  * @return Unexpected error result.
  */
 template<typename T>
-[[nodiscard]] inline std::expected<T, error<void>> unexpected_explode_error(
+[[nodiscard]] inline result<T> unexpected_explode_error(
     const error_t code)
 {
     return std::unexpected(make_error(code));
@@ -44,7 +44,7 @@ template<typename T>
  * @param limit Maximum number of elements to return.
  * @return Vector of string views on success.
  */
-[[nodiscard]] inline std::expected<std::vector<std::u8string_view>, error<void>>
+[[nodiscard]] inline result<std::vector<std::u8string_view>>
 explode_view_impl(
     const std::u8string_view separator,
     const std::u8string_view source,
@@ -120,7 +120,7 @@ explode_view_impl(
  * @param limit Maximum number of elements to return.
  * @return Vector of owning strings on success.
  */
-[[nodiscard]] inline std::expected<std::vector<std::u8string>, error<void>>
+[[nodiscard]] inline result<std::vector<std::u8string>>
 explode_impl(
     const std::u8string_view separator,
     const std::u8string_view source,
@@ -160,7 +160,7 @@ namespace xer {
  * @param limit Maximum number of elements to return.
  * @return Vector of owning strings on success.
  */
-[[nodiscard]] inline std::expected<std::vector<std::u8string>, error<void>>
+[[nodiscard]] inline result<std::vector<std::u8string>>
 explode(
     const std::u8string_view separator,
     const std::u8string_view source,
@@ -183,7 +183,7 @@ explode(
  * @param limit Maximum number of elements to return.
  * @return Vector of string views on success.
  */
-[[nodiscard]] inline std::expected<std::vector<std::u8string_view>, error<void>>
+[[nodiscard]] inline result<std::vector<std::u8string_view>>
 explode_view(
     const std::u8string_view separator,
     const std::u8string_view source,

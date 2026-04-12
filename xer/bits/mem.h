@@ -103,7 +103,7 @@ namespace xer {
  * @param source_size Size of the source buffer.
  * @return Destination pointer on success.
  */
-[[nodiscard]] constexpr std::expected<std::byte*, error<void>> memcpy(
+[[nodiscard]] constexpr result<std::byte*> memcpy(
     std::byte* destination,
     const std::size_t destination_size,
     const std::byte* source,
@@ -141,7 +141,7 @@ namespace xer {
 template<typename Destination, typename Source>
     requires detail::mutable_byte_contiguous_range<Destination> &&
              detail::byte_contiguous_range<Source>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<Destination>, error<void>>
+[[nodiscard]] constexpr result<std::ranges::iterator_t<Destination>>
 memcpy(Destination& destination, const Source& source) noexcept
 {
     const auto result = xer::memcpy(
@@ -169,7 +169,7 @@ memcpy(Destination& destination, const Source& source) noexcept
  * @param source_size Size of the source buffer.
  * @return Destination pointer on success.
  */
-[[nodiscard]] constexpr std::expected<std::byte*, error<void>> memmove(
+[[nodiscard]] constexpr result<std::byte*> memmove(
     std::byte* destination,
     const std::size_t destination_size,
     const std::byte* source,
@@ -213,7 +213,7 @@ memcpy(Destination& destination, const Source& source) noexcept
 template<typename Destination, typename Source>
     requires detail::mutable_byte_contiguous_range<Destination> &&
              detail::byte_contiguous_range<Source>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<Destination>, error<void>>
+[[nodiscard]] constexpr result<std::ranges::iterator_t<Destination>>
 memmove(Destination& destination, const Source& source) noexcept
 {
     const auto result = xer::memmove(
@@ -237,7 +237,7 @@ memmove(Destination& destination, const Source& source) noexcept
  * @param value Byte value to search for.
  * @return Pointer to the matched byte on success.
  */
-[[nodiscard]] constexpr std::expected<std::byte*, error<void>> memchr(
+[[nodiscard]] constexpr result<std::byte*> memchr(
     std::byte* source,
     const std::size_t source_size,
     const std::byte value) noexcept
@@ -263,7 +263,7 @@ memmove(Destination& destination, const Source& source) noexcept
  * @param value Byte value to search for.
  * @return Pointer to the matched byte on success.
  */
-[[nodiscard]] constexpr std::expected<const std::byte*, error<void>> memchr(
+[[nodiscard]] constexpr result<const std::byte*> memchr(
     const std::byte* source,
     const std::size_t source_size,
     const std::byte value) noexcept
@@ -291,7 +291,7 @@ memmove(Destination& destination, const Source& source) noexcept
  */
 template<typename Range>
     requires detail::mutable_byte_contiguous_range<Range>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<Range>, error<void>>
+[[nodiscard]] constexpr result<std::ranges::iterator_t<Range>>
 memchr(Range& source, const std::byte value) noexcept
 {
     const auto result = xer::memchr(
@@ -318,7 +318,7 @@ memchr(Range& source, const std::byte value) noexcept
  */
 template<typename Range>
     requires detail::byte_contiguous_range<Range>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<const Range>, error<void>>
+[[nodiscard]] constexpr result<std::ranges::iterator_t<const Range>>
 memchr(const Range& source, const std::byte value) noexcept
 {
     const auto result = xer::memchr(
@@ -348,7 +348,7 @@ memchr(const Range& source, const std::byte value) noexcept
  * @return Positive value if lhs > rhs.
  * @return Zero if lhs == rhs.
  */
-[[nodiscard]] constexpr std::expected<int, error<void>> memcmp(
+[[nodiscard]] constexpr result<int> memcmp(
     const std::byte* lhs,
     const std::size_t lhs_size,
     const std::byte* rhs,
@@ -392,7 +392,7 @@ memchr(const Range& source, const std::byte value) noexcept
 template<typename Left, typename Right>
     requires detail::byte_contiguous_range<Left> &&
              detail::byte_contiguous_range<Right>
-[[nodiscard]] constexpr std::expected<int, error<void>> memcmp(
+[[nodiscard]] constexpr result<int> memcmp(
     const Left& lhs,
     const Right& rhs) noexcept
 {
@@ -411,7 +411,7 @@ template<typename Left, typename Right>
  * @param value Byte value to write.
  * @return Destination pointer on success.
  */
-[[nodiscard]] constexpr std::expected<std::byte*, error<void>> memset(
+[[nodiscard]] constexpr result<std::byte*> memset(
     std::byte* destination,
     const std::size_t destination_size,
     const std::byte value) noexcept
@@ -437,7 +437,7 @@ template<typename Left, typename Right>
  */
 template<typename Destination>
     requires detail::mutable_byte_contiguous_range<Destination>
-[[nodiscard]] constexpr std::expected<std::ranges::iterator_t<Destination>, error<void>>
+[[nodiscard]] constexpr result<std::ranges::iterator_t<Destination>>
 memset(Destination& destination, const std::byte value) noexcept
 {
     const auto result = xer::memset(

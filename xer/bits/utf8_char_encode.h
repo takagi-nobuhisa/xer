@@ -24,7 +24,7 @@ namespace xer::detail {
  * @return error<void> on failure.
  */
 [[nodiscard]] inline auto encode_utf8_char(
-    char32_t value) noexcept -> std::expected<std::u8string, error<void>>
+    char32_t value) noexcept -> result<std::u8string>
 {
     if (value > 0x10ffffu) {
         return std::unexpected(make_error(error_t::ilseq));
@@ -71,7 +71,7 @@ namespace xer::detail {
  */
 [[nodiscard]] inline auto append_utf8_char(
     std::u8string& out,
-    char32_t value) noexcept -> std::expected<void, error<void>>
+    char32_t value) noexcept -> result<void>
 {
     const auto encoded = encode_utf8_char(value);
     if (!encoded.has_value()) {

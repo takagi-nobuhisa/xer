@@ -145,7 +145,7 @@ template<typename T>
  * @param rhs Right-hand side.
  * @return Sum, or an error if the magnitude overflows `uint128_t`.
  */
-[[nodiscard]] constexpr std::expected<integer_value, error<void>> add_integer_value(
+[[nodiscard]] constexpr result<integer_value> add_integer_value(
     integer_value lhs,
     integer_value rhs) noexcept
 {
@@ -187,7 +187,7 @@ template<typename T>
  * @param rhs Right-hand side.
  * @return Difference, or an error if the magnitude overflows `uint128_t`.
  */
-[[nodiscard]] constexpr std::expected<integer_value, error<void>> sub_integer_value(
+[[nodiscard]] constexpr result<integer_value> sub_integer_value(
     integer_value lhs,
     integer_value rhs) noexcept
 {
@@ -201,7 +201,7 @@ template<typename T>
  * @param rhs Right-hand side.
  * @return Product, or an error if the magnitude overflows `uint128_t`.
  */
-[[nodiscard]] constexpr std::expected<integer_value, error<void>> mul_integer_value(
+[[nodiscard]] constexpr result<integer_value> mul_integer_value(
     integer_value lhs,
     integer_value rhs) noexcept
 {
@@ -228,7 +228,7 @@ template<typename T>
  * @param value Source value.
  * @return Signed result, or an error if out of range.
  */
-[[nodiscard]] constexpr std::expected<xer::int64_t, error<void>>
+[[nodiscard]] constexpr result<xer::int64_t>
 to_signed_result(integer_value value) noexcept
 {
     constexpr xer::uint128_t positive_limit =
@@ -260,7 +260,7 @@ to_signed_result(integer_value value) noexcept
  * @param value Source value.
  * @return Unsigned result, or an error if out of range.
  */
-[[nodiscard]] constexpr std::expected<xer::uint64_t, error<void>>
+[[nodiscard]] constexpr result<xer::uint64_t>
 to_unsigned_result(integer_value value) noexcept
 {
     if (value.negative) {
@@ -288,7 +288,7 @@ to_unsigned_result(integer_value value) noexcept
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr std::expected<xer::int64_t, error<void>> add_canonical(
+[[nodiscard]] constexpr result<xer::int64_t> add_canonical(
     A lhs,
     B rhs) noexcept
 {
@@ -312,7 +312,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr std::expected<xer::uint64_t, error<void>> uadd_canonical(
+[[nodiscard]] constexpr result<xer::uint64_t> uadd_canonical(
     A lhs,
     B rhs) noexcept
 {
@@ -336,7 +336,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr std::expected<xer::int64_t, error<void>> sub_canonical(
+[[nodiscard]] constexpr result<xer::int64_t> sub_canonical(
     A lhs,
     B rhs) noexcept
 {
@@ -360,7 +360,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr std::expected<xer::uint64_t, error<void>> usub_canonical(
+[[nodiscard]] constexpr result<xer::uint64_t> usub_canonical(
     A lhs,
     B rhs) noexcept
 {
@@ -384,7 +384,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr std::expected<xer::int64_t, error<void>> mul_canonical(
+[[nodiscard]] constexpr result<xer::int64_t> mul_canonical(
     A lhs,
     B rhs) noexcept
 {
@@ -408,7 +408,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr std::expected<xer::uint64_t, error<void>> umul_canonical(
+[[nodiscard]] constexpr result<xer::uint64_t> umul_canonical(
     A lhs,
     B rhs) noexcept
 {
@@ -426,42 +426,42 @@ template<typename A, typename B>
 namespace xer {
 
 #define XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(A, B)                              \
-    [[nodiscard]] constexpr std::expected<xer::int64_t, error<void>> add(          \
+    [[nodiscard]] constexpr result<xer::int64_t> add(          \
         A lhs,                                                                      \
         B rhs) noexcept                                                             \
     {                                                                               \
         return detail::add_canonical(lhs, rhs);                                     \
     }                                                                               \
                                                                                     \
-    [[nodiscard]] constexpr std::expected<xer::uint64_t, error<void>> uadd(        \
+    [[nodiscard]] constexpr result<xer::uint64_t> uadd(        \
         A lhs,                                                                      \
         B rhs) noexcept                                                             \
     {                                                                               \
         return detail::uadd_canonical(lhs, rhs);                                    \
     }                                                                               \
                                                                                     \
-    [[nodiscard]] constexpr std::expected<xer::int64_t, error<void>> sub(          \
+    [[nodiscard]] constexpr result<xer::int64_t> sub(          \
         A lhs,                                                                      \
         B rhs) noexcept                                                             \
     {                                                                               \
         return detail::sub_canonical(lhs, rhs);                                     \
     }                                                                               \
                                                                                     \
-    [[nodiscard]] constexpr std::expected<xer::uint64_t, error<void>> usub(        \
+    [[nodiscard]] constexpr result<xer::uint64_t> usub(        \
         A lhs,                                                                      \
         B rhs) noexcept                                                             \
     {                                                                               \
         return detail::usub_canonical(lhs, rhs);                                    \
     }                                                                               \
                                                                                     \
-    [[nodiscard]] constexpr std::expected<xer::int64_t, error<void>> mul(          \
+    [[nodiscard]] constexpr result<xer::int64_t> mul(          \
         A lhs,                                                                      \
         B rhs) noexcept                                                             \
     {                                                                               \
         return detail::mul_canonical(lhs, rhs);                                     \
     }                                                                               \
                                                                                     \
-    [[nodiscard]] constexpr std::expected<xer::uint64_t, error<void>> umul(        \
+    [[nodiscard]] constexpr result<xer::uint64_t> umul(        \
         A lhs,                                                                      \
         B rhs) noexcept                                                             \
     {                                                                               \
@@ -636,7 +636,7 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto add(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(add(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -651,7 +651,7 @@ template<typename T, typename U>
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto add(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(add(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(add(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -664,8 +664,8 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto add(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(add(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(add(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -682,7 +682,7 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto uadd(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(uadd(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -697,7 +697,7 @@ template<typename T, typename U>
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto uadd(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(uadd(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(uadd(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -710,8 +710,8 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto uadd(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(uadd(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(uadd(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -728,7 +728,7 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto sub(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(sub(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -743,7 +743,7 @@ template<typename T, typename U>
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto sub(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(sub(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(sub(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -756,8 +756,8 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto sub(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(sub(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(sub(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -774,7 +774,7 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto usub(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(usub(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -789,7 +789,7 @@ template<typename T, typename U>
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto usub(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(usub(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(usub(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -802,8 +802,8 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto usub(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(usub(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(usub(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -820,7 +820,7 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto mul(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(mul(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -835,7 +835,7 @@ template<typename T, typename U>
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto mul(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(mul(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(mul(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -848,8 +848,8 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto mul(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(mul(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(mul(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -866,7 +866,7 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto umul(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(umul(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -881,7 +881,7 @@ template<typename T, typename U>
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto umul(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(umul(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(umul(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -894,8 +894,8 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto umul(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(umul(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(umul(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());

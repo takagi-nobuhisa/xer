@@ -87,7 +87,7 @@ template<typename T>
  * @param value Value to validate.
  * @return Success if finite, otherwise an error.
  */
-[[nodiscard]] inline std::expected<long double, error<void>>
+[[nodiscard]] inline result<long double>
 validate_operand(long double value) noexcept
 {
     if (!is_finite(value)) {
@@ -103,7 +103,7 @@ validate_operand(long double value) noexcept
  * @param value Value to validate.
  * @return Success if finite, otherwise an error.
  */
-[[nodiscard]] inline std::expected<long double, error<void>>
+[[nodiscard]] inline result<long double>
 validate_result(long double value) noexcept
 {
     if (!is_finite(value)) {
@@ -124,7 +124,7 @@ validate_result(long double value) noexcept
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> add_floating(
+[[nodiscard]] inline result<long double> add_floating(
     A lhs,
     B rhs) noexcept
 {
@@ -152,7 +152,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> sub_floating(
+[[nodiscard]] inline result<long double> sub_floating(
     A lhs,
     B rhs) noexcept
 {
@@ -180,7 +180,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> mul_floating(
+[[nodiscard]] inline result<long double> mul_floating(
     A lhs,
     B rhs) noexcept
 {
@@ -208,7 +208,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> div_floating(
+[[nodiscard]] inline result<long double> div_floating(
     A lhs,
     B rhs) noexcept
 {
@@ -243,7 +243,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> div_floating(
+[[nodiscard]] inline result<long double> div_floating(
     A lhs,
     B rhs,
     long double* rem) noexcept
@@ -297,7 +297,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> mod_floating(
+[[nodiscard]] inline result<long double> mod_floating(
     A lhs,
     B rhs) noexcept
 {
@@ -327,7 +327,7 @@ namespace xer {
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> add(
+[[nodiscard]] inline result<long double> add(
     A lhs,
     B rhs) noexcept
 {
@@ -347,7 +347,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> sub(
+[[nodiscard]] inline result<long double> sub(
     A lhs,
     B rhs) noexcept
 {
@@ -367,7 +367,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> mul(
+[[nodiscard]] inline result<long double> mul(
     A lhs,
     B rhs) noexcept
 {
@@ -387,7 +387,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> div(
+[[nodiscard]] inline result<long double> div(
     A lhs,
     B rhs) noexcept
 {
@@ -408,7 +408,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> div(
+[[nodiscard]] inline result<long double> div(
     A lhs,
     B rhs,
     long double* rem) noexcept
@@ -429,7 +429,7 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline std::expected<long double, error<void>> mod(
+[[nodiscard]] inline result<long double> mod(
     A lhs,
     B rhs) noexcept
 {
@@ -448,7 +448,7 @@ template<typename A, typename B>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto add(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(add(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -462,7 +462,7 @@ template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto add(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(add(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(add(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -474,8 +474,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto add(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(add(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(add(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -491,7 +491,7 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto sub(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(sub(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -505,7 +505,7 @@ template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto sub(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(sub(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(sub(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -517,8 +517,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto sub(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(sub(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(sub(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -534,7 +534,7 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto mul(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(mul(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -548,7 +548,7 @@ template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto mul(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(mul(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(mul(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -560,8 +560,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto mul(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(mul(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(mul(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -577,7 +577,7 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto div(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(div(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -591,7 +591,7 @@ template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto div(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(div(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(div(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -603,8 +603,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto div(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(div(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(div(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());
@@ -620,7 +620,7 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto div(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs,
     long double* rem) noexcept -> decltype(div(std::declval<T>(), rhs, rem))
 {
@@ -635,7 +635,7 @@ template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto div(
     T lhs,
-    const std::expected<U, error<void>>& rhs,
+    const result<U>& rhs,
     long double* rem) noexcept -> decltype(div(lhs, std::declval<U>(), rem))
 {
     if (!rhs) {
@@ -648,8 +648,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto div(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs,
+    const result<T>& lhs,
+    const result<U>& rhs,
     long double* rem) noexcept -> decltype(div(std::declval<T>(), std::declval<U>(), rem))
 {
     if (!lhs) {
@@ -666,7 +666,7 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto mod(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(mod(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -680,7 +680,7 @@ template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto mod(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(mod(lhs, std::declval<U>()))
+    const result<U>& rhs) noexcept -> decltype(mod(lhs, std::declval<U>()))
 {
     if (!rhs) {
         return std::unexpected(rhs.error());
@@ -692,8 +692,8 @@ template<typename T, typename U>
 template<typename T, typename U>
     requires(detail::is_floating_arithmetic_pair_v<T, U>)
 [[nodiscard]] inline auto mod(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept -> decltype(mod(std::declval<T>(), std::declval<U>()))
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept -> decltype(mod(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
         return std::unexpected(lhs.error());

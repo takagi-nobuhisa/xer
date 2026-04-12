@@ -27,7 +27,7 @@ namespace xer {
  * @return Native FILE handle on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline std::expected<std::FILE*, error<void>> to_native_handle(
+[[nodiscard]] inline result<std::FILE*> to_native_handle(
     binary_stream& stream) noexcept {
     if (!stream.has_value()) {
         return std::unexpected(make_error(error_t::runtime_error));
@@ -72,7 +72,7 @@ namespace xer {
  *       text_stream may become unspecified because its internal buffering and
  *       encoding state can diverge from the underlying FILE state.
  */
-[[nodiscard]] inline std::expected<std::FILE*, error<void>> to_native_handle(
+[[nodiscard]] inline result<std::FILE*> to_native_handle(
     text_stream& stream) noexcept {
     if (!stream.has_value()) {
         return std::unexpected(make_error(error_t::runtime_error));

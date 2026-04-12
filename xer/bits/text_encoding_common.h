@@ -218,7 +218,7 @@ namespace xer::detail {
  * @return Converted wide string on success.
  */
 [[nodiscard]] inline auto utf8_to_wstring(
-    std::string_view value) -> std::expected<std::wstring, error<void>>
+    std::string_view value) -> result<std::wstring>
 {
     if (value.empty()) {
         return std::wstring();
@@ -260,7 +260,7 @@ namespace xer::detail {
  * @return Converted UTF-8 string on success.
  */
 [[nodiscard]] inline auto wstring_to_utf8(
-    std::wstring_view value) -> std::expected<std::u8string, error<void>>
+    std::wstring_view value) -> result<std::u8string>
 {
     if (value.empty()) {
         return std::u8string();

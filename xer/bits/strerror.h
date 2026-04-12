@@ -53,7 +53,7 @@ namespace xer {
  * @param code Error code.
  * @return English error message on success.
  */
-[[nodiscard]] constexpr auto strerror(error_t code) noexcept -> std::expected<std::u8string_view, error<void>> {
+[[nodiscard]] constexpr auto strerror(error_t code) noexcept -> result<std::u8string_view> {
     switch (code) {
     case error_t::perm:
         return u8"Operation not permitted";
@@ -183,7 +183,7 @@ namespace xer {
  * @param code Error code.
  * @return Enumerator name on success.
  */
-[[nodiscard]] constexpr auto get_error_name(error_t code) noexcept -> std::expected<std::u8string_view, error<void>> {
+[[nodiscard]] constexpr auto get_error_name(error_t code) noexcept -> result<std::u8string_view> {
     switch (code) {
     case error_t::perm:
         return u8"perm";
@@ -316,7 +316,7 @@ namespace xer {
  * @param code Error code.
  * @return errno macro name on success.
  */
-[[nodiscard]] constexpr auto get_errno_name(error_t code) noexcept -> std::expected<std::u8string_view, error<void>> {
+[[nodiscard]] constexpr auto get_errno_name(error_t code) noexcept -> result<std::u8string_view> {
     switch (code) {
     case error_t::perm:
         return u8"EPERM";

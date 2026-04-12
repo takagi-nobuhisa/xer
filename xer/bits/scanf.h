@@ -118,7 +118,7 @@ using scan_intermediate_value_t =
  */
 [[nodiscard]] inline auto scan_append_utf8(
     std::u8string& out,
-    char32_t value) -> std::expected<void, error<void>> {
+    char32_t value) -> result<void> {
     if (value > 0x10ffffu || (value >= 0xd800u && value <= 0xdfffu)) {
         return std::unexpected(make_error(error_t::ilseq));
     }
@@ -195,7 +195,7 @@ public:
      * @return Optional code point on success.
      */
     [[nodiscard]] auto peek(
-        std::size_t offset = 0) -> std::expected<std::optional<char32_t>, error<void>> {
+        std::size_t offset = 0) -> result<std::optional<char32_t>> {
         auto fill_result = fill_to(offset);
         if (!fill_result.has_value()) {
             return std::unexpected(fill_result.error());
@@ -227,7 +227,7 @@ private:
      * @param offset Required lookahead offset.
      * @return Success on success.
      */
-    [[nodiscard]] auto fill_to(std::size_t offset) -> std::expected<void, error<void>> {
+    [[nodiscard]] auto fill_to(std::size_t offset) -> result<void> {
         while (!eof_ && buffer_.size() <= offset) {
             if (source_index_ >= input_.size()) {
                 eof_ = true;
@@ -273,7 +273,7 @@ public:
      * @return Optional code point on success.
      */
     [[nodiscard]] auto peek(
-        std::size_t offset = 0) -> std::expected<std::optional<char32_t>, error<void>> {
+        std::size_t offset = 0) -> result<std::optional<char32_t>> {
         auto fill_result = fill_to(offset);
         if (!fill_result.has_value()) {
             return std::unexpected(fill_result.error());
@@ -305,7 +305,7 @@ private:
      * @param offset Required lookahead offset.
      * @return Success on success.
      */
-    [[nodiscard]] auto fill_to(std::size_t offset) -> std::expected<void, error<void>> {
+    [[nodiscard]] auto fill_to(std::size_t offset) -> result<void> {
         while (!eof_ && buffer_.size() <= offset) {
             auto ch = xer::fgetc(input_);
             if (!ch.has_value()) {
@@ -337,7 +337,7 @@ private:
  */
 template<typename Reader>
 [[nodiscard]] auto scan_read_one(
-    Reader& reader) -> std::expected<std::optional<char32_t>, error<void>> {
+    Reader& reader) -> result<std::optional<char32_t>> {
     auto ch = reader.peek();
     if (!ch.has_value()) {
         return std::unexpected(ch.error());
@@ -360,7 +360,7 @@ template<typename Reader>
  */
 template<typename Reader>
 [[nodiscard]] auto scan_skip_ascii_whitespace(
-    Reader& reader) -> std::expected<void, error<void>> {
+    Reader& reader) -> result<void> {
     while (true) {
         auto ch = reader.peek();
         if (!ch.has_value()) {
@@ -387,7 +387,7 @@ template<typename Reader>
 template<typename Reader>
 [[nodiscard]] auto scan_match_literal(
     Reader& reader,
-    std::u8string_view text) -> std::expected<bool, error<void>> {
+    std::u8string_view text) -> result<bool> {
     std::size_t index = 0;
 
     while (index < text.size()) {
@@ -422,7 +422,7 @@ template<typename Reader>
 template<typename Reader>
 [[nodiscard]] auto scan_collect_signed_decimal_lexeme(
     Reader& reader,
-    std::size_t width) -> std::expected<std::optional<std::string>, error<void>> {
+    std::size_t width) -> result<std::optional<std::string>> {
     std::string result;
     std::size_t consumed = 0;
     bool has_digits = false;
@@ -489,7 +489,7 @@ template<typename Reader>
 template<typename Reader>
 [[nodiscard]] auto scan_collect_unsigned_decimal_lexeme(
     Reader& reader,
-    std::size_t width) -> std::expected<std::optional<std::string>, error<void>> {
+    std::size_t width) -> result<std::optional<std::string>> {
     return scan_collect_signed_decimal_lexeme(reader, width);
 }
 
@@ -504,7 +504,7 @@ template<typename Reader>
 template<typename Reader>
 [[nodiscard]] auto scan_collect_hex_lexeme(
     Reader& reader,
-    std::size_t width) -> std::expected<std::optional<std::string>, error<void>> {
+    std::size_t width) -> result<std::optional<std::string>> {
     std::string result;
     std::size_t consumed = 0;
     bool has_digits = false;
@@ -604,7 +604,7 @@ template<typename Reader>
 template<typename Reader>
 [[nodiscard]] auto scan_collect_octal_lexeme(
     Reader& reader,
-    std::size_t width) -> std::expected<std::optional<std::string>, error<void>> {
+    std::size_t width) -> result<std::optional<std::string>> {
     std::string result;
     std::size_t consumed = 0;
     bool has_digits = false;
@@ -671,7 +671,7 @@ template<typename Reader>
 template<typename Reader>
 [[nodiscard]] auto scan_collect_float_lexeme(
     Reader& reader,
-    std::size_t width) -> std::expected<std::optional<std::string>, error<void>> {
+    std::size_t width) -> result<std::optional<std::string>> {
     std::string result;
     std::size_t consumed = 0;
 
@@ -857,7 +857,7 @@ template<typename Reader>
 template<typename Reader>
 [[nodiscard]] auto scan_collect_string_token(
     Reader& reader,
-    std::size_t width) -> std::expected<std::optional<std::u8string>, error<void>> {
+    std::size_t width) -> result<std::optional<std::u8string>> {
     std::u8string result;
     std::size_t consumed = 0;
 
@@ -902,7 +902,7 @@ template<typename Reader>
 template<typename Reader>
 [[nodiscard]] auto scan_collect_scanset_token(
     Reader& reader,
-    const scan_conversion_token& token) -> std::expected<std::optional<std::u8string>, error<void>> {
+    const scan_conversion_token& token) -> result<std::optional<std::u8string>> {
     std::u8string result;
     std::size_t consumed = 0;
 
@@ -943,7 +943,7 @@ template<typename Reader>
  * @return Parsed signed integer on success.
  */
 [[nodiscard]] inline auto scan_parse_signed_integer(
-    std::string_view lexeme) -> std::expected<std::int64_t, error<void>> {
+    std::string_view lexeme) -> result<std::int64_t> {
     std::istringstream stream{std::string(lexeme)};
     long long value = 0;
     stream >> std::dec >> value;
@@ -964,7 +964,7 @@ template<typename Reader>
  */
 [[nodiscard]] inline auto scan_parse_unsigned_integer(
     std::string_view lexeme,
-    scan_conversion_t conversion) -> std::expected<std::uint64_t, error<void>> {
+    scan_conversion_t conversion) -> result<std::uint64_t> {
     if (!lexeme.empty() && (lexeme.front() == '+' || lexeme.front() == '-')) {
         std::istringstream stream{std::string(lexeme)};
         long long signed_value = 0;
@@ -1023,7 +1023,7 @@ template<typename Reader>
  * @return Parsed floating-point value on success.
  */
 [[nodiscard]] inline auto scan_parse_floating(
-    std::string_view lexeme) -> std::expected<long double, error<void>> {
+    std::string_view lexeme) -> result<long double> {
     std::istringstream stream{std::string(lexeme)};
     long double value = 0;
     stream >> value;
@@ -1136,7 +1136,7 @@ template<typename Reader>
 template<typename Reader>
 [[nodiscard]] auto scan_read_conversion(
     Reader& reader,
-    const scan_conversion_token& token) -> std::expected<std::optional<scan_intermediate_value_t>, error<void>> {
+    const scan_conversion_token& token) -> result<std::optional<scan_intermediate_value_t>> {
     switch (token.conversion) {
         case scan_conversion_t::percent: {
             auto ch = reader.peek();
@@ -1185,7 +1185,7 @@ template<typename Reader>
                 return std::unexpected(skip_result.error());
             }
 
-            std::expected<std::optional<std::string>, error<void>> lexeme =
+            result<std::optional<std::string>> lexeme =
                 std::optional<std::string>();
 
             switch (token.conversion) {
@@ -1308,9 +1308,9 @@ template<typename Reader>
  * @return UTF-8 text representation on success.
  */
 [[nodiscard]] inline auto scan_intermediate_to_text(
-    const scan_intermediate_value_t& value) -> std::expected<std::u8string, error<void>> {
+    const scan_intermediate_value_t& value) -> result<std::u8string> {
     return std::visit(
-        [](const auto& actual) -> std::expected<std::u8string, error<void>> {
+        [](const auto& actual) -> result<std::u8string> {
             using actual_t = std::remove_cvref_t<decltype(actual)>;
 
             if constexpr (std::is_same_v<actual_t, std::u8string>) {
@@ -1393,7 +1393,7 @@ concept scan_numeric_scalar_target =
  */
 [[nodiscard]] inline auto scan_store_value(
     char32_t* out,
-    const scan_intermediate_value_t& value) -> std::expected<void, error<void>> {
+    const scan_intermediate_value_t& value) -> result<void> {
     if (out == nullptr) {
         return {};
     }
@@ -1417,7 +1417,7 @@ concept scan_numeric_scalar_target =
 template<scan_byte_char_target T>
 [[nodiscard]] inline auto scan_store_value(
     T* out,
-    const scan_intermediate_value_t& value) -> std::expected<void, error<void>> {
+    const scan_intermediate_value_t& value) -> result<void> {
     if (out == nullptr) {
         return {};
     }
@@ -1441,7 +1441,7 @@ template<scan_byte_char_target T>
 template<scan_other_char_target T>
 [[nodiscard]] inline auto scan_store_value(
     T* out,
-    const scan_intermediate_value_t& value) -> std::expected<void, error<void>> {
+    const scan_intermediate_value_t& value) -> result<void> {
     if (out == nullptr) {
         return {};
     }
@@ -1463,7 +1463,7 @@ template<scan_other_char_target T>
  */
 [[nodiscard]] inline auto scan_store_value(
     std::u8string* out,
-    const scan_intermediate_value_t& value) -> std::expected<void, error<void>> {
+    const scan_intermediate_value_t& value) -> result<void> {
     if (out == nullptr) {
         return {};
     }
@@ -1487,13 +1487,13 @@ template<scan_other_char_target T>
 template<scan_numeric_scalar_target T>
 [[nodiscard]] inline auto scan_store_value(
     T* out,
-    const scan_intermediate_value_t& value) -> std::expected<void, error<void>> {
+    const scan_intermediate_value_t& value) -> result<void> {
     if (out == nullptr) {
         return {};
     }
 
     return std::visit(
-        [out](const auto& actual) -> std::expected<void, error<void>> {
+        [out](const auto& actual) -> result<void> {
             using actual_t = std::remove_cvref_t<decltype(actual)>;
 
             if constexpr (std::is_same_v<actual_t, std::u8string> ||
@@ -1518,7 +1518,7 @@ template<scan_numeric_scalar_target T>
 template<typename T>
 [[nodiscard]] inline auto scan_store_value(
     T* out,
-    const scan_intermediate_value_t& value) -> std::expected<void, error<void>>
+    const scan_intermediate_value_t& value) -> result<void>
     requires(!scan_char32_target<T> && !scan_u8string_target<T> &&
              !scan_byte_char_target<T> && !scan_other_char_target<T> &&
              !scan_numeric_scalar_target<T>) {
@@ -1558,7 +1558,7 @@ template<typename Reader, typename T>
 [[nodiscard]] auto scan_arg(
     Reader& reader,
     const scan_conversion_token& token,
-    T* out) -> std::expected<bool, error<void>> {
+    T* out) -> result<bool> {
     auto value = scan_read_conversion(reader, token);
     if (!value.has_value()) {
         return std::unexpected(value.error());
@@ -1596,7 +1596,7 @@ template<typename Reader, typename Tuple, std::size_t Index = 0>
     const scan_conversion_token& token,
     Tuple& args,
     std::size_t target_index,
-    std::size_t& assigned_count) -> std::expected<bool, error<void>> {
+    std::size_t& assigned_count) -> result<bool> {
     if constexpr (Index >= std::tuple_size_v<Tuple>) {
         return std::unexpected(make_error(error_t::invalid_argument));
     } else {
@@ -1637,7 +1637,7 @@ template<typename Reader, typename Tuple>
 [[nodiscard]] auto scan_run_format(
     Reader& reader,
     const scan_format_t& format,
-    Tuple& args) -> std::expected<std::size_t, error<void>> {
+    Tuple& args) -> result<std::size_t> {
     std::size_t assigned_count = 0;
     std::size_t next_argument_index = 0;
 
@@ -1761,7 +1761,7 @@ template<typename... Args>
 [[nodiscard]] auto sscanf(
     std::u8string_view input,
     std::u8string_view format,
-    Args*... args) -> std::expected<std::size_t, error<void>> {
+    Args*... args) -> result<std::size_t> {
     auto parsed = detail::parse_scan_format(format);
     if (!parsed.has_value()) {
         return std::unexpected(parsed.error());
@@ -1785,7 +1785,7 @@ template<typename... Args>
 [[nodiscard]] auto fscanf(
     text_stream& input,
     std::u8string_view format,
-    Args*... args) -> std::expected<std::size_t, error<void>> {
+    Args*... args) -> result<std::size_t> {
     auto parsed = detail::parse_scan_format(format);
     if (!parsed.has_value()) {
         return std::unexpected(parsed.error());
@@ -1807,7 +1807,7 @@ template<typename... Args>
 template<typename... Args>
 [[nodiscard]] auto scanf(
     std::u8string_view format,
-    Args*... args) -> std::expected<std::size_t, error<void>> {
+    Args*... args) -> result<std::size_t> {
     return fscanf(standard_input, format, args...);
 }
 

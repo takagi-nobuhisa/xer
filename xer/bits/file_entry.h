@@ -118,7 +118,7 @@ namespace xer {
  * @param target Target path.
  * @return Empty success value on success.
  */
-[[nodiscard]] inline auto remove(const path& target) -> std::expected<void, error<void>> {
+[[nodiscard]] inline auto remove(const path& target) -> result<void> {
     const auto native_target = to_native_path(target);
     if (!native_target.has_value()) {
         return std::unexpected(native_target.error());
@@ -151,7 +151,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto rename(
     const path& from,
-    const path& to) -> std::expected<void, error<void>> {
+    const path& to) -> result<void> {
     const auto native_from = to_native_path(from);
     if (!native_from.has_value()) {
         return std::unexpected(native_from.error());
@@ -184,7 +184,7 @@ namespace xer {
  * @param target Target directory path.
  * @return Empty success value on success.
  */
-[[nodiscard]] inline auto mkdir(const path& target) -> std::expected<void, error<void>> {
+[[nodiscard]] inline auto mkdir(const path& target) -> result<void> {
     const auto native_target = to_native_path(target);
     if (!native_target.has_value()) {
         return std::unexpected(native_target.error());
@@ -210,7 +210,7 @@ namespace xer {
  * @param target Target directory path.
  * @return Empty success value on success.
  */
-[[nodiscard]] inline auto rmdir(const path& target) -> std::expected<void, error<void>> {
+[[nodiscard]] inline auto rmdir(const path& target) -> result<void> {
     const auto native_target = to_native_path(target);
     if (!native_target.has_value()) {
         return std::unexpected(native_target.error());
@@ -242,7 +242,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto copy(
     const path& from,
-    const path& to) -> std::expected<void, error<void>> {
+    const path& to) -> result<void> {
     const auto native_from = to_native_path(from);
     if (!native_from.has_value()) {
         return std::unexpected(native_from.error());

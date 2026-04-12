@@ -36,7 +36,7 @@ using clock_t = std::clock_t;
  * @return The current calendar time on success.
  * @return An error with @ref error_t::runtime_error on failure.
  */
-[[nodiscard]] inline auto time() noexcept -> std::expected<time_t, error<void>> {
+[[nodiscard]] inline auto time() noexcept -> result<time_t> {
 #if defined(TIME_UTC)
     std::timespec ts {};
 
@@ -75,7 +75,7 @@ using clock_t = std::clock_t;
  * @return The processor time on success.
  * @return An error with @ref error_t::runtime_error on failure.
  */
-[[nodiscard]] inline auto clock() noexcept -> std::expected<clock_t, error<void>> {
+[[nodiscard]] inline auto clock() noexcept -> result<clock_t> {
     const std::clock_t value = std::clock();
 
     if (value == static_cast<std::clock_t>(-1)) {

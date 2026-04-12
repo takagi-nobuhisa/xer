@@ -39,7 +39,7 @@ concept u8string_view_compatible =
  */
 template<std::ranges::input_range Range>
     requires u8string_view_compatible<std::ranges::range_reference_t<Range>>
-[[nodiscard]] inline std::expected<std::u8string, error<void>> implode_impl(
+[[nodiscard]] inline result<std::u8string> implode_impl(
     const std::u8string_view separator,
     Range&& pieces)
 {
@@ -86,7 +86,7 @@ namespace xer {
 template<std::ranges::input_range Range>
     requires detail::u8string_view_compatible<
         std::ranges::range_reference_t<Range>>
-[[nodiscard]] inline std::expected<std::u8string, error<void>> implode(
+[[nodiscard]] inline result<std::u8string> implode(
     const std::u8string_view separator,
     Range&& pieces)
 {

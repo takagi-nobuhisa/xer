@@ -58,7 +58,7 @@ namespace detail {
  * @return Converted character on success.
  */
 [[nodiscard]] constexpr auto tolower_ascii(char32_t c)
-    -> std::expected<char32_t, error<void>>
+    -> result<char32_t>
 {
     if (!xer::isascii(c)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -80,7 +80,7 @@ namespace detail {
  * @return Converted character on success.
  */
 [[nodiscard]] constexpr auto toupper_ascii(char32_t c)
-    -> std::expected<char32_t, error<void>>
+    -> result<char32_t>
 {
     if (!xer::isascii(c)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -103,7 +103,7 @@ namespace detail {
  * @return Converted character on success.
  */
 [[nodiscard]] constexpr auto tolower_latin1(char32_t c)
-    -> std::expected<char32_t, error<void>>
+    -> result<char32_t>
 {
     if (!islatin1_conversion_target(c)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -138,7 +138,7 @@ namespace detail {
  * @return Converted character on success.
  */
 [[nodiscard]] constexpr auto toupper_latin1(char32_t c)
-    -> std::expected<char32_t, error<void>>
+    -> result<char32_t>
 {
     if (!islatin1_conversion_target(c)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -178,7 +178,7 @@ namespace detail {
  * @return Converted character on success.
  */
 [[nodiscard]] constexpr auto tolower(char32_t c)
-    -> std::expected<char32_t, error<void>>
+    -> result<char32_t>
 {
     return detail::tolower_ascii(c);
 }
@@ -196,7 +196,7 @@ namespace detail {
  * @return Converted character on success.
  */
 [[nodiscard]] constexpr auto toupper(char32_t c)
-    -> std::expected<char32_t, error<void>>
+    -> result<char32_t>
 {
     return detail::toupper_ascii(c);
 }
@@ -212,7 +212,7 @@ namespace detail {
  * @return Converted character on success.
  */
 [[nodiscard]] constexpr auto toctrans(char32_t c, ctrans_id id)
-    -> std::expected<char32_t, error<void>>
+    -> result<char32_t>
 {
     switch (id) {
         case ctrans_id::lower:

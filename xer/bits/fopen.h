@@ -853,7 +853,7 @@ inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
  */
 [[nodiscard]] inline auto fopen(
     const path& filename,
-    const char* mode) noexcept -> std::expected<binary_stream, error<void>> {
+    const char* mode) noexcept -> result<binary_stream> {
     const detail::open_mode parsed = detail::parse_binary_open_mode(mode);
     if (parsed == detail::open_mode::error) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -900,7 +900,7 @@ inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
 [[nodiscard]] inline auto fopen(
     const path& filename,
     const char* mode,
-    encoding_t encoding) noexcept -> std::expected<text_stream, error<void>> {
+    encoding_t encoding) noexcept -> result<text_stream> {
     const detail::open_mode parsed = detail::parse_text_open_mode(mode);
     if (parsed == detail::open_mode::error) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -965,7 +965,7 @@ inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
  */
 [[nodiscard]] inline auto memopen(
     std::span<std::byte> mem,
-    const char* mode) noexcept -> std::expected<binary_stream, error<void>> {
+    const char* mode) noexcept -> result<binary_stream> {
     const detail::open_mode parsed = detail::parse_binary_open_mode(mode);
     if (parsed == detail::open_mode::error) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -1013,7 +1013,7 @@ inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
  */
 [[nodiscard]] inline auto stropen(
     std::u8string_view str,
-    const char* mode) noexcept -> std::expected<text_stream, error<void>> {
+    const char* mode) noexcept -> result<text_stream> {
     const detail::open_mode parsed = detail::parse_text_open_mode(mode);
     if (parsed == detail::open_mode::error) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -1053,7 +1053,7 @@ inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
  */
 [[nodiscard]] inline auto stropen(
     std::u8string& str,
-    const char* mode) noexcept -> std::expected<text_stream, error<void>> {
+    const char* mode) noexcept -> result<text_stream> {
     const detail::open_mode parsed = detail::parse_text_open_mode(mode);
     if (parsed == detail::open_mode::error) {
         return std::unexpected(make_error(error_t::invalid_argument));

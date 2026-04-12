@@ -77,7 +77,7 @@ public:
      * @return Restored context on success, or an error on failure.
      */
     [[nodiscard]] static auto from_bytes(
-        const bytes_type& bytes) noexcept -> std::expected<rand_context, error<void>> {
+        const bytes_type& bytes) noexcept -> result<rand_context> {
         const std::uint64_t state0 = load_u64_le(bytes.data());
         const std::uint64_t state1 = load_u64_le(bytes.data() + 8);
 

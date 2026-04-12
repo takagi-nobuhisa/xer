@@ -26,7 +26,7 @@ namespace xer {
  * @return Empty expected on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline auto fclose(binary_stream& stream) noexcept -> std::expected<void, error<void>> {
+[[nodiscard]] inline auto fclose(binary_stream& stream) noexcept -> result<void> {
     if (stream.close() < 0) {
         return std::unexpected(make_error(error_t::runtime_error));
     }
@@ -44,7 +44,7 @@ namespace xer {
  * @return Empty expected on success.
  * @return Unexpected error on failure.
  */
-[[nodiscard]] inline auto fclose(text_stream& stream) noexcept -> std::expected<void, error<void>> {
+[[nodiscard]] inline auto fclose(text_stream& stream) noexcept -> result<void> {
     if (stream.close() < 0) {
         return std::unexpected(make_error(error_t::runtime_error));
     }

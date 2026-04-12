@@ -31,7 +31,7 @@ namespace xer::detail {
  * @param index Current byte offset. Advanced on success.
  * @return Decoded code point on success.
  */
-[[nodiscard]] inline std::expected<char32_t, error<void>> decode_one_utf8(
+[[nodiscard]] inline result<char32_t> decode_one_utf8(
     std::u8string_view text,
     std::size_t& index)
 {
@@ -123,7 +123,7 @@ namespace xer::detail {
  * @param text Source UTF-8 text.
  * @return Written byte count on success.
  */
-[[nodiscard]] inline std::expected<std::size_t, error<void>> write_u8_to_text_stream(
+[[nodiscard]] inline result<std::size_t> write_u8_to_text_stream(
     text_stream& stream,
     std::u8string_view text)
 {
@@ -169,7 +169,7 @@ namespace xer {
  * @return Written byte count on success.
  */
 template<typename... Args>
-[[nodiscard]] inline std::expected<std::size_t, error<void>> fprintf(
+[[nodiscard]] inline result<std::size_t> fprintf(
     text_stream& stream,
     std::u8string_view format,
     Args&&... args)
@@ -192,7 +192,7 @@ template<typename... Args>
  * @return Written byte count on success.
  */
 template<typename... Args>
-[[nodiscard]] inline std::expected<std::size_t, error<void>> sprintf(
+[[nodiscard]] inline result<std::size_t> sprintf(
     std::u8string& out,
     std::u8string_view format,
     Args&&... args)
@@ -215,7 +215,7 @@ template<typename... Args>
  * @return Written byte count on success.
  */
 template<typename... Args>
-[[nodiscard]] inline std::expected<std::size_t, error<void>> printf(
+[[nodiscard]] inline result<std::size_t> printf(
     std::u8string_view format,
     Args&&... args)
 {

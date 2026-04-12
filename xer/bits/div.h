@@ -189,7 +189,7 @@ template<typename T>
     requires(is_signed_integer_ex_v<T>)
 [[nodiscard]] constexpr auto from_sign_magnitude_signed(
     bool negative,
-    xer::uint128_t magnitude) noexcept -> std::expected<T, error<void>> {
+    xer::uint128_t magnitude) noexcept -> result<T> {
     constexpr xer::uint128_t positive_limit =
         static_cast<xer::uint128_t>(std::numeric_limits<T>::max());
     constexpr xer::uint128_t negative_limit = positive_limit + 1;
@@ -223,7 +223,7 @@ template<typename T>
 template<typename T>
     requires(is_unsigned_integer_ex_v<T>)
 [[nodiscard]] constexpr auto from_magnitude_unsigned(
-    xer::uint128_t magnitude) noexcept -> std::expected<T, error<void>> {
+    xer::uint128_t magnitude) noexcept -> result<T> {
     constexpr xer::uint128_t positive_limit =
         static_cast<xer::uint128_t>(std::numeric_limits<T>::max());
 
@@ -261,7 +261,7 @@ template<typename A, typename B>
 [[nodiscard]] constexpr auto div_canonical(
     A lhs,
     B rhs) noexcept
-    -> std::expected<xer::rem_quot<signed_div_result_t<A, B>>, error<void>>
+    -> result<xer::rem_quot<signed_div_result_t<A, B>>>
 {
     using result_t = signed_div_result_t<A, B>;
 
@@ -310,7 +310,7 @@ template<typename A, typename B>
 [[nodiscard]] constexpr auto udiv_canonical(
     A lhs,
     B rhs) noexcept
-    -> std::expected<xer::rem_quot<unsigned_div_result_t<A, B>>, error<void>>
+    -> result<xer::rem_quot<unsigned_div_result_t<A, B>>>
 {
     using result_t = unsigned_div_result_t<A, B>;
 
@@ -349,13 +349,13 @@ namespace xer {
 
 #define XER_DETAIL_DECLARE_DIV_PAIR(A, B)                                            \
     [[nodiscard]] constexpr auto div(A lhs, B rhs) noexcept                          \
-        -> std::expected<rem_quot<detail::signed_div_result_t<A, B>>, error<void>>   \
+        -> result<rem_quot<detail::signed_div_result_t<A, B>>>   \
     {                                                                                \
         return detail::div_canonical(lhs, rhs);                                      \
     }                                                                                \
                                                                                      \
     [[nodiscard]] constexpr auto udiv(A lhs, B rhs) noexcept                         \
-        -> std::expected<rem_quot<detail::unsigned_div_result_t<A, B>>, error<void>> \
+        -> result<rem_quot<detail::unsigned_div_result_t<A, B>>> \
     {                                                                                \
         return detail::udiv_canonical(lhs, rhs);                                     \
     }
@@ -464,7 +464,7 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto div(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(div(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -479,7 +479,7 @@ template<typename T, typename U>
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto div(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+    const result<U>& rhs) noexcept
     -> decltype(div(lhs, std::declval<U>()))
 {
     if (!rhs) {
@@ -493,8 +493,8 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto div(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept
     -> decltype(div(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {
@@ -512,7 +512,7 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto udiv(
-    const std::expected<T, error<void>>& lhs,
+    const result<T>& lhs,
     U rhs) noexcept -> decltype(udiv(std::declval<T>(), rhs))
 {
     if (!lhs) {
@@ -527,7 +527,7 @@ template<typename T, typename U>
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto udiv(
     T lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+    const result<U>& rhs) noexcept
     -> decltype(udiv(lhs, std::declval<U>()))
 {
     if (!rhs) {
@@ -541,8 +541,8 @@ template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
 [[nodiscard]] constexpr auto udiv(
-    const std::expected<T, error<void>>& lhs,
-    const std::expected<U, error<void>>& rhs) noexcept
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept
     -> decltype(udiv(std::declval<T>(), std::declval<U>()))
 {
     if (!lhs) {

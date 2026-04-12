@@ -26,7 +26,7 @@ namespace xer::detail {
  * @return Converted position on success.
  */
 [[nodiscard]] inline auto signed_pos_to_fpos(
-    std::int64_t value) noexcept -> std::expected<fpos_t, error<void>> {
+    std::int64_t value) noexcept -> result<fpos_t> {
     if (value < 0) {
         return std::unexpected(make_error(error_t::runtime_error));
     }
@@ -41,7 +41,7 @@ namespace xer::detail {
  * @return Converted signed position on success.
  */
 [[nodiscard]] inline auto fpos_to_signed_pos(
-    fpos_t value) noexcept -> std::expected<std::int64_t, error<void>> {
+    fpos_t value) noexcept -> result<std::int64_t> {
     if (value > static_cast<fpos_t>(std::numeric_limits<std::int64_t>::max())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
@@ -75,7 +75,7 @@ namespace xer {
 [[nodiscard]] inline auto fseek(
     binary_stream& stream,
     std::int64_t offset,
-    seek_origin_t origin) noexcept -> std::expected<void, error<void>> {
+    seek_origin_t origin) noexcept -> result<void> {
     if (!detail::is_valid_seek_origin(origin)) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -95,7 +95,7 @@ namespace xer {
  * @return Current byte offset on success.
  */
 [[nodiscard]] inline auto ftell(
-    binary_stream& stream) noexcept -> std::expected<std::uint64_t, error<void>> {
+    binary_stream& stream) noexcept -> result<std::uint64_t> {
     const std::int64_t result = stream.tell_fn()(stream.handle());
     if (result < 0) {
         return std::unexpected(make_error(error_t::runtime_error));
@@ -111,7 +111,7 @@ namespace xer {
  * @return Current position on success.
  */
 [[nodiscard]] inline auto fgetpos(
-    binary_stream& stream) noexcept -> std::expected<std::uint64_t, error<void>> {
+    binary_stream& stream) noexcept -> result<std::uint64_t> {
     const auto position = ftell(stream);
     if (!position.has_value()) {
         return std::unexpected(position.error());
@@ -129,7 +129,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto fsetpos(
     binary_stream& stream,
-    fpos_t position) noexcept -> std::expected<void, error<void>> {
+    fpos_t position) noexcept -> result<void> {
     const auto signed_position = detail::fpos_to_signed_pos(position);
     if (!signed_position.has_value()) {
         return std::unexpected(signed_position.error());
@@ -152,7 +152,7 @@ namespace xer {
 [[nodiscard]] inline auto fseek(
     text_stream& stream,
     std::int64_t offset,
-    seek_origin_t origin) noexcept -> std::expected<void, error<void>> {
+    seek_origin_t origin) noexcept -> result<void> {
     if (!detail::is_valid_seek_origin(origin)) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -179,7 +179,7 @@ namespace xer {
  * @return Current position value on success.
  */
 [[nodiscard]] inline auto ftell(
-    text_stream& stream) noexcept -> std::expected<std::uint64_t, error<void>> {
+    text_stream& stream) noexcept -> result<std::uint64_t> {
     const text_stream_pos_t result = stream.getpos_fn()(stream.handle());
     if (result < 0) {
         return std::unexpected(make_error(error_t::runtime_error));
@@ -195,7 +195,7 @@ namespace xer {
  * @return Current position on success.
  */
 [[nodiscard]] inline auto fgetpos(
-    text_stream& stream) noexcept -> std::expected<std::uint64_t, error<void>> {
+    text_stream& stream) noexcept -> result<std::uint64_t> {
     const text_stream_pos_t result = stream.getpos_fn()(stream.handle());
     if (result < 0) {
         return std::unexpected(make_error(error_t::runtime_error));
@@ -213,7 +213,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto fsetpos(
     text_stream& stream,
-    fpos_t position) noexcept -> std::expected<void, error<void>> {
+    fpos_t position) noexcept -> result<void> {
     if (position > static_cast<fpos_t>(std::numeric_limits<text_stream_pos_t>::max())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
