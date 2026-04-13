@@ -76,7 +76,7 @@ namespace xer::detail {
         return error_t::nomem;
 
     default:
-        return error_t::runtime_error;
+        return error_t::io_error;
     }
 }
 
@@ -287,7 +287,7 @@ namespace xer {
 
     char buffer[8192];
     bool copy_failed = false;
-    error<void> copy_error = make_error(error_t::runtime_error);
+    error<void> copy_error = make_error(error_t::io_error);
 
     for (;;) {
         const ssize_t read_size = ::read(source_fd, buffer, sizeof(buffer));

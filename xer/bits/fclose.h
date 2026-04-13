@@ -28,7 +28,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto fclose(binary_stream& stream) noexcept -> result<void> {
     if (stream.close() < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return {};
@@ -46,7 +46,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto fclose(text_stream& stream) noexcept -> result<void> {
     if (stream.close() < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return {};

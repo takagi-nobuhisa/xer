@@ -191,7 +191,7 @@ void test_binary_fseek_failure() {
     const auto result = xer::fseek(stream, 3, xer::seek_set);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
 }
 
 void test_binary_ftell_success() {
@@ -215,7 +215,7 @@ void test_binary_ftell_failure() {
     const auto result = xer::ftell(stream);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
 }
 
 void test_binary_fgetpos_success() {
@@ -310,7 +310,7 @@ void test_text_fseek_failure() {
     const auto result = xer::fseek(stream, 0, xer::seek_end);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
     xer_assert_eq(mock.seek_end_count, 1);
 }
 
@@ -335,7 +335,7 @@ void test_text_ftell_failure() {
     const auto result = xer::ftell(stream);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
 }
 
 void test_text_fgetpos_success() {
@@ -359,7 +359,7 @@ void test_text_fgetpos_failure() {
     const auto result = xer::fgetpos(stream);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
 }
 
 void test_text_fsetpos_success() {
@@ -382,7 +382,7 @@ void test_text_fsetpos_failure() {
     const auto result = xer::fsetpos(stream, static_cast<xer::fpos_t>(222));
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
     xer_assert_eq(mock.last_setpos, static_cast<xer::text_stream_pos_t>(222));
 }
 

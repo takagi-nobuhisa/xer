@@ -171,7 +171,7 @@ namespace detail {
 
     if (result < 0) {
         stream.set_error(true);
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     if (result == 0) {
@@ -204,7 +204,7 @@ namespace detail {
     const int result = stream.write_fn()(stream.handle(), &ch, 1);
     if (result < 0 || result != 1) {
         stream.set_error(true);
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return {};
@@ -290,7 +290,7 @@ namespace detail {
 
         if (written < 0 || written == 0) {
             stream.set_error(true);
-            return std::unexpected(make_error(error_t::runtime_error));
+            return std::unexpected(make_error(error_t::io_error));
         }
 
         offset += static_cast<std::size_t>(written);

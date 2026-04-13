@@ -162,7 +162,7 @@ void test_fread_failure() {
     const auto result = xer::fread(std::span<std::byte>(buffer), stream);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
     xer_assert_eq(mock.last_read_count, 4);
 }
 
@@ -235,7 +235,7 @@ void test_fwrite_failure() {
     const auto result = xer::fwrite(std::span<const std::byte>(buffer), stream);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
     xer_assert_eq(mock.last_write_count, 2);
 }
 
@@ -262,7 +262,7 @@ void test_fgetb_eof_is_failure() {
     const auto result = xer::fgetb(stream);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
     xer_assert_eq(mock.last_read_count, 1);
 }
 
@@ -275,7 +275,7 @@ void test_fgetb_error_is_failure() {
     const auto result = xer::fgetb(stream);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
     xer_assert_eq(mock.last_read_count, 1);
 }
 
@@ -302,7 +302,7 @@ void test_fputb_zero_write_is_failure() {
     const auto result = xer::fputb(std::byte{0x5a}, stream);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
     xer_assert_eq(mock.last_write_count, 1);
 }
 
@@ -315,7 +315,7 @@ void test_fputb_error_is_failure() {
     const auto result = xer::fputb(std::byte{0x5a}, stream);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
     xer_assert_eq(mock.last_write_count, 1);
 }
 

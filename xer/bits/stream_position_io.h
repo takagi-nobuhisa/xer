@@ -28,7 +28,7 @@ namespace xer::detail {
 [[nodiscard]] inline auto signed_pos_to_fpos(
     std::int64_t value) noexcept -> result<fpos_t> {
     if (value < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::invalid_argument));
     }
 
     return static_cast<fpos_t>(value);
@@ -82,7 +82,7 @@ namespace xer {
 
     const int result = stream.seek_fn()(stream.handle(), offset, static_cast<int>(origin));
     if (result < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return {};
@@ -98,7 +98,7 @@ namespace xer {
     binary_stream& stream) noexcept -> result<std::uint64_t> {
     const std::int64_t result = stream.tell_fn()(stream.handle());
     if (result < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return static_cast<std::uint64_t>(result);
@@ -163,7 +163,7 @@ namespace xer {
 
     const int result = stream.seek_end_fn()(stream.handle());
     if (result < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     stream.clear_unget_char();
@@ -182,7 +182,7 @@ namespace xer {
     text_stream& stream) noexcept -> result<std::uint64_t> {
     const text_stream_pos_t result = stream.getpos_fn()(stream.handle());
     if (result < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return static_cast<std::uint64_t>(result);
@@ -198,7 +198,7 @@ namespace xer {
     text_stream& stream) noexcept -> result<std::uint64_t> {
     const text_stream_pos_t result = stream.getpos_fn()(stream.handle());
     if (result < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return static_cast<fpos_t>(result);
@@ -223,7 +223,7 @@ namespace xer {
         static_cast<text_stream_pos_t>(position));
 
     if (result < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     stream.clear_unget_char();

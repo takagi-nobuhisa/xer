@@ -75,7 +75,7 @@ void test_fclose_binary_stream_failure_resets_stream() {
 
     const auto result = xer::fclose(stream);
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
     xer_assert(!stream.has_value());
 }
 
@@ -93,7 +93,7 @@ void test_fclose_text_stream_failure_resets_stream() {
 
     const auto result = xer::fclose(stream);
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
     xer_assert(!stream.has_value());
 }
 

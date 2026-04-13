@@ -128,7 +128,7 @@ namespace xer::detail {
     std::u8string_view text)
 {
     if (!stream.has_value()) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     std::size_t byte_count = 0;
@@ -146,7 +146,7 @@ namespace xer::detail {
         const int written = stream.write_fn()(stream.handle(), &*decoded, 1);
         if (written <= 0) {
             stream.set_error(true);
-            return std::unexpected(make_error(error_t::runtime_error));
+            return std::unexpected(make_error(error_t::io_error));
         }
 
         byte_count += (index - before);

@@ -29,7 +29,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto fflush(binary_stream& stream) noexcept -> result<void> {
     if (!stream.has_value()) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     detail::binary_stream_state* const state =
@@ -37,7 +37,7 @@ namespace xer {
 
     if (state == nullptr) {
         stream.set_error(true);
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     if (std::holds_alternative<detail::binary_stream_file_source>(state->source)) {
@@ -46,7 +46,7 @@ namespace xer {
 
         if (file == nullptr || std::fflush(file) != 0) {
             stream.set_error(true);
-            return std::unexpected(make_error(error_t::runtime_error));
+            return std::unexpected(make_error(error_t::io_error));
         }
     }
 
@@ -66,7 +66,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto fflush(text_stream& stream) noexcept -> result<void> {
     if (!stream.has_value()) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     detail::text_stream_state* const state =
@@ -74,7 +74,7 @@ namespace xer {
 
     if (state == nullptr) {
         stream.set_error(true);
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     if (std::holds_alternative<detail::text_stream_file_source>(state->source)) {
@@ -83,7 +83,7 @@ namespace xer {
 
         if (file == nullptr || std::fflush(file) != 0) {
             stream.set_error(true);
-            return std::unexpected(make_error(error_t::runtime_error));
+            return std::unexpected(make_error(error_t::io_error));
         }
 
         detail::reset_text_stream_runtime_state(*state);

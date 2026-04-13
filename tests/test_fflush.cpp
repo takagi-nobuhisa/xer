@@ -123,7 +123,7 @@ void test_fflush_binary_closed_stream_fails() {
 
     const auto flush_result = xer::fflush(stream);
     xer_assert(!flush_result.has_value());
-    xer_assert_eq(flush_result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(flush_result.error().code, xer::error_t::io_error);
 }
 
 void test_fflush_text_closed_stream_fails() {
@@ -140,7 +140,7 @@ void test_fflush_text_closed_stream_fails() {
 
     const auto flush_result = xer::fflush(stream);
     xer_assert(!flush_result.has_value());
-    xer_assert_eq(flush_result.error().code, xer::error_t::runtime_error);
+    xer_assert_eq(flush_result.error().code, xer::error_t::io_error);
 }
 
 } // namespace

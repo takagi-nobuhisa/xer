@@ -61,7 +61,7 @@ namespace xer {
 
     const int result = stream.read_fn()(stream.handle(), buffer.data(), *count);
     if (result < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return static_cast<std::size_t>(result);
@@ -91,7 +91,7 @@ namespace xer {
 
     const int result = stream.write_fn()(stream.handle(), buffer.data(), *count);
     if (result < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return static_cast<std::size_t>(result);
@@ -111,11 +111,11 @@ namespace xer {
     const int result = stream.read_fn()(stream.handle(), &value, 1);
 
     if (result < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     if (result == 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return value;
@@ -134,11 +134,11 @@ namespace xer {
     const int result = stream.write_fn()(stream.handle(), &value, 1);
 
     if (result < 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     if (result == 0) {
-        return std::unexpected(make_error(error_t::runtime_error));
+        return std::unexpected(make_error(error_t::io_error));
     }
 
     return {};
