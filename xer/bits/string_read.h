@@ -92,11 +92,11 @@ template<typename T>
     } else if (b1 >= 0xF0u && b1 <= 0xF4u) {
         count = 4;
     } else {
-        return unexpected_string_error<decoded_code_point>(error_t::ilseq);
+        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
     if (index + count > source.size()) {
-        return unexpected_string_error<decoded_code_point>(error_t::ilseq);
+        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
     for (std::size_t i = 1; i < count; ++i) {
@@ -107,7 +107,7 @@ template<typename T>
 
     const char32_t code_point = xer::advanced::packed_utf8_to_utf32(packed);
     if (code_point == xer::advanced::detail::invalid_utf32) {
-        return unexpected_string_error<decoded_code_point>(error_t::ilseq);
+        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
     return decoded_code_point {code_point, count};
@@ -135,16 +135,16 @@ template<typename T>
     }
 
     if (first >= 0xDC00u) {
-        return unexpected_string_error<decoded_code_point>(error_t::ilseq);
+        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
     if (index + 1 >= source.size()) {
-        return unexpected_string_error<decoded_code_point>(error_t::ilseq);
+        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
     const char16_t second = source[index + 1];
     if (second < 0xDC00u || second > 0xDFFFu) {
-        return unexpected_string_error<decoded_code_point>(error_t::ilseq);
+        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
     const std::uint32_t packed =
@@ -152,7 +152,7 @@ template<typename T>
         (static_cast<std::uint32_t>(second) << 16);
     const char32_t code_point = xer::advanced::packed_utf16_to_utf32(packed);
     if (code_point == xer::advanced::detail::invalid_utf32) {
-        return unexpected_string_error<decoded_code_point>(error_t::ilseq);
+        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
     return decoded_code_point {code_point, 2};
@@ -175,7 +175,7 @@ template<typename T>
 
     const char32_t value = source[index];
     if (!is_valid_code_point(value)) {
-        return unexpected_string_error<decoded_code_point>(error_t::ilseq);
+        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
     return decoded_code_point {value, 1};
@@ -361,7 +361,7 @@ template<detail::supported_string_character CharT>
     const char32_t value) -> result<std::u8string_view::const_iterator>
 {
     if (!detail::is_valid_code_point(value)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     for (std::size_t index = 0; index < source.size();) {
@@ -392,7 +392,7 @@ template<detail::supported_string_character CharT>
     const char32_t value) -> result<std::u16string_view::const_iterator>
 {
     if (!detail::is_valid_code_point(value)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     for (std::size_t index = 0; index < source.size();) {
@@ -423,12 +423,12 @@ template<detail::supported_string_character CharT>
     const char32_t value) -> result<std::u32string_view::const_iterator>
 {
     if (!detail::is_valid_code_point(value)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     for (auto it = source.begin(); it != source.end(); ++it) {
         if (!detail::is_valid_code_point(*it)) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         if (*it == value) {
@@ -451,7 +451,7 @@ template<detail::supported_string_character CharT>
     const char32_t value) -> result<std::u8string_view::const_iterator>
 {
     if (!detail::is_valid_code_point(value)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     bool found = false;
@@ -490,7 +490,7 @@ template<detail::supported_string_character CharT>
     const char32_t value) -> result<std::u16string_view::const_iterator>
 {
     if (!detail::is_valid_code_point(value)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     bool found = false;
@@ -529,14 +529,14 @@ template<detail::supported_string_character CharT>
     const char32_t value) -> result<std::u32string_view::const_iterator>
 {
     if (!detail::is_valid_code_point(value)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     for (auto it = source.end(); it != source.begin();) {
         --it;
 
         if (!detail::is_valid_code_point(*it)) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         if (*it == value) {

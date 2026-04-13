@@ -84,6 +84,15 @@ void test_base_conversion() {
 }
 
 
+
+void test_error_encoding_error() {
+    const auto e = xer::make_error(xer::error_t::encoding_error);
+
+    if (e.code != xer::error_t::encoding_error) {
+        throw "test_error_encoding_error: code mismatch";
+    }
+}
+
 void test_error_io_error() {
     const auto e = xer::make_error(xer::error_t::io_error);
 
@@ -140,6 +149,7 @@ int main() {
     test_error_scalar_detail();
     test_error_class_detail();
     test_base_conversion();
+    test_error_encoding_error();
     test_error_io_error();
     test_source_location_void();
     test_source_location_scalar_detail();

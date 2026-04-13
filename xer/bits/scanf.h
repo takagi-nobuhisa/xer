@@ -120,7 +120,7 @@ using scan_intermediate_value_t =
     std::u8string& out,
     char32_t value) -> result<void> {
     if (value > 0x10ffffu || (value >= 0xd800u && value <= 0xdfffu)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     if (value <= 0x7fu) {

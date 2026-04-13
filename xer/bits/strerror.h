@@ -168,6 +168,8 @@ namespace xer {
         return u8"underflow error";
     case error_t::io_error:
         return u8"io error";
+    case error_t::encoding_error:
+        return u8"encoding error";
     case error_t::not_found:
         return u8"not found";
     case error_t::divide_by_zero:
@@ -300,6 +302,8 @@ namespace xer {
         return u8"underflow_error";
     case error_t::io_error:
         return u8"io_error";
+    case error_t::encoding_error:
+        return u8"encoding_error";
     case error_t::not_found:
         return u8"not_found";
     case error_t::divide_by_zero:

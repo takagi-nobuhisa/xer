@@ -236,7 +236,7 @@ void test_strchr_utf8_code_point_ilseq()
     const auto result = xer::strchr(view, U'A');
 
     xer_assert_not(result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::ilseq);
+    xer_assert_eq(result.error().code, xer::error_t::encoding_error);
 }
 
 /**
@@ -249,7 +249,7 @@ void test_strchr_utf8_invalid_code_point_argument()
     const auto result = xer::strchr(text, static_cast<char32_t>(0x110000));
 
     xer_assert_not(result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::ilseq);
+    xer_assert_eq(result.error().code, xer::error_t::encoding_error);
 }
 
 /**
@@ -281,7 +281,7 @@ void test_strrchr_utf8_code_point_ilseq()
     const auto result = xer::strrchr(view, U'あ');
 
     xer_assert_not(result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::ilseq);
+    xer_assert_eq(result.error().code, xer::error_t::encoding_error);
 }
 
 /**
@@ -312,7 +312,7 @@ void test_strchr_utf16_code_point_ilseq()
     const auto result = xer::strchr(view, U'A');
 
     xer_assert_not(result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::ilseq);
+    xer_assert_eq(result.error().code, xer::error_t::encoding_error);
 }
 
 /**
@@ -358,7 +358,7 @@ void test_strchr_utf32_code_point_ilseq()
     const auto result = xer::strchr(view, U'A');
 
     xer_assert_not(result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::ilseq);
+    xer_assert_eq(result.error().code, xer::error_t::encoding_error);
 }
 
 /**

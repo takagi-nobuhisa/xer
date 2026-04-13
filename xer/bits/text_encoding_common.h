@@ -232,7 +232,7 @@ namespace xer::detail {
         length = 1;
     } else if (c0 >= 0xc2u && c0 <= 0xdfu) {
         if (index + 1 >= value.size()) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         const unsigned char c1 = static_cast<unsigned char>(value[index + 1]);
@@ -241,7 +241,7 @@ namespace xer::detail {
         length = 2;
     } else if (c0 >= 0xe0u && c0 <= 0xefu) {
         if (index + 2 >= value.size()) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         const unsigned char c1 = static_cast<unsigned char>(value[index + 1]);
@@ -252,7 +252,7 @@ namespace xer::detail {
         length = 3;
     } else if (c0 >= 0xf0u && c0 <= 0xf4u) {
         if (index + 3 >= value.size()) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         const unsigned char c1 = static_cast<unsigned char>(value[index + 1]);
@@ -264,12 +264,12 @@ namespace xer::detail {
                  (static_cast<std::uint32_t>(c3) << 24);
         length = 4;
     } else {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     const char32_t code_point = advanced::packed_utf8_to_utf32(packed);
     if (code_point == advanced::detail::invalid_utf32) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     index += length;
@@ -332,7 +332,7 @@ inline void append_packed_utf8(std::u8string& out, std::uint32_t packed)
         const std::uint32_t packed =
             advanced::utf32_to_packed_utf16(*code_point_result);
         if (packed == advanced::detail::invalid_packed_utf16) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         const char16_t u0 = static_cast<char16_t>(packed & 0xffffu);
@@ -373,7 +373,7 @@ inline void append_packed_utf8(std::u8string& out, std::uint32_t packed)
 
         if (u0 >= 0xd800u && u0 <= 0xdbffu) {
             if (index >= value.size()) {
-                return std::unexpected(make_error(error_t::ilseq));
+                return std::unexpected(make_error(error_t::encoding_error));
             }
 
             const char16_t u1 = static_cast<char16_t>(value[index]);
@@ -383,13 +383,13 @@ inline void append_packed_utf8(std::u8string& out, std::uint32_t packed)
 
         const char32_t code_point = advanced::packed_utf16_to_utf32(packed);
         if (code_point == advanced::detail::invalid_utf32) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         const std::uint32_t utf8_packed =
             advanced::utf32_to_packed_utf8(code_point);
         if (utf8_packed == advanced::detail::invalid_packed_utf8) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         append_packed_utf8(result, utf8_packed);

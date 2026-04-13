@@ -89,8 +89,9 @@ enum class error_t : std::int32_t {
     overflow_error = -8,
     underflow_error = -9,
     io_error = -10,
-    not_found = -11,
-    divide_by_zero = -12,
+    encoding_error = -11,
+    not_found = -12,
+    divide_by_zero = -13,
 
     user_error = -1000,
 };

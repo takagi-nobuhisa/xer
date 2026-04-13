@@ -193,12 +193,12 @@ struct scan_format_t {
 
     if (c0 >= 0xc2 && c0 <= 0xdf) {
         if (index + 1 >= text.size()) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         const unsigned char c1 = static_cast<unsigned char>(text[index + 1]);
         if ((c1 & 0xc0u) != 0x80u) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         index += 2;
@@ -207,14 +207,14 @@ struct scan_format_t {
 
     if (c0 >= 0xe0 && c0 <= 0xef) {
         if (index + 2 >= text.size()) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         const unsigned char c1 = static_cast<unsigned char>(text[index + 1]);
         const unsigned char c2 = static_cast<unsigned char>(text[index + 2]);
 
         if ((c1 & 0xc0u) != 0x80u || (c2 & 0xc0u) != 0x80u) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         const char32_t value =
@@ -223,7 +223,7 @@ struct scan_format_t {
             static_cast<char32_t>(c2 & 0x3fu);
 
         if (value < 0x800u || (value >= 0xd800u && value <= 0xdfffu)) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         index += 3;
@@ -232,7 +232,7 @@ struct scan_format_t {
 
     if (c0 >= 0xf0 && c0 <= 0xf4) {
         if (index + 3 >= text.size()) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         const unsigned char c1 = static_cast<unsigned char>(text[index + 1]);
@@ -241,7 +241,7 @@ struct scan_format_t {
 
         if ((c1 & 0xc0u) != 0x80u || (c2 & 0xc0u) != 0x80u ||
             (c3 & 0xc0u) != 0x80u) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         const char32_t value =
@@ -251,14 +251,14 @@ struct scan_format_t {
             static_cast<char32_t>(c3 & 0x3fu);
 
         if (value < 0x10000u || value > 0x10ffffu) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
 
         index += 4;
         return value;
     }
 
-    return std::unexpected(make_error(error_t::ilseq));
+    return std::unexpected(make_error(error_t::encoding_error));
 }
 
 /**

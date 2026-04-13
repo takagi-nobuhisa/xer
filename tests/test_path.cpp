@@ -117,7 +117,7 @@ void test_from_native_path_invalid_sequence() {
 #endif
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::ilseq);
+    xer_assert_eq(result.error().code, xer::error_t::encoding_error);
 }
 
 } // namespace

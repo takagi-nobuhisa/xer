@@ -27,11 +27,11 @@ namespace xer::detail {
     char32_t value) noexcept -> result<std::u8string>
 {
     if (value > 0x10ffffu) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     if (value >= 0xd800u && value <= 0xdfffu) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     std::u8string result;

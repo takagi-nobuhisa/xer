@@ -206,7 +206,7 @@ inline void normalize_native_to_internal(std::string& value) noexcept
     const std::string result = detail::to_byte_string(source);
 
     if (!detail::is_valid_utf8(result)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     return result;
@@ -237,7 +237,7 @@ inline void normalize_native_to_internal(std::string& value) noexcept
     return path(*converted);
 #else
     if (!detail::is_valid_utf8(value)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     std::string normalized(value);

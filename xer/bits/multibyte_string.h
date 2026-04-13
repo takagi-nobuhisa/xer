@@ -202,12 +202,12 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
 
     if constexpr (sizeof(wchar_t) == 2) {
         if (value > 0xFFFF || is_surrogate(value) || is_invalid_utf32(value)) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
         *out = static_cast<wchar_t>(value);
     } else if constexpr (sizeof(wchar_t) == 4) {
         if (is_invalid_utf32(value)) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
         *out = static_cast<wchar_t>(value);
     } else {
@@ -230,7 +230,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
     }
 
     if (value > 0xFFFF || is_surrogate(value) || is_invalid_utf32(value)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     *out = static_cast<char16_t>(value);
@@ -246,7 +246,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  */
 [[nodiscard]] inline auto write_tc(char32_t* out, char32_t value) -> result<void> {
     if (is_invalid_utf32(value)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
 
     if (out != nullptr) {
@@ -265,13 +265,13 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
     if constexpr (sizeof(wchar_t) == 2) {
         const char32_t cp = static_cast<char32_t>(static_cast<char16_t>(value));
         if (is_surrogate(cp)) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
         return cp;
     } else if constexpr (sizeof(wchar_t) == 4) {
         const char32_t cp = static_cast<char32_t>(value);
         if (is_invalid_utf32(cp)) {
-            return std::unexpected(make_error(error_t::ilseq));
+            return std::unexpected(make_error(error_t::encoding_error));
         }
         return cp;
     } else {
@@ -288,7 +288,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
 [[nodiscard]] inline auto read_tc(char16_t value) -> result<char32_t> {
     const char32_t cp = static_cast<char32_t>(value);
     if (is_surrogate(cp)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
     return cp;
 }
@@ -301,7 +301,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  */
 [[nodiscard]] inline auto read_tc(char32_t value) -> result<char32_t> {
     if (is_invalid_utf32(value) || is_surrogate(value)) {
-        return std::unexpected(make_error(error_t::ilseq));
+        return std::unexpected(make_error(error_t::encoding_error));
     }
     return value;
 }
@@ -319,7 +319,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
     std::size_t size,
     bool allow_incomplete) -> result<decoded_char> {
     if (size == 0) {
-        return unexpected_error<decoded_char>(error_t::ilseq);
+        return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
     const std::uint8_t b0 = bytes[0];
@@ -341,7 +341,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
     } else if (b0 >= 0xF0u && b0 <= 0xF4u) {
         expected_size = 4;
     } else {
-        return unexpected_error<decoded_char>(error_t::ilseq);
+        return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
     if (size < expected_size) {
@@ -353,7 +353,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
                 .incomplete = true,
             };
         }
-        return unexpected_error<decoded_char>(error_t::ilseq);
+        return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
     std::uint32_t packed = 0;
@@ -363,7 +363,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
 
     const char32_t value = xer::advanced::packed_utf8_to_utf32(packed);
     if (value == xer::advanced::detail::invalid_utf32 || is_surrogate(value)) {
-        return unexpected_error<decoded_char>(error_t::ilseq);
+        return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
     return decoded_char{
@@ -387,7 +387,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
     std::size_t size,
     bool allow_incomplete) -> result<decoded_char> {
     if (size == 0) {
-        return unexpected_error<decoded_char>(error_t::ilseq);
+        return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
     const std::uint8_t b0 = bytes[0];
@@ -416,7 +416,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
         (b0 >= 0xE0u && b0 <= 0xFCu);
 
     if (!is_lead) {
-        return unexpected_error<decoded_char>(error_t::ilseq);
+        return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
     if (size < 2) {
@@ -428,7 +428,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
                 .incomplete = true,
             };
         }
-        return unexpected_error<decoded_char>(error_t::ilseq);
+        return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
     const std::uint8_t b1 = bytes[1];
@@ -437,7 +437,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
         (b1 >= 0x80u && b1 <= 0xFCu);
 
     if (!is_trail) {
-        return unexpected_error<decoded_char>(error_t::ilseq);
+        return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
     const std::uint16_t packed =
@@ -446,7 +446,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
 
     const char32_t value = xer::advanced::packed_cp932_to_utf32(packed);
     if (value == xer::advanced::detail::invalid_utf32 || is_surrogate(value)) {
-        return unexpected_error<decoded_char>(error_t::ilseq);
+        return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
     return decoded_char{
@@ -491,12 +491,12 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  */
 [[nodiscard]] inline auto encode_utf8_mb_char(char32_t value) -> result<encoded_char> {
     if (is_invalid_utf32(value) || is_surrogate(value)) {
-        return unexpected_error<encoded_char>(error_t::ilseq);
+        return unexpected_error<encoded_char>(error_t::encoding_error);
     }
 
     const std::uint32_t packed = xer::advanced::utf32_to_packed_utf8(value);
     if (packed == xer::advanced::detail::invalid_packed_utf8) {
-        return unexpected_error<encoded_char>(error_t::ilseq);
+        return unexpected_error<encoded_char>(error_t::encoding_error);
     }
 
     encoded_char result{};
@@ -528,7 +528,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  */
 [[nodiscard]] inline auto encode_cp932_char(char32_t value) -> result<encoded_char> {
     if (is_invalid_utf32(value) || is_surrogate(value)) {
-        return unexpected_error<encoded_char>(error_t::ilseq);
+        return unexpected_error<encoded_char>(error_t::encoding_error);
     }
 
     encoded_char result{};
@@ -549,7 +549,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
 
     const std::int32_t packed = xer::advanced::utf32_to_packed_cp932(value);
     if (packed < 0) {
-        return unexpected_error<encoded_char>(error_t::ilseq);
+        return unexpected_error<encoded_char>(error_t::encoding_error);
     }
 
     result.bytes[0] = static_cast<std::uint8_t>(packed & 0xFFu);
@@ -660,7 +660,7 @@ template<typename TcType, typename MbType>
     if (decoded->incomplete) {
         if (!store_state(ps, effective_encoding, buffer, available)) {
             clear_state(ps);
-            return unexpected_error<std::size_t>(error_t::ilseq);
+            return unexpected_error<std::size_t>(error_t::encoding_error);
         }
         return std::size_t{0};
     }
