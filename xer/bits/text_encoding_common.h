@@ -12,12 +12,9 @@
 #include <string>
 #include <string_view>
 
+#include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
 #include <xer/error.h>
-
-#ifdef _WIN32
-#    include <windows.h>
-#endif
 
 namespace xer::detail {
 
@@ -212,6 +209,102 @@ namespace xer::detail {
 #ifdef _WIN32
 
 /**
+ * @brief Decodes one UTF-8 code point from a byte string.
+ *
+ * @param value Source byte string.
+ * @param index Current read position.
+ * @return Decoded code point and advances @p index on success.
+ */
+[[nodiscard]] inline auto decode_utf8_code_point(
+    std::string_view value,
+    std::size_t& index) -> result<char32_t>
+{
+    if (index >= value.size()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const unsigned char c0 = static_cast<unsigned char>(value[index]);
+    std::uint32_t packed = 0;
+    std::size_t length = 0;
+
+    if (c0 <= 0x7fu) {
+        packed = static_cast<std::uint32_t>(c0);
+        length = 1;
+    } else if (c0 >= 0xc2u && c0 <= 0xdfu) {
+        if (index + 1 >= value.size()) {
+            return std::unexpected(make_error(error_t::ilseq));
+        }
+
+        const unsigned char c1 = static_cast<unsigned char>(value[index + 1]);
+        packed = static_cast<std::uint32_t>(c0) |
+                 (static_cast<std::uint32_t>(c1) << 8);
+        length = 2;
+    } else if (c0 >= 0xe0u && c0 <= 0xefu) {
+        if (index + 2 >= value.size()) {
+            return std::unexpected(make_error(error_t::ilseq));
+        }
+
+        const unsigned char c1 = static_cast<unsigned char>(value[index + 1]);
+        const unsigned char c2 = static_cast<unsigned char>(value[index + 2]);
+        packed = static_cast<std::uint32_t>(c0) |
+                 (static_cast<std::uint32_t>(c1) << 8) |
+                 (static_cast<std::uint32_t>(c2) << 16);
+        length = 3;
+    } else if (c0 >= 0xf0u && c0 <= 0xf4u) {
+        if (index + 3 >= value.size()) {
+            return std::unexpected(make_error(error_t::ilseq));
+        }
+
+        const unsigned char c1 = static_cast<unsigned char>(value[index + 1]);
+        const unsigned char c2 = static_cast<unsigned char>(value[index + 2]);
+        const unsigned char c3 = static_cast<unsigned char>(value[index + 3]);
+        packed = static_cast<std::uint32_t>(c0) |
+                 (static_cast<std::uint32_t>(c1) << 8) |
+                 (static_cast<std::uint32_t>(c2) << 16) |
+                 (static_cast<std::uint32_t>(c3) << 24);
+        length = 4;
+    } else {
+        return std::unexpected(make_error(error_t::ilseq));
+    }
+
+    const char32_t code_point = advanced::packed_utf8_to_utf32(packed);
+    if (code_point == advanced::detail::invalid_utf32) {
+        return std::unexpected(make_error(error_t::ilseq));
+    }
+
+    index += length;
+    return code_point;
+}
+
+/**
+ * @brief Appends packed UTF-8 bytes to a UTF-8 string.
+ *
+ * @param out Destination string.
+ * @param packed Packed UTF-8 value.
+ */
+inline void append_packed_utf8(std::u8string& out, std::uint32_t packed)
+{
+    const unsigned char b1 = static_cast<unsigned char>(packed & 0xffu);
+    const unsigned char b2 = static_cast<unsigned char>((packed >> 8) & 0xffu);
+    const unsigned char b3 = static_cast<unsigned char>((packed >> 16) & 0xffu);
+    const unsigned char b4 = static_cast<unsigned char>((packed >> 24) & 0xffu);
+
+    out.push_back(static_cast<char8_t>(b1));
+
+    if (b2 != 0) {
+        out.push_back(static_cast<char8_t>(b2));
+    }
+
+    if (b3 != 0) {
+        out.push_back(static_cast<char8_t>(b3));
+    }
+
+    if (b4 != 0) {
+        out.push_back(static_cast<char8_t>(b4));
+    }
+}
+
+/**
  * @brief Converts a UTF-8 byte string to a wide string.
  *
  * @param value Source UTF-8 byte string.
@@ -220,34 +313,35 @@ namespace xer::detail {
 [[nodiscard]] inline auto utf8_to_wstring(
     std::string_view value) -> result<std::wstring>
 {
+    static_assert(sizeof(wchar_t) == 2, "Windows wchar_t must be UTF-16");
+
     if (value.empty()) {
         return std::wstring();
     }
 
-    const int required = MultiByteToWideChar(
-        CP_UTF8,
-        MB_ERR_INVALID_CHARS,
-        value.data(),
-        static_cast<int>(value.size()),
-        nullptr,
-        0);
+    std::wstring result;
+    result.reserve(value.size());
 
-    if (required <= 0) {
-        return std::unexpected(make_error(error_t::ilseq));
-    }
+    std::size_t index = 0;
+    while (index < value.size()) {
+        const auto code_point_result = decode_utf8_code_point(value, index);
+        if (!code_point_result.has_value()) {
+            return std::unexpected(code_point_result.error());
+        }
 
-    std::wstring result(static_cast<std::size_t>(required), L'\0');
+        const std::uint32_t packed =
+            advanced::utf32_to_packed_utf16(*code_point_result);
+        if (packed == advanced::detail::invalid_packed_utf16) {
+            return std::unexpected(make_error(error_t::ilseq));
+        }
 
-    const int written = MultiByteToWideChar(
-        CP_UTF8,
-        MB_ERR_INVALID_CHARS,
-        value.data(),
-        static_cast<int>(value.size()),
-        result.data(),
-        required);
+        const char16_t u0 = static_cast<char16_t>(packed & 0xffffu);
+        const char16_t u1 = static_cast<char16_t>((packed >> 16) & 0xffffu);
 
-    if (written != required) {
-        return std::unexpected(make_error(error_t::ilseq));
+        result.push_back(static_cast<wchar_t>(u0));
+        if (u1 != 0) {
+            result.push_back(static_cast<wchar_t>(u1));
+        }
     }
 
     return result;
@@ -262,41 +356,46 @@ namespace xer::detail {
 [[nodiscard]] inline auto wstring_to_utf8(
     std::wstring_view value) -> result<std::u8string>
 {
+    static_assert(sizeof(wchar_t) == 2, "Windows wchar_t must be UTF-16");
+
     if (value.empty()) {
         return std::u8string();
     }
 
-    const int required = WideCharToMultiByte(
-        CP_UTF8,
-        WC_ERR_INVALID_CHARS,
-        value.data(),
-        static_cast<int>(value.size()),
-        nullptr,
-        0,
-        nullptr,
-        nullptr);
+    std::u8string result;
+    result.reserve(value.size());
 
-    if (required <= 0) {
-        return std::unexpected(make_error(error_t::ilseq));
+    std::size_t index = 0;
+    while (index < value.size()) {
+        const char16_t u0 = static_cast<char16_t>(value[index]);
+        std::uint32_t packed = static_cast<std::uint32_t>(u0);
+        ++index;
+
+        if (u0 >= 0xd800u && u0 <= 0xdbffu) {
+            if (index >= value.size()) {
+                return std::unexpected(make_error(error_t::ilseq));
+            }
+
+            const char16_t u1 = static_cast<char16_t>(value[index]);
+            ++index;
+            packed |= static_cast<std::uint32_t>(u1) << 16;
+        }
+
+        const char32_t code_point = advanced::packed_utf16_to_utf32(packed);
+        if (code_point == advanced::detail::invalid_utf32) {
+            return std::unexpected(make_error(error_t::ilseq));
+        }
+
+        const std::uint32_t utf8_packed =
+            advanced::utf32_to_packed_utf8(code_point);
+        if (utf8_packed == advanced::detail::invalid_packed_utf8) {
+            return std::unexpected(make_error(error_t::ilseq));
+        }
+
+        append_packed_utf8(result, utf8_packed);
     }
 
-    std::string buffer(static_cast<std::size_t>(required), '\0');
-
-    const int written = WideCharToMultiByte(
-        CP_UTF8,
-        WC_ERR_INVALID_CHARS,
-        value.data(),
-        static_cast<int>(value.size()),
-        buffer.data(),
-        required,
-        nullptr,
-        nullptr);
-
-    if (written != required) {
-        return std::unexpected(make_error(error_t::ilseq));
-    }
-
-    return to_u8string(buffer);
+    return result;
 }
 
 #endif
