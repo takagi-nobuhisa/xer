@@ -1,4 +1,7 @@
-﻿#include <limits>
+﻿#include <cmath>
+#include <expected>
+#include <limits>
+#include <type_traits>
 
 #include <xer/arithmetic.h>
 #include <xer/assert.h>
@@ -6,285 +9,388 @@
 
 namespace {
 
-void test_max_basic()
+void test_min_same_type()
 {
-    const auto result = xer::max(3, 7);
-    xer_assert(result.has_value());
-    xer_assert_eq(*result, 7);
-}
+    const auto result = xer::min(3, 5);
 
-void test_min_basic()
-{
-    const auto result = xer::min(3, 7);
     xer_assert(result.has_value());
     xer_assert_eq(*result, 3);
+    static_assert(std::is_same_v<
+                  std::remove_cvref_t<decltype(*result)>,
+                  int>);
 }
 
-void test_max_equal_values()
+void test_max_same_type()
 {
-    const auto result = xer::max(5, 5);
+    const auto result = xer::max(3, 5);
+
     xer_assert(result.has_value());
     xer_assert_eq(*result, 5);
+    static_assert(std::is_same_v<
+                  std::remove_cvref_t<decltype(*result)>,
+                  int>);
 }
 
-void test_min_equal_values()
+void test_min_mixed_integer_types_success()
 {
-    const auto result = xer::min(5, 5);
+    const auto result = xer::min(3, 10u);
+
     xer_assert(result.has_value());
-    xer_assert_eq(*result, 5);
+    xer_assert_eq(*result, 3);
+    static_assert(std::is_same_v<
+                  std::remove_cvref_t<decltype(*result)>,
+                  std::common_type_t<int, unsigned int>>);
+}
+
+void test_min_mixed_integer_types_out_of_range()
+{
+    const auto result = xer::min(-3, 10u);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
 }
 
 void test_max_mixed_integer_types()
 {
     const auto result = xer::max(-3, 10u);
+
     xer_assert(result.has_value());
-    xer_assert_eq(*result, 10u);
+    xer_assert_eq(*result, 10);
+    static_assert(std::is_same_v<
+                  std::remove_cvref_t<decltype(*result)>,
+                  std::common_type_t<int, unsigned int>>);
 }
 
-void test_min_mixed_integer_types_rejects_negative_result()
+void test_min_mixed_integer_and_floating()
 {
-    const auto result = xer::min(-3, 10u);
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
-}
+    const auto result = xer::min(3, 2.5);
 
-void test_max_mixed_floating_types()
-{
-    const auto result = xer::max(3, 7.5);
     xer_assert(result.has_value());
-    xer_assert_eq(*result, 7.5);
+    xer_assert_eq(*result, 2.5);
+    static_assert(std::is_same_v<
+                  std::remove_cvref_t<decltype(*result)>,
+                  std::common_type_t<int, double>>);
 }
 
-void test_min_mixed_floating_types()
+void test_max_mixed_integer_and_floating()
 {
-    const auto result = xer::min(3, 7.5);
+    const auto result = xer::max(3, 2.5);
+
     xer_assert(result.has_value());
     xer_assert_eq(*result, 3.0);
+    static_assert(std::is_same_v<
+                  std::remove_cvref_t<decltype(*result)>,
+                  std::common_type_t<int, double>>);
 }
 
-void test_umax_basic()
+void test_min_with_equal_values()
 {
-    const auto result = xer::umax(3, 7);
+    const auto result = xer::min(5, 5u);
+
     xer_assert(result.has_value());
-    xer_assert_eq(*result, 7u);
+    xer_assert_eq(*result, 5);
 }
 
-void test_umin_basic()
+void test_max_with_equal_values()
 {
-    const auto result = xer::umin(3, 7);
+    const auto result = xer::max(5, 5u);
+
     xer_assert(result.has_value());
-    xer_assert_eq(*result, 3u);
+    xer_assert_eq(*result, 5);
 }
 
-void test_umax_mixed_integer_types()
+void test_clamp_value_within_range()
 {
-    const auto result = xer::umax(-3, 10u);
+    const auto result = xer::clamp(5, 1, 10);
+
     xer_assert(result.has_value());
-    xer_assert_eq(*result, 10u);
+    xer_assert_eq(*result, 5);
 }
 
-void test_umin_rejects_negative_result()
+void test_clamp_value_below_range()
 {
-    const auto result = xer::umin(-3, 10u);
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
-}
+    const auto result = xer::clamp(-5, 1, 10);
 
-void test_umax_rejects_negative_result()
-{
-    const auto result = xer::umax(-3, -1);
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
-}
-
-void test_max_left_result_success()
-{
-    const xer::result<int> lhs = 20;
-
-    const auto result = xer::max(lhs, 10);
-    xer_assert(result.has_value());
-    xer_assert_eq(*result, 20);
-}
-
-void test_max_right_result_success()
-{
-    const xer::result<int> rhs = 20;
-
-    const auto result = xer::max(10, rhs);
-    xer_assert(result.has_value());
-    xer_assert_eq(*result, 20);
-}
-
-void test_max_both_result_success()
-{
-    const xer::result<int> lhs = 10;
-    const xer::result<unsigned int> rhs = 20u;
-
-    const auto result = xer::max(lhs, rhs);
-    xer_assert(result.has_value());
-    xer_assert_eq(*result, 20u);
-}
-
-void test_min_both_result_success()
-{
-    const xer::result<int> lhs = 10;
-    const xer::result<unsigned int> rhs = 20u;
-
-    const auto result = xer::min(lhs, rhs);
-    xer_assert(result.has_value());
-    xer_assert_eq(*result, 10u);
-}
-
-void test_min_both_result_out_of_range()
-{
-    const xer::result<int> lhs = -10;
-    const xer::result<unsigned int> rhs = 20u;
-
-    const auto result = xer::min(lhs, rhs);
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
-}
-
-void test_umax_both_result_success()
-{
-    const xer::result<int> lhs = 10;
-    const xer::result<unsigned int> rhs = 20u;
-
-    const auto result = xer::umax(lhs, rhs);
-    xer_assert(result.has_value());
-    xer_assert_eq(*result, 20u);
-}
-
-void test_umin_both_result_success()
-{
-    const xer::result<int> lhs = 10;
-    const xer::result<unsigned int> rhs = 20u;
-
-    const auto result = xer::umin(lhs, rhs);
-    xer_assert(result.has_value());
-    xer_assert_eq(*result, 10u);
-}
-
-void test_max_propagates_left_error()
-{
-    const xer::result<int> lhs =
-        std::unexpected(xer::make_error(xer::error_t::invalid_argument));
-
-    const auto result = xer::max(lhs, 10);
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
-}
-
-void test_max_propagates_right_error()
-{
-    const xer::result<int> rhs =
-        std::unexpected(xer::make_error(xer::error_t::io_error));
-
-    const auto result = xer::max(10, rhs);
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::io_error);
-}
-
-void test_min_propagates_left_error()
-{
-    const xer::result<int> lhs =
-        std::unexpected(xer::make_error(xer::error_t::invalid_argument));
-
-    const auto result = xer::min(lhs, 10);
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
-}
-
-void test_umin_propagates_right_error()
-{
-    const xer::result<int> rhs =
-        std::unexpected(xer::make_error(xer::error_t::io_error));
-
-    const auto result = xer::umin(10, rhs);
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::io_error);
-}
-
-void test_max_rejects_nan()
-{
-    const auto result = xer::max(
-        std::numeric_limits<double>::quiet_NaN(),
-        1.0);
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
-}
-
-void test_min_rejects_nan()
-{
-    const auto result = xer::min(
-        1.0,
-        std::numeric_limits<double>::quiet_NaN());
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
-}
-
-void test_max_with_bool_input()
-{
-    const auto result = xer::max(true, 0);
     xer_assert(result.has_value());
     xer_assert_eq(*result, 1);
 }
 
-void test_min_with_bool_input()
+void test_clamp_value_above_range()
 {
-    const auto result = xer::min(true, 0);
+    const auto result = xer::clamp(20, 1, 10);
+
     xer_assert(result.has_value());
-    xer_assert_eq(*result, 0);
+    xer_assert_eq(*result, 10);
 }
 
-void test_umax_with_bool_input()
+void test_clamp_mixed_integer_types()
 {
-    const auto result = xer::umax(true, 0);
+    const auto result = xer::clamp(-5, 1u, 10u);
+
     xer_assert(result.has_value());
-    xer_assert_eq(*result, 1u);
+    xer_assert_eq(*result, 1);
+    static_assert(std::is_same_v<
+                  std::remove_cvref_t<decltype(*result)>,
+                  std::common_type_t<int, unsigned int, unsigned int>>);
 }
 
-void test_umin_with_bool_input()
+void test_clamp_mixed_integer_and_floating()
 {
-    const auto result = xer::umin(true, 0);
+    const auto result = xer::clamp(3, 1.5, 2.5);
+
     xer_assert(result.has_value());
-    xer_assert_eq(*result, 0u);
+    xer_assert_eq(*result, 2.5);
+    static_assert(std::is_same_v<
+                  std::remove_cvref_t<decltype(*result)>,
+                  std::common_type_t<int, double, double>>);
+}
+
+void test_clamp_equal_bounds()
+{
+    const auto result = xer::clamp(100, 7, 7);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 7);
+}
+
+void test_clamp_invalid_bounds()
+{
+    const auto result = xer::clamp(5, 10, 1);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+}
+
+void test_min_result_left_success()
+{
+    const xer::result<int> lhs = 3;
+    const auto result = xer::min(lhs, 5u);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 3);
+}
+
+void test_min_result_right_success()
+{
+    const xer::result<unsigned int> rhs = 5u;
+    const auto result = xer::min(3, rhs);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 3);
+}
+
+void test_min_result_both_success()
+{
+    const xer::result<int> lhs = 3;
+    const xer::result<unsigned int> rhs = 5u;
+    const auto result = xer::min(lhs, rhs);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 3);
+}
+
+void test_min_result_both_out_of_range()
+{
+    const xer::result<int> lhs = -3;
+    const xer::result<unsigned int> rhs = 5u;
+    const auto result = xer::min(lhs, rhs);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
+}
+
+void test_max_result_left_success()
+{
+    const xer::result<int> lhs = 3;
+    const auto result = xer::max(lhs, 5u);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 5);
+}
+
+void test_max_result_right_success()
+{
+    const xer::result<unsigned int> rhs = 5u;
+    const auto result = xer::max(3, rhs);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 5);
+}
+
+void test_max_result_both_success()
+{
+    const xer::result<int> lhs = -3;
+    const xer::result<unsigned int> rhs = 5u;
+    const auto result = xer::max(lhs, rhs);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 5);
+}
+
+void test_clamp_result_value_success()
+{
+    const xer::result<int> value = 20;
+    const auto result = xer::clamp(value, 1, 10);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 10);
+}
+
+void test_clamp_result_lower_bound_success()
+{
+    const xer::result<int> lo = 1;
+    const auto result = xer::clamp(-5, lo, 10);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 1);
+}
+
+void test_clamp_result_upper_bound_success()
+{
+    const xer::result<int> hi = 10;
+    const auto result = xer::clamp(20, 1, hi);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 10);
+}
+
+void test_clamp_result_all_success()
+{
+    const xer::result<int> value = 20;
+    const xer::result<int> lo = 1;
+    const xer::result<int> hi = 10;
+    const auto result = xer::clamp(value, lo, hi);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, 10);
+}
+
+void test_min_result_error_propagation()
+{
+    const xer::result<int> lhs =
+        std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+    const auto result = xer::min(lhs, 5);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+}
+
+void test_max_result_error_propagation()
+{
+    const xer::result<int> rhs =
+        std::unexpected(xer::make_error(xer::error_t::io_error));
+    const auto result = xer::max(5, rhs);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
+}
+
+void test_clamp_result_error_propagation_from_value()
+{
+    const xer::result<int> value =
+        std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+    const auto result = xer::clamp(value, 1, 10);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+}
+
+void test_clamp_result_error_propagation_from_lower_bound()
+{
+    const xer::result<int> lo =
+        std::unexpected(xer::make_error(xer::error_t::io_error));
+    const auto result = xer::clamp(5, lo, 10);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::io_error);
+}
+
+void test_clamp_result_error_propagation_from_upper_bound()
+{
+    const xer::result<int> hi =
+        std::unexpected(xer::make_error(xer::error_t::dom));
+    const auto result = xer::clamp(5, 1, hi);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::dom);
+}
+
+void test_clamp_invalid_bounds_with_result_operands()
+{
+    const xer::result<int> value = 5;
+    const xer::result<int> lo = 10;
+    const xer::result<int> hi = 1;
+    const auto result = xer::clamp(value, lo, hi);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+}
+
+void test_min_with_nan()
+{
+    const auto result = xer::min(std::numeric_limits<double>::quiet_NaN(), 1.0);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
+}
+
+void test_max_with_nan()
+{
+    const auto result = xer::max(std::numeric_limits<double>::quiet_NaN(), 1.0);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
+}
+
+void test_clamp_with_nan_value()
+{
+    const auto result =
+        xer::clamp(std::numeric_limits<double>::quiet_NaN(), 1.0, 10.0);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
 }
 
 } // namespace
 
 int main()
 {
-    test_max_basic();
-    test_min_basic();
-    test_max_equal_values();
-    test_min_equal_values();
+    test_min_same_type();
+    test_max_same_type();
+    test_min_mixed_integer_types_success();
+    test_min_mixed_integer_types_out_of_range();
     test_max_mixed_integer_types();
-    test_min_mixed_integer_types_rejects_negative_result();
-    test_max_mixed_floating_types();
-    test_min_mixed_floating_types();
-    test_umax_basic();
-    test_umin_basic();
-    test_umax_mixed_integer_types();
-    test_umin_rejects_negative_result();
-    test_umax_rejects_negative_result();
-    test_max_left_result_success();
-    test_max_right_result_success();
-    test_max_both_result_success();
-    test_min_both_result_success();
-    test_min_both_result_out_of_range();
-    test_umax_both_result_success();
-    test_umin_both_result_success();
-    test_max_propagates_left_error();
-    test_max_propagates_right_error();
-    test_min_propagates_left_error();
-    test_umin_propagates_right_error();
-    test_max_rejects_nan();
-    test_min_rejects_nan();
-    test_max_with_bool_input();
-    test_min_with_bool_input();
-    test_umax_with_bool_input();
-    test_umin_with_bool_input();
+    test_min_mixed_integer_and_floating();
+    test_max_mixed_integer_and_floating();
+    test_min_with_equal_values();
+    test_max_with_equal_values();
+    test_clamp_value_within_range();
+    test_clamp_value_below_range();
+    test_clamp_value_above_range();
+    test_clamp_mixed_integer_types();
+    test_clamp_mixed_integer_and_floating();
+    test_clamp_equal_bounds();
+    test_clamp_invalid_bounds();
+    test_min_result_left_success();
+    test_min_result_right_success();
+    test_min_result_both_success();
+    test_min_result_both_out_of_range();
+    test_max_result_left_success();
+    test_max_result_right_success();
+    test_max_result_both_success();
+    test_clamp_result_value_success();
+    test_clamp_result_lower_bound_success();
+    test_clamp_result_upper_bound_success();
+    test_clamp_result_all_success();
+    test_min_result_error_propagation();
+    test_max_result_error_propagation();
+    test_clamp_result_error_propagation_from_value();
+    test_clamp_result_error_propagation_from_lower_bound();
+    test_clamp_result_error_propagation_from_upper_bound();
+    test_clamp_invalid_bounds_with_result_operands();
+    test_min_with_nan();
+    test_max_with_nan();
+    test_clamp_with_nan_value();
 
     return 0;
 }

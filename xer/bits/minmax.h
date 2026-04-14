@@ -1,6 +1,6 @@
 ﻿/**
  * @file xer/bits/minmax.h
- * @brief Internal min/max function implementations.
+ * @brief Internal min/max/clamp function implementations.
  */
 
 #pragma once
@@ -8,106 +8,59 @@
 #ifndef XER_BITS_MINMAX_H_INCLUDED_
 #define XER_BITS_MINMAX_H_INCLUDED_
 
-#ifdef max
-#undef max
-#endif
+#include <expected>
+#include <type_traits>
+#include <utility>
+
+#include <xer/bits/arithmetic_concepts.h>
+#include <xer/bits/compare.h>
+#include <xer/bits/in_range.h>
+#include <xer/error.h>
 
 #ifdef min
 #undef min
 #endif
 
-#include <cmath>
-#include <concepts>
-#include <expected>
-#include <type_traits>
-
-#include <xer/bits/arithmetic_concepts.h>
-#include <xer/bits/in_range.h>
-#include <xer/error.h>
+#ifdef max
+#undef max
+#endif
 
 namespace xer::detail {
 
 /**
- * @brief Common result type for max/min.
+ * @brief Common arithmetic result type for min/max/clamp.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
+ * @tparam A First operand type.
+ * @tparam B Second operand type.
  */
-template<typename T, typename U>
-using minmax_common_t = std::common_type_t<T, U>;
+template<typename A, typename B>
+using minmax_common_t =
+    std::common_type_t<std::remove_cvref_t<A>, std::remove_cvref_t<B>>;
 
 /**
- * @brief Unsigned common result type for umax/umin.
+ * @brief Common arithmetic result type for clamp.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
+ * @tparam A Value type.
+ * @tparam B Boundary type.
+ * @tparam C Boundary type.
  */
-template<typename T, typename U>
-using uminmax_common_t =
-    std::make_unsigned_t<std::common_type_t<T, U>>;
+template<typename A, typename B, typename C>
+using clamp_common_t = std::common_type_t<
+    std::remove_cvref_t<A>,
+    std::remove_cvref_t<B>,
+    std::remove_cvref_t<C>>;
 
 /**
- * @brief Converts an arithmetic value to long double for mixed-type comparison.
- *
- * @tparam T Arithmetic type.
- * @param value Source value.
- * @return Converted value.
- */
-template<typename T>
-    requires arithmetic<T>
-[[nodiscard]] constexpr auto to_minmax_long_double(T value) noexcept
-    -> long double
-{
-    return static_cast<long double>(value);
-}
-
-/**
- * @brief Returns whether the given arithmetic value is NaN.
- *
- * Non-floating-point values always return false.
- *
- * @tparam T Arithmetic type.
- * @param value Source value.
- * @return true if the value is NaN.
- */
-template<typename T>
-    requires arithmetic<T>
-[[nodiscard]] constexpr auto minmax_is_nan_value(T value) noexcept -> bool
-{
-    if constexpr (std::floating_point<std::remove_cvref_t<T>>) {
-        return std::isnan(value);
-    } else {
-        return false;
-    }
-}
-
-/**
- * @brief Returns whether lhs is less than rhs using mixed-type comparison.
- *
- * @tparam L Left-hand side arithmetic type.
- * @tparam R Right-hand side arithmetic type.
- * @param lhs Left-hand side value.
- * @param rhs Right-hand side value.
- * @return true if lhs is less than rhs.
- */
-template<typename L, typename R>
-    requires arithmetic<L> && arithmetic<R>
-[[nodiscard]] constexpr auto minmax_less(L lhs, R rhs) noexcept -> bool
-{
-    return to_minmax_long_double(lhs) < to_minmax_long_double(rhs);
-}
-
-/**
- * @brief Converts a selected value to the result type after range checking.
+ * @brief Converts a selected min/max operand to the common result type.
  *
  * @tparam R Result type.
- * @tparam V Source value type.
- * @param value Selected value.
- * @return Converted result or out_of_range.
+ * @tparam T Source type.
+ * @param value Selected source value.
+ * @return Converted value or out_of_range.
  */
-template<typename R, typename V>
-    requires arithmetic<R> && arithmetic<V>
-[[nodiscard]] constexpr auto minmax_cast(V value) -> result<R>
+template<typename R, typename T>
+    requires non_bool_arithmetic<R> && non_bool_arithmetic<T>
+[[nodiscard]] constexpr auto convert_minmax_result(T value) -> result<R>
 {
     if (!in_range<R>(value)) {
         return std::unexpected(make_error(error_t::out_of_range));
@@ -117,128 +70,19 @@ template<typename R, typename V>
 }
 
 /**
- * @brief Validates min/max arguments.
+ * @brief Validates clamp bounds.
  *
- * This rejects NaN operands.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand.
- * @return Success or invalid_argument.
+ * @tparam Lo Lower-bound type.
+ * @tparam Hi Upper-bound type.
+ * @param lo Lower bound.
+ * @param hi Upper bound.
+ * @return true if bounds are valid.
  */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto validate_minmax_arguments(T lhs, U rhs)
-    -> result<void>
+template<typename Lo, typename Hi>
+    requires non_bool_arithmetic<Lo> && non_bool_arithmetic<Hi>
+[[nodiscard]] constexpr auto valid_clamp_bounds(Lo lo, Hi hi) noexcept -> bool
 {
-    if (minmax_is_nan_value(lhs) || minmax_is_nan_value(rhs)) {
-        return std::unexpected(make_error(error_t::invalid_argument));
-    }
-
-    return {};
-}
-
-/**
- * @brief Selects the larger of two arithmetic values.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand.
- * @return Selected value converted to common type or error.
- */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto max_impl(T lhs, U rhs)
-    -> result<minmax_common_t<T, U>>
-{
-    using result_type = minmax_common_t<T, U>;
-
-    const auto validation = validate_minmax_arguments(lhs, rhs);
-    if (!validation.has_value()) {
-        return std::unexpected(validation.error());
-    }
-
-    if (minmax_less(lhs, rhs)) {
-        return minmax_cast<result_type>(rhs);
-    }
-
-    return minmax_cast<result_type>(lhs);
-}
-
-/**
- * @brief Selects the smaller of two arithmetic values.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand.
- * @return Selected value converted to common type or error.
- */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto min_impl(T lhs, U rhs)
-    -> result<minmax_common_t<T, U>>
-{
-    using result_type = minmax_common_t<T, U>;
-
-    const auto validation = validate_minmax_arguments(lhs, rhs);
-    if (!validation.has_value()) {
-        return std::unexpected(validation.error());
-    }
-
-    if (minmax_less(rhs, lhs)) {
-        return minmax_cast<result_type>(rhs);
-    }
-
-    return minmax_cast<result_type>(lhs);
-}
-
-/**
- * @brief Selects the larger of two integer values and returns an unsigned type.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand.
- * @return Selected value converted to unsigned common type or error.
- */
-template<typename T, typename U>
-    requires std::integral<T> && std::integral<U>
-[[nodiscard]] constexpr auto umax_impl(T lhs, U rhs)
-    -> result<uminmax_common_t<T, U>>
-{
-    using result_type = uminmax_common_t<T, U>;
-
-    if (minmax_less(lhs, rhs)) {
-        return minmax_cast<result_type>(rhs);
-    }
-
-    return minmax_cast<result_type>(lhs);
-}
-
-/**
- * @brief Selects the smaller of two integer values and returns an unsigned type.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand.
- * @return Selected value converted to unsigned common type or error.
- */
-template<typename T, typename U>
-    requires std::integral<T> && std::integral<U>
-[[nodiscard]] constexpr auto umin_impl(T lhs, U rhs)
-    -> result<uminmax_common_t<T, U>>
-{
-    using result_type = uminmax_common_t<T, U>;
-
-    if (minmax_less(rhs, lhs)) {
-        return minmax_cast<result_type>(rhs);
-    }
-
-    return minmax_cast<result_type>(lhs);
+    return !lt(hi, lo);
 }
 
 } // namespace xer::detail
@@ -246,231 +90,186 @@ template<typename T, typename U>
 namespace xer {
 
 /**
- * @brief Returns the larger of two arithmetic values.
+ * @brief Returns the smaller of two arithmetic values.
  *
- * The return type is `std::common_type_t<T, U>`.
- * If the selected value is not representable by that type,
- * this function returns out_of_range.
+ * The return type is `std::common_type_t<A, B>`.
+ * If the selected value is not representable in that type, this function
+ * returns `error_t::out_of_range`.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand.
- * @return Larger value or error.
+ * @tparam A First operand type.
+ * @tparam B Second operand type.
+ * @param lhs First operand.
+ * @param rhs Second operand.
+ * @return Smaller value.
  */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto max(T lhs, U rhs)
-    -> result<std::common_type_t<T, U>>
+template<typename A, typename B>
+    requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
+             requires { typename detail::minmax_common_t<A, B>; } &&
+             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+[[nodiscard]] constexpr auto min(A lhs, B rhs)
+    -> result<detail::minmax_common_t<A, B>>
 {
-    return detail::max_impl(lhs, rhs);
-}
+    using result_t = detail::minmax_common_t<A, B>;
 
-/**
- * @brief Returns the larger of two arithmetic values.
- *
- * Errors in either operand are propagated unchanged.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand result.
- * @param rhs Right operand result.
- * @return Larger value or error.
- */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto max(const result<T>& lhs, const result<U>& rhs)
-    -> result<std::common_type_t<T, U>>
-{
-    if (!lhs.has_value()) {
-        return std::unexpected(lhs.error());
+    if (lt(rhs, lhs)) {
+        return detail::convert_minmax_result<result_t>(rhs);
     }
 
-    if (!rhs.has_value()) {
-        return std::unexpected(rhs.error());
-    }
-
-    return max(*lhs, *rhs);
+    return detail::convert_minmax_result<result_t>(lhs);
 }
 
 /**
  * @brief Returns the larger of two arithmetic values.
  *
- * Errors in the left operand are propagated unchanged.
+ * The return type is `std::common_type_t<A, B>`.
+ * If the selected value is not representable in that type, this function
+ * returns `error_t::out_of_range`.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand result.
- * @param rhs Right operand.
- * @return Larger value or error.
+ * @tparam A First operand type.
+ * @tparam B Second operand type.
+ * @param lhs First operand.
+ * @param rhs Second operand.
+ * @return Larger value.
  */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto max(const result<T>& lhs, U rhs)
-    -> result<std::common_type_t<T, U>>
+template<typename A, typename B>
+    requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
+             requires { typename detail::minmax_common_t<A, B>; } &&
+             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+[[nodiscard]] constexpr auto max(A lhs, B rhs)
+    -> result<detail::minmax_common_t<A, B>>
+{
+    using result_t = detail::minmax_common_t<A, B>;
+
+    if (lt(lhs, rhs)) {
+        return detail::convert_minmax_result<result_t>(rhs);
+    }
+
+    return detail::convert_minmax_result<result_t>(lhs);
+}
+
+/**
+ * @brief Clamps a value to the closed interval [lo, hi].
+ *
+ * The return type is `std::common_type_t<T, Lo, Hi>`.
+ * If `hi < lo`, this function returns `error_t::invalid_argument`.
+ * If the selected value is not representable in the result type, this function
+ * returns `error_t::out_of_range`.
+ *
+ * @tparam T Value type.
+ * @tparam Lo Lower-bound type.
+ * @tparam Hi Upper-bound type.
+ * @param value Value to clamp.
+ * @param lo Lower bound.
+ * @param hi Upper bound.
+ * @return Clamped value.
+ */
+template<typename T, typename Lo, typename Hi>
+    requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
+             non_bool_arithmetic<Hi> &&
+             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
+             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+[[nodiscard]] constexpr auto clamp(T value, Lo lo, Hi hi)
+    -> result<detail::clamp_common_t<T, Lo, Hi>>
+{
+    using result_t = detail::clamp_common_t<T, Lo, Hi>;
+
+    if (!detail::valid_clamp_bounds(lo, hi)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    if (lt(value, lo)) {
+        return detail::convert_minmax_result<result_t>(lo);
+    }
+
+    if (lt(hi, value)) {
+        return detail::convert_minmax_result<result_t>(hi);
+    }
+
+    return detail::convert_minmax_result<result_t>(value);
+}
+
+/**
+ * @brief Returns the smaller of a successful result value and a raw value.
+ *
+ * Errors are propagated unchanged.
+ *
+ * @tparam A First operand type.
+ * @tparam B Second operand type.
+ * @tparam Detail Error detail type.
+ * @param lhs First operand.
+ * @param rhs Second operand.
+ * @return Smaller value.
+ */
+template<typename A, typename B, typename Detail>
+    requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
+             requires { typename detail::minmax_common_t<A, B>; } &&
+             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+[[nodiscard]] constexpr auto min(const result<A, Detail>& lhs, B rhs)
+    -> result<detail::minmax_common_t<A, B>, Detail>
 {
     if (!lhs.has_value()) {
         return std::unexpected(lhs.error());
     }
 
-    return max(*lhs, rhs);
+    const auto r = min(*lhs, rhs);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
 }
 
 /**
- * @brief Returns the larger of two arithmetic values.
+ * @brief Returns the smaller of a raw value and a successful result value.
  *
- * Errors in the right operand are propagated unchanged.
+ * Errors are propagated unchanged.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand result.
- * @return Larger value or error.
+ * @tparam A First operand type.
+ * @tparam B Second operand type.
+ * @tparam Detail Error detail type.
+ * @param lhs First operand.
+ * @param rhs Second operand.
+ * @return Smaller value.
  */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto max(T lhs, const result<U>& rhs)
-    -> result<std::common_type_t<T, U>>
+template<typename A, typename B, typename Detail>
+    requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
+             requires { typename detail::minmax_common_t<A, B>; } &&
+             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+[[nodiscard]] constexpr auto min(A lhs, const result<B, Detail>& rhs)
+    -> result<detail::minmax_common_t<A, B>, Detail>
 {
     if (!rhs.has_value()) {
         return std::unexpected(rhs.error());
     }
 
-    return max(lhs, *rhs);
-}
-
-/**
- * @brief Returns the smaller of two arithmetic values.
- *
- * The return type is `std::common_type_t<T, U>`.
- * If the selected value is not representable by that type,
- * this function returns out_of_range.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand.
- * @return Smaller value or error.
- */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto min(T lhs, U rhs)
-    -> result<std::common_type_t<T, U>>
-{
-    return detail::min_impl(lhs, rhs);
-}
-
-/**
- * @brief Returns the smaller of two arithmetic values.
- *
- * Errors in either operand are propagated unchanged.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand result.
- * @param rhs Right operand result.
- * @return Smaller value or error.
- */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto min(const result<T>& lhs, const result<U>& rhs)
-    -> result<std::common_type_t<T, U>>
-{
-    if (!lhs.has_value()) {
-        return std::unexpected(lhs.error());
+    const auto r = min(lhs, *rhs);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
     }
 
-    if (!rhs.has_value()) {
-        return std::unexpected(rhs.error());
-    }
-
-    return min(*lhs, *rhs);
+    return *r;
 }
 
 /**
- * @brief Returns the smaller of two arithmetic values.
+ * @brief Returns the smaller of two successful result values.
  *
- * Errors in the left operand are propagated unchanged.
+ * Errors are propagated unchanged.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand result.
- * @param rhs Right operand.
- * @return Smaller value or error.
+ * @tparam A First operand type.
+ * @tparam B Second operand type.
+ * @tparam Detail Error detail type.
+ * @param lhs First operand.
+ * @param rhs Second operand.
+ * @return Smaller value.
  */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto min(const result<T>& lhs, U rhs)
-    -> result<std::common_type_t<T, U>>
-{
-    if (!lhs.has_value()) {
-        return std::unexpected(lhs.error());
-    }
-
-    return min(*lhs, rhs);
-}
-
-/**
- * @brief Returns the smaller of two arithmetic values.
- *
- * Errors in the right operand are propagated unchanged.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand result.
- * @return Smaller value or error.
- */
-template<typename T, typename U>
-    requires arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto min(T lhs, const result<U>& rhs)
-    -> result<std::common_type_t<T, U>>
-{
-    if (!rhs.has_value()) {
-        return std::unexpected(rhs.error());
-    }
-
-    return min(lhs, *rhs);
-}
-
-/**
- * @brief Returns the larger of two integer values as an unsigned common type.
- *
- * The return type is `std::make_unsigned_t<std::common_type_t<T, U>>`.
- * If the selected value is not representable by that type,
- * this function returns out_of_range.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand.
- * @return Larger value or error.
- */
-template<typename T, typename U>
-    requires std::integral<T> && std::integral<U>
-[[nodiscard]] constexpr auto umax(T lhs, U rhs)
-    -> result<std::make_unsigned_t<std::common_type_t<T, U>>>
-{
-    return detail::umax_impl(lhs, rhs);
-}
-
-/**
- * @brief Returns the larger of two integer values as an unsigned common type.
- *
- * Errors in either operand are propagated unchanged.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand result.
- * @param rhs Right operand result.
- * @return Larger value or error.
- */
-template<typename T, typename U>
-    requires std::integral<T> && std::integral<U>
-[[nodiscard]] constexpr auto umax(
-    const result<T>& lhs,
-    const result<U>& rhs)
-    -> result<std::make_unsigned_t<std::common_type_t<T, U>>>
+template<typename A, typename B, typename Detail>
+    requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
+             requires { typename detail::minmax_common_t<A, B>; } &&
+             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+[[nodiscard]] constexpr auto min(
+    const result<A, Detail>& lhs,
+    const result<B, Detail>& rhs)
+    -> result<detail::minmax_common_t<A, B>, Detail>
 {
     if (!lhs.has_value()) {
         return std::unexpected(lhs.error());
@@ -480,93 +279,96 @@ template<typename T, typename U>
         return std::unexpected(rhs.error());
     }
 
-    return umax(*lhs, *rhs);
+    const auto r = min(*lhs, *rhs);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
 }
 
 /**
- * @brief Returns the larger of two integer values as an unsigned common type.
+ * @brief Returns the larger of a successful result value and a raw value.
  *
- * Errors in the left operand are propagated unchanged.
+ * Errors are propagated unchanged.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand result.
- * @param rhs Right operand.
- * @return Larger value or error.
+ * @tparam A First operand type.
+ * @tparam B Second operand type.
+ * @tparam Detail Error detail type.
+ * @param lhs First operand.
+ * @param rhs Second operand.
+ * @return Larger value.
  */
-template<typename T, typename U>
-    requires std::integral<T> && std::integral<U>
-[[nodiscard]] constexpr auto umax(const result<T>& lhs, U rhs)
-    -> result<std::make_unsigned_t<std::common_type_t<T, U>>>
+template<typename A, typename B, typename Detail>
+    requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
+             requires { typename detail::minmax_common_t<A, B>; } &&
+             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+[[nodiscard]] constexpr auto max(const result<A, Detail>& lhs, B rhs)
+    -> result<detail::minmax_common_t<A, B>, Detail>
 {
     if (!lhs.has_value()) {
         return std::unexpected(lhs.error());
     }
 
-    return umax(*lhs, rhs);
+    const auto r = max(*lhs, rhs);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
 }
 
 /**
- * @brief Returns the larger of two integer values as an unsigned common type.
+ * @brief Returns the larger of a raw value and a successful result value.
  *
- * Errors in the right operand are propagated unchanged.
+ * Errors are propagated unchanged.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand result.
- * @return Larger value or error.
+ * @tparam A First operand type.
+ * @tparam B Second operand type.
+ * @tparam Detail Error detail type.
+ * @param lhs First operand.
+ * @param rhs Second operand.
+ * @return Larger value.
  */
-template<typename T, typename U>
-    requires std::integral<T> && std::integral<U>
-[[nodiscard]] constexpr auto umax(T lhs, const result<U>& rhs)
-    -> result<std::make_unsigned_t<std::common_type_t<T, U>>>
+template<typename A, typename B, typename Detail>
+    requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
+             requires { typename detail::minmax_common_t<A, B>; } &&
+             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+[[nodiscard]] constexpr auto max(A lhs, const result<B, Detail>& rhs)
+    -> result<detail::minmax_common_t<A, B>, Detail>
 {
     if (!rhs.has_value()) {
         return std::unexpected(rhs.error());
     }
 
-    return umax(lhs, *rhs);
+    const auto r = max(lhs, *rhs);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
 }
 
 /**
- * @brief Returns the smaller of two integer values as an unsigned common type.
+ * @brief Returns the larger of two successful result values.
  *
- * The return type is `std::make_unsigned_t<std::common_type_t<T, U>>`.
- * If the selected value is not representable by that type,
- * this function returns out_of_range.
+ * Errors are propagated unchanged.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand.
- * @return Smaller value or error.
+ * @tparam A First operand type.
+ * @tparam B Second operand type.
+ * @tparam Detail Error detail type.
+ * @param lhs First operand.
+ * @param rhs Second operand.
+ * @return Larger value.
  */
-template<typename T, typename U>
-    requires std::integral<T> && std::integral<U>
-[[nodiscard]] constexpr auto umin(T lhs, U rhs)
-    -> result<std::make_unsigned_t<std::common_type_t<T, U>>>
-{
-    return detail::umin_impl(lhs, rhs);
-}
-
-/**
- * @brief Returns the smaller of two integer values as an unsigned common type.
- *
- * Errors in either operand are propagated unchanged.
- *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand result.
- * @param rhs Right operand result.
- * @return Smaller value or error.
- */
-template<typename T, typename U>
-    requires std::integral<T> && std::integral<U>
-[[nodiscard]] constexpr auto umin(
-    const result<T>& lhs,
-    const result<U>& rhs)
-    -> result<std::make_unsigned_t<std::common_type_t<T, U>>>
+template<typename A, typename B, typename Detail>
+    requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
+             requires { typename detail::minmax_common_t<A, B>; } &&
+             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+[[nodiscard]] constexpr auto max(
+    const result<A, Detail>& lhs,
+    const result<B, Detail>& rhs)
+    -> result<detail::minmax_common_t<A, B>, Detail>
 {
     if (!lhs.has_value()) {
         return std::unexpected(lhs.error());
@@ -576,53 +378,288 @@ template<typename T, typename U>
         return std::unexpected(rhs.error());
     }
 
-    return umin(*lhs, *rhs);
+    const auto r = max(*lhs, *rhs);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
 }
 
 /**
- * @brief Returns the smaller of two integer values as an unsigned common type.
+ * @brief Clamps a successful result value to the closed interval [lo, hi].
  *
- * Errors in the left operand are propagated unchanged.
+ * Errors are propagated unchanged.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand result.
- * @param rhs Right operand.
- * @return Smaller value or error.
+ * @tparam T Value type.
+ * @tparam Lo Lower-bound type.
+ * @tparam Hi Upper-bound type.
+ * @tparam Detail Error detail type.
+ * @param value Value to clamp.
+ * @param lo Lower bound.
+ * @param hi Upper bound.
+ * @return Clamped value.
  */
-template<typename T, typename U>
-    requires std::integral<T> && std::integral<U>
-[[nodiscard]] constexpr auto umin(const result<T>& lhs, U rhs)
-    -> result<std::make_unsigned_t<std::common_type_t<T, U>>>
+template<typename T, typename Lo, typename Hi, typename Detail>
+    requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
+             non_bool_arithmetic<Hi> &&
+             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
+             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+[[nodiscard]] constexpr auto clamp(
+    const result<T, Detail>& value,
+    Lo lo,
+    Hi hi) -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
 {
-    if (!lhs.has_value()) {
-        return std::unexpected(lhs.error());
+    if (!value.has_value()) {
+        return std::unexpected(value.error());
     }
 
-    return umin(*lhs, rhs);
+    const auto r = clamp(*value, lo, hi);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
 }
 
 /**
- * @brief Returns the smaller of two integer values as an unsigned common type.
+ * @brief Clamps a raw value using a successful lower bound and a raw upper bound.
  *
- * Errors in the right operand are propagated unchanged.
+ * Errors are propagated unchanged.
  *
- * @tparam T Left operand type.
- * @tparam U Right operand type.
- * @param lhs Left operand.
- * @param rhs Right operand result.
- * @return Smaller value or error.
+ * @tparam T Value type.
+ * @tparam Lo Lower-bound type.
+ * @tparam Hi Upper-bound type.
+ * @tparam Detail Error detail type.
+ * @param value Value to clamp.
+ * @param lo Lower bound.
+ * @param hi Upper bound.
+ * @return Clamped value.
  */
-template<typename T, typename U>
-    requires std::integral<T> && std::integral<U>
-[[nodiscard]] constexpr auto umin(T lhs, const result<U>& rhs)
-    -> result<std::make_unsigned_t<std::common_type_t<T, U>>>
+template<typename T, typename Lo, typename Hi, typename Detail>
+    requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
+             non_bool_arithmetic<Hi> &&
+             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
+             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+[[nodiscard]] constexpr auto clamp(
+    T value,
+    const result<Lo, Detail>& lo,
+    Hi hi) -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
 {
-    if (!rhs.has_value()) {
-        return std::unexpected(rhs.error());
+    if (!lo.has_value()) {
+        return std::unexpected(lo.error());
     }
 
-    return umin(lhs, *rhs);
+    const auto r = clamp(value, *lo, hi);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
+}
+
+/**
+ * @brief Clamps a raw value using a raw lower bound and a successful upper bound.
+ *
+ * Errors are propagated unchanged.
+ *
+ * @tparam T Value type.
+ * @tparam Lo Lower-bound type.
+ * @tparam Hi Upper-bound type.
+ * @tparam Detail Error detail type.
+ * @param value Value to clamp.
+ * @param lo Lower bound.
+ * @param hi Upper bound.
+ * @return Clamped value.
+ */
+template<typename T, typename Lo, typename Hi, typename Detail>
+    requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
+             non_bool_arithmetic<Hi> &&
+             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
+             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+[[nodiscard]] constexpr auto clamp(
+    T value,
+    Lo lo,
+    const result<Hi, Detail>& hi)
+    -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+{
+    if (!hi.has_value()) {
+        return std::unexpected(hi.error());
+    }
+
+    const auto r = clamp(value, lo, *hi);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
+}
+
+/**
+ * @brief Clamps a successful result value using a successful lower bound and a raw upper bound.
+ *
+ * Errors are propagated unchanged.
+ *
+ * @tparam T Value type.
+ * @tparam Lo Lower-bound type.
+ * @tparam Hi Upper-bound type.
+ * @tparam Detail Error detail type.
+ * @param value Value to clamp.
+ * @param lo Lower bound.
+ * @param hi Upper bound.
+ * @return Clamped value.
+ */
+template<typename T, typename Lo, typename Hi, typename Detail>
+    requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
+             non_bool_arithmetic<Hi> &&
+             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
+             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+[[nodiscard]] constexpr auto clamp(
+    const result<T, Detail>& value,
+    const result<Lo, Detail>& lo,
+    Hi hi) -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+{
+    if (!value.has_value()) {
+        return std::unexpected(value.error());
+    }
+
+    if (!lo.has_value()) {
+        return std::unexpected(lo.error());
+    }
+
+    const auto r = clamp(*value, *lo, hi);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
+}
+
+/**
+ * @brief Clamps a successful result value using a raw lower bound and a successful upper bound.
+ *
+ * Errors are propagated unchanged.
+ *
+ * @tparam T Value type.
+ * @tparam Lo Lower-bound type.
+ * @tparam Hi Upper-bound type.
+ * @tparam Detail Error detail type.
+ * @param value Value to clamp.
+ * @param lo Lower bound.
+ * @param hi Upper bound.
+ * @return Clamped value.
+ */
+template<typename T, typename Lo, typename Hi, typename Detail>
+    requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
+             non_bool_arithmetic<Hi> &&
+             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
+             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+[[nodiscard]] constexpr auto clamp(
+    const result<T, Detail>& value,
+    Lo lo,
+    const result<Hi, Detail>& hi)
+    -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+{
+    if (!value.has_value()) {
+        return std::unexpected(value.error());
+    }
+
+    if (!hi.has_value()) {
+        return std::unexpected(hi.error());
+    }
+
+    const auto r = clamp(*value, lo, *hi);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
+}
+
+/**
+ * @brief Clamps a raw value using successful lower and upper bounds.
+ *
+ * Errors are propagated unchanged.
+ *
+ * @tparam T Value type.
+ * @tparam Lo Lower-bound type.
+ * @tparam Hi Upper-bound type.
+ * @tparam Detail Error detail type.
+ * @param value Value to clamp.
+ * @param lo Lower bound.
+ * @param hi Upper bound.
+ * @return Clamped value.
+ */
+template<typename T, typename Lo, typename Hi, typename Detail>
+    requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
+             non_bool_arithmetic<Hi> &&
+             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
+             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+[[nodiscard]] constexpr auto clamp(
+    T value,
+    const result<Lo, Detail>& lo,
+    const result<Hi, Detail>& hi)
+    -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+{
+    if (!lo.has_value()) {
+        return std::unexpected(lo.error());
+    }
+
+    if (!hi.has_value()) {
+        return std::unexpected(hi.error());
+    }
+
+    const auto r = clamp(value, *lo, *hi);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
+}
+
+/**
+ * @brief Clamps a successful result value using successful lower and upper bounds.
+ *
+ * Errors are propagated unchanged.
+ *
+ * @tparam T Value type.
+ * @tparam Lo Lower-bound type.
+ * @tparam Hi Upper-bound type.
+ * @tparam Detail Error detail type.
+ * @param value Value to clamp.
+ * @param lo Lower bound.
+ * @param hi Upper bound.
+ * @return Clamped value.
+ */
+template<typename T, typename Lo, typename Hi, typename Detail>
+    requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
+             non_bool_arithmetic<Hi> &&
+             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
+             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+[[nodiscard]] constexpr auto clamp(
+    const result<T, Detail>& value,
+    const result<Lo, Detail>& lo,
+    const result<Hi, Detail>& hi)
+    -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+{
+    if (!value.has_value()) {
+        return std::unexpected(value.error());
+    }
+
+    if (!lo.has_value()) {
+        return std::unexpected(lo.error());
+    }
+
+    if (!hi.has_value()) {
+        return std::unexpected(hi.error());
+    }
+
+    const auto r = clamp(*value, *lo, *hi);
+    if (!r.has_value()) {
+        return std::unexpected(r.error());
+    }
+
+    return *r;
 }
 
 } // namespace xer

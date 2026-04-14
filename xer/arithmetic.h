@@ -10,9 +10,8 @@
 
 #include <xer/bits/arithmetic_concepts.h>
 #include <xer/bits/basic_arithmetic.h>
-#include <xer/bits/clamp.h>
-#include <xer/bits/compare.h>
 #include <xer/bits/floating_arithmetic.h>
+#include <xer/bits/compare.h>
 #include <xer/bits/in_range.h>
 #include <xer/bits/minmax.h>
 
