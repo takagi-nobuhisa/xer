@@ -12,5 +12,6 @@
 #include <xer/bits/basic_arithmetic.h>
 #include <xer/bits/floating_arithmetic.h>
 #include <xer/bits/compare.h>
+#include <xer/bits/in_range.h>
 
 #endif /* XER_ARITHMETIC_H_INCLUDED_ */
