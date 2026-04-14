@@ -14,5 +14,6 @@
 #include <xer/bits/strerror.h>
 #include <xer/bits/string_read.h>
 #include <xer/bits/string_write.h>
+#include <xer/bits/trim.h>
 
 #endif /* XER_STRING_H_INCLUDED_ */
