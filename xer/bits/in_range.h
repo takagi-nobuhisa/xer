@@ -13,26 +13,8 @@
 #include <type_traits>
 
 #include <xer/bits/arithmetic_concepts.h>
+#include <xer/bits/compare.h>
 #include <xer/error.h>
-
-namespace xer::detail {
-
-/**
- * @brief Converts an arithmetic value to long double for range checks.
- *
- * @tparam T Arithmetic source type.
- * @param value Source value.
- * @return Converted value.
- */
-template<typename T>
-    requires arithmetic<T>
-[[nodiscard]] constexpr auto to_in_range_long_double(T value) noexcept
-    -> long double
-{
-    return static_cast<long double>(value);
-}
-
-} // namespace xer::detail
 
 namespace xer {
 
@@ -41,6 +23,8 @@ namespace xer {
  *
  * This function checks only whether @p value lies between
  * `std::numeric_limits<T>::lowest()` and `std::numeric_limits<T>::max()`.
+ *
+ * If @p value is NaN, this function returns false.
  *
  * `T = bool` is intentionally rejected.
  *
@@ -59,13 +43,18 @@ template<typename T, typename U>
         }
     }
 
-    const long double numeric_value = detail::to_in_range_long_double(value);
-    const long double lowest =
-        detail::to_in_range_long_double(std::numeric_limits<T>::lowest());
-    const long double highest =
-        detail::to_in_range_long_double(std::numeric_limits<T>::max());
+    const auto lowest = std::numeric_limits<T>::lowest();
+    const auto highest = std::numeric_limits<T>::max();
 
-    return lowest <= numeric_value && numeric_value <= highest;
+    if (lt(value, lowest)) {
+        return false;
+    }
+
+    if (lt(highest, value)) {
+        return false;
+    }
+
+    return true;
 }
 
 /**
@@ -80,9 +69,10 @@ template<typename T, typename U>
  * @param value Source result.
  * @return true if the successful value is within the range of T.
  */
-template<typename T, typename U>
+template<typename T, typename U, typename Detail>
     requires non_bool_arithmetic<T> && arithmetic<U>
-[[nodiscard]] constexpr auto in_range(const result<U>& value) noexcept -> bool
+[[nodiscard]] constexpr auto in_range(
+    const result<U, Detail>& value) noexcept -> bool
 {
     return value.has_value() && in_range<T>(*value);
 }

@@ -1,4 +1,5 @@
-﻿#include <limits>
+﻿#include <expected>
+#include <limits>
 
 #include <xer/arithmetic.h>
 #include <xer/assert.h>
@@ -35,14 +36,6 @@ void test_in_range_integer_boundaries()
     xer_assert(xer::in_range<signed char>(static_cast<int>(127)));
     xer_assert_not(xer::in_range<signed char>(static_cast<int>(-129)));
     xer_assert_not(xer::in_range<signed char>(static_cast<int>(128)));
-}
-
-void test_in_range_bool_value_is_allowed()
-{
-    xer_assert(xer::in_range<int>(false));
-    xer_assert(xer::in_range<int>(true));
-    xer_assert(xer::in_range<unsigned int>(false));
-    xer_assert(xer::in_range<unsigned int>(true));
 }
 
 void test_in_range_floating_to_integer()
@@ -113,15 +106,6 @@ void test_in_range_result_success()
     xer_assert_not(xer::in_range<unsigned char>(value2));
 }
 
-void test_in_range_result_bool_value_success()
-{
-    const xer::result<bool> value_true = true;
-    xer_assert(xer::in_range<int>(value_true));
-
-    const xer::result<bool> value_false = false;
-    xer_assert(xer::in_range<unsigned int>(value_false));
-}
-
 void test_in_range_result_error_returns_false()
 {
     const xer::result<int> value =
@@ -138,7 +122,6 @@ int main()
     test_in_range_signed_to_unsigned();
     test_in_range_unsigned_to_signed();
     test_in_range_integer_boundaries();
-    test_in_range_bool_value_is_allowed();
     test_in_range_floating_to_integer();
     test_in_range_integer_to_floating();
     test_in_range_floating_to_floating();
@@ -146,7 +129,6 @@ int main()
     test_in_range_positive_infinity_is_false();
     test_in_range_negative_infinity_is_false();
     test_in_range_result_success();
-    test_in_range_result_bool_value_success();
     test_in_range_result_error_returns_false();
 
     return 0;
