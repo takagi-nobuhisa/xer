@@ -42,3 +42,9 @@
 
 # Test script output
 php/build/*
+
+# Other
+Doxyfile
+html/*
+latex/*
+xml/*
