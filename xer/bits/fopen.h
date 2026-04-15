@@ -19,8 +19,10 @@
 #include <string_view>
 #include <variant>
 
+#include <xer/bits/advanced_encoding.h>
 #include <xer/bits/binary_stream.h>
 #include <xer/bits/text_stream.h>
+#include <xer/bits/utf8_char_encode.h>
 #include <xer/error.h>
 #include <xer/path.h>
 
@@ -653,6 +655,9 @@ struct text_stream_state {
     int buffer_size = 0;
     int buffer_pos = 0;
     text_stream_mbstate_t mbstate{};
+    bool readable = false;
+    bool writable = false;
+    bool append = false;
 };
 
 /**
@@ -678,6 +683,555 @@ inline auto reset_text_stream_runtime_state(text_stream_state& state) noexcept -
     state.mbstate.pending[2] = 0;
     state.mbstate.pending_size = 0;
     state.mbstate.pending_used = 0;
+}
+
+/**
+ * @brief Reads one byte from a file-backed text stream state.
+ *
+ * This helper services text decoding for file-backed streams only.
+ * String-backed streams store UTF-8 text directly and are decoded through
+ * dedicated helpers that work from the borrowed string object.
+ *
+ * @param state Target text stream state.
+ * @param out Destination byte.
+ * @return 1 if one byte was read, 0 on EOF, negative on failure.
+ */
+[[nodiscard]] inline auto text_state_read_file_byte(
+    text_stream_state& state,
+    unsigned char& out) noexcept -> int {
+    if (!std::holds_alternative<text_stream_file_source>(state.source)) {
+        return -1;
+    }
+
+    if (state.buffer_pos < state.buffer_size) {
+        out = state.buffer[static_cast<std::size_t>(state.buffer_pos)];
+        ++state.buffer_pos;
+        return 1;
+    }
+
+    std::FILE* const file = std::get<text_stream_file_source>(state.source).file;
+    if (file == nullptr) {
+        return -1;
+    }
+
+    const std::size_t read_size =
+        std::fread(state.buffer.data(), 1, state.buffer.size(), file);
+
+    if (read_size == 0) {
+        if (std::ferror(file) != 0) {
+            return -1;
+        }
+
+        return 0;
+    }
+
+    state.buffer_size = static_cast<int>(read_size);
+    state.buffer_pos = 1;
+    out = state.buffer[0];
+    return 1;
+}
+
+/**
+ * @brief Decodes one UTF-8 code point from a byte sequence.
+ *
+ * The function expects a complete UTF-8 sequence at the specified position.
+ * It is used by string-backed text streams whose storage is already UTF-8.
+ *
+ * @param bytes Source UTF-8 bytes.
+ * @param size Available byte count from the current position.
+ * @param out Destination code point.
+ * @param bytes_used Number of consumed UTF-8 code units.
+ * @return 1 on success, 0 on EOF, negative on failure.
+ */
+[[nodiscard]] inline auto decode_utf8_from_bytes(
+    const char8_t* bytes,
+    std::size_t size,
+    char32_t& out,
+    std::size_t& bytes_used) noexcept -> int {
+    if (bytes == nullptr) {
+        return -1;
+    }
+
+    if (size == 0) {
+        return 0;
+    }
+
+    const unsigned char b1 = static_cast<unsigned char>(bytes[0]);
+    if (b1 <= 0x7fu) {
+        out = static_cast<char32_t>(b1);
+        bytes_used = 1;
+        return 1;
+    }
+
+    std::uint32_t packed = static_cast<std::uint32_t>(b1);
+
+    if (b1 >= 0xc2u && b1 <= 0xdfu) {
+        if (size < 2) {
+            return -1;
+        }
+
+        packed |= static_cast<std::uint32_t>(static_cast<unsigned char>(bytes[1])) << 8;
+        out = advanced::packed_utf8_to_utf32(packed);
+        if (out == advanced::detail::invalid_utf32) {
+            return -1;
+        }
+
+        bytes_used = 2;
+        return 1;
+    }
+
+    if (b1 >= 0xe0u && b1 <= 0xefu) {
+        if (size < 3) {
+            return -1;
+        }
+
+        packed |= static_cast<std::uint32_t>(static_cast<unsigned char>(bytes[1])) << 8;
+        packed |= static_cast<std::uint32_t>(static_cast<unsigned char>(bytes[2])) << 16;
+        out = advanced::packed_utf8_to_utf32(packed);
+        if (out == advanced::detail::invalid_utf32) {
+            return -1;
+        }
+
+        bytes_used = 3;
+        return 1;
+    }
+
+    if (b1 >= 0xf0u && b1 <= 0xf4u) {
+        if (size < 4) {
+            return -1;
+        }
+
+        packed |= static_cast<std::uint32_t>(static_cast<unsigned char>(bytes[1])) << 8;
+        packed |= static_cast<std::uint32_t>(static_cast<unsigned char>(bytes[2])) << 16;
+        packed |= static_cast<std::uint32_t>(static_cast<unsigned char>(bytes[3])) << 24;
+        out = advanced::packed_utf8_to_utf32(packed);
+        if (out == advanced::detail::invalid_utf32) {
+            return -1;
+        }
+
+        bytes_used = 4;
+        return 1;
+    }
+
+    return -1;
+}
+
+/**
+ * @brief Reads one UTF-8 code point from a borrowed string view source.
+ *
+ * The string-view variant is used by read-only stropen streams. The byte
+ * position is tracked directly in the source object.
+ *
+ * @param source Target source object.
+ * @param out Destination code point.
+ * @return 1 if one code point was read, 0 on EOF, negative on failure.
+ */
+[[nodiscard]] inline auto text_state_read_string_view_utf8_char(
+    text_stream_string_view_source& source,
+    char32_t& out) noexcept -> int {
+    if (source.pos < 0) {
+        return -1;
+    }
+
+    const std::size_t offset = static_cast<std::size_t>(source.pos);
+    if (offset >= source.str.size()) {
+        return 0;
+    }
+
+    std::size_t bytes_used = 0;
+    const int result = decode_utf8_from_bytes(
+        source.str.data() + offset,
+        source.str.size() - offset,
+        out,
+        bytes_used);
+    if (result != 1) {
+        return result;
+    }
+
+    source.pos += static_cast<int>(bytes_used);
+    return 1;
+}
+
+/**
+ * @brief Reads one UTF-8 code point from a writable string source.
+ *
+ * The writable-string variant is used by stropen overloads taking
+ * std::u8string&. Even in writable modes, update modes may still read.
+ *
+ * @param source Target source object.
+ * @param out Destination code point.
+ * @return 1 if one code point was read, 0 on EOF, negative on failure.
+ */
+[[nodiscard]] inline auto text_state_read_string_utf8_char(
+    text_stream_string_source& source,
+    char32_t& out) noexcept -> int {
+    if (source.str == nullptr || source.pos < 0) {
+        return -1;
+    }
+
+    const std::size_t offset = static_cast<std::size_t>(source.pos);
+    if (offset >= source.str->size()) {
+        return 0;
+    }
+
+    std::size_t bytes_used = 0;
+    const int result = decode_utf8_from_bytes(
+        source.str->data() + offset,
+        source.str->size() - offset,
+        out,
+        bytes_used);
+    if (result != 1) {
+        return result;
+    }
+
+    source.pos += static_cast<int>(bytes_used);
+    return 1;
+}
+
+/**
+ * @brief Reads one UTF-8 code point from a file-backed text stream state.
+ *
+ * @param state Target text stream state.
+ * @param out Destination code point.
+ * @return 1 if one code point was read, 0 on EOF, negative on failure.
+ */
+[[nodiscard]] inline auto text_state_read_file_utf8_char(
+    text_stream_state& state,
+    char32_t& out) noexcept -> int {
+    unsigned char b1 = 0;
+    const int r1 = text_state_read_file_byte(state, b1);
+    if (r1 <= 0) {
+        return r1;
+    }
+
+    if (b1 <= 0x7fu) {
+        out = static_cast<char32_t>(b1);
+        return 1;
+    }
+
+    std::uint32_t packed = static_cast<std::uint32_t>(b1);
+
+    if (b1 >= 0xc2u && b1 <= 0xdfu) {
+        unsigned char b2 = 0;
+        if (text_state_read_file_byte(state, b2) != 1) {
+            return -1;
+        }
+
+        packed |= static_cast<std::uint32_t>(b2) << 8;
+        out = advanced::packed_utf8_to_utf32(packed);
+        return out == advanced::detail::invalid_utf32 ? -1 : 1;
+    }
+
+    if (b1 >= 0xe0u && b1 <= 0xefu) {
+        unsigned char b2 = 0;
+        unsigned char b3 = 0;
+        if (text_state_read_file_byte(state, b2) != 1 ||
+            text_state_read_file_byte(state, b3) != 1) {
+            return -1;
+        }
+
+        packed |= static_cast<std::uint32_t>(b2) << 8;
+        packed |= static_cast<std::uint32_t>(b3) << 16;
+        out = advanced::packed_utf8_to_utf32(packed);
+        return out == advanced::detail::invalid_utf32 ? -1 : 1;
+    }
+
+    if (b1 >= 0xf0u && b1 <= 0xf4u) {
+        unsigned char b2 = 0;
+        unsigned char b3 = 0;
+        unsigned char b4 = 0;
+        if (text_state_read_file_byte(state, b2) != 1 ||
+            text_state_read_file_byte(state, b3) != 1 ||
+            text_state_read_file_byte(state, b4) != 1) {
+            return -1;
+        }
+
+        packed |= static_cast<std::uint32_t>(b2) << 8;
+        packed |= static_cast<std::uint32_t>(b3) << 16;
+        packed |= static_cast<std::uint32_t>(b4) << 24;
+        out = advanced::packed_utf8_to_utf32(packed);
+        return out == advanced::detail::invalid_utf32 ? -1 : 1;
+    }
+
+    return -1;
+}
+
+/**
+ * @brief Reads one CP932 code point from a file-backed text stream state.
+ *
+ * CP932 is supported only for file-backed streams. String-backed streams are
+ * defined to store UTF-8 text.
+ *
+ * @param state Target text stream state.
+ * @param out Destination code point.
+ * @return 1 if one code point was read, 0 on EOF, negative on failure.
+ */
+[[nodiscard]] inline auto text_state_read_file_cp932_char(
+    text_stream_state& state,
+    char32_t& out) noexcept -> int {
+    unsigned char b1 = 0;
+    const int r1 = text_state_read_file_byte(state, b1);
+    if (r1 <= 0) {
+        return r1;
+    }
+
+    std::uint16_t packed = static_cast<std::uint16_t>(b1);
+    if (advanced::detail::is_cp932_single_byte(packed)) {
+        out = advanced::packed_cp932_to_utf32(packed);
+        return out == advanced::detail::invalid_utf32 ? -1 : 1;
+    }
+
+    if (!advanced::detail::is_cp932_lead_byte(b1)) {
+        return -1;
+    }
+
+    unsigned char b2 = 0;
+    if (text_state_read_file_byte(state, b2) != 1) {
+        return -1;
+    }
+
+    packed |= static_cast<std::uint16_t>(b2) << 8;
+    out = advanced::packed_cp932_to_utf32(packed);
+    return out == advanced::detail::invalid_utf32 ? -1 : 1;
+}
+
+/**
+ * @brief Reads characters from a text stream state.
+ *
+ * This is the concrete read function installed into text_stream objects created
+ * by fopen and stropen. The implementation dispatches according to both the
+ * backing source kind and the configured text encoding.
+ *
+ * @param handle Opaque stream handle.
+ * @param s Destination buffer.
+ * @param n Maximum number of characters to read.
+ * @return Number of characters read on success, negative on failure.
+ */
+[[nodiscard]] inline auto text_state_read(
+    text_stream_handle_t handle,
+    char32_t* s,
+    int n) noexcept -> int {
+    if (s == nullptr || n < 0) {
+        return -1;
+    }
+
+    text_stream_state* const state = text_handle_to_state(handle);
+    if (state == nullptr || !state->readable) {
+        return -1;
+    }
+
+    int count = 0;
+    while (count < n) {
+        char32_t ch = U'\0';
+        int result = -1;
+
+        if (std::holds_alternative<text_stream_string_view_source>(state->source)) {
+            auto& source = std::get<text_stream_string_view_source>(state->source);
+            result = text_state_read_string_view_utf8_char(source, ch);
+        } else if (std::holds_alternative<text_stream_string_source>(state->source)) {
+            auto& source = std::get<text_stream_string_source>(state->source);
+            result = text_state_read_string_utf8_char(source, ch);
+        } else {
+            switch (state->encoding) {
+            case text_stream_encoding_t::cp932:
+                result = text_state_read_file_cp932_char(*state, ch);
+                break;
+            case text_stream_encoding_t::utf8:
+            case text_stream_encoding_t::undecided:
+            default:
+                result = text_state_read_file_utf8_char(*state, ch);
+                break;
+            }
+        }
+
+        if (result < 0) {
+            return count == 0 ? -1 : count;
+        }
+
+        if (result == 0) {
+            return count;
+        }
+
+        s[count] = ch;
+        ++count;
+    }
+
+    return count;
+}
+
+/**
+ * @brief Encodes one UTF-32 code point as UTF-8 bytes.
+ *
+ * @param ch Source code point.
+ * @param out Destination byte string.
+ * @return true on success, false on failure.
+ */
+[[nodiscard]] inline auto encode_utf8_char_to_string(
+    char32_t ch,
+    std::u8string& out) noexcept -> bool {
+    const auto appended = append_utf8_char(out, ch);
+    return appended.has_value();
+}
+
+/**
+ * @brief Writes one UTF-32 code point as UTF-8 to a native FILE.
+ *
+ * @param file Destination file.
+ * @param ch Source code point.
+ * @return Number of bytes written on success, negative on failure.
+ */
+[[nodiscard]] inline auto text_state_write_file_utf8_char(
+    std::FILE* file,
+    char32_t ch) noexcept -> int {
+    if (file == nullptr) {
+        return -1;
+    }
+
+    const std::uint32_t packed = advanced::utf32_to_packed_utf8(ch);
+    if (packed == advanced::detail::invalid_packed_utf8) {
+        return -1;
+    }
+
+    unsigned char bytes[4] = {};
+    int size = 1;
+    bytes[0] = static_cast<unsigned char>(packed & 0xffu);
+
+    if ((packed & 0xff00u) != 0) {
+        bytes[1] = static_cast<unsigned char>((packed >> 8) & 0xffu);
+        size = 2;
+    }
+    if ((packed & 0xff0000u) != 0) {
+        bytes[2] = static_cast<unsigned char>((packed >> 16) & 0xffu);
+        size = 3;
+    }
+    if ((packed & 0xff000000u) != 0) {
+        bytes[3] = static_cast<unsigned char>((packed >> 24) & 0xffu);
+        size = 4;
+    }
+
+    const std::size_t written = std::fwrite(bytes, 1, static_cast<std::size_t>(size), file);
+    return written == static_cast<std::size_t>(size) ? size : -1;
+}
+
+/**
+ * @brief Writes one UTF-32 code point as CP932 to a native FILE.
+ *
+ * @param file Destination file.
+ * @param ch Source code point.
+ * @return Number of bytes written on success, negative on failure.
+ */
+[[nodiscard]] inline auto text_state_write_file_cp932_char(
+    std::FILE* file,
+    char32_t ch) noexcept -> int {
+    if (file == nullptr) {
+        return -1;
+    }
+
+    const std::int32_t packed_signed = advanced::utf32_to_packed_cp932(ch);
+    if (packed_signed == advanced::detail::invalid_packed_cp932) {
+        return -1;
+    }
+
+    const std::uint16_t packed = static_cast<std::uint16_t>(packed_signed);
+    unsigned char bytes[2] = {};
+    int size = 1;
+    bytes[0] = static_cast<unsigned char>(packed & 0xffu);
+
+    if ((packed & 0xff00u) != 0) {
+        bytes[1] = static_cast<unsigned char>((packed >> 8) & 0xffu);
+        size = 2;
+    }
+
+    const std::size_t written = std::fwrite(bytes, 1, static_cast<std::size_t>(size), file);
+    return written == static_cast<std::size_t>(size) ? size : -1;
+}
+
+/**
+ * @brief Writes characters to a text stream state.
+ *
+ * String-backed streams store UTF-8 bytes directly. File-backed streams use
+ * the configured external encoding.
+ *
+ * @param handle Opaque stream handle.
+ * @param s Source buffer.
+ * @param n Number of characters to write.
+ * @return Number of characters written on success, negative on failure.
+ */
+[[nodiscard]] inline auto text_state_write(
+    text_stream_handle_t handle,
+    const char32_t* s,
+    int n) noexcept -> int {
+    if (s == nullptr || n < 0) {
+        return -1;
+    }
+
+    text_stream_state* const state = text_handle_to_state(handle);
+    if (state == nullptr || !state->writable) {
+        return -1;
+    }
+
+    if (std::holds_alternative<text_stream_string_view_source>(state->source)) {
+        return -1;
+    }
+
+    int count = 0;
+    while (count < n) {
+        if (std::holds_alternative<text_stream_string_source>(state->source)) {
+            auto& source = std::get<text_stream_string_source>(state->source);
+            if (source.str == nullptr || source.pos < 0) {
+                return count == 0 ? -1 : count;
+            }
+
+            std::u8string encoded;
+            if (!encode_utf8_char_to_string(s[count], encoded)) {
+                return count == 0 ? -1 : count;
+            }
+
+            const std::size_t offset = static_cast<std::size_t>(source.pos);
+            if (offset > source.str->size()) {
+                return count == 0 ? -1 : count;
+            }
+
+            if (state->append) {
+                source.pos = static_cast<int>(source.str->size());
+            }
+
+            const std::size_t write_offset = static_cast<std::size_t>(source.pos);
+            const std::size_t end_offset = write_offset + encoded.size();
+            if (end_offset > source.str->size()) {
+                source.str->resize(end_offset);
+            }
+
+            for (std::size_t i = 0; i < encoded.size(); ++i) {
+                (*source.str)[write_offset + i] = encoded[i];
+            }
+
+            source.pos += static_cast<int>(encoded.size());
+            ++count;
+            continue;
+        }
+
+        std::FILE* const file = std::get<text_stream_file_source>(state->source).file;
+        int result = -1;
+        switch (state->encoding) {
+        case text_stream_encoding_t::cp932:
+            result = text_state_write_file_cp932_char(file, s[count]);
+            break;
+        case text_stream_encoding_t::utf8:
+        case text_stream_encoding_t::undecided:
+        default:
+            result = text_state_write_file_utf8_char(file, s[count]);
+            break;
+        }
+
+        if (result < 0) {
+            return count == 0 ? -1 : count;
+        }
+
+        ++count;
+    }
+
+    return count;
 }
 
 /**
@@ -923,6 +1477,10 @@ inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
     }
 
     state->source = detail::text_stream_file_source{file};
+    state->readable = detail::is_read_mode(parsed);
+    state->writable = detail::is_write_mode(parsed);
+    state->append = detail::is_append_mode(parsed);
+    detail::reset_text_stream_runtime_state(*state);
 
     switch (encoding) {
     case encoding_t::utf8:
@@ -946,8 +1504,8 @@ inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
     return text_stream(
         reinterpret_cast<text_stream_handle_t>(state),
         detail::text_state_close,
-        detail::text_stream_read_error,
-        detail::text_stream_write_error,
+        detail::text_state_read,
+        detail::text_state_write,
         detail::text_state_getpos,
         detail::text_state_setpos,
         detail::text_state_seek_end);
@@ -1030,12 +1588,16 @@ inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
 
     state->source = detail::text_stream_string_view_source{str, 0};
     state->encoding = detail::text_stream_encoding_t::utf8;
+    state->readable = true;
+    state->writable = false;
+    state->append = false;
+    detail::reset_text_stream_runtime_state(*state);
 
     return text_stream(
         reinterpret_cast<text_stream_handle_t>(state),
         detail::text_state_close,
-        detail::text_stream_read_error,
-        detail::text_stream_write_error,
+        detail::text_state_read,
+        detail::text_state_write,
         detail::text_state_getpos,
         detail::text_state_setpos,
         detail::text_state_seek_end);
@@ -1074,12 +1636,16 @@ inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
 
     state->source = source;
     state->encoding = detail::text_stream_encoding_t::utf8;
+    state->readable = detail::is_read_mode(parsed);
+    state->writable = detail::is_write_mode(parsed);
+    state->append = detail::is_append_mode(parsed);
+    detail::reset_text_stream_runtime_state(*state);
 
     return text_stream(
         reinterpret_cast<text_stream_handle_t>(state),
         detail::text_state_close,
-        detail::text_stream_read_error,
-        detail::text_stream_write_error,
+        detail::text_state_read,
+        detail::text_state_write,
         detail::text_state_getpos,
         detail::text_state_setpos,
         detail::text_state_seek_end);
