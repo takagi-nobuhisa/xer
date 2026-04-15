@@ -420,6 +420,133 @@ void test_strstr_not_found()
 }
 
 /**
+ * @brief Tests strrstr with a found substring.
+ */
+void test_strrstr_found()
+{
+    constexpr std::u8string_view text = u8"abc xyz abc xyz";
+    constexpr std::u8string_view pattern = u8"abc";
+
+    const auto result = xer::strrstr(text, pattern);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(result.value() - text.begin(), 8);
+    xer_assert_eq(*result.value(), u8'a');
+}
+
+/**
+ * @brief Tests strrstr with an empty pattern.
+ */
+void test_strrstr_empty_pattern()
+{
+    constexpr std::u8string_view text = u8"hello";
+    constexpr std::u8string_view pattern = u8"";
+
+    const auto result = xer::strrstr(text, pattern);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(result.value(), text.end());
+}
+
+/**
+ * @brief Tests strrstr when the pattern is not found.
+ */
+void test_strrstr_not_found()
+{
+    constexpr std::u8string_view text = u8"hello world";
+    constexpr std::u8string_view pattern = u8"xer";
+
+    const auto result = xer::strrstr(text, pattern);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::not_found);
+}
+
+/**
+ * @brief Tests strpos with a found substring.
+ */
+void test_strpos_found()
+{
+    constexpr std::u8string_view text = u8"hello world";
+    constexpr std::u8string_view pattern = u8"world";
+
+    const auto result = xer::strpos(text, pattern);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, static_cast<std::size_t>(6));
+}
+
+/**
+ * @brief Tests strpos with an empty pattern.
+ */
+void test_strpos_empty_pattern()
+{
+    constexpr std::u8string_view text = u8"hello";
+    constexpr std::u8string_view pattern = u8"";
+
+    const auto result = xer::strpos(text, pattern);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, static_cast<std::size_t>(0));
+}
+
+/**
+ * @brief Tests strpos when the pattern is not found.
+ */
+void test_strpos_not_found()
+{
+    constexpr std::u8string_view text = u8"hello world";
+    constexpr std::u8string_view pattern = u8"xer";
+
+    const auto result = xer::strpos(text, pattern);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::not_found);
+}
+
+/**
+ * @brief Tests strrpos with a found substring.
+ */
+void test_strrpos_found()
+{
+    constexpr std::u8string_view text = u8"abc xyz abc xyz";
+    constexpr std::u8string_view pattern = u8"abc";
+
+    const auto result = xer::strrpos(text, pattern);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, static_cast<std::size_t>(8));
+}
+
+/**
+ * @brief Tests strrpos with an empty pattern.
+ */
+void test_strrpos_empty_pattern()
+{
+    constexpr std::u8string_view text = u8"hello";
+    constexpr std::u8string_view pattern = u8"";
+
+    const auto result = xer::strrpos(text, pattern);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, text.size());
+}
+
+/**
+ * @brief Tests strrpos when the pattern is not found.
+ */
+void test_strrpos_not_found()
+{
+    constexpr std::u8string_view text = u8"hello world";
+    constexpr std::u8string_view pattern = u8"xer";
+
+    const auto result = xer::strrpos(text, pattern);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::not_found);
+}
+
+/**
  * @brief Tests strpbrk with a found character.
  */
 void test_strpbrk_found()
@@ -527,6 +654,9 @@ void test_unsigned_char_search_and_compare()
     const auto strchr_result = xer::strchr(text_view, static_cast<unsigned char>('B'));
     const auto strrchr_result = xer::strrchr(text_view, static_cast<unsigned char>('B'));
     const auto strstr_result = xer::strstr(text_view, pattern_view);
+    const auto strrstr_result = xer::strrstr(text_view, pattern_view);
+    const auto strpos_result = xer::strpos(text_view, pattern_view);
+    const auto strrpos_result = xer::strrpos(text_view, pattern_view);
 
     xer_assert(strcmp_result.has_value());
     xer_assert_eq(*strcmp_result, 0);
@@ -539,6 +669,15 @@ void test_unsigned_char_search_and_compare()
 
     xer_assert(strstr_result.has_value());
     xer_assert_eq(strstr_result.value() - text_view.begin(), 1);
+
+    xer_assert(strrstr_result.has_value());
+    xer_assert_eq(strrstr_result.value() - text_view.begin(), 1);
+
+    xer_assert(strpos_result.has_value());
+    xer_assert_eq(*strpos_result, static_cast<std::size_t>(1));
+
+    xer_assert(strrpos_result.has_value());
+    xer_assert_eq(*strrpos_result, static_cast<std::size_t>(1));
 }
 
 } // namespace
@@ -580,6 +719,15 @@ int main()
     test_strstr_found();
     test_strstr_empty_pattern();
     test_strstr_not_found();
+    test_strrstr_found();
+    test_strrstr_empty_pattern();
+    test_strrstr_not_found();
+    test_strpos_found();
+    test_strpos_empty_pattern();
+    test_strpos_not_found();
+    test_strrpos_found();
+    test_strrpos_empty_pattern();
+    test_strrpos_not_found();
 
     test_strpbrk_found();
     test_strpbrk_not_found();

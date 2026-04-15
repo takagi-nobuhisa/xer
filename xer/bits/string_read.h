@@ -588,6 +588,73 @@ template<detail::supported_string_character CharT>
 }
 
 /**
+ * @brief Searches for the last occurrence of a substring.
+ *
+ * @tparam CharT Character type.
+ * @param source Source string.
+ * @param pattern Pattern string.
+ * @return Iterator pointing to the beginning of the found substring.
+ */
+template<detail::supported_string_character CharT>
+[[nodiscard]] constexpr auto strrstr(
+    const std::basic_string_view<CharT> source,
+    const std::basic_string_view<CharT> pattern) -> result<typename std::basic_string_view<CharT>::const_iterator>
+{
+    if (pattern.empty()) {
+        return source.end();
+    }
+
+    const std::size_t pos = source.rfind(pattern);
+    if (pos == std::basic_string_view<CharT>::npos) {
+        return std::unexpected(make_error(error_t::not_found));
+    }
+
+    return source.begin() + static_cast<std::ptrdiff_t>(pos);
+}
+
+/**
+ * @brief Returns the first position of a substring.
+ *
+ * @tparam CharT Character type.
+ * @param source Source string.
+ * @param pattern Pattern string.
+ * @return Zero-based code-unit position of the found substring.
+ */
+template<detail::supported_string_character CharT>
+[[nodiscard]] constexpr auto strpos(
+    const std::basic_string_view<CharT> source,
+    const std::basic_string_view<CharT> pattern) -> result<std::size_t>
+{
+    const std::size_t pos = source.find(pattern);
+    if (pos == std::basic_string_view<CharT>::npos) {
+        return std::unexpected(make_error(error_t::not_found));
+    }
+
+    return pos;
+}
+
+/**
+ * @brief Returns the last position of a substring.
+ *
+ * @tparam CharT Character type.
+ * @param source Source string.
+ * @param pattern Pattern string.
+ * @return Zero-based code-unit position of the found substring.
+ */
+template<detail::supported_string_character CharT>
+[[nodiscard]] constexpr auto strrpos(
+    const std::basic_string_view<CharT> source,
+    const std::basic_string_view<CharT> pattern) -> result<std::size_t>
+{
+    const std::size_t pos = source.rfind(pattern);
+    if (pos == std::basic_string_view<CharT>::npos) {
+        return std::unexpected(make_error(error_t::not_found));
+    }
+
+    return pos;
+}
+
+/**
  * @brief Searches for the first code unit that is contained in the accept set.
  *
  * @tparam CharT Character type.
