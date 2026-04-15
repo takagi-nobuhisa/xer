@@ -33,4 +33,6 @@
 #include <xer/bits/printf.h>
 #include <xer/bits/scanf.h>
 
+#include <xer/bits/csv.h>
+
 #endif /* XER_STDIO_H_INCLUDED_ */
