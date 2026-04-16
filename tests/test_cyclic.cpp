@@ -127,6 +127,12 @@ void test_radian_conversion()
     xer_assert(std::abs(xer::𝜋<double> - xer::pi_v<double>) < 1e-18);
 }
 
+void test_math_constants()
+{
+    xer_assert(std::abs(xer::tau_v<double> - (xer::pi_v<double> * 2.0)) < 1e-18);
+    xer_assert(std::abs(xer::τ<double> - xer::tau_v<double>) < 1e-18);
+}
+
 void test_value_type_alias()
 {
     static_assert(std::is_same_v<xer::cyclic<float>::value_type, float>);
@@ -150,6 +156,7 @@ int main()
     test_unary_minus();
     test_degree_conversion();
     test_radian_conversion();
+    test_math_constants();
     test_value_type_alias();
 
     return 0;

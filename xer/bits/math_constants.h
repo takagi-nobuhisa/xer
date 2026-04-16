@@ -9,6 +9,7 @@
 #define XER_BITS_MATH_CONSTANTS_H_INCLUDED_
 
 #include <concepts>
+#include <numbers>
 
 namespace xer {
 
@@ -18,7 +19,7 @@ namespace xer {
  * @tparam T Floating-point type.
  */
 template<std::floating_point T>
-inline constexpr T pi_v = static_cast<T>(3.141592653589793238462643383279502884L);
+inline constexpr T pi_v = std::numbers::pi_v<T>;
 
 /**
  * @brief Unicode alias for @ref pi_v.
@@ -27,6 +28,22 @@ inline constexpr T pi_v = static_cast<T>(3.141592653589793238462643383279502884L
  */
 template<std::floating_point T>
 inline constexpr T 𝜋 = pi_v<T>;
+
+/**
+ * @brief Template variable for the mathematical constant tau.
+ *
+ * @tparam T Floating-point type.
+ */
+template<std::floating_point T>
+inline constexpr T tau_v = std::numbers::pi_v<T> * static_cast<T>(2);
+
+/**
+ * @brief Unicode alias for @ref tau_v.
+ *
+ * @tparam T Floating-point type.
+ */
+template<std::floating_point T>
+inline constexpr T τ = tau_v<T>;
 
 } // namespace xer
 
