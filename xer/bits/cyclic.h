@@ -279,6 +279,26 @@ template<std::floating_point T>
 }
 
 /**
+ * @brief Converts a turn-based scalar value to degrees.
+ *
+ * This overload is intended for values such as the return values of
+ * `cw`, `ccw`, and `diff`, which use one turn as 1 but are not represented
+ * as `cyclic<T>` objects.
+ *
+ * The input is not normalized. Negative values and values greater than or
+ * equal to 1 are converted as-is.
+ *
+ * @tparam T Floating-point type.
+ * @param value Turn-based scalar value.
+ * @return Degree value.
+ */
+template<std::floating_point T>
+[[nodiscard]] constexpr auto to_degree(T value) noexcept -> T
+{
+    return value * static_cast<T>(360);
+}
+
+/**
  * @brief Converts radians to a cyclic value.
  *
  * @tparam T Floating-point type.

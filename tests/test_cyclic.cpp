@@ -63,7 +63,8 @@ void test_diff_half_turn_uses_negative_side()
 void test_eq_around_zero_boundary()
 {
     const xer::cyclic<double> left(0.0);
-    const xer::cyclic<double> right(1.0 - xer::cyclic<double>::default_epsilon / 2.0);
+    const xer::cyclic<double> right(
+        1.0 - xer::cyclic<double>::default_epsilon / 2.0);
 
     xer_assert(left.eq(right));
     xer_assert_not(left.ne(right));
@@ -118,9 +119,27 @@ void test_degree_conversion()
     xer_assert(std::abs(xer::to_degree(value) - 90.0f) < 1e-4f);
 }
 
+void test_degree_conversion_from_turn_scalar()
+{
+    xer_assert(std::abs(xer::to_degree(0.25f) - 90.0f) < 1e-6f);
+    xer_assert(std::abs(xer::to_degree(-0.25f) + 90.0f) < 1e-6f);
+    xer_assert(std::abs(xer::to_degree(1.5f) - 540.0f) < 1e-6f);
+}
+
+void test_degree_conversion_from_direction_functions()
+{
+    const auto from = xer::from_degree<float>(350.0f);
+    const auto to = xer::from_degree<float>(10.0f);
+
+    xer_assert(std::abs(xer::to_degree(from.ccw(to)) - 20.0f) < 1e-4f);
+    xer_assert(std::abs(xer::to_degree(from.cw(to)) - 340.0f) < 1e-4f);
+    xer_assert(std::abs(xer::to_degree(from.diff(to)) - 20.0f) < 1e-4f);
+}
+
 void test_radian_conversion()
 {
-    const auto quarter_turn = xer::from_radian<double>(xer::pi_v<double> / 2.0);
+    const auto quarter_turn =
+        xer::from_radian<double>(xer::pi_v<double> / 2.0);
 
     xer_assert(std::abs(quarter_turn.value() - 0.25) < 1e-12);
     xer_assert(std::abs(xer::to_radian(quarter_turn) - (xer::pi_v<double> / 2.0)) < 1e-12);
@@ -155,6 +174,8 @@ int main()
     test_compound_assignment();
     test_unary_minus();
     test_degree_conversion();
+    test_degree_conversion_from_turn_scalar();
+    test_degree_conversion_from_direction_functions();
     test_radian_conversion();
     test_math_constants();
     test_value_type_alias();
