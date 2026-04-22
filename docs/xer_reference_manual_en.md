@@ -1,6 +1,6 @@
-﻿# xer Reference Manual
+# xer Reference Manual
 
-Version: **v0.1.0a3**
+Version: **v0.1.0a4**
 
 ## 1. Overview
 
@@ -15,7 +15,7 @@ The current release line is intentionally pragmatic:
 - text I/O is built around explicit encodings instead of locale-dependent behavior
 - the library prefers simple, C-like function names where that improves approachability
 
-This manual is aligned with the current contents of `xer.zip` and is intended to be the English reference for **v0.1.0a3**.
+This manual is aligned with the current contents of `xer.zip` and is intended to be the English reference for **v0.1.0a4**.
 
 ## 2. Supported environment
 
@@ -30,7 +30,7 @@ xer is header-only. Typical test builds in the repository use:
 
 ```bash
 g++ -std=gnu++23 -I.. tests/test_xxx.cpp
-```
+````
 
 ## 3. Public headers
 
@@ -69,16 +69,23 @@ std::expected<T, xer::error<void>>
 
 Additional detail can be attached with `xer::result<T, Detail>`.
 
+As a general rule, normal public APIs take normal values, not `xer::result` arguments.
+If the caller already has a `xer::result`, the caller is expected to unwrap the success value explicitly before passing it to the next API. The main exception is `<xer/arithmetic.h>`, where chaining and propagation through arithmetic helpers is an intentional part of the design. This policy keeps ordinary APIs simpler and avoids overload ambiguity. 
+
 ### 4.2 Text model
 
-- Public string APIs generally use `char8_t`, `std::u8string`, and `std::u8string_view`
-- Individual Unicode scalar values are generally represented as `char32_t`
-- Multibyte conversion APIs explicitly distinguish `char`, `unsigned char`, and `char8_t`
-- Text streams support **UTF-8** and **CP932**, with optional auto detection on input
+* Public string APIs generally use `char8_t`, `std::u8string`, and `std::u8string_view`
+* Individual Unicode scalar values are generally represented as `char32_t`
+* Multibyte conversion APIs explicitly distinguish `char`, `unsigned char`, and `char8_t`
+* Text streams support **UTF-8** and **CP932**, with optional auto detection on input
 
 ### 4.3 Header organization
 
 Only headers directly under `xer/` are public. Files under `xer/bits/` are implementation detail headers even when they contain reusable templates or inline functions.
+
+### 4.4 Documentation direction
+
+The current English reference manual is still maintained, but the long-term direction is to generate documentation from structured documentation fragments under `docs/` / `docs/bits/` together with executable examples under `examples/`. Code examples are intended to become the primary canonical source for user-facing example snippets.  
 
 ---
 
@@ -99,10 +106,10 @@ constexpr auto xer::make_error(error_t code, T&& value, std::source_location loc
 
 ### Notes
 
-- Positive `error_t` values track `errno`-style codes where practical.
-- Negative values are XER-specific extensions such as `logic_error`, `invalid_argument`, `io_error`, `encoding_error`, `not_found`, and `divide_by_zero`.
-- `error<void>` stores the error code and creation source location.
-- `error<Detail>` adds extra payload while keeping the same base error information.
+* Positive `error_t` values track `errno`-style codes where practical.
+* Negative values are XER-specific extensions such as `logic_error`, `invalid_argument`, `io_error`, `encoding_error`, `not_found`, and `divide_by_zero`.
+* `error<void>` stores the error code and creation source location.
+* `error<Detail>` adds extra payload while keeping the same base error information.
 
 ---
 
@@ -125,8 +132,8 @@ class xer::assertion_error;
 
 ### Notes
 
-- Failures throw `xer::assertion_error` instead of terminating the process.
-- Diagnostics include expression text and source location.
+* Failures throw `xer::assertion_error` instead of terminating the process.
+* Diagnostics include expression text and source location.
 
 ---
 
@@ -136,10 +143,10 @@ Fixed-width integer aliases, numeric helpers, and integer literal suffixes.
 
 ### Main entities
 
-- Re-exports of standard integer types such as `int8_t`, `uint32_t`, `intptr_t`, and `uintptr_t`
-- `int128_t` and `uint128_t` when `__int128` is available
-- `min_of<T>`, `max_of<T>`, `bit_width_of<T>`
-- Integer literal suffixes in `xer::literals::integer_literals`
+* Re-exports of standard integer types such as `int8_t`, `uint32_t`, `intptr_t`, and `uintptr_t`
+* `int128_t` and `uint128_t` when `__int128` is available
+* `min_of<T>`, `max_of<T>`, `bit_width_of<T>`
+* Integer literal suffixes in `xer::literals::integer_literals`
 
 ### Literal suffixes
 
@@ -151,8 +158,8 @@ _i128  _u128   // when supported
 
 ### Notes
 
-- Literal parsing supports decimal, octal, hexadecimal, binary (`0b...`), and digit separators (`'`).
-- Range checking is performed at compile time.
+* Literal parsing supports decimal, octal, hexadecimal, binary (`0b...`), and digit separators (`'`).
+* Range checking is performed at compile time.
 
 ---
 
@@ -196,12 +203,12 @@ uabs
 
 ### Notes
 
-- Integer arithmetic accepts mixed signed and unsigned operands.
-- Many overloads also accept `xer::result` operands and propagate errors.
-- Floating-point arithmetic returns `xer::result<long double>`.
-- Division helpers can also store remainders.
-- `min`, `max`, and `clamp` are designed for mixed-type use rather than mirroring the standard library exactly.
-- `in_range<T>(value)` checks whether a numeric value can be represented as `T`.
+* Integer arithmetic accepts mixed signed and unsigned operands.
+* `<xer/arithmetic.h>` is the main public-header exception to the general “no `xer::result` arguments” rule. Arithmetic helpers may accept `xer::result` operands and propagate errors in order to support chained numeric expressions naturally.  
+* Floating-point arithmetic returns `xer::result<long double>`.
+* Division helpers can also store remainders.
+* `min`, `max`, and `clamp` are designed for mixed-type use rather than mirroring the standard library exactly.
+* `in_range<T>(value)` checks whether a numeric value can be represented as `T`.
 
 ---
 
@@ -285,9 +292,10 @@ get_errno_name
 
 ### Notes
 
-- UTF-8 and UTF-16 aware search overloads are available for several functions.
-- Case-insensitive operations are intentionally simple and primarily oriented around ASCII plus the currently implemented normalization helpers.
-- `trim_view` family returns `std::u8string_view` without allocating.
+* UTF-8 and UTF-16 aware search overloads are available for several functions.
+* Case-insensitive operations are intentionally simple and primarily oriented around ASCII plus the currently implemented normalization helpers.
+* `trim_view` family is intended as non-allocating trimming helpers around UTF-8-oriented string views.
+* As with other ordinary public APIs, these functions are documented as taking ordinary values rather than `xer::result` inputs. 
 
 ---
 
@@ -334,8 +342,8 @@ auto toctrans(char32_t c, ctrans_id id) -> xer::result<char32_t>;
 
 ### Notes
 
-- Individual ASCII functions reject non-ASCII input by returning `false` for classification or an error for conversion.
-- Latin-1 conversion currently includes reversible handling for sharp s (`U+00DF` / `U+1E9E`).
+* Individual ASCII functions reject non-ASCII input by returning `false` for classification or an error for conversion.
+* Latin-1 conversion currently includes reversible handling for sharp s (`U+00DF` / `U+1E9E`).
 
 ---
 
@@ -391,9 +399,9 @@ tcstombs
 
 These are provided as overload sets for combinations of:
 
-- input/output byte types: `char`, `unsigned char`, `char8_t`
-- text character types: `wchar_t`, `char16_t`, `char32_t`
-- optional `mbstate_t*` state objects
+* input/output byte types: `char`, `unsigned char`, `char8_t`
+* text character types: `wchar_t`, `char16_t`, `char32_t`
+* optional `mbstate_t*` state objects
 
 #### Miscellaneous
 
@@ -406,10 +414,10 @@ class rand_context
 
 ### Notes
 
-- `char`-based multibyte APIs use the platform default encoding policy (`CP932` on Windows, `UTF-8` on Linux).
-- `unsigned char` is treated as CP932-oriented multibyte input/output.
-- `char8_t` is treated as UTF-8.
-- Floating conversion recognizes forms such as `inf`, `infinity`, and `nan`.
+* `char`-based multibyte APIs use the platform default encoding policy (`CP932` on Windows, `UTF-8` on Linux).
+* `unsigned char` is treated as CP932-oriented multibyte input/output.
+* `char8_t` is treated as UTF-8.
+* Floating conversion recognizes forms such as `inf`, `infinity`, and `nan`.
 
 ---
 
@@ -432,12 +440,12 @@ auto json_encode(const json_value& value) -> xer::result<std::u8string>;
 
 `json_value` stores one of:
 
-- `std::nullptr_t`
-- `bool`
-- `double`
-- `std::u8string`
-- array of `json_value`
-- object represented as `std::vector<std::pair<std::u8string, json_value>>`
+* `std::nullptr_t`
+* `bool`
+* `double`
+* `std::u8string`
+* array of `json_value`
+* object represented as `std::vector<std::pair<std::u8string, json_value>>`
 
 ### Accessors
 
@@ -448,8 +456,8 @@ as_bool  as_number  as_string  as_array  as_object
 
 ### Notes
 
-- Objects preserve insertion order because they are stored as a vector of key/value pairs.
-- The numeric representation is `double`.
+* Objects preserve insertion order because they are stored as a vector of key/value pairs.
+* The numeric representation is `double`.
 
 ---
 
@@ -489,9 +497,9 @@ public:
 
 ### Notes
 
-- Internal representation is UTF-8.
-- Internal separators are normalized to `'/'`.
-- The current implementation focuses on lexical storage plus native conversion, not on a full path-manipulation toolbox.
+* Internal representation is UTF-8.
+* Internal separators are normalized to `'/'`.
+* The current implementation focuses on lexical storage plus native conversion, not on a full path-manipulation toolbox.
 
 ---
 
@@ -587,10 +595,10 @@ The header also includes `to_native_handle` support for exposing underlying nati
 
 ### Notes
 
-- `binary_stream` and `text_stream` are move-only RAII objects.
-- Text streams normalize input/output around `char32_t` for single characters and UTF-8 for strings.
-- Text file I/O supports UTF-8 and CP932; input can optionally use `auto_detect`.
-- `ungetc` support for `text_stream` is intentionally limited to one pushed-back character.
+* `binary_stream` and `text_stream` are move-only RAII objects.
+* Text streams normalize input/output around `char32_t` for single characters and UTF-8 for strings.
+* Text file I/O supports UTF-8 and CP932; input can optionally use `auto_detect`.
+* `ungetc` support for `text_stream` is intentionally limited to one pushed-back character.
 
 ---
 
@@ -635,9 +643,9 @@ auto ne(cyclic to, T epsilon) const noexcept -> bool;
 
 ### Notes
 
-- Stored values are normalized to the half-open interval `[0, 1)`.
-- Positive shortest differences correspond to counterclockwise movement.
-- Equality is approximate by design; use `eq` and `ne` instead of expecting an ordering model.
+* Stored values are normalized to the half-open interval `[0, 1)`.
+* Positive shortest differences correspond to counterclockwise movement.
+* Equality is approximate by design; use `eq` and `ne` instead of expecting an ordering model.
 
 ---
 
@@ -662,25 +670,25 @@ class quantity;
 
 ### Quantity model
 
-- `quantity<T, Dim>` stores a value normalized to the base unit system.
-- `value()` returns the base-unit value.
-- `value(unit)` converts to the specified unit.
-- Dimensionless quantities support explicit conversion back to the raw scalar.
+* `quantity<T, Dim>` stores a value normalized to the base unit system.
+* `value()` returns the base-unit value.
+* `value(unit)` converts to the specified unit.
+* Dimensionless quantities support explicit conversion back to the raw scalar.
 
 ### Unit model
 
-- `unit<Dim, Scale>` is a zero-size type-level unit tag.
-- Units can be multiplied and divided to form derived units.
-- A scalar multiplied by a unit produces a quantity.
+* `unit<Dim, Scale>` is a zero-size type-level unit tag.
+* Units can be multiplied and divided to form derived units.
+* A scalar multiplied by a unit produces a quantity.
 
 ### Provided base dimensions and units
 
 #### Base dimensions
 
-- length
-- mass
-- time
-- electric current
+* length
+* mass
+* time
+* electric current
 
 #### Base units
 
@@ -708,9 +716,9 @@ taurad  τrad  rad
 
 ### Notes
 
-- Storage types are currently restricted to floating-point types.
-- Quantity comparisons are only defined for matching dimensions.
-- `rad` is represented as a dimensionless unit scaled from `taurad`.
+* Storage types are currently restricted to floating-point types.
+* Quantity comparisons are only defined for matching dimensions.
+* `rad` is represented as a dimensionless unit scaled from `taurad`.
 
 ---
 
@@ -756,9 +764,9 @@ auto strftime(std::u8string_view format, const tm& value) -> xer::result<std::u8
 
 ### Notes
 
-- `time_t` counts seconds from the POSIX epoch and may include a fractional part.
-- `tm_microsec` stores microseconds in the range `0..999999`.
-- The implementation rejects invalid microsecond fields and other invalid inputs through `xer::result`.
+* `time_t` counts seconds from the POSIX epoch and may include a fractional part.
+* `tm_microsec` stores microseconds in the range `0..999999`.
+* The implementation rejects invalid microsecond fields and other invalid inputs through `xer::result`.
 
 ---
 
@@ -772,8 +780,8 @@ Compile-time version information.
 #define XER_VERSION_MAJOR 0
 #define XER_VERSION_MINOR 1
 #define XER_VERSION_PATCH 0
-#define XER_VERSION_SUFFIX "a3"
-#define XER_VERSION_STRING "0.1.0a3"
+#define XER_VERSION_SUFFIX "a4"
+#define XER_VERSION_STRING "0.1.0a4"
 
 inline constexpr int version_major;
 inline constexpr int version_minor;
@@ -784,21 +792,23 @@ inline constexpr std::string_view version_string;
 
 ---
 
-## 19. Repository test coverage snapshot
+## 19. Repository test and example coverage snapshot
 
 The current archive includes focused tests for at least the following areas:
 
-- arithmetic helpers
-- string and text processing
-- ctype and Latin-1 conversion
-- path handling
-- JSON
-- stream I/O, CSV, printf, scanf
-- multibyte conversion
-- cyclic values
-- quantity and units
-- time conversion and formatting
-- public-header combination checks
+* arithmetic helpers
+* string and text processing
+* ctype and Latin-1 conversion
+* path handling
+* JSON
+* stream I/O, CSV, printf, scanf
+* multibyte conversion
+* cyclic values
+* quantity and units
+* time conversion and formatting
+* public-header combination checks
+
+The repository also now has an `examples/` direction for user-facing executable examples. These examples are intended to be single-file, directly compilable, directly runnable, and suitable for future extraction into generated documentation. 
 
 This does not replace line-by-line API documentation, but it is a useful indicator of the currently exercised feature set.
 
@@ -808,30 +818,41 @@ This does not replace line-by-line API documentation, but it is a useful indicat
 
 For first use, these headers are usually the most relevant:
 
-- `<xer/error.h>` for `xer::result`
-- `<xer/string.h>` for UTF-8-friendly string helpers
-- `<xer/stdio.h>` for text and binary streams
-- `<xer/stdlib.h>` for numeric and multibyte conversion
-- `<xer/arithmetic.h>` for safer mixed-type arithmetic
-- `<xer/time.h>` for simple wall-clock and formatting utilities
+* `<xer/error.h>` for `xer::result`
+* `<xer/string.h>` for UTF-8-friendly string helpers
+* `<xer/stdio.h>` for text and binary streams
+* `<xer/stdlib.h>` for numeric and multibyte conversion
+* `<xer/arithmetic.h>` for safer mixed-type arithmetic
+* `<xer/time.h>` for simple wall-clock and formatting utilities
 
-A minimal example:
+A minimal example in the current style is:
 
 ```cpp
-#include <xer/error.h>
-#include <xer/string.h>
+#include <string_view>
+
 #include <xer/stdio.h>
+#include <xer/string.h>
 
 auto main() -> int
 {
-    auto trimmed = xer::trim_view(u8"  hello  ");
-    auto stream = xer::stropen(std::u8string(u8"abc
-"), "r");
-    if (!stream.has_value()) {
+    constexpr std::u8string_view input = u8"  hello  ";
+
+    const auto trimmed = xer::trim_view(input);
+    if (!trimmed.has_value()) {
         return 1;
     }
 
-    auto line = xer::fgets(*stream);
-    return line.has_value() ? 0 : 1;
+    if (!xer::puts(*trimmed).has_value()) {
+        return 1;
+    }
+
+    return 0;
 }
 ```
+
+This style reflects the current documentation direction:
+
+* ordinary APIs are called with ordinary values
+* `xer::result` is checked explicitly by the caller
+* text output examples prefer `<xer/stdio.h>` rather than `std::cout`
+* executable examples are expected to live under `examples/` and to be reusable for future documentation generation  
