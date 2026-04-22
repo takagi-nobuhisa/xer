@@ -8,7 +8,7 @@
 #include <limits>
 
 #include <xer/assert.h>
-#include <xer/bits/div.h>
+#include <xer/arithmetic.h>
 #include <xer/error.h>
 
 namespace {
