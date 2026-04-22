@@ -15,9 +15,7 @@ void test_min_same_type()
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 3);
-    static_assert(std::is_same_v<
-                  std::remove_cvref_t<decltype(*result)>,
-                  int>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result)>, int>);
 }
 
 void test_max_same_type()
@@ -26,9 +24,7 @@ void test_max_same_type()
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 5);
-    static_assert(std::is_same_v<
-                  std::remove_cvref_t<decltype(*result)>,
-                  int>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result)>, int>);
 }
 
 void test_min_mixed_integer_types_success()
@@ -37,17 +33,16 @@ void test_min_mixed_integer_types_success()
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 3);
-    static_assert(std::is_same_v<
-                  std::remove_cvref_t<decltype(*result)>,
-                  std::common_type_t<int, unsigned int>>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result)>, int>);
 }
 
-void test_min_mixed_integer_types_out_of_range()
+void test_min_mixed_integer_types_negative()
 {
     const auto result = xer::min(-3, 10u);
 
-    xer_assert_not(result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, -3);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result)>, int>);
 }
 
 void test_max_mixed_integer_types()
@@ -56,9 +51,23 @@ void test_max_mixed_integer_types()
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 10);
-    static_assert(std::is_same_v<
-                  std::remove_cvref_t<decltype(*result)>,
-                  std::common_type_t<int, unsigned int>>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result)>, int>);
+}
+
+void test_min_same_width_uses_first_argument_type()
+{
+    const auto result1 = xer::min(3u, 10);
+    const auto result2 = xer::max(3u, 10);
+
+    xer_assert(result1.has_value());
+    xer_assert(result2.has_value());
+    xer_assert_eq(*result1, 3u);
+    xer_assert_eq(*result2, 10u);
+
+    static_assert(
+        std::is_same_v<std::remove_cvref_t<decltype(*result1)>, unsigned int>);
+    static_assert(
+        std::is_same_v<std::remove_cvref_t<decltype(*result2)>, unsigned int>);
 }
 
 void test_min_mixed_integer_and_floating()
@@ -105,6 +114,7 @@ void test_clamp_value_within_range()
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 5);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result)>, int>);
 }
 
 void test_clamp_value_below_range()
@@ -113,6 +123,7 @@ void test_clamp_value_below_range()
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 1);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result)>, int>);
 }
 
 void test_clamp_value_above_range()
@@ -121,6 +132,22 @@ void test_clamp_value_above_range()
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 10);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result)>, int>);
+}
+
+void test_clamp_return_type_follows_first_argument()
+{
+    const auto result1 = xer::clamp(20, 0, 10u);
+    const auto result2 = xer::clamp(20u, 0, 10);
+
+    xer_assert(result1.has_value());
+    xer_assert(result2.has_value());
+    xer_assert_eq(*result1, 10);
+    xer_assert_eq(*result2, 10u);
+
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result1)>, int>);
+    static_assert(
+        std::is_same_v<std::remove_cvref_t<decltype(*result2)>, unsigned int>);
 }
 
 void test_clamp_mixed_integer_types()
@@ -129,20 +156,17 @@ void test_clamp_mixed_integer_types()
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 1);
-    static_assert(std::is_same_v<
-                  std::remove_cvref_t<decltype(*result)>,
-                  std::common_type_t<int, unsigned int, unsigned int>>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result)>, int>);
 }
 
 void test_clamp_mixed_integer_and_floating()
 {
-    const auto result = xer::clamp(3, 1.5, 2.5);
+    const auto result = xer::clamp(3.0, 1.5, 2.5);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 2.5);
-    static_assert(std::is_same_v<
-                  std::remove_cvref_t<decltype(*result)>,
-                  std::common_type_t<int, double, double>>);
+    static_assert(
+        std::is_same_v<std::remove_cvref_t<decltype(*result)>, double>);
 }
 
 void test_clamp_equal_bounds()
@@ -189,14 +213,14 @@ void test_min_result_both_success()
     xer_assert_eq(*result, 3);
 }
 
-void test_min_result_both_out_of_range()
+void test_min_result_both_negative_success()
 {
     const xer::result<int> lhs = -3;
     const xer::result<unsigned int> rhs = 5u;
     const auto result = xer::min(lhs, rhs);
 
-    xer_assert_not(result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::out_of_range);
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, -3);
 }
 
 void test_max_result_left_success()
@@ -230,16 +254,17 @@ void test_max_result_both_success()
 void test_clamp_result_value_success()
 {
     const xer::result<int> value = 20;
-    const auto result = xer::clamp(value, 1, 10);
+    const auto result = xer::clamp(value, 1, 10u);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 10);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(*result)>, int>);
 }
 
 void test_clamp_result_lower_bound_success()
 {
-    const xer::result<int> lo = 1;
-    const auto result = xer::clamp(-5, lo, 10);
+    const xer::result<unsigned int> lo = 1u;
+    const auto result = xer::clamp(-5, lo, 10u);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 1);
@@ -247,8 +272,8 @@ void test_clamp_result_lower_bound_success()
 
 void test_clamp_result_upper_bound_success()
 {
-    const xer::result<int> hi = 10;
-    const auto result = xer::clamp(20, 1, hi);
+    const xer::result<unsigned int> hi = 10u;
+    const auto result = xer::clamp(20, 1u, hi);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 10);
@@ -257,8 +282,8 @@ void test_clamp_result_upper_bound_success()
 void test_clamp_result_all_success()
 {
     const xer::result<int> value = 20;
-    const xer::result<int> lo = 1;
-    const xer::result<int> hi = 10;
+    const xer::result<unsigned int> lo = 1u;
+    const xer::result<unsigned int> hi = 10u;
     const auto result = xer::clamp(value, lo, hi);
 
     xer_assert(result.has_value());
@@ -358,8 +383,9 @@ int main()
     test_min_same_type();
     test_max_same_type();
     test_min_mixed_integer_types_success();
-    test_min_mixed_integer_types_out_of_range();
+    test_min_mixed_integer_types_negative();
     test_max_mixed_integer_types();
+    test_min_same_width_uses_first_argument_type();
     test_min_mixed_integer_and_floating();
     test_max_mixed_integer_and_floating();
     test_min_with_equal_values();
@@ -367,6 +393,7 @@ int main()
     test_clamp_value_within_range();
     test_clamp_value_below_range();
     test_clamp_value_above_range();
+    test_clamp_return_type_follows_first_argument();
     test_clamp_mixed_integer_types();
     test_clamp_mixed_integer_and_floating();
     test_clamp_equal_bounds();
@@ -374,7 +401,7 @@ int main()
     test_min_result_left_success();
     test_min_result_right_success();
     test_min_result_both_success();
-    test_min_result_both_out_of_range();
+    test_min_result_both_negative_success();
     test_max_result_left_success();
     test_max_result_right_success();
     test_max_result_both_success();

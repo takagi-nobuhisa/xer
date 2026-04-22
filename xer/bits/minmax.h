@@ -16,6 +16,7 @@
 #include <xer/bits/compare.h>
 #include <xer/bits/in_range.h>
 #include <xer/error.h>
+#include <xer/stdint.h>
 
 #ifdef min
 #undef min
@@ -28,27 +29,112 @@
 namespace xer::detail {
 
 /**
- * @brief Common arithmetic result type for min/max/clamp.
+ * @brief Promoted arithmetic type.
+ *
+ * Unary plus performs the usual arithmetic promotions.
+ *
+ * @tparam T Source type.
+ */
+template<typename T>
+using promoted_arithmetic_t = decltype(+std::declval<std::remove_cvref_t<T>>());
+
+/**
+ * @brief Signed integer type that has at least the specified size.
+ *
+ * The primary template falls back to `xer::intmax_t`.
+ *
+ * @tparam Size Size in bytes.
+ */
+template<std::size_t Size>
+struct signed_integer_of_size {
+    using type = xer::intmax_t;
+};
+
+template<>
+struct signed_integer_of_size<1> {
+    using type = xer::int8_t;
+};
+
+template<>
+struct signed_integer_of_size<2> {
+    using type = xer::int16_t;
+};
+
+template<>
+struct signed_integer_of_size<4> {
+    using type = xer::int32_t;
+};
+
+template<>
+struct signed_integer_of_size<8> {
+    using type = xer::int64_t;
+};
+
+#if defined(__SIZEOF_INT128__)
+template<>
+struct signed_integer_of_size<16> {
+    using type = xer::int128_t;
+};
+#endif
+
+/**
+ * @brief Signed integer type with at least the given size.
+ *
+ * @tparam Size Size in bytes.
+ */
+template<std::size_t Size>
+using signed_integer_of_size_t = typename signed_integer_of_size<Size>::type;
+
+/**
+ * @brief Result type for integer min/max.
+ *
+ * Rules:
+ * - both operands are first integer-promoted
+ * - if the promoted types have the same representable range size, use the
+ *   promoted type of the first argument
+ * - otherwise, use the larger signed integer type
  *
  * @tparam A First operand type.
  * @tparam B Second operand type.
  */
 template<typename A, typename B>
-using minmax_common_t =
-    std::common_type_t<std::remove_cvref_t<A>, std::remove_cvref_t<B>>;
+using integer_minmax_result_t = std::conditional_t<
+    (sizeof(promoted_arithmetic_t<A>) >= sizeof(promoted_arithmetic_t<B>)),
+    std::conditional_t<
+        (sizeof(promoted_arithmetic_t<A>) == sizeof(promoted_arithmetic_t<B>)),
+        promoted_arithmetic_t<A>,
+        signed_integer_of_size_t<sizeof(promoted_arithmetic_t<A>)>>,
+    signed_integer_of_size_t<sizeof(promoted_arithmetic_t<B>)>>;
 
 /**
- * @brief Common arithmetic result type for clamp.
+ * @brief Result type for min/max.
  *
- * @tparam A Value type.
- * @tparam B Boundary type.
- * @tparam C Boundary type.
+ * Integer operands follow XER-specific result-type rules.
+ * Other arithmetic operands use `std::common_type_t`.
+ *
+ * @tparam A First operand type.
+ * @tparam B Second operand type.
  */
-template<typename A, typename B, typename C>
-using clamp_common_t = std::common_type_t<
-    std::remove_cvref_t<A>,
-    std::remove_cvref_t<B>,
-    std::remove_cvref_t<C>>;
+template<typename A, typename B>
+using minmax_result_t = std::conditional_t<
+    std::integral<std::remove_cvref_t<A>> &&
+        !std::same_as<std::remove_cvref_t<A>, bool> &&
+        std::integral<std::remove_cvref_t<B>> &&
+        !std::same_as<std::remove_cvref_t<B>, bool>,
+    integer_minmax_result_t<A, B>,
+    std::common_type_t<std::remove_cvref_t<A>, std::remove_cvref_t<B>>>;
+
+/**
+ * @brief Result type for clamp.
+ *
+ * Clamp returns the type of the first argument.
+ *
+ * @tparam T Value type.
+ * @tparam Lo Lower-bound type.
+ * @tparam Hi Upper-bound type.
+ */
+template<typename T, typename Lo, typename Hi>
+using clamp_result_t = std::remove_cvref_t<T>;
 
 /**
  * @brief Converts a selected min/max operand to the common result type.
@@ -61,6 +147,25 @@ using clamp_common_t = std::common_type_t<
 template<typename R, typename T>
     requires non_bool_arithmetic<R> && non_bool_arithmetic<T>
 [[nodiscard]] constexpr auto convert_minmax_result(T value) -> result<R>
+{
+    if (!in_range<R>(value)) {
+        return std::unexpected(make_error(error_t::out_of_range));
+    }
+
+    return static_cast<R>(value);
+}
+
+/**
+ * @brief Converts a selected clamp operand to the value type.
+ *
+ * @tparam R Clamp result type.
+ * @tparam T Source type.
+ * @param value Selected source value.
+ * @return Converted value or out_of_range.
+ */
+template<typename R, typename T>
+    requires non_bool_arithmetic<R> && non_bool_arithmetic<T>
+[[nodiscard]] constexpr auto convert_clamp_result(T value) -> result<R>
 {
     if (!in_range<R>(value)) {
         return std::unexpected(make_error(error_t::out_of_range));
@@ -92,8 +197,10 @@ namespace xer {
 /**
  * @brief Returns the smaller of two arithmetic values.
  *
- * The return type is `std::common_type_t<A, B>`.
- * If the selected value is not representable in that type, this function
+ * Integer operands follow XER-specific result-type rules.
+ * Other arithmetic operands use `std::common_type_t<A, B>`.
+ *
+ * If the selected value is not representable in the result type, this function
  * returns `error_t::out_of_range`.
  *
  * @tparam A First operand type.
@@ -104,12 +211,11 @@ namespace xer {
  */
 template<typename A, typename B>
     requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
-             requires { typename detail::minmax_common_t<A, B>; } &&
-             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+             non_bool_arithmetic<detail::minmax_result_t<A, B>>
 [[nodiscard]] constexpr auto min(A lhs, B rhs)
-    -> result<detail::minmax_common_t<A, B>>
+    -> result<detail::minmax_result_t<A, B>>
 {
-    using result_t = detail::minmax_common_t<A, B>;
+    using result_t = detail::minmax_result_t<A, B>;
 
     if (lt(rhs, lhs)) {
         return detail::convert_minmax_result<result_t>(rhs);
@@ -121,8 +227,10 @@ template<typename A, typename B>
 /**
  * @brief Returns the larger of two arithmetic values.
  *
- * The return type is `std::common_type_t<A, B>`.
- * If the selected value is not representable in that type, this function
+ * Integer operands follow XER-specific result-type rules.
+ * Other arithmetic operands use `std::common_type_t<A, B>`.
+ *
+ * If the selected value is not representable in the result type, this function
  * returns `error_t::out_of_range`.
  *
  * @tparam A First operand type.
@@ -133,12 +241,11 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
-             requires { typename detail::minmax_common_t<A, B>; } &&
-             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+             non_bool_arithmetic<detail::minmax_result_t<A, B>>
 [[nodiscard]] constexpr auto max(A lhs, B rhs)
-    -> result<detail::minmax_common_t<A, B>>
+    -> result<detail::minmax_result_t<A, B>>
 {
-    using result_t = detail::minmax_common_t<A, B>;
+    using result_t = detail::minmax_result_t<A, B>;
 
     if (lt(lhs, rhs)) {
         return detail::convert_minmax_result<result_t>(rhs);
@@ -150,10 +257,11 @@ template<typename A, typename B>
 /**
  * @brief Clamps a value to the closed interval [lo, hi].
  *
- * The return type is `std::common_type_t<T, Lo, Hi>`.
+ * The return type is always the type of the first argument.
+ *
  * If `hi < lo`, this function returns `error_t::invalid_argument`.
- * If the selected value is not representable in the result type, this function
- * returns `error_t::out_of_range`.
+ * If the selected value is not representable in the first-argument type, this
+ * function returns `error_t::out_of_range`.
  *
  * @tparam T Value type.
  * @tparam Lo Lower-bound type.
@@ -166,26 +274,25 @@ template<typename A, typename B>
 template<typename T, typename Lo, typename Hi>
     requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
              non_bool_arithmetic<Hi> &&
-             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
-             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+             non_bool_arithmetic<detail::clamp_result_t<T, Lo, Hi>>
 [[nodiscard]] constexpr auto clamp(T value, Lo lo, Hi hi)
-    -> result<detail::clamp_common_t<T, Lo, Hi>>
+    -> result<detail::clamp_result_t<T, Lo, Hi>>
 {
-    using result_t = detail::clamp_common_t<T, Lo, Hi>;
+    using result_t = detail::clamp_result_t<T, Lo, Hi>;
 
     if (!detail::valid_clamp_bounds(lo, hi)) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
 
     if (lt(value, lo)) {
-        return detail::convert_minmax_result<result_t>(lo);
+        return detail::convert_clamp_result<result_t>(lo);
     }
 
     if (lt(hi, value)) {
-        return detail::convert_minmax_result<result_t>(hi);
+        return detail::convert_clamp_result<result_t>(hi);
     }
 
-    return detail::convert_minmax_result<result_t>(value);
+    return detail::convert_clamp_result<result_t>(value);
 }
 
 /**
@@ -202,10 +309,9 @@ template<typename T, typename Lo, typename Hi>
  */
 template<typename A, typename B, typename Detail>
     requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
-             requires { typename detail::minmax_common_t<A, B>; } &&
-             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+             non_bool_arithmetic<detail::minmax_result_t<A, B>>
 [[nodiscard]] constexpr auto min(const result<A, Detail>& lhs, B rhs)
-    -> result<detail::minmax_common_t<A, B>, Detail>
+    -> result<detail::minmax_result_t<A, B>, Detail>
 {
     if (!lhs.has_value()) {
         return std::unexpected(lhs.error());
@@ -233,10 +339,9 @@ template<typename A, typename B, typename Detail>
  */
 template<typename A, typename B, typename Detail>
     requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
-             requires { typename detail::minmax_common_t<A, B>; } &&
-             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+             non_bool_arithmetic<detail::minmax_result_t<A, B>>
 [[nodiscard]] constexpr auto min(A lhs, const result<B, Detail>& rhs)
-    -> result<detail::minmax_common_t<A, B>, Detail>
+    -> result<detail::minmax_result_t<A, B>, Detail>
 {
     if (!rhs.has_value()) {
         return std::unexpected(rhs.error());
@@ -264,12 +369,11 @@ template<typename A, typename B, typename Detail>
  */
 template<typename A, typename B, typename Detail>
     requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
-             requires { typename detail::minmax_common_t<A, B>; } &&
-             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+             non_bool_arithmetic<detail::minmax_result_t<A, B>>
 [[nodiscard]] constexpr auto min(
     const result<A, Detail>& lhs,
     const result<B, Detail>& rhs)
-    -> result<detail::minmax_common_t<A, B>, Detail>
+    -> result<detail::minmax_result_t<A, B>, Detail>
 {
     if (!lhs.has_value()) {
         return std::unexpected(lhs.error());
@@ -301,10 +405,9 @@ template<typename A, typename B, typename Detail>
  */
 template<typename A, typename B, typename Detail>
     requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
-             requires { typename detail::minmax_common_t<A, B>; } &&
-             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+             non_bool_arithmetic<detail::minmax_result_t<A, B>>
 [[nodiscard]] constexpr auto max(const result<A, Detail>& lhs, B rhs)
-    -> result<detail::minmax_common_t<A, B>, Detail>
+    -> result<detail::minmax_result_t<A, B>, Detail>
 {
     if (!lhs.has_value()) {
         return std::unexpected(lhs.error());
@@ -332,10 +435,9 @@ template<typename A, typename B, typename Detail>
  */
 template<typename A, typename B, typename Detail>
     requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
-             requires { typename detail::minmax_common_t<A, B>; } &&
-             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+             non_bool_arithmetic<detail::minmax_result_t<A, B>>
 [[nodiscard]] constexpr auto max(A lhs, const result<B, Detail>& rhs)
-    -> result<detail::minmax_common_t<A, B>, Detail>
+    -> result<detail::minmax_result_t<A, B>, Detail>
 {
     if (!rhs.has_value()) {
         return std::unexpected(rhs.error());
@@ -363,12 +465,11 @@ template<typename A, typename B, typename Detail>
  */
 template<typename A, typename B, typename Detail>
     requires non_bool_arithmetic<A> && non_bool_arithmetic<B> &&
-             requires { typename detail::minmax_common_t<A, B>; } &&
-             non_bool_arithmetic<detail::minmax_common_t<A, B>>
+             non_bool_arithmetic<detail::minmax_result_t<A, B>>
 [[nodiscard]] constexpr auto max(
     const result<A, Detail>& lhs,
     const result<B, Detail>& rhs)
-    -> result<detail::minmax_common_t<A, B>, Detail>
+    -> result<detail::minmax_result_t<A, B>, Detail>
 {
     if (!lhs.has_value()) {
         return std::unexpected(lhs.error());
@@ -403,12 +504,11 @@ template<typename A, typename B, typename Detail>
 template<typename T, typename Lo, typename Hi, typename Detail>
     requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
              non_bool_arithmetic<Hi> &&
-             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
-             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+             non_bool_arithmetic<detail::clamp_result_t<T, Lo, Hi>>
 [[nodiscard]] constexpr auto clamp(
     const result<T, Detail>& value,
     Lo lo,
-    Hi hi) -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+    Hi hi) -> result<detail::clamp_result_t<T, Lo, Hi>, Detail>
 {
     if (!value.has_value()) {
         return std::unexpected(value.error());
@@ -439,12 +539,11 @@ template<typename T, typename Lo, typename Hi, typename Detail>
 template<typename T, typename Lo, typename Hi, typename Detail>
     requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
              non_bool_arithmetic<Hi> &&
-             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
-             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+             non_bool_arithmetic<detail::clamp_result_t<T, Lo, Hi>>
 [[nodiscard]] constexpr auto clamp(
     T value,
     const result<Lo, Detail>& lo,
-    Hi hi) -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+    Hi hi) -> result<detail::clamp_result_t<T, Lo, Hi>, Detail>
 {
     if (!lo.has_value()) {
         return std::unexpected(lo.error());
@@ -475,13 +574,12 @@ template<typename T, typename Lo, typename Hi, typename Detail>
 template<typename T, typename Lo, typename Hi, typename Detail>
     requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
              non_bool_arithmetic<Hi> &&
-             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
-             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+             non_bool_arithmetic<detail::clamp_result_t<T, Lo, Hi>>
 [[nodiscard]] constexpr auto clamp(
     T value,
     Lo lo,
     const result<Hi, Detail>& hi)
-    -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+    -> result<detail::clamp_result_t<T, Lo, Hi>, Detail>
 {
     if (!hi.has_value()) {
         return std::unexpected(hi.error());
@@ -512,12 +610,11 @@ template<typename T, typename Lo, typename Hi, typename Detail>
 template<typename T, typename Lo, typename Hi, typename Detail>
     requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
              non_bool_arithmetic<Hi> &&
-             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
-             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+             non_bool_arithmetic<detail::clamp_result_t<T, Lo, Hi>>
 [[nodiscard]] constexpr auto clamp(
     const result<T, Detail>& value,
     const result<Lo, Detail>& lo,
-    Hi hi) -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+    Hi hi) -> result<detail::clamp_result_t<T, Lo, Hi>, Detail>
 {
     if (!value.has_value()) {
         return std::unexpected(value.error());
@@ -552,13 +649,12 @@ template<typename T, typename Lo, typename Hi, typename Detail>
 template<typename T, typename Lo, typename Hi, typename Detail>
     requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
              non_bool_arithmetic<Hi> &&
-             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
-             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+             non_bool_arithmetic<detail::clamp_result_t<T, Lo, Hi>>
 [[nodiscard]] constexpr auto clamp(
     const result<T, Detail>& value,
     Lo lo,
     const result<Hi, Detail>& hi)
-    -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+    -> result<detail::clamp_result_t<T, Lo, Hi>, Detail>
 {
     if (!value.has_value()) {
         return std::unexpected(value.error());
@@ -593,13 +689,12 @@ template<typename T, typename Lo, typename Hi, typename Detail>
 template<typename T, typename Lo, typename Hi, typename Detail>
     requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
              non_bool_arithmetic<Hi> &&
-             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
-             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+             non_bool_arithmetic<detail::clamp_result_t<T, Lo, Hi>>
 [[nodiscard]] constexpr auto clamp(
     T value,
     const result<Lo, Detail>& lo,
     const result<Hi, Detail>& hi)
-    -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+    -> result<detail::clamp_result_t<T, Lo, Hi>, Detail>
 {
     if (!lo.has_value()) {
         return std::unexpected(lo.error());
@@ -634,13 +729,12 @@ template<typename T, typename Lo, typename Hi, typename Detail>
 template<typename T, typename Lo, typename Hi, typename Detail>
     requires non_bool_arithmetic<T> && non_bool_arithmetic<Lo> &&
              non_bool_arithmetic<Hi> &&
-             requires { typename detail::clamp_common_t<T, Lo, Hi>; } &&
-             non_bool_arithmetic<detail::clamp_common_t<T, Lo, Hi>>
+             non_bool_arithmetic<detail::clamp_result_t<T, Lo, Hi>>
 [[nodiscard]] constexpr auto clamp(
     const result<T, Detail>& value,
     const result<Lo, Detail>& lo,
     const result<Hi, Detail>& hi)
-    -> result<detail::clamp_common_t<T, Lo, Hi>, Detail>
+    -> result<detail::clamp_result_t<T, Lo, Hi>, Detail>
 {
     if (!value.has_value()) {
         return std::unexpected(value.error());
