@@ -1,5 +1,5 @@
-﻿#ifndef XER_VERSION_H
-#define XER_VERSION_H
+﻿#ifndef XER_VERSION_H_
+#define XER_VERSION_H_
 
 #include <string_view>
 
