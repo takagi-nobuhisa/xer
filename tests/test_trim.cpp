@@ -1,9 +1,7 @@
 ﻿#include <string>
 #include <string_view>
-#include <expected>
 
 #include <xer/assert.h>
-#include <xer/error.h>
 #include <xer/string.h>
 
 namespace {
@@ -143,66 +141,6 @@ void test_trim_view_custom_character_list()
     xer_assert_eq(*result, std::u8string_view(u8"Hello"));
 }
 
-void test_trim_result_u8string_view_success()
-{
-    const xer::result<std::u8string_view> input = std::u8string_view(u8"  hello  ");
-    const auto result = xer::trim(input);
-
-    xer_assert(result.has_value());
-    xer_assert_eq(*result, std::u8string(u8"hello"));
-}
-
-void test_trim_result_u8string_success()
-{
-    const xer::result<std::u8string> input = std::u8string(u8"  hello  ");
-    const auto result = xer::trim(input);
-
-    xer_assert(result.has_value());
-    xer_assert_eq(*result, std::u8string(u8"hello"));
-}
-
-void test_ltrim_result_propagates_error()
-{
-    const xer::result<std::u8string_view> input =
-        std::unexpected(xer::make_error(xer::error_t::invalid_argument));
-
-    const auto result = xer::ltrim(input);
-
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
-}
-
-void test_rtrim_result_propagates_error()
-{
-    const xer::result<std::u8string> input =
-        std::unexpected(xer::make_error(xer::error_t::io_error));
-
-    const auto result = xer::rtrim(input);
-
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::io_error);
-}
-
-void test_trim_view_result_success()
-{
-    const xer::result<std::u8string_view> input = std::u8string_view(u8"  hello  ");
-    const auto result = xer::trim_view(input);
-
-    xer_assert(result.has_value());
-    xer_assert_eq(*result, std::u8string_view(u8"hello"));
-}
-
-void test_trim_view_result_propagates_error()
-{
-    const xer::result<std::u8string_view> input =
-        std::unexpected(xer::make_error(xer::error_t::invalid_argument));
-
-    const auto result = xer::trim_view(input);
-
-    xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
-}
-
 void test_trim_with_nul_in_default_character_set()
 {
     constexpr char8_t source[] = {
@@ -248,12 +186,6 @@ int main()
     test_ltrim_view_basic();
     test_rtrim_view_basic();
     test_trim_view_custom_character_list();
-    test_trim_result_u8string_view_success();
-    test_trim_result_u8string_success();
-    test_ltrim_result_propagates_error();
-    test_rtrim_result_propagates_error();
-    test_trim_view_result_success();
-    test_trim_view_result_propagates_error();
     test_trim_with_nul_in_default_character_set();
 
     return 0;

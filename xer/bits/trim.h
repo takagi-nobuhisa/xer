@@ -10,10 +10,8 @@
 
 #include <array>
 #include <cstddef>
-#include <expected>
 #include <string>
 #include <string_view>
-#include <type_traits>
 
 #include <xer/bits/common.h>
 #include <xer/error.h>
@@ -338,135 +336,6 @@ namespace xer {
     const std::u8string_view characters = {}) -> result<std::u8string_view>
 {
     return detail::trim_view_impl(value, characters);
-}
-
-/**
- * @brief Removes trim characters from the beginning of a successful result.
- *
- * Errors are propagated unchanged.
- *
- * @tparam T String-like type constructible as std::u8string_view.
- * @param value Source result.
- * @param characters Character list or ranges using `..`.
- * @return Trimmed owning string.
- */
-template<typename T>
-    requires std::is_constructible_v<std::u8string_view, const T&>
-[[nodiscard]] inline auto ltrim(
-    const result<T>& value,
-    const std::u8string_view characters = {}) -> result<std::u8string>
-{
-    if (!value.has_value()) {
-        return std::unexpected(value.error());
-    }
-
-    return ltrim(std::u8string_view(*value), characters);
-}
-
-/**
- * @brief Removes trim characters from the end of a successful result.
- *
- * Errors are propagated unchanged.
- *
- * @tparam T String-like type constructible as std::u8string_view.
- * @param value Source result.
- * @param characters Character list or ranges using `..`.
- * @return Trimmed owning string.
- */
-template<typename T>
-    requires std::is_constructible_v<std::u8string_view, const T&>
-[[nodiscard]] inline auto rtrim(
-    const result<T>& value,
-    const std::u8string_view characters = {}) -> result<std::u8string>
-{
-    if (!value.has_value()) {
-        return std::unexpected(value.error());
-    }
-
-    return rtrim(std::u8string_view(*value), characters);
-}
-
-/**
- * @brief Removes trim characters from both ends of a successful result.
- *
- * Errors are propagated unchanged.
- *
- * @tparam T String-like type constructible as std::u8string_view.
- * @param value Source result.
- * @param characters Character list or ranges using `..`.
- * @return Trimmed owning string.
- */
-template<typename T>
-    requires std::is_constructible_v<std::u8string_view, const T&>
-[[nodiscard]] inline auto trim(
-    const result<T>& value,
-    const std::u8string_view characters = {}) -> result<std::u8string>
-{
-    if (!value.has_value()) {
-        return std::unexpected(value.error());
-    }
-
-    return trim(std::u8string_view(*value), characters);
-}
-
-/**
- * @brief Removes trim characters from the beginning of a successful view result.
- *
- * Errors are propagated unchanged.
- *
- * @param value Source result.
- * @param characters Character list or ranges using `..`.
- * @return Trimmed string view.
- */
-[[nodiscard]] inline auto ltrim_view(
-    const result<std::u8string_view>& value,
-    const std::u8string_view characters = {}) -> result<std::u8string_view>
-{
-    if (!value.has_value()) {
-        return std::unexpected(value.error());
-    }
-
-    return ltrim_view(*value, characters);
-}
-
-/**
- * @brief Removes trim characters from the end of a successful view result.
- *
- * Errors are propagated unchanged.
- *
- * @param value Source result.
- * @param characters Character list or ranges using `..`.
- * @return Trimmed string view.
- */
-[[nodiscard]] inline auto rtrim_view(
-    const result<std::u8string_view>& value,
-    const std::u8string_view characters = {}) -> result<std::u8string_view>
-{
-    if (!value.has_value()) {
-        return std::unexpected(value.error());
-    }
-
-    return rtrim_view(*value, characters);
-}
-
-/**
- * @brief Removes trim characters from both ends of a successful view result.
- *
- * Errors are propagated unchanged.
- *
- * @param value Source result.
- * @param characters Character list or ranges using `..`.
- * @return Trimmed string view.
- */
-[[nodiscard]] inline auto trim_view(
-    const result<std::u8string_view>& value,
-    const std::u8string_view characters = {}) -> result<std::u8string_view>
-{
-    if (!value.has_value()) {
-        return std::unexpected(value.error());
-    }
-
-    return trim_view(*value, characters);
 }
 
 } // namespace xer
