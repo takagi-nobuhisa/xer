@@ -331,6 +331,64 @@ template<detail::supported_string_character CharT>
 }
 
 /**
+ * @brief Compares two strings after ASCII lowercase normalization.
+ *
+ * This overload accepts explicit buffer sizes so that pointer-based strings can
+ * be compared without relying on a separate strnlen-style helper.
+ *
+ * @tparam CharT Character type.
+ * @param lhs Left-hand string pointer.
+ * @param lhs_size Maximum number of code units to inspect in @p lhs.
+ * @param rhs Right-hand string pointer.
+ * @param rhs_size Maximum number of code units to inspect in @p rhs.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] inline auto strcasecmp(
+    const CharT* lhs,
+    const std::size_t lhs_size,
+    const CharT* rhs,
+    const std::size_t rhs_size) -> result<int>
+{
+    auto lhs_length = xer::strlen(lhs, lhs_size);
+    if (!lhs_length) {
+        return std::unexpected(lhs_length.error());
+    }
+
+    auto rhs_length = xer::strlen(rhs, rhs_size);
+    if (!rhs_length) {
+        return std::unexpected(rhs_length.error());
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+    return xer::strcasecmp(
+        std::basic_string_view<bare_char_t>(lhs, *lhs_length),
+        std::basic_string_view<bare_char_t>(rhs, *rhs_length));
+}
+
+/**
+ * @brief Compares two array strings after ASCII lowercase normalization.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Left-hand array size.
+ * @tparam N2 Right-hand array size.
+ * @param lhs Left-hand array.
+ * @param rhs Right-hand array.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] inline auto strcasecmp(
+    const CharT (&lhs)[N1],
+    const CharT (&rhs)[N2]) -> result<int>
+{
+    return xer::strcasecmp(lhs, N1, rhs, N2);
+}
+
+/**
  * @brief Compares up to the specified number of code points after ASCII lowercase normalization.
  *
  * @tparam CharT Character type.
@@ -358,6 +416,69 @@ template<detail::supported_string_character CharT>
     }
 
     return detail::compare_normalized_sequences(*lhs_decoded, *rhs_decoded, count);
+}
+
+/**
+ * @brief Compares up to the specified number of code points after ASCII lowercase normalization.
+ *
+ * This overload accepts explicit buffer sizes so that pointer-based strings can
+ * be compared without relying on a separate strnlen-style helper.
+ *
+ * @tparam CharT Character type.
+ * @param lhs Left-hand string pointer.
+ * @param lhs_size Maximum number of code units to inspect in @p lhs.
+ * @param rhs Right-hand string pointer.
+ * @param rhs_size Maximum number of code units to inspect in @p rhs.
+ * @param count Maximum number of code points to compare.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] inline auto strncasecmp(
+    const CharT* lhs,
+    const std::size_t lhs_size,
+    const CharT* rhs,
+    const std::size_t rhs_size,
+    const std::size_t count) -> result<int>
+{
+    auto lhs_length = xer::strlen(lhs, lhs_size);
+    if (!lhs_length) {
+        return std::unexpected(lhs_length.error());
+    }
+
+    auto rhs_length = xer::strlen(rhs, rhs_size);
+    if (!rhs_length) {
+        return std::unexpected(rhs_length.error());
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+    return xer::strncasecmp(
+        std::basic_string_view<bare_char_t>(lhs, *lhs_length),
+        std::basic_string_view<bare_char_t>(rhs, *rhs_length),
+        count);
+}
+
+/**
+ * @brief Compares up to the specified number of code points after ASCII lowercase normalization.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Left-hand array size.
+ * @tparam N2 Right-hand array size.
+ * @param lhs Left-hand array.
+ * @param rhs Right-hand array.
+ * @param count Maximum number of code points to compare.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] inline auto strncasecmp(
+    const CharT (&lhs)[N1],
+    const CharT (&rhs)[N2],
+    const std::size_t count) -> result<int>
+{
+    return xer::strncasecmp(lhs, N1, rhs, N2, count);
 }
 
 /**
@@ -393,6 +514,69 @@ template<detail::supported_string_character CharT>
 }
 
 /**
+ * @brief Compares two strings after normalization with the specified transformation.
+ *
+ * This overload accepts explicit buffer sizes so that pointer-based strings can
+ * be compared without relying on a separate strnlen-style helper.
+ *
+ * @tparam CharT Character type.
+ * @param lhs Left-hand string pointer.
+ * @param lhs_size Maximum number of code units to inspect in @p lhs.
+ * @param rhs Right-hand string pointer.
+ * @param rhs_size Maximum number of code units to inspect in @p rhs.
+ * @param trans Transformation identifier.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] inline auto stricmp(
+    const CharT* lhs,
+    const std::size_t lhs_size,
+    const CharT* rhs,
+    const std::size_t rhs_size,
+    const ctrans_id trans) -> result<int>
+{
+    auto lhs_length = xer::strlen(lhs, lhs_size);
+    if (!lhs_length) {
+        return std::unexpected(lhs_length.error());
+    }
+
+    auto rhs_length = xer::strlen(rhs, rhs_size);
+    if (!rhs_length) {
+        return std::unexpected(rhs_length.error());
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+    return xer::stricmp(
+        std::basic_string_view<bare_char_t>(lhs, *lhs_length),
+        std::basic_string_view<bare_char_t>(rhs, *rhs_length),
+        trans);
+}
+
+/**
+ * @brief Compares two array strings after normalization with the specified transformation.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Left-hand array size.
+ * @tparam N2 Right-hand array size.
+ * @param lhs Left-hand array.
+ * @param rhs Right-hand array.
+ * @param trans Transformation identifier.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] inline auto stricmp(
+    const CharT (&lhs)[N1],
+    const CharT (&rhs)[N2],
+    const ctrans_id trans) -> result<int>
+{
+    return xer::stricmp(lhs, N1, rhs, N2, trans);
+}
+
+/**
  * @brief Compares up to the specified number of code points after ctrans normalization.
  *
  * @tparam CharT Character type.
@@ -424,6 +608,74 @@ template<detail::supported_string_character CharT>
     }
 
     return detail::compare_normalized_sequences(*lhs_decoded, *rhs_decoded, count);
+}
+
+/**
+ * @brief Compares up to the specified number of code points after ctrans normalization.
+ *
+ * This overload accepts explicit buffer sizes so that pointer-based strings can
+ * be compared without relying on a separate strnlen-style helper.
+ *
+ * @tparam CharT Character type.
+ * @param lhs Left-hand string pointer.
+ * @param lhs_size Maximum number of code units to inspect in @p lhs.
+ * @param rhs Right-hand string pointer.
+ * @param rhs_size Maximum number of code units to inspect in @p rhs.
+ * @param count Maximum number of code points to compare.
+ * @param trans Transformation identifier.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] inline auto strnicmp(
+    const CharT* lhs,
+    const std::size_t lhs_size,
+    const CharT* rhs,
+    const std::size_t rhs_size,
+    const std::size_t count,
+    const ctrans_id trans) -> result<int>
+{
+    auto lhs_length = xer::strlen(lhs, lhs_size);
+    if (!lhs_length) {
+        return std::unexpected(lhs_length.error());
+    }
+
+    auto rhs_length = xer::strlen(rhs, rhs_size);
+    if (!rhs_length) {
+        return std::unexpected(rhs_length.error());
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+    return xer::strnicmp(
+        std::basic_string_view<bare_char_t>(lhs, *lhs_length),
+        std::basic_string_view<bare_char_t>(rhs, *rhs_length),
+        count,
+        trans);
+}
+
+/**
+ * @brief Compares up to the specified number of code points after ctrans normalization.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Left-hand array size.
+ * @tparam N2 Right-hand array size.
+ * @param lhs Left-hand array.
+ * @param rhs Right-hand array.
+ * @param count Maximum number of code points to compare.
+ * @param trans Transformation identifier.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] inline auto strnicmp(
+    const CharT (&lhs)[N1],
+    const CharT (&rhs)[N2],
+    const std::size_t count,
+    const ctrans_id trans) -> result<int>
+{
+    return xer::strnicmp(lhs, N1, rhs, N2, count, trans);
 }
 
 /**
