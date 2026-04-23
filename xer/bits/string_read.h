@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <expected>
 #include <string_view>
+#include <type_traits>
 
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
@@ -206,6 +207,55 @@ template<supported_string_character CharT>
 } // namespace xer::detail
 
 namespace xer {
+
+/**
+ * @brief Returns the length of a NUL-terminated string in code units.
+ *
+ * This overload accepts a pointer and an explicit buffer size because XER does
+ * not provide a separate strnlen-style function at this stage.
+ *
+ * @tparam CharT Character type.
+ * @param source Source pointer.
+ * @param size Maximum number of code units to inspect.
+ * @return Code-unit length of the source string.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strlen(
+    const CharT* source,
+    const std::size_t size) -> result<std::size_t>
+{
+    using bare_char_t = std::remove_cv_t<CharT>;
+
+    if (source == nullptr && size != 0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    for (std::size_t index = 0; index < size; ++index) {
+        if (source[index] == static_cast<bare_char_t>(0)) {
+            return index;
+        }
+    }
+
+    return std::unexpected(make_error(error_t::not_found));
+}
+
+/**
+ * @brief Returns the length of a NUL-terminated array string in code units.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N Array size.
+ * @param source Source array.
+ * @return Code-unit length of the source string.
+ */
+template<typename CharT, std::size_t N>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strlen(const CharT (&source)[N]) -> result<std::size_t>
+{
+    return xer::strlen(source, N);
+}
 
 /**
  * @brief Returns the length of a string view in code units.
