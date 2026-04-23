@@ -144,11 +144,11 @@ void test_non_latin1_code_points_are_not_matched()
 
 void test_toctrans_latin1_lowercase_includes_ascii()
 {
-    const auto r1 = xer::toctrans(U'A', xer::ctrans_id::latin1_lowercase);
-    const auto r2 = xer::toctrans(U'Z', xer::ctrans_id::latin1_lowercase);
-    const auto r3 = xer::toctrans(U'a', xer::ctrans_id::latin1_lowercase);
-    const auto r4 = xer::toctrans(U'0', xer::ctrans_id::latin1_lowercase);
-    const auto r5 = xer::toctrans(U'!', xer::ctrans_id::latin1_lowercase);
+    const auto r1 = xer::toctrans(U'A', xer::ctrans_id::latin1_lower);
+    const auto r2 = xer::toctrans(U'Z', xer::ctrans_id::latin1_lower);
+    const auto r3 = xer::toctrans(U'a', xer::ctrans_id::latin1_lower);
+    const auto r4 = xer::toctrans(U'0', xer::ctrans_id::latin1_lower);
+    const auto r5 = xer::toctrans(U'!', xer::ctrans_id::latin1_lower);
 
     xer_assert(r1.has_value());
     xer_assert(r2.has_value());
@@ -165,11 +165,11 @@ void test_toctrans_latin1_lowercase_includes_ascii()
 
 void test_toctrans_latin1_uppercase_includes_ascii()
 {
-    const auto r1 = xer::toctrans(U'a', xer::ctrans_id::latin1_uppercase);
-    const auto r2 = xer::toctrans(U'z', xer::ctrans_id::latin1_uppercase);
-    const auto r3 = xer::toctrans(U'A', xer::ctrans_id::latin1_uppercase);
-    const auto r4 = xer::toctrans(U'0', xer::ctrans_id::latin1_uppercase);
-    const auto r5 = xer::toctrans(U'!', xer::ctrans_id::latin1_uppercase);
+    const auto r1 = xer::toctrans(U'a', xer::ctrans_id::latin1_upper);
+    const auto r2 = xer::toctrans(U'z', xer::ctrans_id::latin1_upper);
+    const auto r3 = xer::toctrans(U'A', xer::ctrans_id::latin1_upper);
+    const auto r4 = xer::toctrans(U'0', xer::ctrans_id::latin1_upper);
+    const auto r5 = xer::toctrans(U'!', xer::ctrans_id::latin1_upper);
 
     xer_assert(r1.has_value());
     xer_assert(r2.has_value());
@@ -186,10 +186,10 @@ void test_toctrans_latin1_uppercase_includes_ascii()
 
 void test_toctrans_latin1_lowercase_basic_letters()
 {
-    const auto r1 = xer::toctrans(U'\u00c0', xer::ctrans_id::latin1_lowercase);
-    const auto r2 = xer::toctrans(U'\u00d6', xer::ctrans_id::latin1_lowercase);
-    const auto r3 = xer::toctrans(U'\u00d8', xer::ctrans_id::latin1_lowercase);
-    const auto r4 = xer::toctrans(U'\u00de', xer::ctrans_id::latin1_lowercase);
+    const auto r1 = xer::toctrans(U'\u00c0', xer::ctrans_id::latin1_lower);
+    const auto r2 = xer::toctrans(U'\u00d6', xer::ctrans_id::latin1_lower);
+    const auto r3 = xer::toctrans(U'\u00d8', xer::ctrans_id::latin1_lower);
+    const auto r4 = xer::toctrans(U'\u00de', xer::ctrans_id::latin1_lower);
 
     xer_assert(r1.has_value());
     xer_assert(r2.has_value());
@@ -204,10 +204,10 @@ void test_toctrans_latin1_lowercase_basic_letters()
 
 void test_toctrans_latin1_uppercase_basic_letters()
 {
-    const auto r1 = xer::toctrans(U'\u00e0', xer::ctrans_id::latin1_uppercase);
-    const auto r2 = xer::toctrans(U'\u00f6', xer::ctrans_id::latin1_uppercase);
-    const auto r3 = xer::toctrans(U'\u00f8', xer::ctrans_id::latin1_uppercase);
-    const auto r4 = xer::toctrans(U'\u00fe', xer::ctrans_id::latin1_uppercase);
+    const auto r1 = xer::toctrans(U'\u00e0', xer::ctrans_id::latin1_upper);
+    const auto r2 = xer::toctrans(U'\u00f6', xer::ctrans_id::latin1_upper);
+    const auto r3 = xer::toctrans(U'\u00f8', xer::ctrans_id::latin1_upper);
+    const auto r4 = xer::toctrans(U'\u00fe', xer::ctrans_id::latin1_upper);
 
     xer_assert(r1.has_value());
     xer_assert(r2.has_value());
@@ -222,11 +222,11 @@ void test_toctrans_latin1_uppercase_basic_letters()
 
 void test_toctrans_latin1_preserves_non_convertible_supported_chars()
 {
-    const auto r1 = xer::toctrans(U'\u00d7', xer::ctrans_id::latin1_lowercase);
-    const auto r2 = xer::toctrans(U'\u00f7', xer::ctrans_id::latin1_uppercase);
-    const auto r3 = xer::toctrans(U'\u00aa', xer::ctrans_id::latin1_uppercase);
-    const auto r4 = xer::toctrans(U'\u00ba', xer::ctrans_id::latin1_lowercase);
-    const auto r5 = xer::toctrans(U'\u00a0', xer::ctrans_id::latin1_uppercase);
+    const auto r1 = xer::toctrans(U'\u00d7', xer::ctrans_id::latin1_lower);
+    const auto r2 = xer::toctrans(U'\u00f7', xer::ctrans_id::latin1_upper);
+    const auto r3 = xer::toctrans(U'\u00aa', xer::ctrans_id::latin1_upper);
+    const auto r4 = xer::toctrans(U'\u00ba', xer::ctrans_id::latin1_lower);
+    const auto r5 = xer::toctrans(U'\u00a0', xer::ctrans_id::latin1_upper);
 
     xer_assert(r1.has_value());
     xer_assert(r2.has_value());
@@ -243,8 +243,8 @@ void test_toctrans_latin1_preserves_non_convertible_supported_chars()
 
 void test_toctrans_latin1_sharp_s_special_case()
 {
-    const auto r1 = xer::toctrans(U'\u00df', xer::ctrans_id::latin1_uppercase);
-    const auto r2 = xer::toctrans(U'\u1e9e', xer::ctrans_id::latin1_lowercase);
+    const auto r1 = xer::toctrans(U'\u00df', xer::ctrans_id::latin1_upper);
+    const auto r2 = xer::toctrans(U'\u1e9e', xer::ctrans_id::latin1_lower);
 
     xer_assert(r1.has_value());
     xer_assert(r2.has_value());
@@ -270,9 +270,9 @@ void test_toctrans_ascii_modes_remain_ascii_only()
 
 void test_toctrans_latin1_rejects_non_latin1_code_points()
 {
-    const auto r1 = xer::toctrans(U'\u0100', xer::ctrans_id::latin1_lowercase);
-    const auto r2 = xer::toctrans(U'\u03a9', xer::ctrans_id::latin1_uppercase);
-    const auto r3 = xer::toctrans(U'\u3042', xer::ctrans_id::latin1_lowercase);
+    const auto r1 = xer::toctrans(U'\u0100', xer::ctrans_id::latin1_lower);
+    const auto r2 = xer::toctrans(U'\u03a9', xer::ctrans_id::latin1_upper);
+    const auto r3 = xer::toctrans(U'\u3042', xer::ctrans_id::latin1_lower);
 
     xer_assert_not(r1.has_value());
     xer_assert_not(r2.has_value());
@@ -286,47 +286,47 @@ void test_toctrans_latin1_rejects_non_latin1_code_points()
 void test_type_properties()
 {
     static_assert(std::same_as<
-                  decltype(xer::toctrans(U'A', xer::ctrans_id::latin1_lowercase)),
+                  decltype(xer::toctrans(U'A', xer::ctrans_id::latin1_lower)),
                   std::expected<char32_t, xer::error<void>>>);
 
     static_assert(std::same_as<
-                  decltype(xer::toctrans(U'a', xer::ctrans_id::latin1_uppercase)),
+                  decltype(xer::toctrans(U'a', xer::ctrans_id::latin1_upper)),
                   std::expected<char32_t, xer::error<void>>>);
 }
 
 constexpr auto test_constexpr() -> bool
 {
-    if (!xer::toctrans(U'A', xer::ctrans_id::latin1_lowercase).has_value()) {
+    if (!xer::toctrans(U'A', xer::ctrans_id::latin1_lower).has_value()) {
         return false;
     }
-    if (*xer::toctrans(U'A', xer::ctrans_id::latin1_lowercase) != U'a') {
+    if (*xer::toctrans(U'A', xer::ctrans_id::latin1_lower) != U'a') {
         return false;
     }
-    if (!xer::toctrans(U'\u00c9', xer::ctrans_id::latin1_lowercase)
+    if (!xer::toctrans(U'\u00c9', xer::ctrans_id::latin1_lower)
              .has_value()) {
         return false;
     }
-    if (*xer::toctrans(U'\u00c9', xer::ctrans_id::latin1_lowercase) !=
+    if (*xer::toctrans(U'\u00c9', xer::ctrans_id::latin1_lower) !=
         U'\u00e9') {
         return false;
     }
-    if (!xer::toctrans(U'\u00df', xer::ctrans_id::latin1_uppercase)
+    if (!xer::toctrans(U'\u00df', xer::ctrans_id::latin1_upper)
              .has_value()) {
         return false;
     }
-    if (*xer::toctrans(U'\u00df', xer::ctrans_id::latin1_uppercase) !=
+    if (*xer::toctrans(U'\u00df', xer::ctrans_id::latin1_upper) !=
         U'\u1e9e') {
         return false;
     }
-    if (!xer::toctrans(U'\u1e9e', xer::ctrans_id::latin1_lowercase)
+    if (!xer::toctrans(U'\u1e9e', xer::ctrans_id::latin1_lower)
              .has_value()) {
         return false;
     }
-    if (*xer::toctrans(U'\u1e9e', xer::ctrans_id::latin1_lowercase) !=
+    if (*xer::toctrans(U'\u1e9e', xer::ctrans_id::latin1_lower) !=
         U'\u00df') {
         return false;
     }
-    if (xer::toctrans(U'\u3042', xer::ctrans_id::latin1_lowercase)
+    if (xer::toctrans(U'\u3042', xer::ctrans_id::latin1_lower)
             .has_value()) {
         return false;
     }

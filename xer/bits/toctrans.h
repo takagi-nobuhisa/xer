@@ -26,8 +26,8 @@ namespace xer {
 enum class ctrans_id {
     lower,
     upper,
-    latin1_lowercase,
-    latin1_uppercase,
+    latin1_lower,
+    latin1_upper,
 };
 
 namespace detail {
@@ -219,9 +219,9 @@ namespace detail {
             return detail::tolower_ascii(c);
         case ctrans_id::upper:
             return detail::toupper_ascii(c);
-        case ctrans_id::latin1_lowercase:
+        case ctrans_id::latin1_lower:
             return detail::tolower_latin1(c);
-        case ctrans_id::latin1_uppercase:
+        case ctrans_id::latin1_upper:
             return detail::toupper_latin1(c);
     }
 

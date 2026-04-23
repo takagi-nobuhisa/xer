@@ -61,7 +61,7 @@ void test_stricmp_latin1_lowercase_equal_utf8()
     constexpr std::u8string_view lhs = u8"ÄÖÜ";
     constexpr std::u8string_view rhs = u8"äöü";
 
-    const auto result = xer::stricmp(lhs, rhs, xer::ctrans_id::latin1_lowercase);
+    const auto result = xer::stricmp(lhs, rhs, xer::ctrans_id::latin1_lower);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 0);
@@ -72,7 +72,7 @@ void test_strnicmp_latin1_uppercase_prefix_equal()
     constexpr std::u8string_view lhs = u8"äöx";
     constexpr std::u8string_view rhs = u8"ÄÖy";
 
-    const auto result = xer::strnicmp(lhs, rhs, 2, xer::ctrans_id::latin1_uppercase);
+    const auto result = xer::strnicmp(lhs, rhs, 2, xer::ctrans_id::latin1_upper);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, 0);
@@ -102,7 +102,7 @@ void test_strichr_utf8_code_point_found()
 {
     constexpr std::u8string_view text = u8"Äbcä";
 
-    const auto result = xer::strichr(text, U'ä', xer::ctrans_id::latin1_lowercase);
+    const auto result = xer::strichr(text, U'ä', xer::ctrans_id::latin1_lower);
 
     xer_assert(result.has_value());
     xer_assert_eq(result.value() - text.begin(), 0);
@@ -112,7 +112,7 @@ void test_strirchr_utf8_code_point_found()
 {
     constexpr std::u8string_view text = u8"Äbcä";
 
-    const auto result = xer::strirchr(text, U'Ä', xer::ctrans_id::latin1_uppercase);
+    const auto result = xer::strirchr(text, U'Ä', xer::ctrans_id::latin1_upper);
 
     xer_assert(result.has_value());
     xer_assert_eq(result.value() - text.begin(), 4);
@@ -145,7 +145,7 @@ void test_stristr_utf8_latin1_found()
     constexpr std::u8string_view text = u8"xxÄÖÜyy";
     constexpr std::u8string_view pattern = u8"äöü";
 
-    const auto result = xer::stristr(text, pattern, xer::ctrans_id::latin1_lowercase);
+    const auto result = xer::stristr(text, pattern, xer::ctrans_id::latin1_lower);
 
     xer_assert(result.has_value());
     xer_assert_eq(result.value() - text.begin(), 2);
@@ -167,7 +167,7 @@ void test_strirstr_utf8_latin1_found()
     constexpr std::u8string_view text = u8"Äxäx";
     constexpr std::u8string_view pattern = u8"äx";
 
-    const auto result = xer::strirstr(text, pattern, xer::ctrans_id::latin1_lowercase);
+    const auto result = xer::strirstr(text, pattern, xer::ctrans_id::latin1_lower);
 
     xer_assert(result.has_value());
     xer_assert_eq(result.value() - text.begin(), 3);
@@ -200,7 +200,7 @@ void test_stripos_utf8_latin1_returns_code_unit_position()
     constexpr std::u8string_view text = u8"Äxxä";
     constexpr std::u8string_view pattern = u8"ä";
 
-    const auto result = xer::stripos(text, pattern, xer::ctrans_id::latin1_lowercase);
+    const auto result = xer::stripos(text, pattern, xer::ctrans_id::latin1_lower);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, static_cast<std::size_t>(0));
@@ -222,7 +222,7 @@ void test_strirpos_utf8_latin1_returns_last_code_unit_position()
     constexpr std::u8string_view text = u8"Äxxä";
     constexpr std::u8string_view pattern = u8"ä";
 
-    const auto result = xer::strirpos(text, pattern, xer::ctrans_id::latin1_lowercase);
+    const auto result = xer::strirpos(text, pattern, xer::ctrans_id::latin1_lower);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, static_cast<std::size_t>(4));
