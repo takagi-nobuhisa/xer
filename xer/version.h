@@ -28,14 +28,14 @@
  *
  * This macro holds the non-numeric suffix part of the version string.
  */
-#define XER_VERSION_SUFFIX "a5"
+#define XER_VERSION_SUFFIX "b1"
 
 /**
  * @brief Full version string of XER.
  *
  * This macro holds the complete version string.
  */
-#define XER_VERSION_STRING "0.1.0a5"
+#define XER_VERSION_STRING "0.1.0b1"
 
 namespace xer {
 
