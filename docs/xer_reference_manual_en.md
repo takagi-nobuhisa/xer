@@ -1,6 +1,6 @@
-# xer Reference Manual
+﻿# xer Reference Manual
 
-Version: **v0.1.0a4**
+Version: **v0.1.0a5**
 
 ## 1. Overview
 
@@ -15,7 +15,7 @@ The current release line is intentionally pragmatic:
 - text I/O is built around explicit encodings instead of locale-dependent behavior
 - the library prefers simple, C-like function names where that improves approachability
 
-This manual is aligned with the current contents of `xer.zip` and is intended to be the English reference for **v0.1.0a4**.
+This manual is aligned with the current contents of `xer.zip` and is intended to be the English reference for **v0.1.0a5**.
 
 ## 2. Supported environment
 
@@ -292,10 +292,13 @@ get_errno_name
 
 ### Notes
 
-* UTF-8 and UTF-16 aware search overloads are available for several functions.
+* The header groups both string-oriented helpers and raw memory helpers.
+* Raw memory helpers currently include `memcpy`, `memmove`, `memchr`, `memrchr`, `memcmp`, and `memset`.
+* UTF-aware overloads are available for several search operations, notably for UTF-8, UTF-16, and UTF-32 character search with `char32_t` input.
 * Case-insensitive operations are intentionally simple and primarily oriented around ASCII plus the currently implemented normalization helpers.
 * `trim_view` family is intended as non-allocating trimming helpers around UTF-8-oriented string views.
-* As with other ordinary public APIs, these functions are documented as taking ordinary values rather than `xer::result` inputs. 
+* Pointer-taking `strlen` uses an explicit size, while string literals are accepted naturally through array-reference overloads.
+* As with other ordinary public APIs, these functions are documented as taking ordinary values rather than `xer::result` inputs.
 
 ---
 
@@ -474,6 +477,14 @@ using native_path_view;
 
 class path;
 
+auto operator/(path lhs, const path& rhs) -> xer::result<path>;
+auto basename(const path& value) noexcept -> std::u8string_view;
+auto extension(const path& value) noexcept -> std::u8string_view;
+auto stem(const path& value) noexcept -> std::u8string_view;
+auto parent_path(const path& value) -> xer::result<path>;
+auto is_absolute(const path& value) noexcept -> bool;
+auto is_relative(const path& value) noexcept -> bool;
+
 auto to_native_path(const path& value) -> std::expected<native_path_string, error<void>>;
 auto from_native_path(native_path_view value) -> std::expected<path, error<void>>;
 auto from_native_path(const native_path_char_t* value) -> std::expected<path, error<void>>;
@@ -492,6 +503,7 @@ public:
     explicit path(const char8_t* value);
 
     auto str() const noexcept -> view_type;
+    auto operator/=(const path& rhs) -> xer::result<void>;
 };
 ```
 
@@ -499,7 +511,10 @@ public:
 
 * Internal representation is UTF-8.
 * Internal separators are normalized to `'/'`.
-* The current implementation focuses on lexical storage plus native conversion, not on a full path-manipulation toolbox.
+* Windows-specific leading-part meaning is preserved lexically, including distinctions such as `C:foo`, `C:/foo`, `/foo`, and `//server/share/foo`.
+* Path joining is lexical and follows the project path-policy rules rather than `std::filesystem::path` semantics.
+* `basename`, `extension`, `stem`, `parent_path`, `is_absolute`, and `is_relative` are free functions.
+* `extension` returns the part beginning with the **first** `'.'` in the basename, so `archive.tar.gz` yields `.tar.gz`.
 
 ---
 
@@ -542,7 +557,18 @@ enum class encoding_t {
 ```cpp
 fclose
 fflush
-tmpfile
+tmpfile        // binary temporary file
+tmpfile(enc)   // text temporary file
+```
+
+### File-entry operations
+
+```cpp
+remove
+rename
+mkdir
+rmdir
+copy
 ```
 
 ### Binary I/O
@@ -598,7 +624,10 @@ The header also includes `to_native_handle` support for exposing underlying nati
 * `binary_stream` and `text_stream` are move-only RAII objects.
 * Text streams normalize input/output around `char32_t` for single characters and UTF-8 for strings.
 * Text file I/O supports UTF-8 and CP932; input can optionally use `auto_detect`.
+* `fseek` / `ftell` are the normal position helpers for `binary_stream`.
+* `fgetpos` / `fsetpos` are the primary position helpers for `text_stream`.
 * `ungetc` support for `text_stream` is intentionally limited to one pushed-back character.
+* File-entry helpers operate on `xer::path` and are intentionally separate from stream objects.
 
 ---
 
@@ -780,8 +809,8 @@ Compile-time version information.
 #define XER_VERSION_MAJOR 0
 #define XER_VERSION_MINOR 1
 #define XER_VERSION_PATCH 0
-#define XER_VERSION_SUFFIX "a4"
-#define XER_VERSION_STRING "0.1.0a4"
+#define XER_VERSION_SUFFIX "a5"
+#define XER_VERSION_STRING "0.1.0a5"
 
 inline constexpr int version_major;
 inline constexpr int version_minor;
@@ -799,18 +828,26 @@ The current archive includes focused tests for at least the following areas:
 * arithmetic helpers
 * string and text processing
 * ctype and Latin-1 conversion
-* path handling
+* path handling and native-path conversion
 * JSON
-* stream I/O, CSV, printf, scanf
+* stream I/O, CSV, printf, scanf, and stream state
 * multibyte conversion
 * cyclic values
 * quantity and units
 * time conversion and formatting
 * public-header combination checks
 
-The repository also now has an `examples/` direction for user-facing executable examples. These examples are intended to be single-file, directly compilable, directly runnable, and suitable for future extraction into generated documentation. 
+The repository also now contains a broad `examples/` set for user-facing executable examples. These examples are single-file, directly compilable, directly runnable, and aligned with the project policy that examples should show natural use of the public API rather than workaround-heavy code. They now cover, among other areas:
 
-This does not replace line-by-line API documentation, but it is a useful indicator of the currently exercised feature set.
+* arithmetic helpers (`abs`, `uabs`, `min` / `max` / `clamp`, `div`)
+* string search, comparison, copying, trimming, split/join, and memory helpers
+* ctype / to-functions
+* multibyte conversion
+* path handling and native-path conversion
+* binary and text stream I/O, position helpers, stream state, `tmpfile`, `rename`, `remove`, `mkdir`, `rmdir`, and `copy`
+* `bsearch`, `qsort`, `getenv`, random generation, JSON, `cyclic`, `quantity`, and time formatting/conversion
+
+This does not replace line-by-line API documentation, but it is a useful indicator of the currently exercised feature set and of the examples that can later be extracted into generated documentation.
 
 ---
 
