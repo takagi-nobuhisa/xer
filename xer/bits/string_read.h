@@ -311,6 +311,66 @@ template<detail::supported_string_character CharT>
 }
 
 /**
+ * @brief Compares two strings lexicographically with explicit sizes.
+ *
+ * @tparam CharT Character type.
+ * @param lhs Left-hand string pointer.
+ * @param lhs_size Left-hand size in code units.
+ * @param rhs Right-hand string pointer.
+ * @param rhs_size Right-hand size in code units.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strcmp(
+    const CharT* lhs,
+    const std::size_t lhs_size,
+    const CharT* rhs,
+    const std::size_t rhs_size) -> result<int>
+{
+    if ((lhs == nullptr && lhs_size != 0) || (rhs == nullptr && rhs_size != 0)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+
+    return xer::strcmp(
+        std::basic_string_view<bare_char_t>(lhs, lhs_size),
+        std::basic_string_view<bare_char_t>(rhs, rhs_size));
+}
+
+/**
+ * @brief Compares two array strings lexicographically.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Left-hand array size.
+ * @tparam N2 Right-hand array size.
+ * @param lhs Left-hand array.
+ * @param rhs Right-hand array.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strcmp(
+    const CharT (&lhs)[N1],
+    const CharT (&rhs)[N2]) -> result<int>
+{
+    const auto lhs_length = xer::strlen(lhs);
+    if (!lhs_length) {
+        return std::unexpected(lhs_length.error());
+    }
+
+    const auto rhs_length = xer::strlen(rhs);
+    if (!rhs_length) {
+        return std::unexpected(rhs_length.error());
+    }
+
+    return xer::strcmp(lhs, *lhs_length, rhs, *rhs_length);
+}
+
+/**
  * @brief Compares up to the specified number of code units lexicographically.
  *
  * @tparam CharT Character type.
@@ -355,6 +415,73 @@ template<detail::supported_string_character CharT>
 }
 
 /**
+ * @brief Compares up to the specified number of code units lexicographically
+ *        with explicit sizes.
+ *
+ * @tparam CharT Character type.
+ * @param lhs Left-hand string pointer.
+ * @param lhs_size Left-hand size in code units.
+ * @param rhs Right-hand string pointer.
+ * @param rhs_size Right-hand size in code units.
+ * @param count Maximum number of code units to compare.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strncmp(
+    const CharT* lhs,
+    const std::size_t lhs_size,
+    const CharT* rhs,
+    const std::size_t rhs_size,
+    const std::size_t count) -> result<int>
+{
+    if ((lhs == nullptr && lhs_size != 0) || (rhs == nullptr && rhs_size != 0)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+
+    return xer::strncmp(
+        std::basic_string_view<bare_char_t>(lhs, lhs_size),
+        std::basic_string_view<bare_char_t>(rhs, rhs_size),
+        count);
+}
+
+/**
+ * @brief Compares two array strings lexicographically up to the specified
+ *        number of code units.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Left-hand array size.
+ * @tparam N2 Right-hand array size.
+ * @param lhs Left-hand array.
+ * @param rhs Right-hand array.
+ * @param count Maximum number of code units to compare.
+ * @return Negative value if lhs < rhs, zero if equal, positive value if lhs > rhs.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strncmp(
+    const CharT (&lhs)[N1],
+    const CharT (&rhs)[N2],
+    const std::size_t count) -> result<int>
+{
+    const auto lhs_length = xer::strlen(lhs);
+    if (!lhs_length) {
+        return std::unexpected(lhs_length.error());
+    }
+
+    const auto rhs_length = xer::strlen(rhs);
+    if (!rhs_length) {
+        return std::unexpected(rhs_length.error());
+    }
+
+    return xer::strncmp(lhs, *lhs_length, rhs, *rhs_length, count);
+}
+
+/**
  * @brief Searches for the first occurrence of a code unit.
  *
  * @tparam CharT Character type.
@@ -374,6 +501,60 @@ template<detail::supported_string_character CharT>
     }
 
     return std::unexpected(make_error(error_t::not_found));
+}
+
+/**
+ * @brief Searches for the first occurrence of a code unit with explicit size.
+ *
+ * @tparam CharT Character type.
+ * @param source Source pointer.
+ * @param source_size Source size in code units.
+ * @param value Code unit to search for.
+ * @return Iterator pointing to the found code unit.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strchr(
+    const CharT* source,
+    const std::size_t source_size,
+    const std::remove_cv_t<CharT> value) -> result<const CharT*>
+{
+    if (source == nullptr && source_size != 0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    for (std::size_t index = 0; index < source_size; ++index) {
+        if (source[index] == value) {
+            return source + index;
+        }
+    }
+
+    return std::unexpected(make_error(error_t::not_found));
+}
+
+/**
+ * @brief Searches for the first occurrence of a code unit in an array string.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N Array size.
+ * @param source Source array.
+ * @param value Code unit to search for.
+ * @return Iterator pointing to the found code unit.
+ */
+template<typename CharT, std::size_t N>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strchr(
+    const CharT (&source)[N],
+    const std::remove_cv_t<CharT> value) -> result<const CharT*>
+{
+    const auto source_length = xer::strlen(source);
+    if (!source_length) {
+        return std::unexpected(source_length.error());
+    }
+
+    return xer::strchr(source, *source_length, value);
 }
 
 /**
@@ -397,6 +578,60 @@ template<detail::supported_string_character CharT>
     }
 
     return std::unexpected(make_error(error_t::not_found));
+}
+
+/**
+ * @brief Searches for the last occurrence of a code unit with explicit size.
+ *
+ * @tparam CharT Character type.
+ * @param source Source pointer.
+ * @param source_size Source size in code units.
+ * @param value Code unit to search for.
+ * @return Iterator pointing to the found code unit.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strrchr(
+    const CharT* source,
+    const std::size_t source_size,
+    const std::remove_cv_t<CharT> value) -> result<const CharT*>
+{
+    if (source == nullptr && source_size != 0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    for (std::size_t index = source_size; index > 0; --index) {
+        if (source[index - 1] == value) {
+            return source + (index - 1);
+        }
+    }
+
+    return std::unexpected(make_error(error_t::not_found));
+}
+
+/**
+ * @brief Searches for the last occurrence of a code unit in an array string.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N Array size.
+ * @param source Source array.
+ * @param value Code unit to search for.
+ * @return Iterator pointing to the found code unit.
+ */
+template<typename CharT, std::size_t N>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strrchr(
+    const CharT (&source)[N],
+    const std::remove_cv_t<CharT> value) -> result<const CharT*>
+{
+    const auto source_length = xer::strlen(source);
+    if (!source_length) {
+        return std::unexpected(source_length.error());
+    }
+
+    return xer::strrchr(source, *source_length, value);
 }
 
 /**
@@ -638,6 +873,81 @@ template<detail::supported_string_character CharT>
 }
 
 /**
+ * @brief Searches for the first occurrence of a substring with explicit sizes.
+ *
+ * @tparam CharT Character type.
+ * @param source Source pointer.
+ * @param source_size Source size in code units.
+ * @param pattern Pattern pointer.
+ * @param pattern_size Pattern size in code units.
+ * @return Iterator pointing to the beginning of the found substring.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strstr(
+    const CharT* source,
+    const std::size_t source_size,
+    const CharT* pattern,
+    const std::size_t pattern_size) -> result<const CharT*>
+{
+    if ((source == nullptr && source_size != 0) ||
+        (pattern == nullptr && pattern_size != 0)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+
+    if (pattern_size == 0) {
+        return source;
+    }
+
+    if (pattern_size > source_size) {
+        return std::unexpected(make_error(error_t::not_found));
+    }
+
+    const auto source_view = std::basic_string_view<bare_char_t>(source, source_size);
+    const auto result = xer::strstr(
+        source_view,
+        std::basic_string_view<bare_char_t>(pattern, pattern_size));
+    if (!result) {
+        return std::unexpected(result.error());
+    }
+
+    return source + (*result - source_view.begin());
+}
+
+/**
+ * @brief Searches for the first occurrence of a substring in array strings.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Source array size.
+ * @tparam N2 Pattern array size.
+ * @param source Source array.
+ * @param pattern Pattern array.
+ * @return Iterator pointing to the beginning of the found substring.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strstr(
+    const CharT (&source)[N1],
+    const CharT (&pattern)[N2]) -> result<const CharT*>
+{
+    const auto source_length = xer::strlen(source);
+    if (!source_length) {
+        return std::unexpected(source_length.error());
+    }
+
+    const auto pattern_length = xer::strlen(pattern);
+    if (!pattern_length) {
+        return std::unexpected(pattern_length.error());
+    }
+
+    return xer::strstr(source, *source_length, pattern, *pattern_length);
+}
+
+/**
  * @brief Searches for the last occurrence of a substring.
  *
  * @tparam CharT Character type.
@@ -663,6 +973,81 @@ template<detail::supported_string_character CharT>
 }
 
 /**
+ * @brief Searches for the last occurrence of a substring with explicit sizes.
+ *
+ * @tparam CharT Character type.
+ * @param source Source pointer.
+ * @param source_size Source size in code units.
+ * @param pattern Pattern pointer.
+ * @param pattern_size Pattern size in code units.
+ * @return Iterator pointing to the beginning of the found substring.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strrstr(
+    const CharT* source,
+    const std::size_t source_size,
+    const CharT* pattern,
+    const std::size_t pattern_size) -> result<const CharT*>
+{
+    if ((source == nullptr && source_size != 0) ||
+        (pattern == nullptr && pattern_size != 0)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+
+    if (pattern_size == 0) {
+        return source + source_size;
+    }
+
+    if (pattern_size > source_size) {
+        return std::unexpected(make_error(error_t::not_found));
+    }
+
+    const auto source_view = std::basic_string_view<bare_char_t>(source, source_size);
+    const auto result = xer::strrstr(
+        source_view,
+        std::basic_string_view<bare_char_t>(pattern, pattern_size));
+    if (!result) {
+        return std::unexpected(result.error());
+    }
+
+    return source + (*result - source_view.begin());
+}
+
+/**
+ * @brief Searches for the last occurrence of a substring in array strings.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Source array size.
+ * @tparam N2 Pattern array size.
+ * @param source Source array.
+ * @param pattern Pattern array.
+ * @return Iterator pointing to the beginning of the found substring.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strrstr(
+    const CharT (&source)[N1],
+    const CharT (&pattern)[N2]) -> result<const CharT*>
+{
+    const auto source_length = xer::strlen(source);
+    if (!source_length) {
+        return std::unexpected(source_length.error());
+    }
+
+    const auto pattern_length = xer::strlen(pattern);
+    if (!pattern_length) {
+        return std::unexpected(pattern_length.error());
+    }
+
+    return xer::strrstr(source, *source_length, pattern, *pattern_length);
+}
+
+/**
  * @brief Returns the first position of a substring.
  *
  * @tparam CharT Character type.
@@ -681,6 +1066,67 @@ template<detail::supported_string_character CharT>
     }
 
     return pos;
+}
+
+/**
+ * @brief Returns the first position of a substring with explicit sizes.
+ *
+ * @tparam CharT Character type.
+ * @param source Source pointer.
+ * @param source_size Source size in code units.
+ * @param pattern Pattern pointer.
+ * @param pattern_size Pattern size in code units.
+ * @return Zero-based code-unit position of the found substring.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strpos(
+    const CharT* source,
+    const std::size_t source_size,
+    const CharT* pattern,
+    const std::size_t pattern_size) -> result<std::size_t>
+{
+    if ((source == nullptr && source_size != 0) ||
+        (pattern == nullptr && pattern_size != 0)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+
+    return xer::strpos(
+        std::basic_string_view<bare_char_t>(source, source_size),
+        std::basic_string_view<bare_char_t>(pattern, pattern_size));
+}
+
+/**
+ * @brief Returns the first position of a substring in array strings.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Source array size.
+ * @tparam N2 Pattern array size.
+ * @param source Source array.
+ * @param pattern Pattern array.
+ * @return Zero-based code-unit position of the found substring.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strpos(
+    const CharT (&source)[N1],
+    const CharT (&pattern)[N2]) -> result<std::size_t>
+{
+    const auto source_length = xer::strlen(source);
+    if (!source_length) {
+        return std::unexpected(source_length.error());
+    }
+
+    const auto pattern_length = xer::strlen(pattern);
+    if (!pattern_length) {
+        return std::unexpected(pattern_length.error());
+    }
+
+    return xer::strpos(source, *source_length, pattern, *pattern_length);
 }
 
 /**
@@ -705,6 +1151,67 @@ template<detail::supported_string_character CharT>
 }
 
 /**
+ * @brief Returns the last position of a substring with explicit sizes.
+ *
+ * @tparam CharT Character type.
+ * @param source Source pointer.
+ * @param source_size Source size in code units.
+ * @param pattern Pattern pointer.
+ * @param pattern_size Pattern size in code units.
+ * @return Zero-based code-unit position of the found substring.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strrpos(
+    const CharT* source,
+    const std::size_t source_size,
+    const CharT* pattern,
+    const std::size_t pattern_size) -> result<std::size_t>
+{
+    if ((source == nullptr && source_size != 0) ||
+        (pattern == nullptr && pattern_size != 0)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+
+    return xer::strrpos(
+        std::basic_string_view<bare_char_t>(source, source_size),
+        std::basic_string_view<bare_char_t>(pattern, pattern_size));
+}
+
+/**
+ * @brief Returns the last position of a substring in array strings.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Source array size.
+ * @tparam N2 Pattern array size.
+ * @param source Source array.
+ * @param pattern Pattern array.
+ * @return Zero-based code-unit position of the found substring.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strrpos(
+    const CharT (&source)[N1],
+    const CharT (&pattern)[N2]) -> result<std::size_t>
+{
+    const auto source_length = xer::strlen(source);
+    if (!source_length) {
+        return std::unexpected(source_length.error());
+    }
+
+    const auto pattern_length = xer::strlen(pattern);
+    if (!pattern_length) {
+        return std::unexpected(pattern_length.error());
+    }
+
+    return xer::strrpos(source, *source_length, pattern, *pattern_length);
+}
+
+/**
  * @brief Searches for the first code unit that is contained in the accept set.
  *
  * @tparam CharT Character type.
@@ -724,6 +1231,74 @@ template<detail::supported_string_character CharT>
     }
 
     return std::unexpected(make_error(error_t::not_found));
+}
+
+/**
+ * @brief Searches for the first code unit that is contained in the accept set
+ *        with explicit sizes.
+ *
+ * @tparam CharT Character type.
+ * @param source Source pointer.
+ * @param source_size Source size in code units.
+ * @param accept Accept-set pointer.
+ * @param accept_size Accept-set size in code units.
+ * @return Pointer to the found code unit.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strpbrk(
+    const CharT* source,
+    const std::size_t source_size,
+    const CharT* accept,
+    const std::size_t accept_size) -> result<const CharT*>
+{
+    if ((source == nullptr && source_size != 0) ||
+        (accept == nullptr && accept_size != 0)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+
+    const auto source_view = std::basic_string_view<bare_char_t>(source, source_size);
+    const auto accept_view = std::basic_string_view<bare_char_t>(accept, accept_size);
+    const auto result = xer::strpbrk(source_view, accept_view);
+    if (!result) {
+        return std::unexpected(result.error());
+    }
+
+    return source + (*result - source_view.begin());
+}
+
+/**
+ * @brief Searches for the first code unit that is contained in the accept set
+ *        in array strings.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Source array size.
+ * @tparam N2 Accept-set array size.
+ * @param source Source array.
+ * @param accept Accept-set array.
+ * @return Pointer to the found code unit.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strpbrk(
+    const CharT (&source)[N1],
+    const CharT (&accept)[N2]) -> result<const CharT*>
+{
+    const auto source_length = xer::strlen(source);
+    if (!source_length) {
+        return std::unexpected(source_length.error());
+    }
+
+    const auto accept_length = xer::strlen(accept);
+    if (!accept_length) {
+        return std::unexpected(accept_length.error());
+    }
+
+    return xer::strpbrk(source, *source_length, accept, *accept_length);
 }
 
 /**
@@ -755,6 +1330,69 @@ template<detail::supported_string_character CharT>
 
 /**
  * @brief Returns the length of the maximum initial segment consisting only of
+ *        accepted code units with explicit sizes.
+ *
+ * @tparam CharT Character type.
+ * @param source Source pointer.
+ * @param source_size Source size in code units.
+ * @param accept Accept-set pointer.
+ * @param accept_size Accept-set size in code units.
+ * @return Length of the initial accepted segment.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strspn(
+    const CharT* source,
+    const std::size_t source_size,
+    const CharT* accept,
+    const std::size_t accept_size) -> result<std::size_t>
+{
+    if ((source == nullptr && source_size != 0) ||
+        (accept == nullptr && accept_size != 0)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+
+    return xer::strspn(
+        std::basic_string_view<bare_char_t>(source, source_size),
+        std::basic_string_view<bare_char_t>(accept, accept_size));
+}
+
+/**
+ * @brief Returns the length of the maximum initial segment consisting only of
+ *        accepted code units in array strings.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Source array size.
+ * @tparam N2 Accept-set array size.
+ * @param source Source array.
+ * @param accept Accept-set array.
+ * @return Length of the initial accepted segment.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strspn(
+    const CharT (&source)[N1],
+    const CharT (&accept)[N2]) -> result<std::size_t>
+{
+    const auto source_length = xer::strlen(source);
+    if (!source_length) {
+        return std::unexpected(source_length.error());
+    }
+
+    const auto accept_length = xer::strlen(accept);
+    if (!accept_length) {
+        return std::unexpected(accept_length.error());
+    }
+
+    return xer::strspn(source, *source_length, accept, *accept_length);
+}
+
+/**
+ * @brief Returns the length of the maximum initial segment consisting only of
  *        rejected code units.
  *
  * @tparam CharT Character type.
@@ -778,6 +1416,69 @@ template<detail::supported_string_character CharT>
     }
 
     return count;
+}
+
+/**
+ * @brief Returns the length of the maximum initial segment consisting only of
+ *        rejected code units with explicit sizes.
+ *
+ * @tparam CharT Character type.
+ * @param source Source pointer.
+ * @param source_size Source size in code units.
+ * @param reject Reject-set pointer.
+ * @param reject_size Reject-set size in code units.
+ * @return Length of the initial rejected segment.
+ */
+template<typename CharT>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strcspn(
+    const CharT* source,
+    const std::size_t source_size,
+    const CharT* reject,
+    const std::size_t reject_size) -> result<std::size_t>
+{
+    if ((source == nullptr && source_size != 0) ||
+        (reject == nullptr && reject_size != 0)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    using bare_char_t = std::remove_cv_t<CharT>;
+
+    return xer::strcspn(
+        std::basic_string_view<bare_char_t>(source, source_size),
+        std::basic_string_view<bare_char_t>(reject, reject_size));
+}
+
+/**
+ * @brief Returns the length of the maximum initial segment consisting only of
+ *        rejected code units in array strings.
+ *
+ * This overload is intended to make string literals work naturally.
+ *
+ * @tparam CharT Character type.
+ * @tparam N1 Source array size.
+ * @tparam N2 Reject-set array size.
+ * @param source Source array.
+ * @param reject Reject-set array.
+ * @return Length of the initial rejected segment.
+ */
+template<typename CharT, std::size_t N1, std::size_t N2>
+    requires detail::supported_string_character<std::remove_cv_t<CharT>>
+[[nodiscard]] constexpr auto strcspn(
+    const CharT (&source)[N1],
+    const CharT (&reject)[N2]) -> result<std::size_t>
+{
+    const auto source_length = xer::strlen(source);
+    if (!source_length) {
+        return std::unexpected(source_length.error());
+    }
+
+    const auto reject_length = xer::strlen(reject);
+    if (!reject_length) {
+        return std::unexpected(reject_length.error());
+    }
+
+    return xer::strcspn(source, *source_length, reject, *reject_length);
 }
 
 } // namespace xer
