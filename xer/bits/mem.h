@@ -27,9 +27,9 @@ namespace xer::detail {
  * @return true if the pair is valid.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool is_valid_memory_argument(
+[[nodiscard]] constexpr auto is_valid_memory_argument(
     const void* ptr,
-    const std::size_t count) noexcept
+    const std::size_t count) noexcept -> bool
 {
     return ptr != nullptr || count == 0;
 }
@@ -44,11 +44,11 @@ namespace xer::detail {
  * @return true if the ranges overlap.
  * @return false otherwise.
  */
-[[nodiscard]] constexpr bool byte_ranges_overlap(
+[[nodiscard]] constexpr auto byte_ranges_overlap(
     const std::byte* lhs_begin,
     const std::size_t lhs_size,
     const std::byte* rhs_begin,
-    const std::size_t rhs_size) noexcept
+    const std::size_t rhs_size) noexcept -> bool
 {
     if (lhs_size == 0 || rhs_size == 0) {
         return false;
@@ -69,9 +69,9 @@ namespace xer::detail {
  * @return Positive value if lhs > rhs.
  * @return Zero if lhs == rhs.
  */
-[[nodiscard]] constexpr int compare_byte(
+[[nodiscard]] constexpr auto compare_byte(
     const std::byte lhs,
-    const std::byte rhs) noexcept
+    const std::byte rhs) noexcept -> int
 {
     const auto lhs_value = std::to_integer<unsigned int>(lhs);
     const auto rhs_value = std::to_integer<unsigned int>(rhs);
@@ -103,11 +103,11 @@ namespace xer {
  * @param source_size Size of the source buffer.
  * @return Destination pointer on success.
  */
-[[nodiscard]] constexpr result<std::byte*> memcpy(
+[[nodiscard]] constexpr auto memcpy(
     std::byte* destination,
     const std::size_t destination_size,
     const std::byte* source,
-    const std::size_t source_size) noexcept
+    const std::size_t source_size) noexcept -> result<std::byte*>
 {
     if (!detail::is_valid_memory_argument(destination, destination_size) ||
         !detail::is_valid_memory_argument(source, source_size)) {
@@ -141,8 +141,9 @@ namespace xer {
 template<typename Destination, typename Source>
     requires detail::mutable_byte_contiguous_range<Destination> &&
              detail::byte_contiguous_range<Source>
-[[nodiscard]] constexpr result<std::ranges::iterator_t<Destination>>
-memcpy(Destination& destination, const Source& source) noexcept
+[[nodiscard]] constexpr auto memcpy(
+    Destination& destination,
+    const Source& source) noexcept -> result<std::ranges::iterator_t<Destination>>
 {
     const auto result = xer::memcpy(
         std::ranges::data(destination),
@@ -169,11 +170,11 @@ memcpy(Destination& destination, const Source& source) noexcept
  * @param source_size Size of the source buffer.
  * @return Destination pointer on success.
  */
-[[nodiscard]] constexpr result<std::byte*> memmove(
+[[nodiscard]] constexpr auto memmove(
     std::byte* destination,
     const std::size_t destination_size,
     const std::byte* source,
-    const std::size_t source_size) noexcept
+    const std::size_t source_size) noexcept -> result<std::byte*>
 {
     if (!detail::is_valid_memory_argument(destination, destination_size) ||
         !detail::is_valid_memory_argument(source, source_size)) {
@@ -213,8 +214,9 @@ memcpy(Destination& destination, const Source& source) noexcept
 template<typename Destination, typename Source>
     requires detail::mutable_byte_contiguous_range<Destination> &&
              detail::byte_contiguous_range<Source>
-[[nodiscard]] constexpr result<std::ranges::iterator_t<Destination>>
-memmove(Destination& destination, const Source& source) noexcept
+[[nodiscard]] constexpr auto memmove(
+    Destination& destination,
+    const Source& source) noexcept -> result<std::ranges::iterator_t<Destination>>
 {
     const auto result = xer::memmove(
         std::ranges::data(destination),
@@ -237,10 +239,10 @@ memmove(Destination& destination, const Source& source) noexcept
  * @param value Byte value to search for.
  * @return Pointer to the matched byte on success.
  */
-[[nodiscard]] constexpr result<std::byte*> memchr(
+[[nodiscard]] constexpr auto memchr(
     std::byte* source,
     const std::size_t source_size,
-    const std::byte value) noexcept
+    const std::byte value) noexcept -> result<std::byte*>
 {
     if (!detail::is_valid_memory_argument(source, source_size)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -263,10 +265,10 @@ memmove(Destination& destination, const Source& source) noexcept
  * @param value Byte value to search for.
  * @return Pointer to the matched byte on success.
  */
-[[nodiscard]] constexpr result<const std::byte*> memchr(
+[[nodiscard]] constexpr auto memchr(
     const std::byte* source,
     const std::size_t source_size,
-    const std::byte value) noexcept
+    const std::byte value) noexcept -> result<const std::byte*>
 {
     if (!detail::is_valid_memory_argument(source, source_size)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -291,8 +293,9 @@ memmove(Destination& destination, const Source& source) noexcept
  */
 template<typename Range>
     requires detail::mutable_byte_contiguous_range<Range>
-[[nodiscard]] constexpr result<std::ranges::iterator_t<Range>>
-memchr(Range& source, const std::byte value) noexcept
+[[nodiscard]] constexpr auto memchr(
+    Range& source,
+    const std::byte value) noexcept -> result<std::ranges::iterator_t<Range>>
 {
     const auto result = xer::memchr(
         std::ranges::data(source),
@@ -318,10 +321,119 @@ memchr(Range& source, const std::byte value) noexcept
  */
 template<typename Range>
     requires detail::byte_contiguous_range<Range>
-[[nodiscard]] constexpr result<std::ranges::iterator_t<const Range>>
-memchr(const Range& source, const std::byte value) noexcept
+[[nodiscard]] constexpr auto memchr(
+    const Range& source,
+    const std::byte value) noexcept -> result<std::ranges::iterator_t<const Range>>
 {
     const auto result = xer::memchr(
+        std::ranges::data(source),
+        static_cast<std::size_t>(std::ranges::size(source)),
+        value);
+
+    if (!result.has_value()) {
+        return std::unexpected(result.error());
+    }
+
+    return std::ranges::begin(source) +
+           static_cast<std::ranges::range_difference_t<std::ranges::ref_view<const Range>>>(
+               result.value() - std::ranges::data(source));
+}
+
+/**
+ * @brief Searches backward for the specified byte in a mutable buffer.
+ *
+ * @param source Source buffer.
+ * @param source_size Size of the source buffer.
+ * @param value Byte value to search for.
+ * @return Pointer to the matched byte on success.
+ */
+[[nodiscard]] constexpr auto memrchr(
+    std::byte* source,
+    const std::size_t source_size,
+    const std::byte value) noexcept -> result<std::byte*>
+{
+    if (!detail::is_valid_memory_argument(source, source_size)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    for (std::size_t index = source_size; index > 0; --index) {
+        if (source[index - 1] == value) {
+            return source + (index - 1);
+        }
+    }
+
+    return std::unexpected(make_error(error_t::not_found));
+}
+
+/**
+ * @brief Searches backward for the specified byte in an immutable buffer.
+ *
+ * @param source Source buffer.
+ * @param source_size Size of the source buffer.
+ * @param value Byte value to search for.
+ * @return Pointer to the matched byte on success.
+ */
+[[nodiscard]] constexpr auto memrchr(
+    const std::byte* source,
+    const std::size_t source_size,
+    const std::byte value) noexcept -> result<const std::byte*>
+{
+    if (!detail::is_valid_memory_argument(source, source_size)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    for (std::size_t index = source_size; index > 0; --index) {
+        if (source[index - 1] == value) {
+            return source + (index - 1);
+        }
+    }
+
+    return std::unexpected(make_error(error_t::not_found));
+}
+
+/**
+ * @brief Searches backward for the specified byte in a mutable contiguous range.
+ *
+ * @tparam Range Range type.
+ * @param source Source range.
+ * @param value Byte value to search for.
+ * @return Iterator to the matched byte on success.
+ */
+template<typename Range>
+    requires detail::mutable_byte_contiguous_range<Range>
+[[nodiscard]] constexpr auto memrchr(
+    Range& source,
+    const std::byte value) noexcept -> result<std::ranges::iterator_t<Range>>
+{
+    const auto result = xer::memrchr(
+        std::ranges::data(source),
+        static_cast<std::size_t>(std::ranges::size(source)),
+        value);
+
+    if (!result.has_value()) {
+        return std::unexpected(result.error());
+    }
+
+    return std::ranges::begin(source) +
+           static_cast<std::ranges::range_difference_t<Range>>(
+               result.value() - std::ranges::data(source));
+}
+
+/**
+ * @brief Searches backward for the specified byte in an immutable contiguous range.
+ *
+ * @tparam Range Range type.
+ * @param source Source range.
+ * @param value Byte value to search for.
+ * @return Iterator to the matched byte on success.
+ */
+template<typename Range>
+    requires detail::byte_contiguous_range<Range>
+[[nodiscard]] constexpr auto memrchr(
+    const Range& source,
+    const std::byte value) noexcept -> result<std::ranges::iterator_t<const Range>>
+{
+    const auto result = xer::memrchr(
         std::ranges::data(source),
         static_cast<std::size_t>(std::ranges::size(source)),
         value);
@@ -348,11 +460,11 @@ memchr(const Range& source, const std::byte value) noexcept
  * @return Positive value if lhs > rhs.
  * @return Zero if lhs == rhs.
  */
-[[nodiscard]] constexpr result<int> memcmp(
+[[nodiscard]] constexpr auto memcmp(
     const std::byte* lhs,
     const std::size_t lhs_size,
     const std::byte* rhs,
-    const std::size_t rhs_size) noexcept
+    const std::size_t rhs_size) noexcept -> result<int>
 {
     if (!detail::is_valid_memory_argument(lhs, lhs_size) ||
         !detail::is_valid_memory_argument(rhs, rhs_size)) {
@@ -392,9 +504,9 @@ memchr(const Range& source, const std::byte value) noexcept
 template<typename Left, typename Right>
     requires detail::byte_contiguous_range<Left> &&
              detail::byte_contiguous_range<Right>
-[[nodiscard]] constexpr result<int> memcmp(
+[[nodiscard]] constexpr auto memcmp(
     const Left& lhs,
-    const Right& rhs) noexcept
+    const Right& rhs) noexcept -> result<int>
 {
     return xer::memcmp(
         std::ranges::data(lhs),
@@ -411,10 +523,10 @@ template<typename Left, typename Right>
  * @param value Byte value to write.
  * @return Destination pointer on success.
  */
-[[nodiscard]] constexpr result<std::byte*> memset(
+[[nodiscard]] constexpr auto memset(
     std::byte* destination,
     const std::size_t destination_size,
-    const std::byte value) noexcept
+    const std::byte value) noexcept -> result<std::byte*>
 {
     if (!detail::is_valid_memory_argument(destination, destination_size)) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -437,8 +549,9 @@ template<typename Left, typename Right>
  */
 template<typename Destination>
     requires detail::mutable_byte_contiguous_range<Destination>
-[[nodiscard]] constexpr result<std::ranges::iterator_t<Destination>>
-memset(Destination& destination, const std::byte value) noexcept
+[[nodiscard]] constexpr auto memset(
+    Destination& destination,
+    const std::byte value) noexcept -> result<std::ranges::iterator_t<Destination>>
 {
     const auto result = xer::memset(
         std::ranges::data(destination),

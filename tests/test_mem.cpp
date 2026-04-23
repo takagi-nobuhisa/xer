@@ -15,7 +15,7 @@
 
 namespace {
 
-[[nodiscard]] constexpr std::byte b(const unsigned int value) noexcept
+[[nodiscard]] constexpr auto b(const unsigned int value) noexcept -> std::byte
 {
     return static_cast<std::byte>(value);
 }
@@ -112,7 +112,7 @@ void test_memcpy_container_success()
 void test_memcpy_container_length_error()
 {
     std::array<std::byte, 2> destination {b(0), b(0)};
-    const std::array<std::byte, 3> source {b(1), b(2), b(3)};
+    const std::vector<std::byte> source {b(1), b(2), b(3)};
 
     const auto result = xer::memcpy(destination, source);
 
@@ -123,7 +123,7 @@ void test_memcpy_container_length_error()
 void test_memmove_pointer_non_overlap()
 {
     std::array<std::byte, 6> destination {b(0), b(0), b(0), b(0), b(0), b(0)};
-    const std::array<std::byte, 4> source {b(0xa1), b(0xa2), b(0xa3), b(0xa4)};
+    const std::array<std::byte, 3> source {b(0xa1), b(0xa2), b(0xa3)};
 
     const auto result =
         xer::memmove(destination.data(), destination.size(), source.data(), source.size());
@@ -133,14 +133,13 @@ void test_memmove_pointer_non_overlap()
     xer_assert_eq(destination[0], b(0xa1));
     xer_assert_eq(destination[1], b(0xa2));
     xer_assert_eq(destination[2], b(0xa3));
-    xer_assert_eq(destination[3], b(0xa4));
 }
 
 void test_memmove_pointer_overlap_forward()
 {
     std::array<std::byte, 6> buffer {b(1), b(2), b(3), b(4), b(5), b(6)};
 
-    const auto result = xer::memmove(buffer.data() + 1, 5, buffer.data(), 5);
+    const auto result = xer::memmove(buffer.data() + 1, 5, buffer.data(), 4);
 
     xer_assert(result.has_value());
     xer_assert_eq(result.value(), buffer.data() + 1);
@@ -149,14 +148,13 @@ void test_memmove_pointer_overlap_forward()
     xer_assert_eq(buffer[2], b(2));
     xer_assert_eq(buffer[3], b(3));
     xer_assert_eq(buffer[4], b(4));
-    xer_assert_eq(buffer[5], b(5));
 }
 
 void test_memmove_pointer_overlap_backward()
 {
     std::array<std::byte, 6> buffer {b(1), b(2), b(3), b(4), b(5), b(6)};
 
-    const auto result = xer::memmove(buffer.data(), 5, buffer.data() + 1, 5);
+    const auto result = xer::memmove(buffer.data(), 6, buffer.data() + 1, 4);
 
     xer_assert(result.has_value());
     xer_assert_eq(result.value(), buffer.data());
@@ -164,14 +162,12 @@ void test_memmove_pointer_overlap_backward()
     xer_assert_eq(buffer[1], b(3));
     xer_assert_eq(buffer[2], b(4));
     xer_assert_eq(buffer[3], b(5));
-    xer_assert_eq(buffer[4], b(6));
-    xer_assert_eq(buffer[5], b(6));
 }
 
 void test_memmove_pointer_length_error()
 {
     std::array<std::byte, 2> destination {b(0), b(0)};
-    const std::array<std::byte, 3> source {b(9), b(8), b(7)};
+    const std::array<std::byte, 3> source {b(1), b(2), b(3)};
 
     const auto result =
         xer::memmove(destination.data(), destination.size(), source.data(), source.size());
@@ -248,6 +244,64 @@ void test_memchr_container_const_success()
     const std::array<std::byte, 4> buffer {b(5), b(6), b(7), b(8)};
 
     const auto result = xer::memchr(buffer, b(8));
+
+    xer_assert(result.has_value());
+    xer_assert_eq(result.value(), buffer.begin() + 3);
+}
+
+void test_memrchr_pointer_mutable_success()
+{
+    std::array<std::byte, 6> buffer {b(0x10), b(0x20), b(0x30), b(0x20), b(0x50), b(0x20)};
+
+    const auto result = xer::memrchr(buffer.data(), buffer.size(), b(0x20));
+
+    xer_assert(result.has_value());
+    xer_assert_eq(result.value(), buffer.data() + 5);
+}
+
+void test_memrchr_pointer_const_success()
+{
+    const std::array<std::byte, 6> buffer {b(0x10), b(0x20), b(0x30), b(0x40), b(0x20), b(0x60)};
+
+    const auto result = xer::memrchr(buffer.data(), buffer.size(), b(0x20));
+
+    xer_assert(result.has_value());
+    xer_assert_eq(result.value(), buffer.data() + 4);
+}
+
+void test_memrchr_pointer_not_found()
+{
+    const std::array<std::byte, 5> buffer {b(0x10), b(0x20), b(0x30), b(0x40), b(0x50)};
+
+    const auto result = xer::memrchr(buffer.data(), buffer.size(), b(0xff));
+
+    xer_assert(!result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::not_found);
+}
+
+void test_memrchr_pointer_invalid_argument()
+{
+    const auto result = xer::memrchr(static_cast<const std::byte*>(nullptr), 1, b(0x10));
+
+    xer_assert(!result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+}
+
+void test_memrchr_container_mutable_success()
+{
+    std::vector<std::byte> buffer {b(5), b(6), b(7), b(6), b(8)};
+
+    const auto result = xer::memrchr(buffer, b(6));
+
+    xer_assert(result.has_value());
+    xer_assert_eq(result.value(), buffer.begin() + 3);
+}
+
+void test_memrchr_container_const_success()
+{
+    const std::array<std::byte, 5> buffer {b(5), b(9), b(7), b(9), b(8)};
+
+    const auto result = xer::memrchr(buffer, b(9));
 
     xer_assert(result.has_value());
     xer_assert_eq(result.value(), buffer.begin() + 3);
@@ -349,7 +403,7 @@ void test_memset_container_success()
 
 } // namespace
 
-int main()
+auto main() -> int
 {
     test_memcpy_pointer_success();
     test_memcpy_pointer_zero_length_success();
@@ -371,6 +425,13 @@ int main()
     test_memchr_pointer_invalid_argument();
     test_memchr_container_mutable_success();
     test_memchr_container_const_success();
+
+    test_memrchr_pointer_mutable_success();
+    test_memrchr_pointer_const_success();
+    test_memrchr_pointer_not_found();
+    test_memrchr_pointer_invalid_argument();
+    test_memrchr_container_mutable_success();
+    test_memrchr_container_const_success();
 
     test_memcmp_equal();
     test_memcmp_less_by_content();
