@@ -93,6 +93,7 @@ enum class error_t : std::int32_t {
     not_found = -12,
     divide_by_zero = -13,
     network_error = -14,
+    process_error = -15,
 
     user_error = -1000,
 };

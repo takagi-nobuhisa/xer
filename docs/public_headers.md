@@ -40,6 +40,10 @@
 - `xer/cyclic.h`
 - `xer/quantity.h`
 
+### Process
+
+- `xer/process.h`
+
 ### Time
 
 - `xer/time.h`
@@ -138,5 +142,6 @@ xer/stdint.h
 xer/arithmetic.h
 xer/cyclic.h
 xer/quantity.h
+xer/process.h
 xer/time.h
 xer/version.h
