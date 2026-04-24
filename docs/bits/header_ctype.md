@@ -379,3 +379,67 @@ This example shows the normal style:
 * `policy_encoding.md`
 * `header_string.md`
 * `header_stdlib.md`
+
+---
+
+## Unicode Scalar Classification
+
+The dynamic classifier now also includes Unicode validity checks:
+
+```cpp
+is_unicode_scalar_value
+is_unicode_bmp_scalar_value
+
+ctype_id::unicode
+ctype_id::unicode_bmp
+```
+
+`is_unicode_scalar_value` returns true for valid Unicode scalar values.
+Surrogate code points are rejected.
+
+`is_unicode_bmp_scalar_value` returns true only for valid Unicode scalar values in the Basic Multilingual Plane.
+
+These functions are code-point validity checks. They are not Unicode identifier checks.
+
+---
+
+## Fullwidth and Halfwidth Classification
+
+`ctype_id` includes explicit fullwidth and halfwidth categories:
+
+```cpp
+fullwidth_kana
+halfwidth_kana
+fullwidth_digit
+halfwidth_digit
+fullwidth_alpha
+halfwidth_alpha
+fullwidth_punct
+halfwidth_punct
+fullwidth_space
+halfwidth_space
+fullwidth_graph
+halfwidth_graph
+fullwidth_print
+halfwidth_print
+fullwidth
+halfwidth
+```
+
+These categories are intended for Japanese text processing and are available through `isctype`.
+
+---
+
+## Fullwidth and Halfwidth Conversion
+
+`ctrans_id` includes fullwidth and halfwidth conversion categories corresponding to the classification categories.
+
+They are available through:
+
+```cpp
+auto toctrans(char32_t c, ctrans_id id) -> xer::result<char32_t>;
+```
+
+The conversions are single-code-point transformations.
+When a fullwidth Kana character with dakuten or handakuten would require multiple halfwidth code points, the current single-character return model may necessarily lose that mark.
+

@@ -15,6 +15,7 @@ This header is one of the most important public headers in XER because it provid
 - file-entry operations
 - CSV input/output
 - stream state and positioning
+- stream rewinding
 
 ---
 
@@ -511,3 +512,19 @@ This example shows the basic XER style:
 * `policy_encoding.md`
 * `header_path.md`
 * `header_stdlib.md`
+
+
+---
+
+## Rewinding
+
+`<xer/stdio.h>` provides `rewind` for both stream kinds:
+
+```cpp
+auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
+auto rewind(text_stream& stream) noexcept -> xer::result<void>;
+```
+
+Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
+
+For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.

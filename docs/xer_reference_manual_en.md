@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.1.0**
+Target version: **v0.2.0a1**
 
 ---
 
@@ -616,6 +616,8 @@ This header brings together several kinds of functionality:
 - UTF-aware character and substring search helpers
 - PHP-inspired utility functions such as split/join and trim
 - raw memory helpers grouped with string-oriented facilities
+- prefix/suffix checks
+- case conversion and dynamic string transformation
 - error text helpers
 
 The goal is not to reproduce the C standard library exactly.
@@ -647,6 +649,8 @@ At a high level, `<xer/string.h>` contains the following groups of functionality
 - copy and concatenation
 - split / join / trim
 - raw memory helpers
+- prefix/suffix checks
+- case conversion and dynamic string transformation
 - error text helpers
 
 ---
@@ -934,6 +938,39 @@ This example shows a typical XER style:
 * `policy_examples.md`
 * `header_ctype.md`
 * `header_stdlib.md`
+
+
+---
+
+## Prefix and Suffix Checks
+
+`<xer/string.h>` provides prefix and suffix helpers:
+
+```cpp
+starts_with
+ends_with
+```
+
+They accept string-like arguments and are intended to cover common UTF-8 string-view and literal use cases naturally.
+
+---
+
+## Case Conversion and Dynamic String Transformation
+
+The header provides string-level transformation helpers:
+
+```cpp
+strtolower
+strtoupper
+strtoctrans
+```
+
+`strtolower` and `strtoupper` apply character conversion to a string and return a transformed string.
+
+`strtoctrans` applies a `ctrans_id` transformation to each code point of a string.
+It is the string-level counterpart of `toctrans`.
+
+Current transformation support includes ASCII and Latin-1 case conversion as well as fullwidth/halfwidth transformations where implemented by `toctrans`.
 
 ---
 
@@ -1318,6 +1355,69 @@ This example shows the normal style:
 * `policy_encoding.md`
 * `header_string.md`
 * `header_stdlib.md`
+
+---
+
+## Unicode Scalar Classification
+
+The dynamic classifier now also includes Unicode validity checks:
+
+```cpp
+is_unicode_scalar_value
+is_unicode_bmp_scalar_value
+
+ctype_id::unicode
+ctype_id::unicode_bmp
+```
+
+`is_unicode_scalar_value` returns true for valid Unicode scalar values.
+Surrogate code points are rejected.
+
+`is_unicode_bmp_scalar_value` returns true only for valid Unicode scalar values in the Basic Multilingual Plane.
+
+These functions are code-point validity checks. They are not Unicode identifier checks.
+
+---
+
+## Fullwidth and Halfwidth Classification
+
+`ctype_id` includes explicit fullwidth and halfwidth categories:
+
+```cpp
+fullwidth_kana
+halfwidth_kana
+fullwidth_digit
+halfwidth_digit
+fullwidth_alpha
+halfwidth_alpha
+fullwidth_punct
+halfwidth_punct
+fullwidth_space
+halfwidth_space
+fullwidth_graph
+halfwidth_graph
+fullwidth_print
+halfwidth_print
+fullwidth
+halfwidth
+```
+
+These categories are intended for Japanese text processing and are available through `isctype`.
+
+---
+
+## Fullwidth and Halfwidth Conversion
+
+`ctrans_id` includes fullwidth and halfwidth conversion categories corresponding to the classification categories.
+
+They are available through:
+
+```cpp
+auto toctrans(char32_t c, ctrans_id id) -> xer::result<char32_t>;
+```
+
+The conversions are single-code-point transformations.
+When a fullwidth Kana character with dakuten or handakuten would require multiple halfwidth code points, the current single-character return model may necessarily lose that mark.
 
 ---
 
@@ -2126,6 +2226,7 @@ This header is one of the most important public headers in XER because it provid
 - file-entry operations
 - CSV input/output
 - stream state and positioning
+- stream rewinding
 
 ---
 
@@ -2623,6 +2724,22 @@ This example shows the basic XER style:
 * `header_path.md`
 * `header_stdlib.md`
 
+
+---
+
+## Rewinding
+
+`<xer/stdio.h>` provides `rewind` for both stream kinds:
+
+```cpp
+auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
+auto rewind(text_stream& stream) noexcept -> xer::result<void>;
+```
+
+Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
+
+For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
+
 ---
 
 # `<xer/path.h>`
@@ -3100,6 +3217,127 @@ This example shows the normal XER style:
 
 ---
 
+# `<xer/socket.h>`
+
+## Purpose
+
+`<xer/socket.h>` provides a small socket API for TCP and UDP networking.
+
+The API is intentionally low-level enough to stay understandable, but it wraps platform differences and reports ordinary failure through `xer::result`.
+
+---
+
+## Main Role
+
+This header provides:
+
+- a move-only RAII socket handle
+- IPv4 and IPv6 socket creation
+- TCP connection, bind, listen, and accept operations
+- UDP send/receive operations
+- conversion of sockets to XER binary or text streams
+
+---
+
+## Main Types
+
+```cpp
+enum class socket_family;
+enum class socket_type;
+struct socket_address;
+struct socket_recvfrom_result;
+class socket;
+```
+
+### `socket_family`
+
+```cpp
+ipv4
+ipv6
+```
+
+### `socket_type`
+
+```cpp
+tcp
+udp
+```
+
+### `socket_address`
+
+`socket_address` stores a textual address and a port number.
+
+```cpp
+std::u8string address;
+std::uint16_t port;
+```
+
+### `socket_recvfrom_result`
+
+`socket_recvfrom_result` stores the number of bytes read and the remote endpoint address.
+
+---
+
+## Socket Handle
+
+`socket` is a move-only RAII type.
+
+Important operations include:
+
+```cpp
+auto is_open() const noexcept -> bool;
+auto family() const noexcept -> socket_family;
+auto type() const noexcept -> socket_type;
+auto close() noexcept -> int;
+auto release() noexcept -> native_socket_t;
+auto native_handle() const noexcept -> native_socket_t;
+```
+
+The destructor closes the socket if it is still open.
+
+---
+
+## Socket Operations
+
+```cpp
+auto socket_create(socket_family family, socket_type type) noexcept -> xer::result<socket>;
+auto socket_close(socket& s) noexcept -> xer::result<void>;
+auto socket_connect(socket& s, std::u8string_view host, std::uint16_t port) noexcept -> xer::result<void>;
+auto socket_bind(socket& s, std::uint16_t port) noexcept -> xer::result<void>;
+auto socket_getsockname(socket& s) noexcept -> xer::result<socket_address>;
+auto socket_listen(socket& s, int backlog = 16) noexcept -> xer::result<void>;
+auto socket_accept(socket& s) noexcept -> xer::result<socket>;
+auto socket_send(socket& s, std::span<const std::byte> data) noexcept -> xer::result<std::size_t>;
+auto socket_recv(socket& s, std::span<std::byte> data) noexcept -> xer::result<std::size_t>;
+auto socket_sendto(socket& s, std::u8string_view host, std::uint16_t port, std::span<const std::byte> data) noexcept -> xer::result<std::size_t>;
+auto socket_recvfrom(socket& s, std::span<std::byte> data) noexcept -> xer::result<socket_recvfrom_result>;
+```
+
+---
+
+## Stream Conversion
+
+Sockets can be converted into XER streams:
+
+```cpp
+auto socket_open(socket&& s) noexcept -> xer::result<binary_stream>;
+auto socket_open(socket&& s, encoding_t encoding) noexcept -> xer::result<text_stream>;
+```
+
+The binary stream form is suitable for byte-oriented protocols.
+The text stream form is suitable for UTF-8 or CP932 text-oriented communication.
+
+---
+
+## Notes
+
+- Network-related ordinary failures are represented mainly with `error_t::network_error`.
+- The API does not use command shells or external utilities.
+- Host names are accepted as UTF-8 strings and converted to ordinary narrow strings for resolver APIs.
+- `socket_open` transfers ownership from the socket object into the resulting stream.
+
+---
+
 # `<xer/stdint.h>`
 
 ## Purpose
@@ -3459,6 +3697,200 @@ This example shows the normal style:
 
 * `policy_project_outline.md`
 * `header_arithmetic.md`
+
+
+---
+
+## Integer Literal Suffixes
+
+Integer literal suffixes are provided in:
+
+```cpp
+xer::literals::integer_literals
+```
+
+The fixed-width suffixes include:
+
+```cpp
+_i8   _i16   _i32   _i64
+_u8   _u16   _u32   _u64
+_i128 _u128  // when supported
+```
+
+The least-width suffixes include:
+
+```cpp
+_il8   _il16   _il32   _il64
+_ul8   _ul16   _ul32   _ul64
+```
+
+The least-width suffixes produce the corresponding `int_leastN_t` or `uint_leastN_t` type and are useful when exact storage width is less important than a guaranteed minimum range.
+
+---
+
+## Numeric Limit Helpers
+
+`min_of<T>` and `max_of<T>` are implemented through a shared numeric-limits helper so that they can also be reused by floating-point facilities such as `<xer/stdfloat.h>`.
+
+`bit_width_of<T>` remains available from `<xer/stdint.h>` for integer-oriented bit width queries.
+
+---
+
+# `<xer/stdfloat.h>`
+
+## Purpose
+
+`<xer/stdfloat.h>` provides floating-point type aliases and floating-point user-defined literals in the same spirit as `<xer/stdint.h>`.
+
+The header is intended to make floating-point width and minimum-width intent explicit while still remaining usable on implementations where C++23 `<stdfloat>` support is incomplete.
+
+---
+
+## Main Role
+
+This header provides:
+
+- fixed-width floating-point aliases where the implementation provides them
+- practical fallback aliases for `float32_t` and `float64_t`
+- optional aliases for 80-bit and 128-bit floating-point formats
+- least-width and fast-width floating-point aliases
+- optional decimal floating-point aliases when the implementation provides them
+- floating-point user-defined literals under `xer::literals::floating_literals`
+
+---
+
+## Availability Macros
+
+The header defines availability macros for optional types.
+
+Examples include:
+
+```cpp
+XER_HAS_FLOAT16_T
+XER_HAS_FLOAT32_T
+XER_HAS_FLOAT64_T
+XER_HAS_FLOAT80_T
+XER_HAS_FLOAT128_T
+XER_HAS_BFLOAT16_T
+XER_HAS_FLOAT_LEAST80_T
+XER_HAS_FLOAT_FAST80_T
+XER_HAS_DECIMAL32_T
+XER_HAS_DECIMAL64_T
+XER_HAS_DECIMAL128_T
+```
+
+These macros allow code and tests to guard features that depend on implementation support.
+
+---
+
+## Binary Floating-Point Aliases
+
+At minimum, the following aliases are provided when possible:
+
+```cpp
+float16_t
+float32_t
+float64_t
+float80_t
+float128_t
+bfloat16_t
+```
+
+`float32_t` and `float64_t` are always available in XER. If the standard `<stdfloat>` aliases are not available, they fall back to `float` and `double` respectively.
+
+`float80_t`, `float128_t`, and `bfloat16_t` are optional and are available only when the implementation provides a suitable underlying type.
+
+---
+
+## Least and Fast Floating-Point Aliases
+
+The header provides least-width and fast-width aliases such as:
+
+```cpp
+float_least16_t
+float_least32_t
+float_least64_t
+float_least80_t
+float_least128_t
+
+float_fast16_t
+float_fast32_t
+float_fast64_t
+float_fast80_t
+float_fast128_t
+```
+
+`float_least80_t` uses `float80_t` when available, and otherwise uses `float128_t` when that is available.
+
+---
+
+## Maximum Floating-Point Alias
+
+```cpp
+floatmax_t
+```
+
+`floatmax_t` is selected from the widest practical binary floating-point type available to XER.
+
+---
+
+## Decimal Floating-Point Aliases
+
+When the implementation provides `<decimal/decimal>`, XER exposes decimal floating-point aliases such as:
+
+```cpp
+decimal32_t
+decimal64_t
+decimal128_t
+
+decimal_least32_t
+decimal_least64_t
+decimal_least128_t
+
+decimal_fast32_t
+decimal_fast64_t
+decimal_fast128_t
+
+decimalmax_t
+```
+
+These aliases are optional and should be guarded with the corresponding `XER_HAS_DECIMAL...` macros.
+
+---
+
+## Floating-Point Literals
+
+Floating-point user-defined literals are placed under:
+
+```cpp
+xer::literals::floating_literals
+```
+
+Examples include:
+
+```cpp
+_f32
+_f64
+_f80
+_f128
+_fl16
+_fl32
+_fl64
+_fl80
+_fl128
+_bf16
+```
+
+Only literals whose destination type is available are provided.
+
+---
+
+## Notes
+
+- This header is intentionally capability-based.
+- Optional types are not promised on every compiler or target.
+- Code that depends on optional formats should check the corresponding availability macro.
+- The least-width literal suffixes are useful when the exact underlying available type may vary by platform.
 
 ---
 
@@ -5085,6 +5517,120 @@ This example shows the normal XER style:
 
 ---
 
+# `<xer/process.h>`
+
+## Purpose
+
+`<xer/process.h>` provides child process management facilities.
+
+The initial API is deliberately small and focuses on direct process spawning, waiting, and standard stream wiring.
+
+---
+
+## Main Role
+
+This header provides:
+
+- a move-only process handle
+- direct child process spawning without a command shell
+- standard input, standard output, and standard error configuration
+- optional pipes exposed as `binary_stream` objects
+- process waiting and exit-code retrieval
+
+---
+
+## Main Types
+
+```cpp
+enum class process_stdio;
+struct process_options;
+struct process_result;
+class process;
+struct process_spawn_result;
+```
+
+### `process_stdio`
+
+```cpp
+inherit
+null
+pipe
+```
+
+- `inherit` connects the child stream to the corresponding parent stream.
+- `null` connects the child stream to the platform null device.
+- `pipe` creates a parent-side pipe represented as a `binary_stream`.
+
+### `process_options`
+
+```cpp
+path program;
+std::vector<std::u8string> arguments;
+process_stdio stdin_mode;
+process_stdio stdout_mode;
+process_stdio stderr_mode;
+```
+
+`arguments` excludes `argv[0]`; the program path is supplied separately.
+
+### `process_result`
+
+```cpp
+int exit_code;
+```
+
+On POSIX, signal termination is represented as `128 + signal_number`.
+
+### `process_spawn_result`
+
+```cpp
+process proc;
+std::optional<binary_stream> stdin_stream;
+std::optional<binary_stream> stdout_stream;
+std::optional<binary_stream> stderr_stream;
+```
+
+The optional streams are present only when the corresponding `process_stdio::pipe` mode is requested.
+
+---
+
+## Main Functions
+
+```cpp
+auto process_spawn(const process_options& options) noexcept -> xer::result<process_spawn_result>;
+auto process_wait(process& value) noexcept -> xer::result<process_result>;
+```
+
+`process_spawn` executes the target program directly and passes arguments as separate command-line arguments.
+It does not invoke a command shell.
+
+`process_wait` waits for the child process and returns its exit status.
+
+---
+
+## Process Handle
+
+`process` is a move-only handle type.
+
+```cpp
+auto is_open() const noexcept -> bool;
+```
+
+The destructor releases the native handle owned by the object, but it does not wait for process termination.
+Call `process_wait` explicitly when the exit code is needed.
+
+---
+
+## Notes
+
+- Paths use `xer::path` and native path conversion internally.
+- Arguments use UTF-8 `std::u8string` values.
+- On Windows, command-line quoting is performed internally for direct process creation.
+- On POSIX, the child process is created using the platform process facilities and then executed directly.
+- Pipe streams are binary streams. Higher-level text handling can be layered separately if needed.
+
+---
+
 # `<xer/time.h>`
 
 ## Purpose
@@ -5714,7 +6260,7 @@ XER_VERSION_STRING
 * `XER_VERSION_MINOR`: minor version number
 * `XER_VERSION_PATCH`: patch version number
 * `XER_VERSION_SUFFIX`: suffix such as `a5`
-* `XER_VERSION_STRING`: full version string such as `0.1.0a5`
+* `XER_VERSION_STRING`: full version string such as `0.2.0a1`
 
 ### Notes
 
@@ -5783,7 +6329,7 @@ The suffix represents additional release-state information such as alpha-stage n
 For example:
 
 ```text id="uh0aq6"
-0.1.0a5
+0.2.0a1
 ```
 
 may be interpreted as:

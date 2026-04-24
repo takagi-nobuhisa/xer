@@ -109,6 +109,23 @@ When converting fullwidth Katakana with dakuten or handakuten into halfwidth Kat
 
 Halfwidth Katakana is excluded from Kana conversion.
 
+
+
+## Unicode Scalar and BMP Classification
+
+XER provides code-point validity checks as part of `isctype` and as individual helper functions.
+
+- `is_unicode_scalar_value` checks whether a `char32_t` value is a valid Unicode scalar value
+- `is_unicode_bmp_scalar_value` checks whether it is both a valid Unicode scalar value and in the Basic Multilingual Plane
+- `ctype_id::unicode` selects Unicode scalar value classification
+- `ctype_id::unicode_bmp` selects BMP Unicode scalar value classification
+
+Surrogate code points are not Unicode scalar values and therefore return `false`.
+
+These functions are deliberately limited to Unicode code-point validity.
+They do not attempt to determine whether a character is valid for Unicode identifiers or C++ universal character names.
+That area requires table-based rules and is deferred.
+
 ## Identifier-Related Functions
 
 As for `iscsym` and `iscsymf`, their adoption and specification should be considered separately, because their relationship to international character names and Unicode identifiers needs to be examined.

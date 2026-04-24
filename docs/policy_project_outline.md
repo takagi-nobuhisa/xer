@@ -183,6 +183,7 @@ Instead, it uses the following types according to purpose:
 Details of input/output follow this document:
 
 - `policy_stdio.md`
+- `policy_socket.md`
 
 ---
 
@@ -198,6 +199,7 @@ Details of input/output follow this document:
 Details of arithmetic and comparison follow this document:
 
 - `policy_arithmetic.md`
+- `policy_stdfloat.md`
 
 ---
 
@@ -345,9 +347,19 @@ The list of public headers follows this document:
 
 ---
 
-## 16. Future Functional Areas
+## 16. Process Handling
 
-### 16.1 `cyclic`
+Child process handling is provided through `xer/process.h`.
+
+Details follow this document:
+
+- `policy_process.md`
+
+---
+
+## 17. Future Functional Areas
+
+### 17.1 `cyclic`
 
 Circular values such as angles, phases, and directions are handled by `cyclic`.
 
@@ -355,7 +367,7 @@ Details follow this document:
 
 - `policy_cyclic.md`
 
-### 16.2 Physical Quantities and Units
+### 17.2 Physical Quantities and Units
 
 Physical quantities and units are handled by the quantity system.
 
@@ -363,7 +375,7 @@ Details follow this document:
 
 - `policy_quantity.md`
 
-### 16.3 Time Handling
+### 17.3 Time Handling
 
 Time-related functionality is redesigned as a simple and easy-to-use high-precision `time.h`-style library.
 
@@ -371,7 +383,7 @@ Details follow this document:
 
 - `policy_time.md`
 
-### 16.4 Multibyte Conversion in `stdlib.h`
+### 17.4 Multibyte Conversion in `stdlib.h`
 
 The multibyte conversion facilities in `stdlib.h` follow a separate policy document.
 
@@ -381,7 +393,7 @@ Details follow this document:
 
 ---
 
-## 17. Summary
+## 18. Summary
 
 - XER is a C++23 library designed for programmers familiar with C
 - It values clarity and practicality over excessive abstraction

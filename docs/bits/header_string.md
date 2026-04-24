@@ -10,6 +10,8 @@ This header brings together several kinds of functionality:
 - UTF-aware character and substring search helpers
 - PHP-inspired utility functions such as split/join and trim
 - raw memory helpers grouped with string-oriented facilities
+- prefix/suffix checks
+- case conversion and dynamic string transformation
 - error text helpers
 
 The goal is not to reproduce the C standard library exactly.
@@ -41,6 +43,8 @@ At a high level, `<xer/string.h>` contains the following groups of functionality
 - copy and concatenation
 - split / join / trim
 - raw memory helpers
+- prefix/suffix checks
+- case conversion and dynamic string transformation
 - error text helpers
 
 ---
@@ -328,3 +332,36 @@ This example shows a typical XER style:
 * `policy_examples.md`
 * `header_ctype.md`
 * `header_stdlib.md`
+
+
+---
+
+## Prefix and Suffix Checks
+
+`<xer/string.h>` provides prefix and suffix helpers:
+
+```cpp
+starts_with
+ends_with
+```
+
+They accept string-like arguments and are intended to cover common UTF-8 string-view and literal use cases naturally.
+
+---
+
+## Case Conversion and Dynamic String Transformation
+
+The header provides string-level transformation helpers:
+
+```cpp
+strtolower
+strtoupper
+strtoctrans
+```
+
+`strtolower` and `strtoupper` apply character conversion to a string and return a transformed string.
+
+`strtoctrans` applies a `ctrans_id` transformation to each code point of a string.
+It is the string-level counterpart of `toctrans`.
+
+Current transformation support includes ASCII and Latin-1 case conversion as well as fullwidth/halfwidth transformations where implemented by `toctrans`.

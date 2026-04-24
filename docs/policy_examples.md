@@ -439,3 +439,21 @@ The specific API names and input values may vary from example to example, but th
 * file names should use lower snake case with the `example_` prefix
 * examples should be suitable for automatic build and execution
 * as far as possible, code examples in `examples/` should become the canonical source for user-facing example snippets
+
+
+---
+
+## Current Coverage Notes
+
+The current example set includes examples for newly added areas such as:
+
+- prefix and suffix checks
+- string case conversion and dynamic string transformation
+- fullwidth and halfwidth character handling
+- Unicode scalar and BMP checks
+- floating-point aliases and literals
+- socket creation and socket stream conversion
+- child process spawning, waiting, pipes, and null standard streams
+- stream rewinding
+
+These notes are descriptive rather than a fixed completeness requirement. The detailed list should continue to be inferred from the actual files under `examples/`.

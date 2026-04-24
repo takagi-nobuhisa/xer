@@ -78,7 +78,7 @@ XER_VERSION_STRING
 * `XER_VERSION_MINOR`: minor version number
 * `XER_VERSION_PATCH`: patch version number
 * `XER_VERSION_SUFFIX`: suffix such as `a5`
-* `XER_VERSION_STRING`: full version string such as `0.1.0a5`
+* `XER_VERSION_STRING`: full version string such as `0.2.0a1`
 
 ### Notes
 
@@ -147,7 +147,7 @@ The suffix represents additional release-state information such as alpha-stage n
 For example:
 
 ```text id="uh0aq6"
-0.1.0a5
+0.2.0a1
 ```
 
 may be interpreted as:

@@ -280,6 +280,9 @@ Examples:
 - `policy_result_arguments.md`
 - `policy_examples.md`
 - `policy_doc_layout.md`
+- `policy_socket.md`
+- `policy_process.md`
+- `policy_stdfloat.md`
 
 ### Names of supporting fragments
 

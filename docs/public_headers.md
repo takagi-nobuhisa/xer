@@ -36,6 +36,7 @@
 ### Numeric and Arithmetic Facilities
 
 - `xer/stdint.h`
+- `xer/stdfloat.h`
 - `xer/arithmetic.h`
 - `xer/cyclic.h`
 - `xer/quantity.h`
@@ -139,9 +140,11 @@ xer/stdio.h
 xer/path.h
 xer/socket.h
 xer/stdint.h
+xer/stdfloat.h
 xer/arithmetic.h
 xer/cyclic.h
 xer/quantity.h
 xer/process.h
 xer/time.h
 xer/version.h
+```

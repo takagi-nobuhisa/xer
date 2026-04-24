@@ -1,0 +1,672 @@
+commit 0048b0799c5274ac1d18434a1010b3a9ea1e778a
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 16:20:53 2026 +0900
+
+    [add] BMPの判別とUnicodeの有効文字の判別のコード例を追加
+
+commit 6fd0b1e9f17e34d3447243c185a1dbe2b2ce7558
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 16:20:23 2026 +0900
+
+    [update] isctypeにBMPの判別、Unicodeの有効文字の判別を追加
+
+commit 50f7a53576af7432b251888ccac5c76a89d3a2d8
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 16:19:21 2026 +0900
+
+    [update] ctype_idにfulleidthとhalfwidthを追加、全角・半角関係のテストプログラムを追加
+
+commit 97bd99235df94f3e9aac2f27de2526601642734a
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 15:31:03 2026 +0900
+
+    [add] 全角・半角関係のコード例を追加
+
+commit b2981449f68ee24aa9b59a0799267c473b03bad4
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 15:30:46 2026 +0900
+
+    [add] 全角・半角をisctype, toctrans, strtoctransで扱えるように更新
+
+commit 04756a44354fb6a5968f5c900133d26590e8a92e
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 15:02:26 2026 +0900
+
+    [add] 子プロセス関連のコード例を追加
+
+commit 709d5ccdf1970670c32b8e6d991c0e1cf2b367b1
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 15:02:05 2026 +0900
+
+    [add] xer/process.hを追加
+
+commit e9856192d9eccdb849adfd079b1420bb6ad1d016
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 13:48:39 2026 +0900
+
+    [add] ソケット関連のコード例を追加
+
+commit 9818efb13931f9bf18a9837ca96dc729436354a5
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 13:48:18 2026 +0900
+
+    [add] strtolower, strtoupper, strtoctransのコード例を追加
+
+commit d79e28d9778631b8c7e6489a8510bb84645a67f4
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 13:47:51 2026 +0900
+
+    [add] xer/socket.hを追加
+
+commit 35038902d44b478c93d31b7598d45d5c5d786bac
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 11:57:24 2026 +0900
+
+    [add] xer/stdfloat.hのコード例を追加
+
+commit 76b33124bada820c78a05dcf216a853e5d769edd
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 11:57:04 2026 +0900
+
+    [add] xer/stdfloat.hを追加
+
+commit f5d249b10760aebbd969b6924f2deb8c17bad6ec
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 11:56:38 2026 +0900
+
+    [update] xer/bits/stdint.hからmax_ofとmin_ofを分離、least系のUDLを追加
+
+commit 644429297d4ff18c55aeecf596bc20814ac5386e
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 11:53:18 2026 +0900
+
+    [add] starts_withとends_withのコード例を追加
+
+commit af561ffeca05e14fd6d997856c66fc605086162c
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 11:52:28 2026 +0900
+
+    [add] starts_with, ends_with, strtolower, strtoupper, strtoctransを追加
+
+commit 59bd23007bb48c5c34cea2f947fc38dcb3c45145
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 09:12:45 2026 +0900
+
+    [add] rewindを追加
+
+commit 94186e74a3152d479d6cf874216804bbfffd65a7
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 00:08:22 2026 +0900
+
+    [update] バージョン情報を0.1.0に更新
+
+commit 191db63084e493a1968eab549c88da8a33e547d1
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 00:07:59 2026 +0900
+
+    [update] リファレンスマニュアルを更新
+
+commit 83e050febad4f36278b1aac069e063fc48cbc595
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Fri Apr 24 00:07:28 2026 +0900
+
+    [update] リファレンスマニュアル生成スクリプトを更新
+
+commit c2382a4f671b27e9257cdabd415509fdf417c9ab
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 23:50:54 2026 +0900
+
+    [update] バージョン情報を0.1.0b1に更新
+
+commit 3945fb9c65671b92013eb20d159abba18a18c820
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 23:50:25 2026 +0900
+
+    [update] リファレンスマニュアルを自動生成されたものに差し替え
+
+commit 14fd6ec758522c83aa3a38156f20c36ff561b53f
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 23:49:34 2026 +0900
+
+    [add] リファレンスマニュアルの自動生成スクリプトを追加
+
+commit 9e90b6671b4f6c068eeef6ff65569c7d10c6d741
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 23:00:57 2026 +0900
+
+    [add] docs/bits/header_*.mdを追加
+
+commit 880bd25e1c78b78715fd04e259d816e287457659
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 22:08:03 2026 +0900
+
+    [delete] 日本語の方針文書を削除
+
+commit 69a556487a2f3158ac84065ba7ea4740e89079fe
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 22:07:40 2026 +0900
+
+    [add] 方針文書の英訳を追加
+
+commit 3a7c193f220348e229545a785047880767738772
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 16:45:38 2026 +0900
+
+    [update] バージョン情報を0.1.0a5に更新
+
+commit 925981c8a2d5ae1cb69e5b00bca33d02ed435309
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 16:45:10 2026 +0900
+
+    [update] リファレンスマニュアルを更新
+
+commit 2fe562e90022d19ca6eea3d4e965013876d02840
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 16:43:40 2026 +0900
+
+    [add] コード例を追加
+
+commit a0aa21f12d9b71ae2b81e94af235f7bbe1832095
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 16:43:09 2026 +0900
+
+    [update] xer/stdio.hにxer/bits/file_entry.hのインクルードを追加
+
+commit 2701014d85eedc76154ab024f68e8e06d22c35cf
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 16:42:19 2026 +0900
+
+    [update] xer/bits/mem.hにmemrchrを追加
+
+commit dde2615351e7537e3b35a95266b2617f2bcc3ddc
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 16:40:19 2026 +0900
+
+    [update] xer/path.hで未実装だった関数を追加
+
+commit f0ccb01fa5f21fbd02836124f9e73a7cc09743c7
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 16:39:12 2026 +0900
+
+    [update] xer/bits/string_compare.hで定義している関数が文字列リテラルを引数に取れるように仕様変更
+
+commit 13c934032fec564e1f6f48517c3d67851c6ae692
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 16:38:16 2026 +0900
+
+    [update] xer/bits/string_read.hで定義している関数が文字列リテラルを引数に取れるように仕様変更
+
+commit db94dda3daeb3f88fc9144dc6f1bd4a235b57231
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:28:45 2026 +0900
+
+    [add] strlenのコード例を追加
+
+commit b7179da4a5303f181584a69fba1c1d93cf6b40fe
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:28:27 2026 +0900
+
+    [update] strlenの仕様変更
+
+commit 4e6a56a64e6031d8f6f00f9efde769b43289091a
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:28:06 2026 +0900
+
+    [add] xer/assert.hのコード例を追加
+
+commit 458dd990f301a7c4483b62ae027d69a37ce8f037
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:27:40 2026 +0900
+
+    [add] strcpy, strncpy, strcat, strncatのコード例を追加
+
+commit 745de4184e0b609442acc8e99980148d3feffc86
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:27:13 2026 +0900
+
+    [update] strcpy, strncpy, strcat, strncatを仕様変更
+
+commit be1cfa2090418bf35e1167cc6069d97d5b19eccb
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:26:30 2026 +0900
+
+    [add] printfとscanfのコード例を追加
+
+commit 5cf450be9495eebc30c808a8d4a6305c5078b49f
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:26:00 2026 +0900
+
+    [add] strtoのコード例を追加
+
+commit d06b14037ef1019d86e7108421b6c252f52818d7
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:15:02 2026 +0900
+
+    [add] 擬似乱数のコード例を追加
+
+commit f7b48c09facb6adab45649b9c32b6b780c5ab69a
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:14:30 2026 +0900
+
+    [add] CSV関連関数のコード例を追加
+
+commit 21bd7f40a6d9e4391d41cbddf2f5c7597275fd10
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:14:05 2026 +0900
+
+    [add] implode, explodeのコード例を追加
+
+commit 9b50b44635c91e72eb2d51086f431452dcd8ba4b
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:13:34 2026 +0900
+
+    [add] abs, uabsのコード例を追加
+
+commit 28952a105f409215c002d501aacf4413867e4039
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:13:06 2026 +0900
+
+    [add] xer/ctype.hのコード例を追加
+
+commit 9ddfa09279a242cae7d28bdec74281fdb75b072d
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 23 12:12:22 2026 +0900
+
+    [update] ctrans_idの列挙子を名称変更
+
+commit c16df276d3daf0d393a96d7367d98dd993d30295
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 16:21:31 2026 +0900
+
+    [add] min, max, clampのコード例を追加
+
+commit f4fbbe2b55689b918cb0077ff8397272cef40db1
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 16:21:10 2026 +0900
+
+    [update] 整数型の引数に対するminおよびmaxの返却値の型、および比較方法を変更
+
+commit fcbd54d76ac92d37433b55b6f8186c5c109050a0
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 16:20:16 2026 +0900
+
+    [update] 四則演算・比較演算に関する方針.mdを更新
+
+commit a71dd09ad15452671f4614a5b683155ec572eb1d
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 15:15:35 2026 +0900
+
+    [add] xer/quantity.hに関するコード例を追加
+
+commit a867056d5c524d20d35d658fa960509af5d0d2a5
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 15:15:11 2026 +0900
+
+    [fix] 物理量・単位に関する方針.mdの誤記を修正
+
+commit 8d4dc2cffd56bded029eeb439d15029408c94e16
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:46:39 2026 +0900
+
+    [add] tests/example_cyclic_direction.cppを追加
+
+commit a9cb467d9beef82e53f54e808e6a451c8f4c7156
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:46:06 2026 +0900
+
+    [update] to_degree関数を仕様変更
+
+commit 16f9cf9c0f5c287b230a4d2c6b7cfb94b0b75785
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:26:42 2026 +0900
+
+    [update] バージョン情報を0.1.0a4に更新
+
+commit ab662e623375589d7b5014c380eb025a208357ad
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:15:32 2026 +0900
+
+    [fix] xer/version.hのインクルードガードマクロを修正
+
+commit 10a1617ac3dd80df5eda146dedbd69cf8d71fe5e
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:14:34 2026 +0900
+
+    [update] テストスクリプトを並列実行できるように改善
+
+commit d44b1e5d7dde9a108c6dcc2725551b91fc77c85e
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:14:01 2026 +0900
+
+    [add] examplesディレクトリを新設し、コード例を追加
+
+commit c3dd391c2057374fd4af8043bd50f042989e7442
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:13:07 2026 +0900
+
+    [update] リファレンスマニュアルを更新
+
+commit f6802cc5f1ea6325c642f8d74340b3463f9932ea
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:12:24 2026 +0900
+
+    [fix] xer/arithmetic.hがxer/bits/div.hをインクルードしていない不具合を修正
+
+commit b351f0e3c649722ad86b0ab2050d956b0da03dac
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:11:02 2026 +0900
+
+    [update] trimおよびtrim_view関数がresultを引数に取らないように仕様変更
+
+commit 6d3f5d86f53833c2226be654e1904e14f859b1a6
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:08:54 2026 +0900
+
+    [add] 「補助文書配置方針.md」を追加
+
+commit cbc9e46798d3110e7f580eea6d6a4d4f117a6434
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:08:21 2026 +0900
+
+    [add] 「コード例に関する方針.md」を追加
+
+commit 51e9002687b8b40711acbe20868a895c7c90d686
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 22 14:07:49 2026 +0900
+
+    [add] 「result引数に関する方針.md」を追加
+
+commit c8f5ab4134d63a94d8bf0d03929c974e8e57cea0
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 21 19:46:38 2026 +0900
+
+    [update] バージョン情報を0.1.0a3に更新
+
+commit 5938e9eb5f7e5d54a442802fa442b0bbd1e904b9
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 21 19:46:10 2026 +0900
+
+    [update] リファレンスマニュアル更新
+
+commit a8014390748d8444d9ed67aa025dfaba2aa8cf4e
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Mon Apr 20 15:14:34 2026 +0900
+
+    [add] xer/quantity.hを追加
+
+commit 6bb2fa12af55d9e5c0abd946e38bbd89a2a9c227
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 16 20:33:51 2026 +0900
+
+    [update] xer::pi_vの実装にstd::numbers::pi_vを利用するように修正、xer::tau_vを追加
+
+commit 8bd9fc81409d13e92c42413724195fed48c2dd29
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 16 17:03:32 2026 +0900
+
+    [update] 公開ヘッダ一覧.mdに/xer/cyclic.hを追加
+
+commit 27d928214f0da139bb2a790b54a9e34f0166443b
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Thu Apr 16 12:08:19 2026 +0900
+
+    [add] xer/cyclic.hおよび関連ファイルを追加
+
+commit d53ec20e1d8fe3261cad36b8c19d13e3b5a4a2ee
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 15 13:08:07 2026 +0900
+
+    [add] xer/json.hを追加
+    
+    ・json_encodeおよびjson_decodeを追加
+    ・連ドキュメントを更新
+
+commit 9198068633ccdc3bbc2edb8df10cefcc40d32cb4
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 15 11:27:33 2026 +0900
+
+    [add] case系およびi系の文字列比較関数を追加
+
+commit f8f16c981bd8fddbd92f24d05d2ec5a74ca2958d
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 15 10:39:28 2026 +0900
+
+    [add] PHPからstrposおよびstrrposを移植。strrstrを追加
+
+commit dce5553a27243afb94d3f0e9222fe0fd8cb5475c
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 15 09:47:33 2026 +0900
+
+    [fix] stropenの挙動を改善
+
+commit d983c86346cab1ab66ee1bf7432408f8648c8883
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 15 09:46:44 2026 +0900
+
+    [add] PHPのfgetcsvおよびfputcsvを移植
+
+commit e6e78784a13cf5c3d720f91b344ac22e7251cf73
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Wed Apr 15 05:10:13 2026 +0900
+
+    [update] CSVの扱いに関して方針文書を更新
+
+commit 2dc216a69c23c7d730ce53f6d0644bcee69a6045
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 23:16:15 2026 +0900
+
+    [update] in_range, clamp, min, maxを方針文書に反映
+
+commit ad016509ec47e3a409a735ccb4c3dfe62fcf4d8f
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 23:02:39 2026 +0900
+
+    [update] clamp, min, maxを改善
+
+commit d0c661dd1e15ff5939135e941511d00dab124275
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 23:02:02 2026 +0900
+
+    [update] in_rangeを改善
+
+commit bcd0789f24dc2b6dea2f588a7d6c7bf04aa3b7ca
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 22:39:06 2026 +0900
+
+    [update] lt等の比較関数群を改善
+
+commit c4dd96ef0a841d1362c1ccb4392cb61b1584be53
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 22:26:56 2026 +0900
+
+    [add] minおよびmaxを追加
+
+commit 29681dad78aa4988e843b3492e6829e230d9949d
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 22:26:31 2026 +0900
+
+    [add] clampを追加
+
+commit de369732843464132f70395bd6a3f09df6bb303d
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 21:25:50 2026 +0900
+
+    [add] in_rangeを追加
+
+commit c4bc5665df680b92bbd7129693b488b689bcf081
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 21:03:03 2026 +0900
+
+    [add] tests/test_trim.cppを追加
+
+commit 887ee62e97678114c55dda1731bc5124359788df
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 21:02:18 2026 +0900
+
+    [add] trim系およびtrim_view系関数を追加
+
+commit d0f05fe3105aa57105eb4f80667aa5a5d92fb221
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 17:07:06 2026 +0900
+
+    [update] バージョン情報を0.1.0a2に更新
+
+commit 0edb9b23ed64a0a30f15c04d29038c845a7a4b7e
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 17:06:22 2026 +0900
+
+    [add] リファレンスマニュアルを追加
+
+commit 7faf712f1a52af36bfd343866ce16304c5cb64b3
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 16:51:17 2026 +0900
+
+    [update] .gitignoreにDoxygen関連ファイルを追加
+
+commit a40755073b881940a9f1b98aaa539dffbc37e4b9
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Tue Apr 14 16:50:15 2026 +0900
+
+    [update] docディレクトリをdocsに改名
+
+commit 1f64c465bdc7e5976e1066390db47332dee5b0a5
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Mon Apr 13 12:58:33 2026 +0900
+
+    [update] xer/version.hにDoxygenコメントを追加
+
+commit 11e90e99bb5ec82bd35b0a545a0e8cdccddf7f7b
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Mon Apr 13 12:20:51 2026 +0900
+
+    [update] error_t::encoding_errorを導入
+
+commit 54a5340e79a709d7f9e82930fe70b935f59e403a
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Mon Apr 13 12:00:20 2026 +0900
+
+    [update] MultiByteToWideCharとWideCharToMultiByteを排除
+
+commit cf981adfb3a27a8b234a0bb170d88af9609f49ee
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Mon Apr 13 11:01:56 2026 +0900
+
+    [update] error_t::io_errorを導入
+
+commit c47a9a31efa5063b50c1bc0f51a436293a41f45a
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 22:37:00 2026 +0900
+
+    [update] xer::result型を使うようにxer/bits下の全ヘッダーファイルを更新
+
+commit a1a6b6262ec9702647ae8e15fb220f83fd09f094
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 22:14:05 2026 +0900
+
+    [update] xer::result型導入に伴うドキュメントの更新
+
+commit 94e2ea66260811642f699c92f506c40475beca87
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 21:17:22 2026 +0900
+
+    [add] isctypeとtoctransをLatin-1に対応
+    
+    特例としてßの大文字にも対応
+
+commit edb9351ca5415f0a16703a3653f269fddd1c20e6
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 21:15:27 2026 +0900
+
+    [add] PHPのexplodeとimplodeを移植
+
+commit 419bd12b99e4418c41a508d2617591afdf068273
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 19:24:56 2026 +0900
+
+    [update] その他の関数の返却型を後置形式に統一
+
+commit 83c6f85b28259e7e4b22246d82969905b624fcec
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 09:17:48 2026 +0900
+
+    [update] 時刻系の関数の返却型を後置形式に統一
+
+commit ee8744e888d726def95a59cc742e7f5f7bf50c9e
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 08:23:28 2026 +0900
+
+    [update] 入出力系の関数の返却型を後置形式に統一
+
+commit 5701d88be7845652a47263e8eaab2ff2213e88f4
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 08:11:07 2026 +0900
+
+    [update] 文字列系の関数の返却型を後置形式に統一
+
+commit 82af47b6fc0011d316b28593d5fb44875abaef04
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 07:53:29 2026 +0900
+
+    [add] run_tests.phpを追加
+    
+    tests下のテストプログラムを自動的にコンパイルし、実行するスクリプト
+
+commit 99cb1fb03997ee0ce5f20046659cdd1e46308c2e
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 07:52:22 2026 +0900
+
+    [update] .gitignoreにphp/build/*を追加
+
+commit 2a50cab07ac4e2e9feb3410e12af04f5557a8643
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sun Apr 12 06:46:19 2026 +0900
+
+    [update] xer/version.hを追加したことに伴うドキュメントの更新
+
+commit 5a4474730cb069d11a62004f6d1e33f8b6eb7b39
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sat Apr 11 12:54:42 2026 +0900
+
+    [add] xer/version.h
+
+commit 4f41714bdbc09f7dd16ed0d38324fc8683418827
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sat Apr 11 11:47:35 2026 +0900
+
+    [add] インクルードしたときの衝突チェックスクリプト
+
+commit 4a08fdf7fe108df676f010348d8acde4bb6881f6
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sat Apr 11 11:47:01 2026 +0900
+
+    [add] テストプログラム群
+
+commit 6a18d4e4d6641ce75f7c820d95006990a673fd00
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sat Apr 11 11:46:36 2026 +0900
+
+    [add] ライブラリ本体（ヘッダーファイル群）
+
+commit 60003b74fafcb72a4dfefae8df1026becc405130
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sat Apr 11 11:45:45 2026 +0900
+
+    [add] packed CP932とUTF-16の変換表の生成スクリプト
+
+commit 6dd937455e324b9ebb928dc6fe7c18ed51ee8dd2
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sat Apr 11 11:44:48 2026 +0900
+
+    [add] ドキュメント一式を追加
+
+commit 88cfd505e2fccfac0415950b4775882864fae9f0
+Author: takagi-nobuhisa <takagi.nobuhisa@gmail.com>
+Date:   Sat Apr 11 11:44:07 2026 +0900
+
+    [add] コーディングスタイルに関する設定を追加
+
+commit e96ace50e5536143bae6f0cfda1a9222d99a77e7
+Author: TAKAGI Nobuhisa <63833345+takagi-nobuhisa@users.noreply.github.com>
+Date:   Wed Mar 25 09:23:26 2026 +0900
+
+    Initial commit

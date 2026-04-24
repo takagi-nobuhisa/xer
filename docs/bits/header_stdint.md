@@ -357,3 +357,39 @@ This example shows the normal style:
 
 * `policy_project_outline.md`
 * `header_arithmetic.md`
+
+
+---
+
+## Integer Literal Suffixes
+
+Integer literal suffixes are provided in:
+
+```cpp
+xer::literals::integer_literals
+```
+
+The fixed-width suffixes include:
+
+```cpp
+_i8   _i16   _i32   _i64
+_u8   _u16   _u32   _u64
+_i128 _u128  // when supported
+```
+
+The least-width suffixes include:
+
+```cpp
+_il8   _il16   _il32   _il64
+_ul8   _ul16   _ul32   _ul64
+```
+
+The least-width suffixes produce the corresponding `int_leastN_t` or `uint_leastN_t` type and are useful when exact storage width is less important than a guaranteed minimum range.
+
+---
+
+## Numeric Limit Helpers
+
+`min_of<T>` and `max_of<T>` are implemented through a shared numeric-limits helper so that they can also be reused by floating-point facilities such as `<xer/stdfloat.h>`.
+
+`bit_width_of<T>` remains available from `<xer/stdint.h>` for integer-oriented bit width queries.
