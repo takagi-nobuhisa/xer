@@ -9,6 +9,7 @@
 #define XER_BITS_ISCTYPE_H_INCLUDED_
 
 #include <xer/bits/common.h>
+#include <xer/bits/character_width.h>
 
 namespace xer {
 
@@ -41,6 +42,22 @@ enum class ctype_id {
     latin1_alnum,
     latin1_graph,
     latin1_print,
+    fullwidth_kana,
+    halfwidth_kana,
+    fullwidth_digit,
+    halfwidth_digit,
+    fullwidth_alpha,
+    halfwidth_alpha,
+    fullwidth_punct,
+    halfwidth_punct,
+    fullwidth_space,
+    halfwidth_space,
+    fullwidth_graph,
+    halfwidth_graph,
+    fullwidth_print,
+    halfwidth_print,
+    fullwidth,
+    halfwidth,
 };
 
 /**
@@ -347,6 +364,38 @@ enum class ctype_id {
             return islatin1_graph(c);
         case ctype_id::latin1_print:
             return islatin1_print(c);
+        case ctype_id::fullwidth_kana:
+            return detail::is_fullwidth_kana(c);
+        case ctype_id::halfwidth_kana:
+            return detail::is_halfwidth_kana(c);
+        case ctype_id::fullwidth_digit:
+            return detail::is_fullwidth_digit(c);
+        case ctype_id::halfwidth_digit:
+            return detail::is_halfwidth_digit(c);
+        case ctype_id::fullwidth_alpha:
+            return detail::is_fullwidth_alpha(c);
+        case ctype_id::halfwidth_alpha:
+            return detail::is_halfwidth_alpha(c);
+        case ctype_id::fullwidth_punct:
+            return detail::is_fullwidth_punct(c);
+        case ctype_id::halfwidth_punct:
+            return detail::is_halfwidth_punct(c);
+        case ctype_id::fullwidth_space:
+            return detail::is_fullwidth_space(c);
+        case ctype_id::halfwidth_space:
+            return detail::is_halfwidth_space(c);
+        case ctype_id::fullwidth_graph:
+            return detail::is_fullwidth_graph(c);
+        case ctype_id::halfwidth_graph:
+            return detail::is_halfwidth_graph(c);
+        case ctype_id::fullwidth_print:
+            return detail::is_fullwidth_print(c);
+        case ctype_id::halfwidth_print:
+            return detail::is_halfwidth_print(c);
+        case ctype_id::fullwidth:
+            return detail::is_fullwidth(c);
+        case ctype_id::halfwidth:
+            return detail::is_halfwidth(c);
     }
 
     return false;

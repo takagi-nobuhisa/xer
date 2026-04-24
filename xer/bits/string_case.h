@@ -14,7 +14,9 @@
 #include <limits>
 #include <string>
 #include <string_view>
+#include <xer/bits/kana_width.h>
 #include <type_traits>
+#include <vector>
 
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
@@ -198,6 +200,170 @@ template<supported_string_character CharT>
     }
 }
 
+
+/**
+ * @brief Decodes a string into Unicode code points for string-level transforms.
+ *
+ * @tparam CharT Source character type.
+ * @param source Source string.
+ * @return Decoded code points on success.
+ */
+template<supported_string_character CharT>
+[[nodiscard]] inline auto decode_string_code_points(
+    const std::basic_string_view<CharT> source) -> result<std::vector<char32_t>>
+{
+    std::vector<char32_t> output;
+    output.reserve(source.size());
+
+    if constexpr (std::same_as<CharT, char> ||
+                  std::same_as<CharT, unsigned char>) {
+        using unsigned_char_type = std::make_unsigned_t<CharT>;
+
+        for (const CharT unit : source) {
+            output.push_back(static_cast<char32_t>(
+                static_cast<unsigned_char_type>(unit)));
+        }
+    } else if constexpr (std::same_as<CharT, char8_t>) {
+        for (std::size_t index = 0; index < source.size();) {
+            const auto decoded = decode_utf8_at(source, index);
+            if (!decoded.has_value()) {
+                return std::unexpected(decoded.error());
+            }
+
+            output.push_back(decoded->value);
+            index += decoded->size;
+        }
+    } else if constexpr (std::same_as<CharT, char16_t>) {
+        for (std::size_t index = 0; index < source.size();) {
+            const auto decoded = decode_utf16_at(source, index);
+            if (!decoded.has_value()) {
+                return std::unexpected(decoded.error());
+            }
+
+            output.push_back(decoded->value);
+            index += decoded->size;
+        }
+    } else {
+        for (const char32_t value : source) {
+            if (!is_valid_code_point(value)) {
+                return std::unexpected(make_error(error_t::encoding_error));
+            }
+
+            output.push_back(value);
+        }
+    }
+
+    return output;
+}
+
+/**
+ * @brief Performs string-level fullwidth/halfwidth conversion.
+ *
+ * Unlike toctrans(), this function may combine two halfwidth code points into
+ * one fullwidth code point or decompose one fullwidth code point into two
+ * halfwidth code points.
+ *
+ * @tparam CharT String character type.
+ * @param source Source string.
+ * @param id Width transformation identifier.
+ * @return Converted string on success.
+ */
+template<supported_string_character CharT>
+[[nodiscard]] inline auto strtoctrans_width(
+    const std::basic_string_view<CharT> source,
+    const ctrans_id id) -> result<std::basic_string<CharT>>
+{
+    const auto decoded = decode_string_code_points(source);
+    if (!decoded.has_value()) {
+        return std::unexpected(decoded.error());
+    }
+
+    std::basic_string<CharT> output;
+    output.reserve(source.size());
+
+    for (std::size_t index = 0; index < decoded->size(); ++index) {
+        const char32_t value = (*decoded)[index];
+
+        if (id == ctrans_id::fullwidth || id == ctrans_id::fullwidth_kana ||
+            id == ctrans_id::fullwidth_graph || id == ctrans_id::fullwidth_print) {
+            if (index + 1 < decoded->size() &&
+                (is_halfwidth_voiced_sound_mark((*decoded)[index + 1]) ||
+                 is_halfwidth_semivoiced_sound_mark((*decoded)[index + 1]))) {
+                const char32_t composed = compose_halfwidth_kana(
+                    value,
+                    (*decoded)[index + 1]);
+                if (composed != U'\0') {
+                    const auto appended = append_transformed_code_point(
+                        output,
+                        composed);
+                    if (!appended.has_value()) {
+                        return std::unexpected(appended.error());
+                    }
+
+                    ++index;
+                    continue;
+                }
+            }
+
+            const auto converted = xer::toctrans(value, id);
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+
+            const auto appended = append_transformed_code_point(
+                output,
+                *converted);
+            if (!appended.has_value()) {
+                return std::unexpected(appended.error());
+            }
+
+            continue;
+        }
+
+        if (id == ctrans_id::halfwidth || id == ctrans_id::halfwidth_kana ||
+            id == ctrans_id::halfwidth_graph || id == ctrans_id::halfwidth_print) {
+            const halfwidth_kana_decomposition decomposed =
+                fullwidth_kana_to_halfwidth(value);
+
+            if (decomposed.mark != U'\0' || decomposed.base != value ||
+                id == ctrans_id::halfwidth_kana) {
+                const auto appended_base = append_transformed_code_point(
+                    output,
+                    decomposed.base);
+                if (!appended_base.has_value()) {
+                    return std::unexpected(appended_base.error());
+                }
+
+                if (decomposed.mark != U'\0') {
+                    const auto appended_mark = append_transformed_code_point(
+                        output,
+                        decomposed.mark);
+                    if (!appended_mark.has_value()) {
+                        return std::unexpected(appended_mark.error());
+                    }
+                }
+
+                continue;
+            }
+
+            const auto converted = xer::toctrans(value, id);
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+
+            const auto appended = append_transformed_code_point(output, *converted);
+            if (!appended.has_value()) {
+                return std::unexpected(appended.error());
+            }
+
+            continue;
+        }
+
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return output;
+}
 } // namespace xer::detail
 
 namespace xer {
@@ -221,6 +387,13 @@ template<detail::supported_string_character CharT>
 {
     std::basic_string<CharT> output;
     output.reserve(source.size());
+
+    if (id == ctrans_id::fullwidth || id == ctrans_id::halfwidth ||
+        id == ctrans_id::fullwidth_kana || id == ctrans_id::halfwidth_kana ||
+        id == ctrans_id::fullwidth_graph || id == ctrans_id::halfwidth_graph ||
+        id == ctrans_id::fullwidth_print || id == ctrans_id::halfwidth_print) {
+        return detail::strtoctrans_width(source, id);
+    }
 
     if constexpr (std::same_as<CharT, char> ||
                   std::same_as<CharT, unsigned char>) {

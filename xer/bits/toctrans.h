@@ -12,6 +12,7 @@
 
 #include <xer/bits/common.h>
 #include <xer/bits/isctype.h>
+#include <xer/bits/character_width.h>
 #include <xer/error.h>
 
 namespace xer {
@@ -28,6 +29,22 @@ enum class ctrans_id {
     upper,
     latin1_lower,
     latin1_upper,
+    fullwidth_kana,
+    halfwidth_kana,
+    fullwidth_digit,
+    halfwidth_digit,
+    fullwidth_alpha,
+    halfwidth_alpha,
+    fullwidth_punct,
+    halfwidth_punct,
+    fullwidth_space,
+    halfwidth_space,
+    fullwidth_graph,
+    halfwidth_graph,
+    fullwidth_print,
+    halfwidth_print,
+    fullwidth,
+    halfwidth,
 };
 
 namespace detail {
@@ -223,6 +240,38 @@ namespace detail {
             return detail::tolower_latin1(c);
         case ctrans_id::latin1_upper:
             return detail::toupper_latin1(c);
+        case ctrans_id::fullwidth_kana:
+            return detail::to_fullwidth_kana(c);
+        case ctrans_id::halfwidth_kana:
+            return detail::to_halfwidth_kana(c);
+        case ctrans_id::fullwidth_digit:
+            return detail::to_fullwidth_digit(c);
+        case ctrans_id::halfwidth_digit:
+            return detail::to_halfwidth_digit(c);
+        case ctrans_id::fullwidth_alpha:
+            return detail::to_fullwidth_alpha(c);
+        case ctrans_id::halfwidth_alpha:
+            return detail::to_halfwidth_alpha(c);
+        case ctrans_id::fullwidth_punct:
+            return detail::to_fullwidth_punct(c);
+        case ctrans_id::halfwidth_punct:
+            return detail::to_halfwidth_punct(c);
+        case ctrans_id::fullwidth_space:
+            return detail::to_fullwidth_space(c);
+        case ctrans_id::halfwidth_space:
+            return detail::to_halfwidth_space(c);
+        case ctrans_id::fullwidth_graph:
+            return detail::to_fullwidth_graph(c);
+        case ctrans_id::halfwidth_graph:
+            return detail::to_halfwidth_graph(c);
+        case ctrans_id::fullwidth_print:
+            return detail::to_fullwidth_print(c);
+        case ctrans_id::halfwidth_print:
+            return detail::to_halfwidth_print(c);
+        case ctrans_id::fullwidth:
+            return detail::to_fullwidth(c);
+        case ctrans_id::halfwidth:
+            return detail::to_halfwidth(c);
     }
 
     return std::unexpected(make_error(error_t::invalid_argument));
