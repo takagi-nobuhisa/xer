@@ -1,6 +1,6 @@
 ﻿/**
  * @file xer/bits/stdint.h
- * @brief Integer type aliases, integer literal parsers, and numeric limits helpers.
+ * @brief Integer type aliases, integer literal parsers, and integer width helpers.
  */
 
 #pragma once
@@ -10,10 +10,10 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <type_traits>
 
 #include <xer/bits/common.h>
+#include <xer/bits/numeric_limits.h>
 
 namespace xer {
 
@@ -60,11 +60,6 @@ using std::intmax_t;
 using std::uintmax_t;
 #endif
 
-template<typename T>
-inline constexpr T min_of = std::numeric_limits<T>::lowest();
-
-template<typename T>
-inline constexpr T max_of = std::numeric_limits<T>::max();
 
 template<typename T>
 inline constexpr int bit_width_of =
@@ -290,6 +285,55 @@ template<char... Chars>
 [[nodiscard]] consteval uint64_t operator""_u64()
 {
     return detail::parse_unsigned_integer_literal<uint64_t, Chars...>();
+}
+
+
+template<char... Chars>
+[[nodiscard]] consteval int_least8_t operator""_il8()
+{
+    return detail::parse_signed_integer_literal<int_least8_t, Chars...>();
+}
+
+template<char... Chars>
+[[nodiscard]] consteval int_least16_t operator""_il16()
+{
+    return detail::parse_signed_integer_literal<int_least16_t, Chars...>();
+}
+
+template<char... Chars>
+[[nodiscard]] consteval int_least32_t operator""_il32()
+{
+    return detail::parse_signed_integer_literal<int_least32_t, Chars...>();
+}
+
+template<char... Chars>
+[[nodiscard]] consteval int_least64_t operator""_il64()
+{
+    return detail::parse_signed_integer_literal<int_least64_t, Chars...>();
+}
+
+template<char... Chars>
+[[nodiscard]] consteval uint_least8_t operator""_ul8()
+{
+    return detail::parse_unsigned_integer_literal<uint_least8_t, Chars...>();
+}
+
+template<char... Chars>
+[[nodiscard]] consteval uint_least16_t operator""_ul16()
+{
+    return detail::parse_unsigned_integer_literal<uint_least16_t, Chars...>();
+}
+
+template<char... Chars>
+[[nodiscard]] consteval uint_least32_t operator""_ul32()
+{
+    return detail::parse_unsigned_integer_literal<uint_least32_t, Chars...>();
+}
+
+template<char... Chars>
+[[nodiscard]] consteval uint_least64_t operator""_ul64()
+{
+    return detail::parse_unsigned_integer_literal<uint_least64_t, Chars...>();
 }
 
 #if defined(__SIZEOF_INT128__)
