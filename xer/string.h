@@ -12,7 +12,9 @@
 #include <xer/bits/implode.h>
 #include <xer/bits/mem.h>
 #include <xer/bits/strerror.h>
+#include <xer/bits/string_case.h>
 #include <xer/bits/string_compare.h>
+#include <xer/bits/string_prefix_suffix.h>
 #include <xer/bits/string_read.h>
 #include <xer/bits/string_write.h>
 #include <xer/bits/trim.h>
