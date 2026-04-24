@@ -73,6 +73,40 @@ enum class ctype_id {
     return c >= U'\0' && c <= U'\x7f';
 }
 
+namespace detail {
+
+/**
+ * @brief Returns whether the code point is a valid Unicode scalar value.
+ *
+ * Surrogate code points are excluded because they are not Unicode scalar
+ * values.
+ *
+ * @param c Code point to test.
+ * @return True if the code point is a Unicode scalar value.
+ */
+[[nodiscard]] constexpr auto is_unicode_scalar_value(char32_t c) noexcept -> bool
+{
+    return c <= static_cast<char32_t>(0x10ffff) &&
+           !(c >= static_cast<char32_t>(0xd800) &&
+             c <= static_cast<char32_t>(0xdfff));
+}
+
+/**
+ * @brief Returns whether the code point is a Unicode BMP scalar value.
+ *
+ * Surrogate code points are excluded even though they are in the BMP range.
+ *
+ * @param c Code point to test.
+ * @return True if the code point is a Unicode scalar value in the BMP.
+ */
+[[nodiscard]] constexpr auto is_unicode_bmp_scalar_value(char32_t c) noexcept
+    -> bool
+{
+    return c <= static_cast<char32_t>(0xffff) && is_unicode_scalar_value(c);
+}
+
+} // namespace detail
+
 /**
  * @brief Returns whether the code point is an ASCII uppercase letter.
  *
