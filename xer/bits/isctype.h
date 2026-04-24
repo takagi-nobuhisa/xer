@@ -34,6 +34,8 @@ enum class ctype_id {
     punct,
     xdigit,
     ascii,
+    unicode,
+    unicode_bmp,
     octal,
     binary,
     latin1_alpha,
@@ -348,6 +350,10 @@ enum class ctype_id {
             return isxdigit(c);
         case ctype_id::ascii:
             return isascii(c);
+        case ctype_id::unicode:
+            return detail::is_unicode_scalar_value(c);
+        case ctype_id::unicode_bmp:
+            return detail::is_unicode_bmp_scalar_value(c);
         case ctype_id::octal:
             return isoctal(c);
         case ctype_id::binary:
