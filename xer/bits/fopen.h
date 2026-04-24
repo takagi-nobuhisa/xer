@@ -655,6 +655,7 @@ struct text_stream_state {
     int buffer_size = 0;
     int buffer_pos = 0;
     text_stream_mbstate_t mbstate{};
+    bool auto_detect = false;
     bool readable = false;
     bool writable = false;
     bool append = false;
@@ -683,6 +684,24 @@ inline auto reset_text_stream_runtime_state(text_stream_state& state) noexcept -
     state.mbstate.pending[2] = 0;
     state.mbstate.pending_size = 0;
     state.mbstate.pending_used = 0;
+}
+
+/**
+ *  Resets transient state when rewinding a text stream.
+ *
+ * Runtime buffers and partial decode state are discarded. If the stream was
+ * opened with automatic encoding detection, the concrete encoding is also
+ * returned to the undecided state so detection can start again from the
+ * beginning of the input.
+ *
+ *  state Target text stream state.
+ */
+inline auto reset_text_stream_rewind_state(text_stream_state& state) noexcept -> void {
+    reset_text_stream_runtime_state(state);
+
+    if (state.auto_detect) {
+        state.encoding = text_stream_encoding_t::undecided;
+    }
 }
 
 /**
@@ -1480,6 +1499,7 @@ inline auto text_state_seek_end(text_stream_handle_t handle) noexcept -> int {
     state->readable = detail::is_read_mode(parsed);
     state->writable = detail::is_write_mode(parsed);
     state->append = detail::is_append_mode(parsed);
+    state->auto_detect = encoding == encoding_t::auto_detect;
     detail::reset_text_stream_runtime_state(*state);
 
     switch (encoding) {
