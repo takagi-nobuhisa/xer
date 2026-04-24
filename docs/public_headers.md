@@ -31,6 +31,7 @@
 
 - `xer/stdio.h`
 - `xer/path.h`
+- `xer/socket.h`
 
 ### Numeric and Arithmetic Facilities
 
@@ -132,6 +133,7 @@ xer/stdlib.h
 xer/json.h
 xer/stdio.h
 xer/path.h
+xer/socket.h
 xer/stdint.h
 xer/arithmetic.h
 xer/cyclic.h

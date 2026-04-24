@@ -151,7 +151,15 @@ function find_cpp_sources(string $sourceDir): array
  */
 function is_windows(): bool
 {
-    return DIRECTORY_SEPARATOR === '\\';
+    return DIRECTORY_SEPARATOR === '\\' || PHP_OS_FAMILY === 'Windows';
+}
+
+/**
+ * @return bool
+ */
+function is_windows_target(): bool
+{
+    return is_windows() || getenv('MSYSTEM') !== false;
 }
 
 /**
@@ -339,6 +347,9 @@ function start_compile_process(array $task, string $scriptDir): array
         $task['executable'],
     ];
 
+    if (is_windows_target()) {
+        $command[] = '-lws2_32';
+    }
     $started = start_process($command, $scriptDir);
     $started['stage'] = 'compile';
     return $started;

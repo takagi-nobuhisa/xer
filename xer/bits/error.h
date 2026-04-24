@@ -92,6 +92,7 @@ enum class error_t : std::int32_t {
     encoding_error = -11,
     not_found = -12,
     divide_by_zero = -13,
+    network_error = -14,
 
     user_error = -1000,
 };
