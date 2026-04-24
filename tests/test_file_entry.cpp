@@ -98,6 +98,61 @@ void write_text_file(const fs::path& path, const std::string& contents) {
         std::istreambuf_iterator<char>());
 }
 
+
+void test_file_status_regular_file() {
+    const test_directory_guard guard(make_unique_test_root());
+    const fs::path file_path = guard.path / "status_file.txt";
+
+    write_text_file(file_path, "status");
+
+    const xer::path target(filesystem_path_to_u8string(file_path));
+
+    xer_assert(xer::file_exists(target));
+    xer_assert(xer::is_file(target));
+    xer_assert_not(xer::is_dir(target));
+    xer_assert(xer::is_readable(target));
+    xer_assert(xer::is_writable(target));
+}
+
+void test_file_status_directory() {
+    const test_directory_guard guard(make_unique_test_root());
+    const fs::path dir_path = guard.path / "status_dir";
+
+    xer_assert(fs::create_directory(dir_path));
+
+    const xer::path target(filesystem_path_to_u8string(dir_path));
+
+    xer_assert(xer::file_exists(target));
+    xer_assert_not(xer::is_file(target));
+    xer_assert(xer::is_dir(target));
+}
+
+void test_file_status_missing_entry() {
+    const test_directory_guard guard(make_unique_test_root());
+    const fs::path missing_path = guard.path / "missing_status.txt";
+
+    const xer::path target(filesystem_path_to_u8string(missing_path));
+
+    xer_assert_not(xer::file_exists(target));
+    xer_assert_not(xer::is_file(target));
+    xer_assert_not(xer::is_dir(target));
+    xer_assert_not(xer::is_readable(target));
+    xer_assert_not(xer::is_writable(target));
+}
+
+void test_file_status_invalid_path_encoding() {
+    std::u8string invalid;
+    invalid.push_back(static_cast<char8_t>(0x80));
+
+    const xer::path target{std::u8string_view(invalid)};
+
+    xer_assert_not(xer::file_exists(target));
+    xer_assert_not(xer::is_file(target));
+    xer_assert_not(xer::is_dir(target));
+    xer_assert_not(xer::is_readable(target));
+    xer_assert_not(xer::is_writable(target));
+}
+
 void test_remove_regular_file() {
     const test_directory_guard guard(make_unique_test_root());
     const fs::path file_path = guard.path / "remove_me.txt";
@@ -370,6 +425,10 @@ void test_copy_preserves_mode_bits() {
 } // namespace
 
 int main() {
+    test_file_status_regular_file();
+    test_file_status_directory();
+    test_file_status_missing_entry();
+    test_file_status_invalid_path_encoding();
     test_remove_regular_file();
     test_remove_missing_file();
     test_remove_directory_fails();

@@ -16,6 +16,7 @@
 #include <xer/path.h>
 
 #ifdef _WIN32
+#    include <io.h>
 #    include <windows.h>
 #else
 #    include <cstdio>
@@ -108,6 +109,171 @@ inline auto close_fd_if_valid(int fd) noexcept -> void {
 } // namespace xer::detail
 
 namespace xer {
+
+/**
+ * @brief Checks whether a file system entry exists.
+ *
+ * This function is intended as a simple PHP-style predicate. It returns
+ * false when the path cannot be converted to a native path or when the
+ * platform check fails.
+ *
+ * The result is only a snapshot-like approximation. The file system state may
+ * change immediately after this function returns, so a later operation on the
+ * same path may still fail.
+ *
+ * @param filename Target path.
+ * @return true if the file system entry appears to exist, otherwise false.
+ */
+[[nodiscard]] inline auto file_exists(const path& filename) -> bool
+{
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return false;
+    }
+
+#ifdef _WIN32
+    return ::GetFileAttributesW(native_filename->c_str()) != INVALID_FILE_ATTRIBUTES;
+#else
+    struct stat status {};
+    return ::stat(native_filename->c_str(), &status) == 0;
+#endif
+}
+
+/**
+ * @brief Checks whether a path appears to refer to a regular file.
+ *
+ * This function is intended as a simple PHP-style predicate. It returns
+ * false when the path cannot be converted to a native path or when the
+ * platform check fails.
+ *
+ * The result is only a snapshot-like approximation. The file system state may
+ * change immediately after this function returns, so a later operation on the
+ * same path may still fail. Symbolic links and other special entries follow
+ * the behavior of the underlying platform check.
+ *
+ * @param filename Target path.
+ * @return true if the path appears to refer to a regular file, otherwise false.
+ */
+[[nodiscard]] inline auto is_file(const path& filename) -> bool
+{
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return false;
+    }
+
+#ifdef _WIN32
+    const DWORD attributes = ::GetFileAttributesW(native_filename->c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        return false;
+    }
+
+    return (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
+#else
+    struct stat status {};
+    if (::stat(native_filename->c_str(), &status) != 0) {
+        return false;
+    }
+
+    return S_ISREG(status.st_mode);
+#endif
+}
+
+/**
+ * @brief Checks whether a path appears to refer to a directory.
+ *
+ * This function is intended as a simple PHP-style predicate. It returns
+ * false when the path cannot be converted to a native path or when the
+ * platform check fails.
+ *
+ * The result is only a snapshot-like approximation. The file system state may
+ * change immediately after this function returns, so a later operation on the
+ * same path may still fail. Symbolic links and other special entries follow
+ * the behavior of the underlying platform check.
+ *
+ * @param filename Target path.
+ * @return true if the path appears to refer to a directory, otherwise false.
+ */
+[[nodiscard]] inline auto is_dir(const path& filename) -> bool
+{
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return false;
+    }
+
+#ifdef _WIN32
+    const DWORD attributes = ::GetFileAttributesW(native_filename->c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        return false;
+    }
+
+    return (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+#else
+    struct stat status {};
+    if (::stat(native_filename->c_str(), &status) != 0) {
+        return false;
+    }
+
+    return S_ISDIR(status.st_mode);
+#endif
+}
+
+/**
+ * @brief Checks whether the specified path appears to be readable.
+ *
+ * This function is intended as a simple PHP-style predicate. It returns
+ * false when the path cannot be converted to a native path or when the
+ * platform check fails.
+ *
+ * The result is only a snapshot-like approximation. It does not guarantee
+ * that a subsequent open or read operation will succeed, because file
+ * permissions, ACLs, locks, and file system state may change after this
+ * function returns.
+ *
+ * @param filename Target path.
+ * @return true if the path appears to be readable, otherwise false.
+ */
+[[nodiscard]] inline auto is_readable(const path& filename) -> bool
+{
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return false;
+    }
+
+#ifdef _WIN32
+    return ::_waccess(native_filename->c_str(), 4) == 0;
+#else
+    return ::access(native_filename->c_str(), R_OK) == 0;
+#endif
+}
+
+/**
+ * @brief Checks whether the specified path appears to be writable.
+ *
+ * This function is intended as a simple PHP-style predicate. It returns
+ * false when the path cannot be converted to a native path or when the
+ * platform check fails.
+ *
+ * The result is only a snapshot-like approximation. It does not guarantee
+ * that a subsequent open or write operation will succeed, because file
+ * permissions, ACLs, locks, and file system state may change after this
+ * function returns.
+ *
+ * @param filename Target path.
+ * @return true if the path appears to be writable, otherwise false.
+ */
+[[nodiscard]] inline auto is_writable(const path& filename) -> bool
+{
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return false;
+    }
+
+#ifdef _WIN32
+    return ::_waccess(native_filename->c_str(), 2) == 0;
+#else
+    return ::access(native_filename->c_str(), W_OK) == 0;
+#endif
+}
 
 /**
  * @brief Removes a file system entry that must not be a directory.
