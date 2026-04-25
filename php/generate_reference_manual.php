@@ -8,6 +8,7 @@ declare(strict_types=1);
  * - xer/version.h
  * - docs/public_headers.md
  * - docs/bits/header_*.md
+ * - docs/bits/*.md files included from header fragments with XER_INCLUDE directives
  *
  * Assumptions:
  * - This script is executed from the php/ directory.
@@ -224,7 +225,7 @@ final class ReferenceManualGenerator
                 );
             }
 
-            $fragment = trim($this->readFile($fragmentPath));
+            $fragment = trim($this->expandIncludes($this->readFile($fragmentPath), $fragmentPath));
             if ($fragment === '') {
                 throw new RuntimeException("Header fragment is empty: {$fragmentPath}");
             }
@@ -235,6 +236,52 @@ final class ReferenceManualGenerator
         return $fragments;
     }
 
+    /**
+     * Expands documentation include directives in a Markdown fragment.
+     *
+     * The directive format is:
+     *
+     *     <!-- XER_INCLUDE: file_name.md -->
+     *
+     * The included file is resolved relative to docs/bits. This keeps
+     * header fragments small while allowing detailed subdocuments to be
+     * maintained separately and still included in the generated reference
+     * manual.
+     *
+     * @param list<string> $stack
+     */
+    private function expandIncludes(string $content, string $sourcePath, array $stack = []): string
+    {
+        $pattern = '/<!--\s*XER_INCLUDE:\s*([A-Za-z0-9_.-]+)\s*-->/';
+
+        return preg_replace_callback(
+            $pattern,
+            function (array $matches) use ($sourcePath, $stack): string {
+                $fileName = $matches[1];
+
+                if (str_contains($fileName, '/') || str_contains($fileName, '\\')) {
+                    throw new RuntimeException(
+                        "Invalid include file name in {$sourcePath}: {$fileName}"
+                    );
+                }
+
+                $includePath = $this->bitsDir . '/' . $fileName;
+                if (in_array($includePath, $stack, true)) {
+                    throw new RuntimeException(
+                        "Recursive documentation include detected: {$includePath}"
+                    );
+                }
+
+                $included = trim($this->readFile($includePath));
+                if ($included === '') {
+                    throw new RuntimeException("Included documentation fragment is empty: {$includePath}");
+                }
+
+                return $this->expandIncludes($included, $includePath, [...$stack, $includePath]);
+            },
+            $content
+        ) ?? throw new RuntimeException("Failed to expand documentation includes in {$sourcePath}");
+    }
     /**
      * @param list<string> $publicHeaders
      * @param array<string, string> $headerFragments
