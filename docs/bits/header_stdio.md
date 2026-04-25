@@ -263,6 +263,10 @@ Although the naming resembles the standard library, the surrounding design is XE
 * ordinary failure is reported through XER-style result handling where applicable
 * integration with XER stream abstractions takes priority over strict source-level emulation of C
 
+### printf Format Details
+
+<!-- XER_INCLUDE: stdio_printf_format.md -->
+
 ---
 
 ## CSV Support
