@@ -18,6 +18,8 @@
 #include <expected>
 #include <limits>
 #include <optional>
+#include <ostream>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -101,7 +103,7 @@ struct printf_argument {
                  long double,
                  char32_t,
                  const char*,
-                 std::u8string_view,
+                 std::u8string,
                  const void*>
         value;
 };
@@ -139,6 +141,144 @@ concept printf_pointer =
     !std::same_as<std::remove_cvref_t<T>, char*> &&
     !std::same_as<std::remove_cvref_t<T>, const char8_t*> &&
     !std::same_as<std::remove_cvref_t<T>, char8_t*>;
+
+
+/**
+ * @brief Converts ordinary narrow bytes to a UTF-8 string.
+ *
+ * XER treats narrow strings passed to %@ as already UTF-8 encoded bytes.
+ * This mirrors the library-wide UTF-8-centered policy and avoids locale
+ * dependent conversion.
+ *
+ * @param value Narrow byte string.
+ * @return UTF-8 string containing the same bytes.
+ */
+[[nodiscard]] inline auto narrow_bytes_to_utf8(std::string_view value) -> std::u8string
+{
+    return std::u8string(reinterpret_cast<const char8_t*>(value.data()), value.size());
+}
+
+/**
+ * @brief Appends a Unicode scalar value for diagnostic formatting.
+ *
+ * Invalid scalar values are replaced with U+FFFD. %@ is intended for diagnostic
+ * output, so a best-effort representation is preferable to rejecting the whole
+ * formatting operation while arguments are being captured.
+ *
+ * @param out Output string.
+ * @param value Code point.
+ */
+inline auto append_utf8_char_for_printf(std::u8string& out, char32_t value) -> void
+{
+    const auto appended = append_utf8_char(out, value);
+    if (!appended.has_value()) {
+        static_cast<void>(append_utf8_char(out, U'\uFFFD'));
+    }
+}
+
+/**
+ * @brief Converts UTF-32 code units to UTF-8 for %@.
+ *
+ * @param value UTF-32 string view.
+ * @return UTF-8 string.
+ */
+[[nodiscard]] inline auto utf32_to_printf_utf8(std::u32string_view value) -> std::u8string
+{
+    std::u8string result;
+    result.reserve(value.size());
+
+    for (char32_t ch : value) {
+        append_utf8_char_for_printf(result, ch);
+    }
+
+    return result;
+}
+
+/**
+ * @brief Converts UTF-16 code units to UTF-8 for %@.
+ *
+ * Invalid surrogate sequences are replaced with U+FFFD.
+ *
+ * @param value UTF-16 string view.
+ * @return UTF-8 string.
+ */
+[[nodiscard]] inline auto utf16_to_printf_utf8(std::u16string_view value) -> std::u8string
+{
+    std::u8string result;
+    result.reserve(value.size());
+
+    for (std::size_t index = 0; index < value.size(); ++index) {
+        const char16_t current = value[index];
+
+        if (current >= 0xD800 && current <= 0xDBFF) {
+            if (index + 1 < value.size()) {
+                const char16_t next = value[index + 1];
+                if (next >= 0xDC00 && next <= 0xDFFF) {
+                    const char32_t high = static_cast<char32_t>(current - 0xD800);
+                    const char32_t low = static_cast<char32_t>(next - 0xDC00);
+                    append_utf8_char_for_printf(result, 0x10000 + ((high << 10) | low));
+                    ++index;
+                    continue;
+                }
+            }
+
+            append_utf8_char_for_printf(result, U'\uFFFD');
+            continue;
+        }
+
+        if (current >= 0xDC00 && current <= 0xDFFF) {
+            append_utf8_char_for_printf(result, U'\uFFFD');
+            continue;
+        }
+
+        append_utf8_char_for_printf(result, static_cast<char32_t>(current));
+    }
+
+    return result;
+}
+
+/**
+ * @brief Converts wchar_t code units to UTF-8 for %@.
+ *
+ * On Windows, wchar_t is normally UTF-16. On Unix-like platforms, wchar_t is
+ * normally UTF-32. The conversion follows the width of wchar_t.
+ *
+ * @param value Wide string view.
+ * @return UTF-8 string.
+ */
+[[nodiscard]] inline auto wide_to_printf_utf8(std::wstring_view value) -> std::u8string
+{
+    if constexpr (sizeof(wchar_t) == sizeof(char16_t)) {
+        const auto first = reinterpret_cast<const char16_t*>(value.data());
+        return utf16_to_printf_utf8(std::u16string_view(first, value.size()));
+    } else {
+        std::u8string result;
+        result.reserve(value.size());
+        for (wchar_t ch : value) {
+            append_utf8_char_for_printf(result, static_cast<char32_t>(ch));
+        }
+        return result;
+    }
+}
+
+template<typename T>
+concept printf_ostream_insertable = requires(std::ostream& os, const T& value) {
+    os << value;
+};
+
+template<typename T>
+concept printf_generic_ostream_argument =
+    printf_ostream_insertable<std::remove_cvref_t<T>> &&
+    !printf_signed_integer<T> &&
+    !printf_unsigned_integer<T> &&
+    !printf_floating<T> &&
+    !printf_pointer<T> &&
+    !std::same_as<std::remove_cvref_t<T>, bool> &&
+    !std::same_as<std::remove_cvref_t<T>, char> &&
+    !std::same_as<std::remove_cvref_t<T>, wchar_t> &&
+    !std::same_as<std::remove_cvref_t<T>, char8_t> &&
+    !std::same_as<std::remove_cvref_t<T>, char16_t> &&
+    !std::same_as<std::remove_cvref_t<T>, char32_t>;
 
 /**
  * @brief Converts one value to a runtime printf argument.
@@ -189,6 +329,22 @@ template<printf_floating T>
     };
 }
 
+[[nodiscard]] constexpr printf_argument make_printf_argument(char16_t value) noexcept
+{
+    return printf_argument{
+        .kind = printf_arg_kind::character,
+        .value = static_cast<char32_t>(value),
+    };
+}
+
+[[nodiscard]] constexpr printf_argument make_printf_argument(wchar_t value) noexcept
+{
+    return printf_argument{
+        .kind = printf_arg_kind::character,
+        .value = static_cast<char32_t>(value),
+    };
+}
+
 [[nodiscard]] constexpr printf_argument make_printf_argument(char32_t value) noexcept
 {
     return printf_argument{
@@ -210,15 +366,33 @@ template<printf_floating T>
     return make_printf_argument(static_cast<const char*>(value));
 }
 
-[[nodiscard]] inline printf_argument make_printf_argument(std::u8string_view value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(std::string_view value)
 {
     return printf_argument{
         .kind = printf_arg_kind::utf8_string,
-        .value = value,
+        .value = narrow_bytes_to_utf8(value),
     };
 }
 
-[[nodiscard]] inline printf_argument make_printf_argument(const char8_t* value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(const std::string& value)
+{
+    return make_printf_argument(std::string_view(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(std::u8string_view value)
+{
+    return printf_argument{
+        .kind = printf_arg_kind::utf8_string,
+        .value = std::u8string(value),
+    };
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(const std::u8string& value)
+{
+    return make_printf_argument(std::u8string_view(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(const char8_t* value)
 {
     if (value == nullptr) {
         return printf_argument{
@@ -227,15 +401,102 @@ template<printf_floating T>
         };
     }
 
+    return make_printf_argument(std::u8string_view(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(char8_t* value)
+{
+    return make_printf_argument(static_cast<const char8_t*>(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(std::u16string_view value)
+{
     return printf_argument{
         .kind = printf_arg_kind::utf8_string,
-        .value = std::u8string_view(value),
+        .value = utf16_to_printf_utf8(value),
     };
 }
 
-[[nodiscard]] inline printf_argument make_printf_argument(char8_t* value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(const std::u16string& value)
 {
-    return make_printf_argument(static_cast<const char8_t*>(value));
+    return make_printf_argument(std::u16string_view(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(const char16_t* value)
+{
+    if (value == nullptr) {
+        return printf_argument{
+            .kind = printf_arg_kind::pointer,
+            .value = static_cast<const void*>(nullptr),
+        };
+    }
+
+    return make_printf_argument(std::u16string_view(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(char16_t* value)
+{
+    return make_printf_argument(static_cast<const char16_t*>(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(std::u32string_view value)
+{
+    return printf_argument{
+        .kind = printf_arg_kind::utf8_string,
+        .value = utf32_to_printf_utf8(value),
+    };
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(const std::u32string& value)
+{
+    return make_printf_argument(std::u32string_view(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(const char32_t* value)
+{
+    if (value == nullptr) {
+        return printf_argument{
+            .kind = printf_arg_kind::pointer,
+            .value = static_cast<const void*>(nullptr),
+        };
+    }
+
+    return make_printf_argument(std::u32string_view(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(char32_t* value)
+{
+    return make_printf_argument(static_cast<const char32_t*>(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(std::wstring_view value)
+{
+    return printf_argument{
+        .kind = printf_arg_kind::utf8_string,
+        .value = wide_to_printf_utf8(value),
+    };
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(const std::wstring& value)
+{
+    return make_printf_argument(std::wstring_view(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(const wchar_t* value)
+{
+    if (value == nullptr) {
+        return printf_argument{
+            .kind = printf_arg_kind::pointer,
+            .value = static_cast<const void*>(nullptr),
+        };
+    }
+
+    return make_printf_argument(std::wstring_view(value));
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(wchar_t* value)
+{
+    return make_printf_argument(static_cast<const wchar_t*>(value));
 }
 
 template<printf_pointer T>
@@ -247,20 +508,30 @@ template<printf_pointer T>
     };
 }
 
-[[nodiscard]] constexpr printf_argument make_printf_argument(bool value) noexcept
+template<printf_generic_ostream_argument T>
+[[nodiscard]] inline printf_argument make_printf_argument(const T& value)
 {
+    std::ostringstream stream;
+    stream << value;
     return printf_argument{
         .kind = printf_arg_kind::utf8_string,
-        .value = value ? std::u8string_view(u8"true")
-                       : std::u8string_view(u8"false"),
+        .value = narrow_bytes_to_utf8(stream.str()),
     };
 }
 
-[[nodiscard]] constexpr printf_argument make_printf_argument(std::nullptr_t) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(bool value)
 {
     return printf_argument{
         .kind = printf_arg_kind::utf8_string,
-        .value = std::u8string_view(u8"null"),
+        .value = value ? std::u8string(u8"true") : std::u8string(u8"false"),
+    };
+}
+
+[[nodiscard]] inline printf_argument make_printf_argument(std::nullptr_t)
+{
+    return printf_argument{
+        .kind = printf_arg_kind::utf8_string,
+        .value = std::u8string(u8"null"),
     };
 }
 
@@ -952,7 +1223,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
             return format_printf_c_string(std::get<const char*>(arg.value), spec);
 
         case printf_arg_kind::utf8_string:
-            return format_printf_utf8_string(std::get<std::u8string_view>(arg.value), spec);
+            return format_printf_utf8_string(std::u8string_view(std::get<std::u8string>(arg.value)), spec);
 
         case printf_arg_kind::pointer:
             return format_printf_pointer(std::get<const void*>(arg.value), spec);
@@ -989,7 +1260,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
 
     case U's':
         if (arg.kind == printf_arg_kind::utf8_string) {
-            return format_printf_utf8_string(std::get<std::u8string_view>(arg.value), spec);
+            return format_printf_utf8_string(std::u8string_view(std::get<std::u8string>(arg.value)), spec);
         }
         if (arg.kind == printf_arg_kind::c_string) {
             return format_printf_c_string(std::get<const char*>(arg.value), spec);

@@ -5,6 +5,8 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <expected>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -189,6 +191,100 @@ void test_sprintf_default_specifier_percent_at() {
     xer_assert_eq(out4, std::u8string(u8"null"));
 }
 
+ void test_sprintf_default_specifier_more_string_types() {
+    std::u8string out1;
+    std::u8string out2;
+    std::u8string out3;
+    std::u8string out4;
+    std::u8string out5;
+    std::u8string out6;
+
+    const std::string narrow = "narrow";
+    const std::string_view narrow_view = "view";
+    const std::u8string utf8 = u8"utf8";
+    const std::u16string utf16 = u"猫";
+    const std::u32string utf32 = U"犬";
+    const std::wstring wide = L"鳥";
+
+    const auto r1 = xer::sprintf(out1, u8"%@", narrow);
+    const auto r2 = xer::sprintf(out2, u8"%@", narrow_view);
+    const auto r3 = xer::sprintf(out3, u8"%@", utf8);
+    const auto r4 = xer::sprintf(out4, u8"%@", utf16);
+    const auto r5 = xer::sprintf(out5, u8"%@", utf32);
+    const auto r6 = xer::sprintf(out6, u8"%@", wide);
+
+    xer_assert(r1.has_value());
+    xer_assert(r2.has_value());
+    xer_assert(r3.has_value());
+    xer_assert(r4.has_value());
+    xer_assert(r5.has_value());
+    xer_assert(r6.has_value());
+
+    xer_assert_eq(out1, std::u8string(u8"narrow"));
+    xer_assert_eq(out2, std::u8string(u8"view"));
+    xer_assert_eq(out3, std::u8string(u8"utf8"));
+    xer_assert_eq(out4, std::u8string(u8"猫"));
+    xer_assert_eq(out5, std::u8string(u8"犬"));
+    xer_assert_eq(out6, std::u8string(u8"鳥"));
+}
+
+void test_sprintf_default_specifier_error_and_result() {
+    std::u8string out1;
+    std::u8string out2;
+    std::u8string out3;
+    std::u8string out4;
+    std::u8string out5;
+
+    const xer::error<void> error = xer::make_error(xer::error_t::invalid_argument);
+    const xer::error<int> detailed_error =
+        xer::make_error<int>(xer::error_t::out_of_range, 7);
+    const xer::result<int> value_result = 42;
+    const xer::result<int> error_result = std::unexpected(error);
+    const xer::result<void> void_result;
+
+    const auto r1 = xer::sprintf(out1, u8"%@", xer::error_t::invalid_argument);
+    const auto r2 = xer::sprintf(out2, u8"%@", error);
+    const auto r3 = xer::sprintf(out3, u8"%@", detailed_error);
+    const auto r4 = xer::sprintf(out4, u8"%@ %@", value_result, error_result);
+    const auto r5 = xer::sprintf(out5, u8"%@", void_result);
+
+    xer_assert(r1.has_value());
+    xer_assert(r2.has_value());
+    xer_assert(r3.has_value());
+    xer_assert(r4.has_value());
+    xer_assert(r5.has_value());
+
+    xer_assert_eq(out1, std::u8string(u8"invalid_argument"));
+    xer_assert_eq(out2, std::u8string(u8"xer::error{code=invalid_argument}"));
+    xer_assert_eq(out3, std::u8string(u8"xer::error{code=out_of_range, detail=7}"));
+    xer_assert_eq(
+        out4,
+        std::u8string(
+            u8"xer::result{value=42} "
+            u8"xer::result{error=xer::error{code=invalid_argument}}"));
+    xer_assert_eq(out5, std::u8string(u8"xer::result{value=void}"));
+}
+
+void test_error_and_result_ostream_output() {
+    std::ostringstream out;
+
+    const xer::result<std::u8string> value = std::u8string(u8"hello");
+    const xer::result<int> error =
+        std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+
+    out << xer::error_t::network_error << '\n';
+    out << value << '\n';
+    out << error;
+
+    xer_assert_eq(
+        out.str(),
+        std::string(
+            "network_error\n"
+            "xer::result{value=hello}\n"
+            "xer::result{error=xer::error{code=invalid_argument}}"));
+}
+
+
 void test_sprintf_percent_escape() {
     std::u8string out;
     const auto result = xer::sprintf(out, u8"100%%");
@@ -327,6 +423,9 @@ int main() {
     test_sprintf_unsigned_integer_formats();
     test_sprintf_octal_and_alternate_form();
     test_sprintf_default_specifier_percent_at();
+    test_sprintf_default_specifier_more_string_types();
+    test_sprintf_default_specifier_error_and_result();
+    test_error_and_result_ostream_output();
     test_sprintf_percent_escape();
     test_sprintf_min_width_and_left_align();
     test_sprintf_zero_fill_and_sign();
