@@ -17,6 +17,7 @@
 - `xer/error.h`
 - `xer/assert.h`
 - `xer/typeinfo.h`
+- `xer/diag.h`
 
 ### Character and String Processing
 
@@ -134,6 +135,7 @@ For that reason, physical quantity and unit functionality is not absorbed into `
 xer/error.h
 xer/assert.h
 xer/typeinfo.h
+xer/diag.h
 xer/string.h
 xer/ctype.h
 xer/stdlib.h
