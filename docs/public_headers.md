@@ -33,6 +33,7 @@
 
 - `xer/stdio.h`
 - `xer/path.h`
+- `xer/dirent.h`
 - `xer/socket.h`
 
 ### Numeric and Arithmetic Facilities
@@ -119,6 +120,13 @@ It is an independent data-format facility involving arrays, objects, booleans, n
 
 For that reason, it is not absorbed into `string.h` or `stdlib.h`, but instead provided as the independent public header `xer/json.h`.
 
+### Why `dirent.h` Is Independent
+
+Directory stream operations such as `opendir`, `closedir`, `readdir`, and `rewinddir` form a small but distinct group of filesystem traversal facilities.
+
+Although they are related to file handling, they manage a directory stream state rather than an ordinary file stream.
+For that reason, they are provided through the independent public header `xer/dirent.h` rather than being absorbed into `xer/stdio.h`.
+
 ### Why `quantity.h` Is Independent
 
 Physical quantity and unit facilities are a kind of type-system-oriented feature distinct from string handling, input/output, and arithmetic helpers.
@@ -142,6 +150,7 @@ xer/stdlib.h
 xer/json.h
 xer/stdio.h
 xer/path.h
+xer/dirent.h
 xer/socket.h
 xer/stdint.h
 xer/stdfloat.h
