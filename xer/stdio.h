@@ -20,6 +20,7 @@
 #include <xer/bits/fflush.h>
 #include <xer/bits/tmpfile.h>
 #include <xer/bits/file_entry.h>
+#include <xer/bits/file_stat.h>
 
 #include <xer/bits/binary_stream_io.h>
 #include <xer/bits/text_stream_io.h>
