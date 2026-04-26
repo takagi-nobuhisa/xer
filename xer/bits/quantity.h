@@ -547,6 +547,60 @@ template<class LeftDim, class LeftScale, class RightDim, class RightScale>
     return {};
 }
 
+/**
+ * @brief Squares a quantity and combines its dimension with itself.
+ *
+ * This helper is provided mainly so that unit expressions such as
+ * @c m / sq(sec) can be written without repeating the same unit manually.
+ * For quantities, the stored value is multiplied normally and the resulting
+ * dimension exponents are doubled.
+ */
+template<std::floating_point T, class Dim>
+[[nodiscard]] constexpr auto sq(quantity<T, Dim> value) noexcept
+    -> quantity<T, detail::dimension_add_t<Dim, Dim>>
+{
+    return value * value;
+}
+
+/**
+ * @brief Cubes a quantity and combines its dimension three times.
+ *
+ * For quantities, the stored value is multiplied normally and the resulting
+ * dimension exponents are tripled.
+ */
+template<std::floating_point T, class Dim>
+[[nodiscard]] constexpr auto cb(quantity<T, Dim> value) noexcept
+    -> quantity<T, detail::dimension_add_t<detail::dimension_add_t<Dim, Dim>, Dim>>
+{
+    return value * value * value;
+}
+
+/**
+ * @brief Squares a unit and combines its dimension and scale with itself.
+ *
+ * This is a notation helper for derived-unit expressions. It returns the same
+ * type of unit expression as @c value * value while keeping the call site
+ * compact and readable.
+ */
+template<class Dim, class Scale>
+[[nodiscard]] constexpr auto sq(unit<Dim, Scale> value) noexcept
+    -> unit<detail::dimension_add_t<Dim, Dim>,
+            detail::scale_multiply_t<Scale, Scale>>
+{
+    return value * value;
+}
+
+/**
+ * @brief Cubes a unit and combines its dimension and scale three times.
+ */
+template<class Dim, class Scale>
+[[nodiscard]] constexpr auto cb(unit<Dim, Scale> value) noexcept
+    -> unit<detail::dimension_add_t<detail::dimension_add_t<Dim, Dim>, Dim>,
+            detail::scale_multiply_t<detail::scale_multiply_t<Scale, Scale>, Scale>>
+{
+    return value * value * value;
+}
+
 namespace units {
 
 using length_dim = dimension<1, 0, 0, 0>;
@@ -555,8 +609,15 @@ using time_dim = dimension<0, 0, 1, 0>;
 using current_dim = dimension<0, 0, 0, 1>;
 
 inline constexpr unit<length_dim> m{};
+inline constexpr auto m² = sq(m);
+inline constexpr auto m³ = cb(m);
+
 inline constexpr unit<mass_dim> kg{};
+
 inline constexpr unit<time_dim> sec{};
+inline constexpr auto sec² = sq(sec);
+inline constexpr auto sec³ = cb(sec);
+
 inline constexpr unit<current_dim> A{};
 
 inline constexpr unit<length_dim, std::milli> mm{};
@@ -580,11 +641,11 @@ inline constexpr auto Hz = unit<dimension<0, 0, -1, 0>>{};
 inline constexpr auto kHz = unit<dimension<0, 0, -1, 0>, std::kilo>{};
 inline constexpr auto GHz = unit<dimension<0, 0, -1, 0>, std::giga>{};
 
-inline constexpr auto N = kg * m / (sec * sec);
+inline constexpr auto N = kg * m / sec²;
 inline constexpr auto J = N * m;
 inline constexpr auto W = J / sec;
 inline constexpr auto V = W / A;
-inline constexpr auto Pa = N / (m * m);
+inline constexpr auto Pa = N / m²;
 inline constexpr auto hPa = unit<dimension<-1, 1, -2, 0>, std::hecto>{};
 
 inline constexpr auto ha = unit<dimension<2, 0, 0, 0>, std::ratio<10000>>{};
