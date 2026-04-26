@@ -13,9 +13,6 @@ sprintf
 snprintf
 ```
 
-The scanf family is outside the scope of this document for now.
-It will be documented separately after the scanf family is strengthened.
-
 ---
 
 ## Basic Policy

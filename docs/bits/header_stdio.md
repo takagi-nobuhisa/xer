@@ -267,6 +267,10 @@ Although the naming resembles the standard library, the surrounding design is XE
 
 <!-- XER_INCLUDE: stdio_printf_format.md -->
 
+### scanf Format Details
+
+<!-- XER_INCLUDE: stdio_scanf_format.md -->
+
 ---
 
 ## CSV Support
