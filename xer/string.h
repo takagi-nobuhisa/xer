@@ -16,6 +16,7 @@
 #include <xer/bits/string_compare.h>
 #include <xer/bits/string_prefix_suffix.h>
 #include <xer/bits/string_read.h>
+#include <xer/bits/string_replace.h>
 #include <xer/bits/string_write.h>
 #include <xer/bits/trim.h>
 
