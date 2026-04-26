@@ -1,4 +1,4 @@
-# `<xer/quantity.h>`
+﻿# `<xer/quantity.h>`
 
 ## Purpose
 
@@ -55,6 +55,9 @@ class unit;
 
 template <std::floating_point T, typename Dim>
 class quantity;
+
+sq
+cb
 ```
 
 In addition, it provides predefined unit objects under the `xer::units` namespace.
@@ -333,14 +336,68 @@ This allows natural construction of derived quantities such as:
 using namespace xer::units;
 
 auto v = 3.0 * m / sec;
-auto a = 9.8 * m / (sec * sec);
-auto f = 2.0 * kg * m / (sec * sec);
+auto a = 9.8 * m / sq(sec);
+auto f = 2.0 * kg * m / sq(sec);
 ```
 
 ### Why This Matters
 
 This avoids the need to define every composite unit as a separate fixed name.
 
+---
+
+## Square and Cube Helpers for Units and Quantities
+
+`<xer/quantity.h>` provides `sq` and `cb` for units and quantities.
+
+```cpp
+sq(unit)
+cb(unit)
+sq(quantity)
+cb(quantity)
+```
+
+### Role
+
+These helpers make repeated multiplication easier to read in unit expressions.
+For example:
+
+```cpp
+using namespace xer::units;
+
+auto acceleration = 9.8 * m / sq(sec);
+```
+
+This is equivalent in meaning to:
+
+```cpp
+auto acceleration = 9.8 * m / (sec * sec);
+```
+
+For quantities, `sq` and `cb` multiply the stored value and combine the dimension exponents accordingly.
+
+### Symbolic Unit Aliases
+
+For common base units, symbolic aliases are also provided under `xer::units`:
+
+```cpp
+m²
+m³
+sec²
+sec³
+```
+
+These are aliases for the corresponding square or cube unit expressions:
+
+```cpp
+m²   // sq(m)
+m³   // cb(m)
+sec² // sq(sec)
+sec³ // cb(sec)
+```
+
+They are intended as readable symbolic notation.
+The ASCII forms `sq(m)`, `cb(m)`, `sq(sec)`, and `cb(sec)` remain available as the portable spelling.
 ---
 
 ## `xer::units`
@@ -388,6 +445,15 @@ At minimum:
 * `kg`
 * `sec`
 * `A`
+
+### Squared and Cubed Base Units
+
+At minimum:
+
+* `m²`
+* `m³`
+* `sec²`
+* `sec³`
 
 ### Selected Prefixed Units
 
@@ -560,7 +626,7 @@ The following kinds of examples are especially suitable for this header:
 
 * constructing a quantity from a scalar and a unit
 * converting a quantity to base units and to another unit
-* dividing distance by time to obtain velocity
+* dividing distance by time to obtain velocity\n* using `sq`, `cb`, `m²`, `m³`, and `sec²` in unit expressions
 * using predefined units from `xer::units`
 * handling angle quantities with `taurad` or `rad`
 

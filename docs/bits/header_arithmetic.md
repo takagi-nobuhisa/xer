@@ -1,4 +1,4 @@
-# `<xer/arithmetic.h>`
+﻿# `<xer/arithmetic.h>`
 
 ## Purpose
 
@@ -320,6 +320,48 @@ XER therefore makes that failure explicit.
 
 ---
 
+## Square and Cube Helpers
+
+`<xer/arithmetic.h>` also provides small power helpers:
+
+```cpp
+sq
+cb
+```
+
+### `sq`
+
+`sq(value)` returns the square of `value`.
+
+For integer input, it generally returns:
+
+```cpp
+xer::result<xer::int64_t>
+```
+
+and reports failure if the squared value cannot be represented in the signed result domain.
+
+For floating-point input, it follows the floating-point arithmetic rules of this header and returns a result whose success value is `long double`.
+
+### `cb`
+
+`cb(value)` returns the cube of `value`.
+
+It follows the same result and error-handling policy as `sq`.
+For integer input, overflow and out-of-range results are reported explicitly.
+
+### Chained Use
+
+As arithmetic helpers, `sq` and `cb` may also accept `xer::result` arguments.
+This allows forms such as:
+
+```cpp
+const auto value = xer::sq(xer::add(2, 3));
+```
+
+If the argument result already contains an error, that error is propagated.
+---
+
 ## Acceptance of `xer::result`
 
 One of the most important design points of `<xer/arithmetic.h>` is that arithmetic helpers may accept `xer::result` arguments.
@@ -444,7 +486,7 @@ The following kinds of examples are especially suitable for this header:
 * propagating failure through chained arithmetic helpers
 * checking representability with `in_range`
 * using `min`, `max`, or `clamp` with mixed numeric types
-* using `abs` or `uabs` with explicit result checking
+* using `abs` or `uabs` with explicit result checking\n* using `sq` or `cb` with explicit result checking
 
 These are good candidates for executable examples in `examples/`.
 

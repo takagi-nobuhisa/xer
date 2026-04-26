@@ -1,4 +1,4 @@
-# Policy for Physical Quantities and Units
+﻿# Policy for Physical Quantities and Units
 
 ## Overview
 
@@ -255,6 +255,45 @@ When units are multiplied or divided, not only the dimensions but also the scale
 For results of arithmetic between rational units, rational representations may be preserved as much as possible.
 If the result cannot be represented rationally, it may move to a floating-point-based scale representation.
 
+---
+
+## Square and Cube Helpers
+
+The quantity and unit facility provides `sq` and `cb` helpers for units and quantities.
+
+### Purpose
+
+These helpers improve readability for common squared and cubed unit expressions.
+
+For example:
+
+```cpp
+using namespace xer::units;
+
+auto area = 10.0 * sq(m);
+auto volume = 2.0 * cb(m);
+auto acceleration = 9.8 * m / sq(sec);
+```
+
+This avoids repeatedly writing expressions such as:
+
+```cpp
+m / (sec * sec)
+```
+
+### Symbolic Aliases
+
+For common base units, symbolic aliases may be provided:
+
+```cpp
+m²
+m³
+sec²
+sec³
+```
+
+These aliases are intended for readability, especially in contexts where the mathematical notation is familiar.
+The ASCII forms such as `sq(m)` and `sq(sec)` remain the portable spelling.
 ---
 
 ## Unit Objects
