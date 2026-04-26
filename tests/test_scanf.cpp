@@ -226,6 +226,48 @@ void test_sscanf_positional_control_token() {
     xer_assert_eq(b, 10);
 }
 
+void test_sscanf_string_wide_targets() {
+    std::u8string utf8;
+    std::u16string utf16;
+    std::u32string utf32;
+    std::wstring wide;
+
+    const auto result = xer::sscanf(
+        u8"alpha 猫 犬 鳥",
+        u8"%s %s %s %s",
+        &utf8,
+        &utf16,
+        &utf32,
+        &wide);
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, static_cast<std::size_t>(4));
+
+    xer_assert_eq(utf8, std::u8string(u8"alpha"));
+    xer_assert_eq(utf16, std::u16string(u"猫"));
+    xer_assert_eq(utf32, std::u32string(U"犬"));
+    xer_assert_eq(wide, std::wstring(L"鳥"));
+}
+
+void test_sscanf_scanset_wide_targets() {
+    std::u16string utf16;
+    std::u32string utf32;
+    std::wstring wide;
+
+    const auto result = xer::sscanf(
+        u8"あいう えお かき",
+        u8"%[あいう] %[えお] %[かき]",
+        &utf16,
+        &utf32,
+        &wide);
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, static_cast<std::size_t>(3));
+
+    xer_assert_eq(utf16, std::u16string(u"あいう"));
+    xer_assert_eq(utf32, std::u32string(U"えお"));
+    xer_assert_eq(wide, std::wstring(L"かき"));
+}
+
+
 void test_sscanf_percent_literal() {
     int value = 0;
 

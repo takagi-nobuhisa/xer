@@ -109,6 +109,101 @@ using scan_intermediate_value_t =
     return result;
 }
 
+
+/**
+ * @brief Converts a UTF-8 string to a UTF-32 string.
+ *
+ * @param value Source UTF-8 string.
+ * @return Converted UTF-32 string on success.
+ */
+[[nodiscard]] inline auto scan_utf8_to_u32string(
+    std::u8string_view value) -> result<std::u32string> {
+    std::u32string result;
+    std::size_t index = 0;
+
+    while (index < value.size()) {
+        auto decoded = scan_decode_one_utf8(value, index);
+        if (!decoded.has_value()) {
+            return std::unexpected(decoded.error());
+        }
+
+        result.push_back(*decoded);
+    }
+
+    return result;
+}
+
+/**
+ * @brief Converts a UTF-8 string to a UTF-16 string.
+ *
+ * @param value Source UTF-8 string.
+ * @return Converted UTF-16 string on success.
+ */
+[[nodiscard]] inline auto scan_utf8_to_u16string(
+    std::u8string_view value) -> result<std::u16string> {
+    auto decoded = scan_utf8_to_u32string(value);
+    if (!decoded.has_value()) {
+        return std::unexpected(decoded.error());
+    }
+
+    std::u16string result;
+
+    for (char32_t ch : *decoded) {
+        if (ch <= 0xffffu) {
+            if (ch >= 0xd800u && ch <= 0xdfffu) {
+                return std::unexpected(make_error(error_t::encoding_error));
+            }
+
+            result.push_back(static_cast<char16_t>(ch));
+            continue;
+        }
+
+        if (ch > 0x10ffffu) {
+            return std::unexpected(make_error(error_t::encoding_error));
+        }
+
+        const char32_t value20 = ch - 0x10000u;
+        result.push_back(static_cast<char16_t>(0xd800u + ((value20 >> 10) & 0x3ffu)));
+        result.push_back(static_cast<char16_t>(0xdc00u + (value20 & 0x3ffu)));
+    }
+
+    return result;
+}
+
+/**
+ * @brief Converts a UTF-8 string to a wide string.
+ *
+ * @param value Source UTF-8 string.
+ * @return Converted wide string on success.
+ */
+[[nodiscard]] inline auto scan_utf8_to_wstring(
+    std::u8string_view value) -> result<std::wstring> {
+    std::wstring result;
+
+    if constexpr (sizeof(wchar_t) == sizeof(char16_t)) {
+        auto converted = scan_utf8_to_u16string(value);
+        if (!converted.has_value()) {
+            return std::unexpected(converted.error());
+        }
+
+        result.reserve(converted->size());
+        for (char16_t ch : *converted) {
+            result.push_back(static_cast<wchar_t>(ch));
+        }
+    } else {
+        auto converted = scan_utf8_to_u32string(value);
+        if (!converted.has_value()) {
+            return std::unexpected(converted.error());
+        }
+
+        result.reserve(converted->size());
+        for (char32_t ch : *converted) {
+            result.push_back(static_cast<wchar_t>(ch));
+        }
+    }
+
+    return result;
+}
 /**
  * @brief Appends one code point to a UTF-8 string.
  *
@@ -1255,6 +1350,7 @@ template<typename Reader>
             }
 
             auto ch = scan_read_one(reader);
+
             if (!ch.has_value()) {
                 return std::unexpected(ch.error());
             }
@@ -1349,6 +1445,33 @@ concept scan_char32_target =
 template<typename T>
 concept scan_u8string_target =
     std::same_as<std::remove_cv_t<T>, std::u8string>;
+
+/**
+ * @brief Concept for UTF-16 string targets.
+ *
+ * @tparam T Target type.
+ */
+template<typename T>
+concept scan_u16string_target =
+    std::same_as<std::remove_cv_t<T>, std::u16string>;
+
+/**
+ * @brief Concept for UTF-32 string targets.
+ *
+ * @tparam T Target type.
+ */
+template<typename T>
+concept scan_u32string_target =
+    std::same_as<std::remove_cv_t<T>, std::u32string>;
+
+/**
+ * @brief Concept for wide string targets.
+ *
+ * @tparam T Target type.
+ */
+template<typename T>
+concept scan_wstring_target =
+    std::same_as<std::remove_cv_t<T>, std::wstring>;
 
 /**
  * @brief Concept for single-byte character targets.
@@ -1477,6 +1600,87 @@ template<scan_other_char_target T>
 }
 
 /**
+ * @brief Stores one intermediate value into a UTF-16 string target.
+ *
+ * @param out Output pointer.
+ * @param value Source intermediate value.
+ * @return Success on success.
+ */
+[[nodiscard]] inline auto scan_store_value(
+    std::u16string* out,
+    const scan_intermediate_value_t& value) -> result<void> {
+    if (out == nullptr) {
+        return {};
+    }
+
+    if (!std::holds_alternative<std::u8string>(value)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    auto converted = scan_utf8_to_u16string(std::get<std::u8string>(value));
+    if (!converted.has_value()) {
+        return std::unexpected(converted.error());
+    }
+
+    *out = std::move(*converted);
+    return {};
+}
+
+/**
+ * @brief Stores one intermediate value into a UTF-32 string target.
+ *
+ * @param out Output pointer.
+ * @param value Source intermediate value.
+ * @return Success on success.
+ */
+[[nodiscard]] inline auto scan_store_value(
+    std::u32string* out,
+    const scan_intermediate_value_t& value) -> result<void> {
+    if (out == nullptr) {
+        return {};
+    }
+
+    if (!std::holds_alternative<std::u8string>(value)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    auto converted = scan_utf8_to_u32string(std::get<std::u8string>(value));
+    if (!converted.has_value()) {
+        return std::unexpected(converted.error());
+    }
+
+    *out = std::move(*converted);
+    return {};
+}
+
+/**
+ * @brief Stores one intermediate value into a wide string target.
+ *
+ * @param out Output pointer.
+ * @param value Source intermediate value.
+ * @return Success on success.
+ */
+[[nodiscard]] inline auto scan_store_value(
+    std::wstring* out,
+    const scan_intermediate_value_t& value) -> result<void> {
+    if (out == nullptr) {
+        return {};
+    }
+
+    if (!std::holds_alternative<std::u8string>(value)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    auto converted = scan_utf8_to_wstring(std::get<std::u8string>(value));
+    if (!converted.has_value()) {
+        return std::unexpected(converted.error());
+    }
+
+    *out = std::move(*converted);
+    return {};
+}
+
+/**
  * @brief Stores one intermediate value into a numeric scalar target.
  *
  * @tparam T Target type.
@@ -1520,8 +1724,9 @@ template<typename T>
     T* out,
     const scan_intermediate_value_t& value) -> result<void>
     requires(!scan_char32_target<T> && !scan_u8string_target<T> &&
-             !scan_byte_char_target<T> && !scan_other_char_target<T> &&
-             !scan_numeric_scalar_target<T>) {
+             !scan_u16string_target<T> && !scan_u32string_target<T> &&
+             !scan_wstring_target<T> && !scan_byte_char_target<T> &&
+             !scan_other_char_target<T> && !scan_numeric_scalar_target<T>) {
     if (out == nullptr) {
         return {};
     }
