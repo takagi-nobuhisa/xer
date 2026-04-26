@@ -31,6 +31,7 @@
 #include <xer/bits/clearerr.h>
 
 #include <xer/bits/to_native_handle.h>
+#include <xer/bits/flock.h>
 
 #include <xer/bits/printf.h>
 #include <xer/bits/scanf.h>
