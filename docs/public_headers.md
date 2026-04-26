@@ -1,4 +1,4 @@
-﻿# Public Headers
+# Public Headers
 
 ## Basic Policy
 
@@ -28,6 +28,7 @@
 ### Data Format Processing
 
 - `xer/json.h`
+- `xer/ini.h`
 
 ### Input/Output and File-Related Facilities
 
@@ -121,6 +122,15 @@ It is an independent data-format facility involving arrays, objects, booleans, n
 
 For that reason, it is not absorbed into `string.h` or `stdlib.h`, but instead provided as the independent public header `xer/json.h`.
 
+### Why `ini.h` Is Independent
+
+INI encode/decode is a small but distinct data-format facility.
+
+Although INI values are represented as strings, the format still has its own file-level structure, including global entries, sections, key-value entries, comments, and serialization rules.
+For that reason, it is not absorbed into `xer/string.h` or `xer/stdio.h`, but instead provided as the independent public header `xer/ini.h`.
+
+This also keeps it parallel with `xer/json.h` and leaves room for `xer/toml.h` to be added later as another data-format header.
+
 ### Why `dirent.h` Is Independent
 
 Directory stream operations such as `opendir`, `closedir`, `readdir`, and `rewinddir` form a small but distinct group of filesystem traversal facilities.
@@ -156,6 +166,7 @@ xer/string.h
 xer/ctype.h
 xer/stdlib.h
 xer/json.h
+xer/ini.h
 xer/stdio.h
 xer/path.h
 xer/dirent.h
