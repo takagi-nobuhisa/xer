@@ -1,4 +1,4 @@
-# Public Headers
+﻿# Public Headers
 
 ## Basic Policy
 
@@ -43,6 +43,7 @@
 - `xer/arithmetic.h`
 - `xer/cyclic.h`
 - `xer/quantity.h`
+- `xer/matrix.h`
 
 ### Process
 
@@ -135,6 +136,13 @@ Also, concepts such as `dimension`, `unit`, `quantity`, and `xer::units` are eas
 
 For that reason, physical quantity and unit functionality is not absorbed into `xer/arithmetic.h`, but is provided as the independent public header `xer/quantity.h`.
 
+### Why `matrix.h` Is Independent
+
+Matrix and affine transform facilities form a small but coherent numeric feature group.
+They are related to arithmetic helpers, but their main concepts are fixed-size matrices, column vectors, and transform construction rather than scalar arithmetic.
+
+For that reason, matrix functionality is not absorbed into `xer/arithmetic.h`, but is provided as the independent public header `xer/matrix.h`.
+
 ---
 
 ## Final List of Public Headers
@@ -157,6 +165,7 @@ xer/stdfloat.h
 xer/arithmetic.h
 xer/cyclic.h
 xer/quantity.h
+xer/matrix.h
 xer/process.h
 xer/time.h
 xer/version.h
