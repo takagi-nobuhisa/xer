@@ -9,7 +9,10 @@
 #define XER_BITS_FILE_ENTRY_H_INCLUDED_
 
 #include <cerrno>
+#include <cstddef>
 #include <expected>
+#include <string>
+#include <vector>
 
 #include <xer/bits/common.h>
 #include <xer/error.h>
@@ -276,6 +279,103 @@ namespace xer {
 }
 
 /**
+ * @brief Changes the current working directory.
+ *
+ * This function changes the process-wide current working directory. The effect
+ * is global to the process, so callers should be careful when using it in
+ * programs that have multiple components or threads that also depend on the
+ * current directory.
+ *
+ * @param target New current working directory.
+ * @return Empty success value on success.
+ */
+[[nodiscard]] inline auto chdir(const path& target) -> result<void>
+{
+    const auto native_target = to_native_path(target);
+    if (!native_target.has_value()) {
+        return std::unexpected(native_target.error());
+    }
+
+#ifdef _WIN32
+    if (::SetCurrentDirectoryW(native_target->c_str()) == 0) {
+        return std::unexpected(
+            make_error(detail::win32_error_to_error_t(::GetLastError())));
+    }
+#else
+    if (::chdir(native_target->c_str()) != 0) {
+        return std::unexpected(make_error(detail::errno_to_error_t(errno)));
+    }
+#endif
+
+    return {};
+}
+
+/**
+ * @brief Gets the current working directory.
+ *
+ * The returned path is converted into XER's UTF-8 path representation and uses
+ * '/' as the internal separator. The current working directory is process-wide,
+ * so the returned value is only a snapshot of the state at the time of the
+ * call.
+ *
+ * @return Current working directory on success.
+ */
+[[nodiscard]] inline auto getcwd() -> result<path>
+{
+#ifdef _WIN32
+    const DWORD required_size = ::GetCurrentDirectoryW(0, nullptr);
+    if (required_size == 0) {
+        return std::unexpected(
+            make_error(detail::win32_error_to_error_t(::GetLastError())));
+    }
+
+    std::wstring buffer(required_size, L'\0');
+    const DWORD written_size = ::GetCurrentDirectoryW(required_size, buffer.data());
+    if (written_size == 0) {
+        return std::unexpected(
+            make_error(detail::win32_error_to_error_t(::GetLastError())));
+    }
+
+    if (written_size >= required_size) {
+        return std::unexpected(make_error(error_t::range));
+    }
+
+    buffer.resize(written_size);
+
+    const auto converted = from_native_path(std::wstring_view(buffer));
+    if (!converted.has_value()) {
+        return std::unexpected(converted.error());
+    }
+
+    return *converted;
+#else
+    std::vector<char> buffer(256);
+
+    for (;;) {
+        errno = 0;
+        if (::getcwd(buffer.data(), buffer.size()) != nullptr) {
+            const auto converted = from_native_path(std::string_view(buffer.data()));
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+
+            return *converted;
+        }
+
+        if (errno != ERANGE) {
+            return std::unexpected(make_error(detail::errno_to_error_t(errno)));
+        }
+
+        if (buffer.size() > buffer.max_size() / 2) {
+            return std::unexpected(make_error(error_t::length_error));
+        }
+
+        buffer.resize(buffer.size() * 2);
+    }
+#endif
+}
+
+/**
  * @brief Removes a file system entry that must not be a directory.
  *
  * This function removes a regular file or a symbolic link itself.
@@ -284,7 +384,8 @@ namespace xer {
  * @param target Target path.
  * @return Empty success value on success.
  */
-[[nodiscard]] inline auto remove(const path& target) -> result<void> {
+[[nodiscard]] inline auto remove(const path& target) -> result<void>
+{
     const auto native_target = to_native_path(target);
     if (!native_target.has_value()) {
         return std::unexpected(native_target.error());
@@ -317,7 +418,8 @@ namespace xer {
  */
 [[nodiscard]] inline auto rename(
     const path& from,
-    const path& to) -> result<void> {
+    const path& to) -> result<void>
+{
     const auto native_from = to_native_path(from);
     if (!native_from.has_value()) {
         return std::unexpected(native_from.error());
@@ -350,7 +452,8 @@ namespace xer {
  * @param target Target directory path.
  * @return Empty success value on success.
  */
-[[nodiscard]] inline auto mkdir(const path& target) -> result<void> {
+[[nodiscard]] inline auto mkdir(const path& target) -> result<void>
+{
     const auto native_target = to_native_path(target);
     if (!native_target.has_value()) {
         return std::unexpected(native_target.error());
@@ -376,7 +479,8 @@ namespace xer {
  * @param target Target directory path.
  * @return Empty success value on success.
  */
-[[nodiscard]] inline auto rmdir(const path& target) -> result<void> {
+[[nodiscard]] inline auto rmdir(const path& target) -> result<void>
+{
     const auto native_target = to_native_path(target);
     if (!native_target.has_value()) {
         return std::unexpected(native_target.error());
@@ -408,7 +512,8 @@ namespace xer {
  */
 [[nodiscard]] inline auto copy(
     const path& from,
-    const path& to) -> result<void> {
+    const path& to) -> result<void>
+{
     const auto native_from = to_native_path(from);
     if (!native_from.has_value()) {
         return std::unexpected(native_from.error());
