@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.2.0a2**
+Target version: **v0.2.0a3**
 
 ---
 
@@ -726,7 +726,9 @@ auto main() -> int
 
 ---
 
-# Purpose
+# `<xer/diag.h>`
+
+## Purpose
 
 `<xer/diag.h>` provides lightweight diagnostic facilities for XER.
 
@@ -734,7 +736,7 @@ It groups tracing and logging support under one public diagnostic header while k
 
 ---
 
-# Main Entities
+## Main Entities
 
 At minimum, `<xer/diag.h>` provides the following entities:
 
@@ -758,7 +760,7 @@ It also provides functions for setting trace and log output streams and levels.
 
 ---
 
-# Design Role
+## Design Role
 
 This header is intended for diagnostics, development-time tracing, and simple runtime logging.
 
@@ -772,7 +774,7 @@ Their output destinations and current levels are configured independently.
 
 ---
 
-# Trace
+## Trace
 
 `xer_trace(category, level, object)` prints one diagnostic line containing:
 
@@ -792,7 +794,7 @@ When `NDEBUG` is defined, `xer_trace` expands to a no-op expression and does not
 
 ---
 
-# Log
+## Log
 
 `xer_log(category, level, message)` writes one simple log record.
 
@@ -840,17 +842,261 @@ Logging is designed to remain reasonably lightweight.
 
 ---
 
-# Output Streams
+## Output Streams
 
 Trace and log output default to the standard error text stream.
 They can be changed independently through the corresponding stream-setting functions.
 
 ---
 
-# Notes
+## Notes
 
 These facilities are intentionally small.
 They are not a full logging framework, but they provide a useful diagnostic foundation for XER itself and for small programs using XER.
+
+---
+
+# `<xer/scope.h>`
+
+## Purpose
+
+`<xer/scope.h>` provides small scope-based utility facilities for XER.
+
+At present, this header provides `xer::scope_exit`, a lightweight scope guard that invokes a registered callable when the guard object is destroyed.
+
+This is useful for cleanup actions that should be performed automatically when leaving a block.
+
+---
+
+## Main Entity
+
+At minimum, `<xer/scope.h>` provides the following entity:
+
+```cpp
+template <class F>
+class scope_exit;
+```
+
+It also provides a deduction guide so that ordinary lambdas and function objects can be passed naturally:
+
+```cpp
+template <class F>
+scope_exit(F&&) -> scope_exit<std::decay_t<F>>;
+```
+
+---
+
+## `scope_exit`
+
+`scope_exit` is a move-only RAII helper.
+
+It stores a callable object and invokes it from the destructor while the guard is active.
+
+```cpp
+auto guard = xer::scope_exit([&] noexcept {
+    cleanup();
+});
+```
+
+### Basic Behavior
+
+A `scope_exit` object is active immediately after construction.
+
+When the object is destroyed:
+
+* if it is active, the registered callable is invoked
+* if it has been released, nothing is invoked
+
+This makes it suitable for registering cleanup logic close to the resource or state change that needs cleanup.
+
+---
+
+## Typical Use Cases
+
+`scope_exit` is useful for actions such as:
+
+* restoring the current working directory after `chdir`
+* removing a temporary file or temporary directory
+* unlocking a resource
+* restoring a global or process-wide setting
+* rolling back a local state change
+* closing or releasing a non-RAII resource when no better wrapper exists
+
+It is especially useful when cleanup must happen along multiple return paths.
+
+---
+
+## Move-Only Semantics
+
+`scope_exit` is copy-disabled and move-constructible.
+
+Copying is not allowed because copying a guard would make it unclear which object owns the cleanup action.
+
+Move construction transfers the cleanup responsibility to the new object.
+The moved-from guard is released so that the registered callable is not invoked twice.
+
+Move assignment is not provided.
+
+---
+
+## Releasing a Guard
+
+A guard can be released explicitly:
+
+```cpp
+guard.release();
+```
+
+After `release()` is called, the registered callable will not be invoked when the guard is destroyed.
+
+This is useful when the cleanup action is only needed if a later operation does not complete successfully.
+
+---
+
+## Checking Whether a Guard Is Active
+
+The current active state can be checked:
+
+```cpp
+auto active() const noexcept -> bool;
+```
+
+This returns `true` if the callable will be invoked on destruction.
+
+---
+
+## Exception Policy
+
+The destructor of `scope_exit` is `noexcept`.
+
+The registered callable is expected not to throw.
+
+If the callable throws while the `scope_exit` destructor is running, `std::terminate` is called.
+
+This policy follows the usual expectation for cleanup code executed from destructors.
+A scope guard is not a good place to report ordinary recoverable failure, because destructors cannot return `xer::result`.
+
+If the cleanup action can fail in a meaningful way, callers should normally handle that failure explicitly before leaving the scope, or intentionally ignore it when failure is not actionable.
+
+---
+
+## Relationship to Standard and Experimental Facilities
+
+XER provides its own `scope_exit`.
+
+This is not a wrapper around a standard C++ `<scope>` header.
+Standard C++ does not currently provide such a header as part of the ordinary standard library.
+
+Some similar facilities exist in experimental or library-extension contexts, but XER keeps this utility small and self-contained so that it fits the library's header-only and GCC-oriented portability policy.
+
+---
+
+## Design Role
+
+`scope_exit` is intentionally small.
+
+It does not attempt to provide a complete scope-guard framework.
+
+In particular, this header does not currently provide:
+
+* `scope_success`
+* `scope_fail`
+* `unique_resource`
+
+The initial purpose is only to support the common “run this cleanup action when leaving the current scope” pattern.
+
+---
+
+## Relationship to XER's Error Model
+
+XER generally represents ordinary fallible operations through `xer::result`.
+
+However, `scope_exit` itself does not return a result from its destructor.
+
+For that reason, cleanup actions registered with `scope_exit` should normally be actions whose failure can be safely ignored or actions that are known not to fail in the intended context.
+
+A common pattern is to explicitly discard the result of a cleanup operation:
+
+```cpp
+auto guard = xer::scope_exit([&] noexcept {
+    static_cast<void>(xer::chdir(original));
+});
+```
+
+This makes the decision to ignore cleanup failure visible.
+
+---
+
+## Example
+
+```cpp
+#include <xer/scope.h>
+#include <xer/stdio.h>
+
+auto main() -> int
+{
+    const auto original = xer::getcwd();
+    if (!original.has_value()) {
+        return 1;
+    }
+
+    {
+        auto restore = xer::scope_exit([&] noexcept {
+            static_cast<void>(xer::chdir(*original));
+        });
+
+        if (!xer::chdir(xer::path(u8"work")).has_value()) {
+            return 1;
+        }
+
+        // Work inside another current directory.
+    }
+
+    return 0;
+}
+```
+
+This example shows the typical XER style:
+
+* acquire or record state explicitly
+* register cleanup with `scope_exit`
+* use `noexcept` for the cleanup lambda when practical
+* explicitly discard cleanup results when failure is not actionable
+
+---
+
+## Documentation Notes
+
+When this header is used in generated documentation, it is usually enough to explain:
+
+* that `scope_exit` is a move-only scope guard
+* that it calls the registered callable from its destructor
+* that `release()` disables the cleanup action
+* that the registered callable should not throw
+* that `scope_success` and `scope_fail` are intentionally not provided at this stage
+
+Detailed examples should focus on practical cleanup patterns rather than abstract RAII theory.
+
+---
+
+## Example Topics Commonly Worth Showing
+
+The following kinds of examples are especially suitable for this header:
+
+* restoring the current working directory after `chdir`
+* deleting a temporary file on scope exit
+* releasing a guard after successful completion
+* moving a guard to transfer cleanup responsibility
+
+These are good candidates for executable examples under `examples/`.
+
+---
+
+## See Also
+
+* `policy_project_outline.md`
+* `policy_result_arguments.md`
+* `header_stdio.md`
 
 ---
 
@@ -898,6 +1144,7 @@ At a high level, `<xer/string.h>` contains the following groups of functionality
 - case-insensitive search and comparison
 - copy and concatenation
 - split / join / trim
+- string replacement
 - raw memory helpers
 - prefix/suffix checks
 - case conversion and dynamic string transformation
@@ -1029,6 +1276,38 @@ The `ltrim_view`, `rtrim_view`, and `trim_view` family are especially important 
 
 ---
 
+## String Replacement
+
+`<xer/string.h>` provides a PHP-inspired string replacement helper:
+
+```cpp
+auto str_replace(
+    std::u8string_view search,
+    std::u8string_view replace,
+    std::u8string_view subject,
+    std::size_t* count = nullptr) -> xer::result<std::u8string>;
+```
+
+### Role of This Function
+
+`str_replace` replaces all non-overlapping occurrences of `search` in `subject` with `replace`.
+
+The argument order follows PHP's `str_replace` naming tradition: search string, replacement string, and subject string.
+
+### Behavior
+
+Replacement is performed on UTF-8 code units. The function does not attempt grapheme-cluster processing.
+
+If `search` is empty, no replacement is performed and `subject` is returned unchanged.
+
+If `count` is not `nullptr`, the number of performed replacements is stored there.
+
+### Notes
+
+This function is useful for simple text substitution. More advanced text processing, such as regular-expression replacement or locale-sensitive transformation, is outside the scope of this helper.
+
+---
+
 ## Raw Memory Helpers
 
 `<xer/string.h>` also groups raw memory helpers through the related memory facilities.
@@ -1142,6 +1421,7 @@ The following kinds of examples are especially suitable for this header:
 
 * trimming a UTF-8 string with `trim_view`
 * splitting and joining text with `explode` / `implode`
+* replacing text with `str_replace`
 * searching for a Unicode scalar value in UTF-8 text
 * performing familiar C-style comparison or copying in XER style
 
@@ -2459,6 +2739,1139 @@ This example shows the general style:
 
 ---
 
+# `<xer/ini.h>`
+
+## Purpose
+
+`<xer/ini.h>` provides INI decode and encode facilities in XER.
+
+INI is treated as a small configuration-file format rather than as a general structured data language.
+The purpose of this header is to support practical reading and writing of simple UTF-8 INI text while preserving the parts of the format that are important for ordinary configuration files.
+
+The initial implementation deliberately supports a small and predictable subset.
+It does not try to define every INI dialect.
+
+---
+
+## Main Role
+
+The main role of `<xer/ini.h>` is to make it possible to:
+
+- parse UTF-8 INI text into a simple ordered in-memory representation
+- inspect global entries and section entries
+- serialize that representation back into UTF-8 INI text
+- preserve duplicate keys and duplicate sections instead of silently discarding information
+
+This makes the header useful for simple configuration files and for data that does not require the stricter type system of formats such as TOML.
+
+---
+
+## Main Entities
+
+At minimum, `<xer/ini.h>` provides the following entities:
+
+```cpp
+struct ini_entry;
+struct ini_section;
+struct ini_file;
+
+auto ini_decode(std::u8string_view text) -> xer::result<ini_file>;
+auto ini_encode(const ini_file& value) -> xer::result<std::u8string>;
+````
+
+The exact helper functions may expand later, but these are the core public entities of the initial INI facility.
+
+---
+
+## `ini_entry`
+
+```cpp
+struct ini_entry {
+    std::u8string key;
+    std::u8string value;
+};
+```
+
+`ini_entry` represents one key-value pair.
+
+INI does not have a single strong standard type system.
+For that reason, both keys and values are represented as UTF-8 strings.
+
+### Notes
+
+* keys are stored after ASCII whitespace trimming during decoding
+* values are stored after ASCII whitespace trimming during decoding
+* duplicate keys are preserved
+* the value is not interpreted as a number, boolean, string literal, or other typed value
+
+---
+
+## `ini_section`
+
+```cpp
+struct ini_section {
+    std::u8string name;
+    std::vector<ini_entry> entries;
+};
+```
+
+`ini_section` represents one section and its entries.
+
+Section names are stored as UTF-8 strings.
+The section's entries are stored in source order.
+
+### Notes
+
+* duplicate section names are preserved
+* sections are not automatically merged
+* section entries preserve their order
+* an empty section is valid
+
+---
+
+## `ini_file`
+
+```cpp
+struct ini_file {
+    std::vector<ini_entry> entries;
+    std::vector<ini_section> sections;
+};
+```
+
+`ini_file` represents a decoded INI document.
+
+Entries before the first section are stored in `entries`.
+Sectioned entries are stored in `sections`.
+
+### Why Global Entries Are Separate
+
+Many INI files allow key-value entries before the first section.
+XER represents these entries explicitly instead of inventing an artificial section name.
+
+### Preservation Policy
+
+The representation preserves:
+
+* global entry order
+* section order
+* entry order within each section
+* duplicate keys
+* duplicate sections
+
+This is intentional.
+INI has many dialects, and silently overwriting or merging data can lose information.
+
+---
+
+## Supported INI Subset
+
+The initial implementation supports the following INI elements:
+
+```ini
+; comment
+# comment
+
+key = value
+
+[section]
+name = xer
+version = 0.2.0a3
+```
+
+### Supported Forms
+
+* blank lines
+* full-line comments beginning with `;`
+* full-line comments beginning with `#`
+* global key-value entries
+* section headers
+* section key-value entries
+
+### Line Endings
+
+The decoder accepts the following line endings:
+
+* LF
+* CRLF
+* CR
+
+---
+
+## Whitespace Handling
+
+During decoding, leading and trailing ASCII whitespace is removed from:
+
+* each logical line
+* section names
+* keys
+* values
+
+Only ASCII whitespace is treated as trimming whitespace.
+
+This keeps the rule simple and avoids locale dependence.
+
+---
+
+## Comments
+
+Only full-line comments are recognized.
+
+A line is treated as a comment when its first non-trimmed character is either:
+
+```text
+;
+#
+```
+
+Inline comments are not recognized.
+
+For example:
+
+```ini
+name = xer ; this remains part of the value
+```
+
+is decoded as the value:
+
+```text
+xer ; this remains part of the value
+```
+
+This rule avoids guessing dialect-specific inline-comment behavior.
+
+---
+
+## Sections
+
+A section line has the following form:
+
+```ini
+[section]
+```
+
+The section name is trimmed as ASCII whitespace.
+
+For example:
+
+```ini
+[ main ]
+```
+
+is decoded as the section name:
+
+```text
+main
+```
+
+### Invalid Section Lines
+
+A section line is invalid if:
+
+* the closing `]` is missing
+* the section name is empty after trimming
+
+Such cases are reported as ordinary parse failures.
+
+---
+
+## Entries
+
+An entry line has the following form:
+
+```ini
+key=value
+```
+
+The first `=` separates the key and value.
+
+For example:
+
+```ini
+path = a=b
+```
+
+is decoded as:
+
+* key: `path`
+* value: `a=b`
+
+### Invalid Entry Lines
+
+An entry line is invalid if:
+
+* it does not contain `=`
+* the key is empty after trimming
+
+Such cases are reported as ordinary parse failures.
+
+---
+
+## Quoting and Escaping
+
+The initial INI implementation does not interpret quotes or escape sequences.
+
+For example:
+
+```ini
+name = "xer"
+```
+
+is decoded as the value:
+
+```text
+"xer"
+```
+
+including the quote characters.
+
+This is intentional.
+INI dialects differ widely in quoting and escaping behavior.
+XER keeps the initial INI feature small and predictable, and leaves typed or strongly escaped configuration syntax to formats such as TOML.
+
+---
+
+## `ini_decode`
+
+```cpp
+auto ini_decode(std::u8string_view text) -> xer::result<ini_file>;
+```
+
+### Purpose
+
+`ini_decode` parses UTF-8 INI text and returns an `ini_file`.
+
+### Input Model
+
+The input text is provided as:
+
+```cpp
+std::u8string_view
+```
+
+This follows XER's UTF-8-oriented public text model.
+
+### Return Model
+
+On success, `ini_decode` returns:
+
+```cpp
+ini_file
+```
+
+On failure, it returns an error through `xer::result`.
+
+### Failure Conditions
+
+At minimum, decoding fails when:
+
+* the input contains invalid UTF-8
+* a section line is malformed
+* a section name is empty
+* an entry line has no `=`
+* an entry key is empty
+
+Invalid UTF-8 is treated as an encoding error.
+Malformed INI structure is treated as an invalid argument.
+
+---
+
+## `ini_encode`
+
+```cpp
+auto ini_encode(const ini_file& value) -> xer::result<std::u8string>;
+```
+
+### Purpose
+
+`ini_encode` serializes an `ini_file` into UTF-8 INI text.
+
+### Output Model
+
+On success, it returns:
+
+```cpp
+std::u8string
+```
+
+The generated text uses `\n` line endings.
+
+### Serialization Form
+
+The encoder emits a compact deterministic form.
+
+Global entries are written first:
+
+```ini
+key=value
+```
+
+Sections are then written as:
+
+```ini
+[section]
+key=value
+```
+
+A blank line is inserted before each section when there is previous output.
+
+### Representability
+
+Because the initial INI subset has no quoting or escaping rules, the encoder rejects values that cannot be represented without changing their meaning when decoded again.
+
+For example, the encoder rejects:
+
+* empty keys
+* keys containing `=`
+* keys with leading or trailing ASCII whitespace
+* values with leading or trailing ASCII whitespace
+* keys, values, or section names containing line breaks
+* section names containing `]`
+* invalid UTF-8
+
+This keeps `ini_encode` honest and avoids silently emitting ambiguous INI text.
+
+---
+
+## Error Handling
+
+`<xer/ini.h>` follows XER's ordinary failure model.
+
+That means:
+
+* parsing failure is reported through `xer::result`
+* serialization failure is reported through `xer::result`
+* normal failure is not expressed through exceptions by default
+
+The usual pattern is:
+
+```cpp
+const auto decoded = xer::ini_decode(text);
+if (!decoded.has_value()) {
+    return 1;
+}
+```
+
+---
+
+## Relationship to Other Headers
+
+`<xer/ini.h>` should be understood together with the following documents and headers:
+
+* `policy_project_outline.md`
+* `policy_result_arguments.md`
+* `policy_encoding.md`
+* `header_string.md`
+* `header_json.md`
+
+The rough boundary is:
+
+* `<xer/string.h>` handles general string and text utilities
+* `<xer/json.h>` handles JSON as a structured data format
+* `<xer/ini.h>` handles INI as a simple configuration data format
+* `<xer/toml.h>` handles a stricter typed configuration format
+
+This separation is intentional.
+INI is treated as an independent data-format facility rather than as a string helper or stream helper.
+
+---
+
+## Documentation Notes
+
+When this header is used in generated documentation, it is usually enough to explain:
+
+* that INI processing uses UTF-8 text
+* that INI values are stored as strings
+* that global entries and section entries are separated
+* that duplicate keys and duplicate sections are preserved
+* that only full-line comments are recognized
+* that quotes and escapes are not interpreted in the initial implementation
+
+Detailed dialect-specific behavior should not be implied unless it is actually implemented.
+
+---
+
+## Example Topics Commonly Worth Showing
+
+The following kinds of examples are especially suitable for this header:
+
+* decoding simple INI text
+* reading a value from a section
+* encoding an `ini_file` back into text
+* preserving duplicate keys or duplicate sections where relevant
+
+These are good candidates for executable examples in `examples/`.
+
+---
+
+## Example
+
+```cpp
+#include <xer/ini.h>
+
+auto main() -> int
+{
+    const auto decoded = xer::ini_decode(
+        u8"title = sample\n"
+        u8"\n"
+        u8"[project]\n"
+        u8"name = xer\n"
+        u8"version = 0.2.0a3\n");
+
+    if (!decoded.has_value()) {
+        return 1;
+    }
+
+    if (decoded->entries.empty()) {
+        return 1;
+    }
+
+    if (decoded->sections.empty()) {
+        return 1;
+    }
+
+    const auto encoded = xer::ini_encode(*decoded);
+    if (!encoded.has_value()) {
+        return 1;
+    }
+
+    return 0;
+}
+```
+
+This example shows the general style:
+
+* parse UTF-8 INI text with `ini_decode`
+* inspect the resulting `ini_file`
+* serialize it again with `ini_encode`
+* check `xer::result` explicitly at each fallible step
+
+---
+
+## See Also
+
+* `policy_project_outline.md`
+* `policy_result_arguments.md`
+* `policy_encoding.md`
+* `header_json.md`
+
+---
+
+# `<xer/toml.h>`
+
+## Purpose
+
+`<xer/toml.h>` provides TOML decode and encode facilities in XER.
+
+TOML is treated as a typed configuration data format.
+The purpose of this header is to support practical reading and writing of simple UTF-8 TOML text while keeping the implementation small enough to fit XER's incremental development policy.
+
+The initial implementation supports a practical subset of TOML.
+It does not claim complete TOML v1.0.0 compatibility.
+
+---
+
+## Main Role
+
+The main role of `<xer/toml.h>` is to make it possible to:
+
+- parse UTF-8 TOML text into a structured XER value model
+- inspect booleans, integers, floating-point numbers, strings, arrays, and tables
+- serialize the supported value model back into UTF-8 TOML text
+- use TOML as a typed configuration format distinct from INI
+
+This makes the header useful for configuration data that needs more structure than INI but does not require the full TOML feature set at the initial stage.
+
+---
+
+## Main Entities
+
+At minimum, `<xer/toml.h>` provides the following entities:
+
+```cpp
+struct toml_value;
+
+using toml_array = std::vector<toml_value>;
+using toml_table = std::vector<std::pair<std::u8string, toml_value>>;
+
+auto toml_decode(std::u8string_view text) -> xer::result<toml_value>;
+auto toml_encode(const toml_value& value) -> xer::result<std::u8string>;
+````
+
+The exact helper functions and supported TOML syntax may expand later, but these are the core public entities of the initial TOML facility.
+
+---
+
+## `toml_value`
+
+`toml_value` is the central value type for TOML in XER.
+
+It stores one TOML value in structured form.
+
+### Supported Value Kinds
+
+The initial implementation supports the following value kinds:
+
+* boolean
+* integer
+* floating-point number
+* string
+* array
+* table
+
+The internal representation corresponds to:
+
+```cpp
+std::variant<
+    bool,
+    std::int64_t,
+    double,
+    std::u8string,
+    toml_array,
+    toml_table
+>
+```
+
+### Notes
+
+* integer values are stored as `std::int64_t`
+* floating-point values are stored as `double`
+* strings are stored as UTF-8 `std::u8string`
+* arrays are stored as `std::vector<toml_value>`
+* tables are stored as ordered key-value pairs
+
+---
+
+## `toml_array`
+
+```cpp
+using toml_array = std::vector<toml_value>;
+```
+
+`toml_array` represents an array of TOML values.
+
+The initial implementation stores arrays as ordinary ordered vectors.
+
+### Notes
+
+* array elements preserve order
+* arrays may contain values of different supported kinds
+* arrays containing tables are not supported by the initial encoder
+* array-of-tables syntax is deferred
+
+---
+
+## `toml_table`
+
+```cpp
+using toml_table = std::vector<std::pair<std::u8string, toml_value>>;
+```
+
+`toml_table` represents a TOML table.
+
+Tables are represented as ordered key-value pairs rather than as a map-like container.
+
+### Why Ordered Pairs Are Used
+
+This representation keeps the value model simple and preserves source order.
+
+It also matches the general XER tendency to avoid prematurely committing public data-format models to hash-map or tree-map semantics.
+
+### Duplicate Keys
+
+TOML does not allow duplicate keys in the same table.
+
+The decoder rejects duplicate keys as invalid input.
+
+---
+
+## Accessors and Inspection
+
+`toml_value` provides inspection and accessor functions.
+
+At minimum, the following inspection functions are provided:
+
+```cpp
+is_bool
+is_integer
+is_float
+is_string
+is_array
+is_table
+```
+
+At minimum, the following accessor functions are provided:
+
+```cpp
+as_bool
+as_integer
+as_float
+as_string
+as_array
+as_table
+```
+
+The accessor functions return pointers to the stored value when the value has the requested kind, and `nullptr` otherwise.
+
+### Example
+
+```cpp
+const auto* table = value.as_table();
+if (table == nullptr) {
+    return 1;
+}
+```
+
+This style keeps type inspection explicit and avoids throwing exceptions for ordinary kind checks.
+
+---
+
+## Supported TOML Subset
+
+The initial implementation supports the following TOML-style input:
+
+```toml
+title = "xer"
+enabled = true
+count = 123
+ratio = 1.5
+ports = [8000, 8001, 8002]
+
+[project]
+name = "xer"
+version = "0.2.0a3"
+```
+
+### Supported Forms
+
+The initial decoder supports:
+
+* blank lines
+* comments beginning with `#`
+* end-of-line comments outside strings
+* bare keys
+* key-value pairs
+* ordinary tables
+* basic double-quoted strings
+* booleans
+* signed decimal integers
+* finite decimal floating-point numbers
+* arrays
+
+### Line Endings
+
+The decoder accepts the following line endings:
+
+* LF
+* CRLF
+* CR
+
+---
+
+## Deferred TOML Features
+
+The following TOML features are intentionally deferred:
+
+* quoted keys
+* dotted keys
+* nested table syntax such as `[a.b]`
+* literal strings
+* multiline strings
+* full escape-sequence support
+* date and time values
+* inline tables
+* array-of-tables
+* special floating-point values such as `inf` and `nan`
+* hexadecimal, octal, and binary integers
+* numeric separators
+* detailed error position reporting
+
+These features may be added later one by one.
+
+The initial implementation should therefore be described as a practical TOML subset, not as a complete TOML implementation.
+
+---
+
+## Keys
+
+The initial implementation supports bare keys only.
+
+A bare key may contain:
+
+* ASCII letters
+* ASCII digits
+* `_`
+* `-`
+
+Examples:
+
+```toml
+name = "xer"
+build-target = "ucrt64"
+version_1 = "0.2.0a3"
+```
+
+Quoted keys and dotted keys are not supported in the initial implementation.
+
+---
+
+## Tables
+
+A table line has the following form:
+
+```toml
+[project]
+```
+
+The table name must be a supported bare key.
+
+The table becomes the destination for subsequent key-value entries until another table is declared.
+
+### Notes
+
+* duplicate table declarations are rejected
+* nested table names such as `[a.b]` are deferred
+* array-of-tables syntax such as `[[project]]` is deferred
+
+---
+
+## Strings
+
+The initial implementation supports basic double-quoted strings.
+
+```toml
+name = "xer"
+```
+
+The following simple escapes are supported:
+
+```text
+\"
+\\
+\b
+\t
+\n
+\f
+\r
+```
+
+Other escapes, Unicode escapes, literal strings, and multiline strings are deferred.
+
+---
+
+## Booleans
+
+The following boolean values are supported:
+
+```toml
+enabled = true
+disabled = false
+```
+
+They are stored as `bool`.
+
+---
+
+## Integers
+
+The initial implementation supports signed decimal integers.
+
+```toml
+count = 123
+offset = -5
+```
+
+They are stored as `std::int64_t`.
+
+The following forms are deferred:
+
+* hexadecimal integers
+* octal integers
+* binary integers
+* numeric separators
+
+---
+
+## Floating-Point Numbers
+
+The initial implementation supports finite decimal floating-point numbers.
+
+```toml
+ratio = 1.5
+scale = 1e-3
+```
+
+They are stored as `double`.
+
+Special values such as `inf` and `nan` are deferred.
+
+---
+
+## Arrays
+
+The initial implementation supports arrays.
+
+```toml
+ports = [8000, 8001, 8002]
+mixed = ["xer", true, 3]
+```
+
+Arrays preserve element order.
+
+The implementation stores arrays as `toml_array`.
+
+### Notes
+
+* arrays can contain supported scalar values and arrays
+* arrays containing tables are not supported by the initial encoder
+* array-of-tables syntax is deferred
+
+---
+
+## Comments
+
+A `#` starts a comment when it appears outside a double-quoted string.
+
+```toml
+name = "xer" # comment
+```
+
+A `#` inside a string is treated as part of the string.
+
+```toml
+name = "x#r"
+```
+
+---
+
+## `toml_decode`
+
+```cpp
+auto toml_decode(std::u8string_view text) -> xer::result<toml_value>;
+```
+
+### Purpose
+
+`toml_decode` parses UTF-8 TOML text and returns a `toml_value`.
+
+### Input Model
+
+The input text is provided as:
+
+```cpp
+std::u8string_view
+```
+
+This follows XER's UTF-8-oriented public text model.
+
+### Return Model
+
+On success, `toml_decode` returns a `toml_value`.
+
+The returned value is a table value.
+
+### Failure Conditions
+
+At minimum, decoding fails when:
+
+* the input contains invalid UTF-8
+* a key-value line does not contain `=`
+* a key is malformed
+* a table declaration is malformed
+* a key is duplicated
+* a table is duplicated
+* a value uses unsupported syntax
+* a value is malformed
+
+Invalid UTF-8 is treated as an encoding error.
+Malformed TOML structure is treated as an invalid argument.
+
+---
+
+## `toml_encode`
+
+```cpp
+auto toml_encode(const toml_value& value) -> xer::result<std::u8string>;
+```
+
+### Purpose
+
+`toml_encode` serializes a supported TOML value model into UTF-8 TOML text.
+
+### Input Model
+
+The value to encode must be a table value.
+
+### Output Model
+
+On success, it returns:
+
+```cpp
+std::u8string
+```
+
+The generated text uses `\n` line endings.
+
+### Serialization Form
+
+The encoder emits ordinary key-value entries first.
+
+```toml
+title = "sample"
+enabled = true
+count = 123
+```
+
+Then it emits table sections.
+
+```toml
+[project]
+name = "xer"
+version = "0.2.0a3"
+```
+
+A blank line is inserted before a table when there is preceding output.
+
+### Representability
+
+Because the initial TOML implementation supports only a subset, `toml_encode` rejects values that cannot be represented by that subset.
+
+For example, it rejects:
+
+* a top-level value that is not a table
+* unsupported key forms
+* nested tables beyond the initial section model
+* arrays containing tables
+* invalid UTF-8 strings
+* non-finite floating-point values
+
+---
+
+## Error Handling
+
+`<xer/toml.h>` follows XER's ordinary failure model.
+
+That means:
+
+* parsing failure is reported through `xer::result`
+* serialization failure is reported through `xer::result`
+* normal failure is not expressed through exceptions by default
+
+The usual pattern is:
+
+```cpp
+const auto decoded = xer::toml_decode(text);
+if (!decoded.has_value()) {
+    return 1;
+}
+```
+
+This follows XER's general policy that fallible public APIs return `xer::result`, while ordinary public APIs should accept ordinary values rather than `xer::result` arguments.
+
+---
+
+## Relationship to Other Headers
+
+`<xer/toml.h>` should be understood together with the following documents and headers:
+
+* `policy_project_outline.md`
+* `policy_result_arguments.md`
+* `policy_encoding.md`
+* `header_string.md`
+* `header_json.md`
+* `header_ini.md`
+
+The rough boundary is:
+
+* `<xer/string.h>` handles general string and text utilities
+* `<xer/json.h>` handles JSON as a structured data format
+* `<xer/ini.h>` handles INI as a simple string-valued configuration data format
+* `<xer/toml.h>` handles TOML as a typed configuration data format
+
+This separation is intentional.
+TOML is treated as an independent data-format facility rather than as a string helper or stream helper.
+
+---
+
+## Documentation Notes
+
+When this header is used in generated documentation, it is usually enough to explain:
+
+* that TOML processing uses UTF-8 text
+* that the initial implementation is a practical TOML subset
+* that top-level decode results are table values
+* that TOML values are typed
+* that duplicate keys and duplicate tables are rejected
+* that deferred TOML features are not yet supported
+
+Detailed feature coverage should be kept in sync with the implementation as support expands.
+
+---
+
+## Example Topics Commonly Worth Showing
+
+The following kinds of examples are especially suitable for this header:
+
+* decoding simple TOML text
+* reading a value from the top-level table
+* reading a value from a section table
+* encoding a `toml_value` table back into TOML text
+
+These are good candidates for executable examples in `examples/`.
+
+---
+
+## Example
+
+```cpp
+#include <xer/toml.h>
+
+auto main() -> int
+{
+    const auto decoded = xer::toml_decode(
+        u8"title = \"sample\"\n"
+        u8"enabled = true\n"
+        u8"\n"
+        u8"[project]\n"
+        u8"name = \"xer\"\n"
+        u8"version = \"0.2.0a3\"\n");
+
+    if (!decoded.has_value()) {
+        return 1;
+    }
+
+    const auto* root = decoded->as_table();
+    if (root == nullptr) {
+        return 1;
+    }
+
+    const auto encoded = xer::toml_encode(*decoded);
+    if (!encoded.has_value()) {
+        return 1;
+    }
+
+    return 0;
+}
+```
+
+This example shows the general style:
+
+* parse UTF-8 TOML text with `toml_decode`
+* inspect the resulting top-level table
+* serialize it again with `toml_encode`
+* check `xer::result` explicitly at each fallible step
+
+---
+
+## See Also
+
+* `policy_project_outline.md`
+* `policy_result_arguments.md`
+* `policy_encoding.md`
+* `header_json.md`
+* `header_ini.md`
+
+---
+
 # `<xer/stdio.h>`
 
 ## Purpose
@@ -2477,6 +3890,8 @@ This header is one of the most important public headers in XER because it provid
 - CSV input/output
 - stream state and positioning
 - stream rewinding
+- stream content convenience operations
+- whole-file content convenience operations
 
 ---
 
@@ -2741,9 +4156,6 @@ sprintf
 snprintf
 ```
 
-The scanf family is outside the scope of this document for now.
-It will be documented separately after the scanf family is strengthened.
-
 ---
 
 ## Basic Policy
@@ -2910,6 +4322,598 @@ The exact error category may be refined as the implementation evolves, but inval
 This document is intended to describe the user-visible printf-family behavior.
 When implementation details in `xer/bits/printf_format.h` change, this document should be kept in sync.
 
+### scanf Format Details
+
+# XER scanf Format Specifiers
+
+## Scope
+
+This document describes the format strings used by the XER scanf family.
+
+Target functions:
+
+```cpp
+scanf
+fscanf
+sscanf
+```
+
+The printf family is documented separately in `stdio_printf_format.md`.
+
+---
+
+## Basic Policy
+
+XER scanf-style functions are inspired by C scanf, but they are not strict source-compatible reimplementations.
+
+- format strings are UTF-8 strings
+- input text is read as XER text and is processed as Unicode scalar values where appropriate
+- ordinary fixed text in the format string must match the input
+- ASCII whitespace in the format string matches zero or more ASCII whitespace characters in the input
+- conversion specifications start with `%`
+- ordinary failure is reported through `xer::result`
+- match failure returns the number of successful assignments already completed
+- XER-specific extensions may exist
+
+A format string may contain ordinary UTF-8 text, whitespace, control tokens, and conversion specifications.
+
+---
+
+## Function Result
+
+The scanf family returns the number of successful assignments.
+
+```cpp
+auto result = xer::sscanf(input, format, &a, &b);
+```
+
+On success, the returned value is the number of output arguments that were assigned.
+
+If input matching fails after some assignments have already succeeded, the function returns the partial assignment count as a successful result.
+This follows the general scanf-style model where an ordinary mismatch is not necessarily a format error.
+
+If the format string is invalid, a type mismatch is detected, input decoding fails, or another ordinary runtime error occurs, the function returns failure through `xer::result`.
+
+---
+
+## Format String Structure
+
+A scanf format string consists of the following kinds of items:
+
+```text
+ordinary UTF-8 literal text
+ASCII whitespace
+conversion specifications beginning with %
+XER control tokens such as %@
+```
+
+Ordinary literal text must match the input exactly.
+
+ASCII whitespace in the format string consumes zero or more ASCII whitespace characters in the input.
+Consecutive whitespace in the format string is treated as a single whitespace-matching item.
+
+---
+
+## Conversion Specification Syntax
+
+A conversion specification begins with `%`.
+
+The currently supported structure is:
+
+```text
+%[position$][*][width][length]conversion
+```
+
+The positional form is optional.
+When it is used, the first output argument is numbered `1`.
+
+Examples:
+
+```cpp
+xer::sscanf(u8"10 abc", u8"%d %s", &value, &text);
+xer::sscanf(u8"10 abc", u8"%2$s %1$d", &value, &text);
+```
+
+---
+
+## Positional Arguments
+
+A conversion may specify an output argument position:
+
+```text
+%1$d
+%2$s
+```
+
+Argument positions are one-based.
+
+When positional arguments are used, the format string is treated as positional.
+Sequential and positional argument selection must not be mixed in the same format string, except through the XER `%@` control token rules described below.
+
+Examples:
+
+```cpp
+int number = 0;
+std::u8string text;
+
+xer::sscanf(u8"hello 123", u8"%2$s %1$d", &number, &text);
+```
+
+Here `%2$s` stores into the second output argument and `%1$d` stores into the first output argument.
+
+---
+
+## Assignment Suppression
+
+A conversion may suppress assignment by using `*` after `%` or after the optional positional prefix.
+
+```text
+%*d
+%*s
+```
+
+The input is still matched and consumed, but no output argument is assigned and the assignment count is not incremented.
+
+Example:
+
+```cpp
+int value = 0;
+xer::sscanf(u8"10 20", u8"%*d %d", &value);
+```
+
+This stores `20` in `value`.
+
+---
+
+## Field Width
+
+A field width may be specified as a positive decimal integer.
+
+```text
+%3s
+%2d
+%1c
+```
+
+The width limits the number of input characters considered by the conversion.
+
+For `%s` and `%[...]`, the width limits the number of Unicode scalar values collected, not the number of UTF-8 code units.
+
+A width of `0` is not accepted as an explicit field width.
+When no field width is present, the conversion reads as much as its own matching rule allows.
+
+---
+
+## Length Modifiers
+
+The following length modifiers are parsed:
+
+```text
+hh h l ll j z t L
+```
+
+They are accepted as part of the scanf-style grammar.
+Their effect is applied to the intermediate value used by numeric conversions.
+The actual output type is still determined by the pointer type passed by the caller.
+
+For `%[...]`, length modifiers are currently invalid.
+
+---
+
+## Whitespace Handling Around Conversions
+
+For most conversions, leading ASCII whitespace in the input is skipped before matching.
+
+The following conversions skip leading ASCII whitespace:
+
+```text
+%d %u %o %x %X
+%f %F %e %E %g %G
+%s
+```
+
+The following conversions do not skip leading whitespace automatically:
+
+```text
+%c
+%[...]
+%%
+```
+
+This follows the usual scanf-style distinction: `%c` and scansets read the next input character according to their own matching rule.
+
+---
+
+## Supported Conversions
+
+The following conversion specifiers are supported:
+
+```text
+%d
+%u
+%o
+%x %X
+%f %F
+%e %E
+%g %G
+%c
+%s
+%[...]
+%%
+```
+
+The `%@` token is also supported as an XER-specific control token.
+It is described separately below.
+
+---
+
+## Integer Conversions
+
+### `%d`
+
+`%d` reads a signed decimal integer.
+
+It accepts an optional leading sign followed by decimal digits.
+
+### `%u`
+
+`%u` reads an unsigned decimal integer.
+
+### `%o`
+
+`%o` reads an unsigned octal integer.
+
+### `%x` and `%X`
+
+`%x` and `%X` read an unsigned hexadecimal integer.
+
+The implementation accepts hexadecimal digits using either lowercase or uppercase letters.
+
+### Output Targets
+
+Integer conversions can be stored into ordinary integer scalar targets when the target type is compatible with the intermediate value.
+
+The implementation first parses into an intermediate integer value and then stores into the caller-provided output object.
+If the destination pointer type is not compatible with the conversion result, the scan operation reports an error.
+
+---
+
+## Floating-Point Conversions
+
+The following floating-point conversions are supported:
+
+```text
+%f %F
+%e %E
+%g %G
+```
+
+They read a floating-point lexeme and store the value into a floating-point target.
+
+The accepted input form follows the implementation's current floating parser.
+It includes ordinary decimal forms and exponent forms used by typical scanf-style input.
+
+---
+
+## Character Conversion: `%c`
+
+`%c` reads one input character and stores it as a character-like value.
+
+Unlike `%s`, `%c` does not skip leading whitespace automatically.
+
+In the current implementation, `%c` accepts a field width only when the width is `1` or omitted.
+A larger width is treated as invalid.
+
+Typical output targets include:
+
+```cpp
+char32_t
+char16_t
+wchar_t
+char8_t
+char
+signed char
+unsigned char
+```
+
+The input is read as a Unicode scalar value and then stored into the destination character type.
+When the destination is a single-byte character type, the caller is responsible for using it only for values that make sense for that type.
+
+---
+
+## String Conversion: `%s`
+
+`%s` reads a non-empty sequence of non-whitespace characters.
+
+Before matching, leading ASCII whitespace is skipped.
+The conversion then collects characters until one of the following occurs:
+
+- end of input
+- ASCII whitespace
+- field width is reached
+
+The collected text is stored as UTF-8 internally and can be assigned to supported string targets.
+
+Supported string targets include:
+
+```cpp
+std::u8string
+std::u16string
+std::u32string
+std::wstring
+```
+
+The input text is UTF-8 in the XER text model.
+When the destination is `std::u16string`, `std::u32string`, or `std::wstring`, the collected UTF-8 text is converted to the corresponding character-string representation.
+
+For `std::wstring`, conversion follows the width of `wchar_t`:
+
+- when `wchar_t` is effectively UTF-16, UTF-16 code units are produced
+- when `wchar_t` is effectively UTF-32, UTF-32 code units are produced
+
+---
+
+## Scanset Conversion: `%[...]`
+
+`%[...]` reads a non-empty sequence of characters that match a scanset.
+
+Unlike `%s`, a scanset does not skip leading whitespace automatically.
+The first input character must match the scanset for the conversion to succeed.
+
+The collected text is stored as UTF-8 internally and can be assigned to the same string targets as `%s`:
+
+```cpp
+std::u8string
+std::u16string
+std::u32string
+std::wstring
+```
+
+### Basic Form
+
+```text
+%[abc]
+```
+
+This matches one or more characters from the set `a`, `b`, and `c`.
+
+### Negated Form
+
+```text
+%[^,]
+```
+
+A leading `^` negates the scanset.
+This example reads characters until a comma is encountered.
+
+### Including `]`
+
+If `]` appears immediately after `[` or after `[^`, it is treated as a member of the scanset.
+
+Examples:
+
+```text
+%[]x]
+%[^]x]
+```
+
+### Ranges
+
+ASCII ranges are supported.
+
+```text
+%[a-z]
+%[0-9]
+```
+
+Ranges are interpreted over ASCII byte values.
+For non-ASCII characters, each UTF-8 code point is handled as an individual scanset item rather than as part of a range.
+
+---
+
+## Literal Percent: `%%`
+
+`%%` matches one literal percent sign in the input.
+
+It does not assign to an output argument and does not increment the assignment count.
+
+---
+
+## XER Control Token: `%@`
+
+`%@` is an XER-specific scanf control token.
+
+It does not read input by itself.
+Instead, it controls argument selection for the following conversion specification.
+
+The main purpose is to make a following conversion use a specific output argument while keeping the conversion itself written in the ordinary form.
+
+### Sequential Form
+
+```text
+%@ %d
+```
+
+In sequential mode, `%@` marks the following conversion as controlled by the current argument-selection flow.
+This form is mainly useful as a building block for the same mechanism that also supports positional control.
+
+### Positional Form
+
+```text
+%1$@ %d
+```
+
+The positional form applies the specified argument position to the following conversion.
+
+Example:
+
+```cpp
+int a = 0;
+int b = 0;
+
+xer::sscanf(u8"10 20", u8"%2$d %1$@ %d", &a, &b);
+```
+
+The behavior is:
+
+```text
+%2$d   reads 10 into the second output argument
+%1$@   selects the first output argument for the next conversion
+%d     reads 20 into the first output argument
+```
+
+After the call:
+
+```text
+a == 20
+b == 10
+```
+
+### Restrictions
+
+A `%@` control token must be followed by a conversion specification.
+A format string ending with pending `%@` is invalid.
+
+Two consecutive control tokens are invalid.
+
+When positional control is used, the format's argument-selection mode rules still apply.
+Mixing incompatible sequential and positional forms is treated as an invalid format.
+
+---
+
+## Generic Stream-Extraction Storage
+
+When a destination type is not one of the explicitly supported scalar, character, or string target categories, the implementation may store through a generic stream-extraction route.
+
+Conceptually, the intermediate scanned value is first converted to UTF-8 text, then to a narrow byte string, and then read through:
+
+```cpp
+std::istringstream stream(text);
+stream >> value;
+```
+
+This route is intended for types that naturally support `operator>>`.
+
+Special string and wide-string targets such as `std::u16string`, `std::u32string`, and `std::wstring` are not handled through this generic route; they are handled explicitly from UTF-8 text.
+
+---
+
+## Assignment Count
+
+The returned assignment count is incremented only when a conversion succeeds and actually assigns to a non-null output pointer.
+
+The count is not incremented for:
+
+- `%%`
+- suppressed assignments such as `%*d`
+- output arguments passed as `nullptr`
+- control tokens such as `%@`
+
+---
+
+## Null Output Pointers
+
+If an output pointer is `nullptr`, the conversion still reads and consumes input normally, but the value is discarded.
+
+A successful conversion with a null output pointer does not increment the assignment count.
+
+This allows callers to ignore selected values without changing the input-matching behavior.
+
+---
+
+## Match Failure vs Error
+
+XER scanf-style functions distinguish ordinary match failure from errors.
+
+### Match Failure
+
+A match failure occurs when the input does not match the next literal or conversion.
+In this case, the function returns the assignment count already completed.
+
+Example:
+
+```cpp
+int a = 0;
+int b = 0;
+
+const auto result = xer::sscanf(u8"10 xx", u8"%d %d", &a, &b);
+```
+
+The first conversion succeeds, the second conversion fails to match, and the returned count is `1`.
+
+### Error
+
+An error is reported through `xer::result` failure.
+
+Typical error cases include:
+
+- invalid format syntax
+- unsupported conversion syntax
+- incompatible argument-selection mode
+- invalid UTF-8 input where decoding is required
+- type mismatch between a conversion and an output target
+- invalid use of field width or length modifier
+
+---
+
+## Encoding Notes
+
+XER scanf-style input works in XER's text model.
+
+For `sscanf`, the input is a UTF-8 string.
+For `fscanf` and `scanf`, the source is a `text_stream`, whose external encoding is handled by the stream layer and whose characters are read as XER text characters.
+
+Collected string values are stored internally as UTF-8 before being assigned to the destination string type.
+
+---
+
+## Examples
+
+### Basic scanning
+
+```cpp
+int value = 0;
+std::u8string text;
+
+const auto result = xer::sscanf(u8"123 hello", u8"%d %s", &value, &text);
+```
+
+After success:
+
+```text
+value == 123
+text == u8"hello"
+```
+
+### Reading UTF-8 text into wide string targets
+
+```cpp
+std::u16string a;
+std::u32string b;
+std::wstring c;
+
+xer::sscanf(u8"猫 犬 鳥", u8"%s %s %s", &a, &b, &c);
+```
+
+Each `%s` reads UTF-8 input and stores it in the destination string type.
+
+### Reading a scanset
+
+```cpp
+std::u8string field;
+
+xer::sscanf(u8"abc,rest", u8"%[^,]", &field);
+```
+
+This stores `u8"abc"` in `field`.
+
+---
+
+## Implementation Notes
+
+This document is intended to describe the user-visible scanf-family behavior.
+When implementation details in `xer/bits/scanf_format.h` or `xer/bits/scanf.h` change, this document should be kept in sync.
+
 ---
 
 ## CSV Support
@@ -2979,6 +4983,193 @@ This reflects the fact that text streams may not always map cleanly to simple by
 
 ---
 
+## Rewinding
+
+`<xer/stdio.h>` provides `rewind` for both stream kinds:
+
+```cpp
+auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
+auto rewind(text_stream& stream) noexcept -> xer::result<void>;
+```
+
+Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
+
+For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
+
+---
+
+## Whole-Stream Convenience Operations
+
+`<xer/stdio.h>` provides whole-stream convenience operations:
+
+```cpp
+auto stream_get_contents(
+    binary_stream& stream,
+    std::uint64_t length = std::numeric_limits<std::uint64_t>::max())
+    -> xer::result<std::vector<std::byte>>;
+
+auto stream_get_contents(text_stream& stream)
+    -> xer::result<std::u8string>;
+
+auto stream_put_contents(
+    binary_stream& stream,
+    std::span<const std::byte> contents)
+    -> xer::result<void>;
+
+auto stream_put_contents(
+    text_stream& stream,
+    std::u8string_view contents)
+    -> xer::result<void>;
+```
+
+### Purpose
+
+`stream_get_contents` and `stream_put_contents` provide compact helpers for reading from and writing to an already-open XER stream.
+
+They are the stream-level counterparts of `file_get_contents` and `file_put_contents`.
+
+Because they operate on streams rather than file names, they can be used with any stream source or destination supported by XER, including files, temporary files, memory streams, string streams, process pipes, and socket-derived streams where applicable.
+
+### Binary `stream_get_contents`
+
+```cpp
+auto stream_get_contents(
+    binary_stream& stream,
+    std::uint64_t length = std::numeric_limits<std::uint64_t>::max())
+    -> xer::result<std::vector<std::byte>>;
+```
+
+This overload reads binary data from the current position of `stream`.
+
+It reads at most `length` bytes, or stops earlier if EOF is reached.
+
+If `length` is zero, the function succeeds and returns an empty byte vector.
+
+### No Offset Argument
+
+XER intentionally does not provide an offset parameter for `stream_get_contents`.
+
+A stream already has a current position. If the caller needs to choose the starting position, the caller should use `fseek`, `fsetpos`, or another appropriate positioning function explicitly before calling `stream_get_contents`.
+
+This also avoids the confusing argument-order difference found in PHP, where `file_get_contents` and `stream_get_contents` place offset and length differently.
+
+In XER, the rule is simple:
+
+* `file_get_contents` may take an offset because it opens the file internally
+* `stream_get_contents` reads from the stream's current position
+
+### Text `stream_get_contents`
+
+```cpp
+auto stream_get_contents(text_stream& stream)
+    -> xer::result<std::u8string>;
+```
+
+This overload reads text from the current position of `stream` until EOF.
+
+The returned string is UTF-8 text.
+
+The stream's own encoding state controls how external bytes are decoded.
+
+Text-mode `stream_get_contents` does not provide `offset` or `length` arguments because byte offsets, decoded characters, line ending behavior, and encoding state can otherwise become ambiguous.
+
+### Binary `stream_put_contents`
+
+```cpp
+auto stream_put_contents(
+    binary_stream& stream,
+    std::span<const std::byte> contents)
+    -> xer::result<void>;
+```
+
+This overload writes all bytes in `contents` to the current position of `stream`.
+
+The exact placement behavior is determined by the stream's current position and open mode.
+
+For example, if the stream was opened in append mode, the write follows the stream's append behavior.
+
+### Text `stream_put_contents`
+
+```cpp
+auto stream_put_contents(
+    text_stream& stream,
+    std::u8string_view contents)
+    -> xer::result<void>;
+```
+
+This overload writes the UTF-8 text in `contents` to the current position of `stream`.
+
+The stream's encoding controls how the UTF-8 text is encoded externally.
+
+### Relationship to File Convenience Functions
+
+`file_get_contents` and `file_put_contents` are file-opening convenience wrappers around these stream-level helpers.
+
+Conceptually:
+
+```cpp
+auto stream = xer::fopen(filename, "r");
+return xer::stream_get_contents(*stream);
+```
+
+or:
+
+```cpp
+auto stream = xer::fopen(filename, "w");
+return xer::stream_put_contents(*stream, contents);
+```
+
+The stream-level functions contain the reusable read/write logic, while the file-level functions handle opening the file and applying file-specific options such as the binary `offset` argument.
+
+### Error Handling
+
+These functions follow XER's ordinary failure model.
+
+On success:
+
+* `stream_get_contents` returns the read data
+* `stream_put_contents` returns an empty success value
+
+On failure, they return an error through `xer::result`.
+
+Typical failure conditions include:
+
+* the stream is not readable or writable for the requested operation
+* reading or writing fails
+* text decoding or encoding fails
+* memory allocation fails while collecting the result
+
+### Example
+
+```cpp
+std::u8string buffer;
+
+auto stream = xer::stropen(buffer, "w+");
+if (!stream.has_value()) {
+    return 1;
+}
+
+const auto written = xer::stream_put_contents(
+    *stream,
+    std::u8string_view(u8"hello XER"));
+
+if (!written.has_value()) {
+    return 1;
+}
+
+const auto rewound = xer::rewind(*stream);
+if (!rewound.has_value()) {
+    return 1;
+}
+
+const auto text = xer::stream_get_contents(*stream);
+if (!text.has_value()) {
+    return 1;
+}
+```
+
+---
+
 ## Closing and Flushing
 
 This header also provides operations such as:
@@ -3014,11 +5205,24 @@ Even though stream destructors perform automatic cleanup, explicit close and flu
 `<xer/stdio.h>` also provides file-entry operations such as:
 
 ```cpp
+file_exists
+is_file
+is_dir
+is_readable
+is_writable
+
 remove
 rename
 mkdir
 rmdir
 copy
+
+chdir
+getcwd
+realpath
+
+file_get_contents
+file_put_contents
 ```
 
 ### Role of This Group
@@ -3033,7 +5237,280 @@ These functions are intentionally separate from stream objects themselves.
 
 They typically operate on `xer::path`, not on raw native path strings.
 
-This aligns them with XER's own path model.
+This aligns them with XER's own path model, where path values are represented internally as UTF-8 strings with `/` as the normalized separator.
+
+Some functions in this group are simple predicates, while others perform actual filesystem operations.
+
+Predicate functions such as `file_exists`, `is_file`, `is_dir`, `is_readable`, and `is_writable` return `bool`.
+
+Operations that can fail normally return `xer::result`.
+
+---
+
+## Current Working Directory Operations
+
+`<xer/stdio.h>` provides current-working-directory helpers:
+
+```cpp
+auto chdir(const path& target) -> xer::result<void>;
+auto getcwd() -> xer::result<path>;
+```
+
+### `chdir`
+
+`chdir` changes the process-wide current working directory.
+
+```cpp
+auto chdir(const path& target) -> xer::result<void>;
+```
+
+The argument is a `xer::path`.
+
+On success, the function returns an empty success value.
+On failure, it returns an error through `xer::result`.
+
+Because the current working directory is process-wide state, callers should use this function carefully in programs where multiple components or threads may depend on the current directory.
+
+### `getcwd`
+
+`getcwd` returns the current working directory.
+
+```cpp
+auto getcwd() -> xer::result<path>;
+```
+
+The returned value is a `xer::path`.
+
+The path is converted into XER's internal UTF-8 representation and uses `/` as the normalized separator.
+
+The result is a snapshot of the process-wide current working directory at the time of the call.
+
+---
+
+## `realpath`
+
+```cpp
+auto realpath(const path& filename) -> xer::result<path>;
+```
+
+### Purpose
+
+`realpath` returns the canonicalized absolute path of an existing filesystem entry.
+
+It queries the actual filesystem through the platform path canonicalization mechanism.
+
+### Behavior
+
+The target path must exist.
+
+Relative path components are resolved.
+Symbolic links and other filesystem-level indirections are resolved according to the behavior of the underlying platform.
+
+On POSIX-like environments, the behavior follows the platform `realpath` facility.
+On Windows, the implementation uses Windows path canonicalization facilities and converts the result back into XER's path representation.
+
+### Return Value
+
+On success, `realpath` returns a `xer::path`.
+
+The returned path:
+
+* is absolute
+* refers to an existing filesystem entry
+* is converted to XER's UTF-8 path representation
+* uses `/` as the internal separator
+
+On failure, it returns an error through `xer::result`.
+
+Typical failure conditions include:
+
+* the target path does not exist
+* the caller lacks permission to access the path
+* native path conversion fails
+* platform path canonicalization fails
+
+### Difference from Lexical Path Operations
+
+`realpath` is not a purely lexical path operation.
+
+It depends on the actual filesystem and may observe filesystem state such as symbolic links, mounted volumes, permissions, and existing entries.
+
+For purely lexical path manipulation, use path helpers such as `basename`, `parent_path`, `extension`, `stem`, `is_absolute`, and `is_relative`.
+
+### Example
+
+```cpp
+const auto resolved = xer::realpath(xer::path(u8"."));
+if (!resolved.has_value()) {
+    return 1;
+}
+```
+
+After success, `resolved` contains the canonicalized absolute path of the current directory.
+
+---
+
+## Whole-File Convenience Operations
+
+`<xer/stdio.h>` provides PHP-inspired whole-file convenience operations:
+
+```cpp
+auto file_get_contents(
+    const path& filename,
+    std::uint64_t offset = 0,
+    std::uint64_t length = std::numeric_limits<std::uint64_t>::max())
+    -> xer::result<std::vector<std::byte>>;
+
+auto file_get_contents(
+    const path& filename,
+    encoding_t encoding)
+    -> xer::result<std::u8string>;
+
+auto file_put_contents(
+    const path& filename,
+    std::span<const std::byte> contents)
+    -> xer::result<void>;
+
+auto file_put_contents(
+    const path& filename,
+    std::u8string_view contents,
+    encoding_t encoding)
+    -> xer::result<void>;
+```
+
+### Purpose
+
+`file_get_contents` and `file_put_contents` provide compact helpers for reading and writing an entire file without manually opening a stream.
+
+They are file-opening convenience wrappers around `stream_get_contents` and `stream_put_contents`. The reusable read/write behavior belongs to the stream-level helpers, while the file-level helpers additionally open the target file and apply file-specific options.
+
+They are inspired by PHP functions of the same names, but their behavior follows XER's stream and encoding model.
+
+### Binary and Text Selection
+
+The overload set uses the presence or absence of an `encoding_t` argument to select binary or text behavior.
+
+* when no encoding is specified, the file is handled through `binary_stream`
+* when an encoding is specified, the file is handled through `text_stream`
+
+This keeps the call site explicit without introducing a separate mode flag.
+
+### Binary `file_get_contents`
+
+```cpp
+auto file_get_contents(
+    const path& filename,
+    std::uint64_t offset = 0,
+    std::uint64_t length = std::numeric_limits<std::uint64_t>::max())
+    -> xer::result<std::vector<std::byte>>;
+```
+
+This overload opens the file as binary and returns its contents as `std::vector<std::byte>`.
+
+The optional `offset` and `length` arguments are byte-based.
+
+If `offset` is greater than the file size, the function returns `error_t::invalid_argument`.
+
+If `offset` is exactly equal to the file size, the function succeeds and returns an empty byte vector.
+
+If `length` is zero, the function succeeds and returns an empty byte vector.
+
+### Text `file_get_contents`
+
+```cpp
+auto file_get_contents(
+    const path& filename,
+    encoding_t encoding)
+    -> xer::result<std::u8string>;
+```
+
+This overload opens the file as text and returns its contents as UTF-8 text.
+
+The specified encoding controls how the external file bytes are decoded.
+
+`encoding_t::auto_detect` is valid for this input-side operation.
+
+Text-mode `file_get_contents` does not provide `offset` or `length` arguments because byte offsets, decoded characters, line ending behavior, and encoding state can otherwise become ambiguous.
+
+### Binary `file_put_contents`
+
+```cpp
+auto file_put_contents(
+    const path& filename,
+    std::span<const std::byte> contents)
+    -> xer::result<void>;
+```
+
+This overload opens the file as binary and writes all bytes in `contents`.
+
+Existing file contents are replaced.
+
+### Text `file_put_contents`
+
+```cpp
+auto file_put_contents(
+    const path& filename,
+    std::u8string_view contents,
+    encoding_t encoding)
+    -> xer::result<void>;
+```
+
+This overload opens the file as text and writes the UTF-8 text in `contents` using the specified output encoding.
+
+`encoding_t::auto_detect` is invalid for writing and results in `error_t::invalid_argument`.
+
+### Why PHP-Style Flags Are Not Provided
+
+XER intentionally does not provide PHP-style `flags` arguments for these functions.
+
+In particular, append behavior and locking behavior are not hidden inside `file_put_contents`.
+
+If file locking is required, the caller should perform it explicitly with an outer operation such as `flock`.
+
+If append-style output is required, the caller should use stream APIs directly, such as opening a stream with append mode and writing with `fwrite` or `fputs`.
+
+If append-style output is required, the caller should use stream APIs directly, such as opening a stream with append mode and writing with `fwrite`, `fputs`, or `stream_put_contents`.
+
+### Error Handling
+
+These functions follow XER's ordinary failure model.
+
+On success:
+
+* `file_get_contents` returns the read data
+* `file_put_contents` returns an empty success value
+
+On failure, they return an error through `xer::result`.
+
+Typical failure conditions include:
+
+* the file cannot be opened
+* seeking fails
+* reading or writing fails
+* `offset` is invalid
+* `encoding_t::auto_detect` is used for text output
+* text decoding or encoding fails
+
+### Example
+
+```cpp
+const auto text = xer::file_get_contents(
+    xer::path(u8"sample.txt"),
+    xer::encoding_t::utf8);
+
+if (!text.has_value()) {
+    return 1;
+}
+
+const auto written = xer::file_put_contents(
+    xer::path(u8"copy.txt"),
+    *text,
+    xer::encoding_t::utf8);
+
+if (!written.has_value()) {
+    return 1;
+}
+```
 
 ---
 
@@ -3108,6 +5585,10 @@ When this header is used in generated documentation, it is usually enough to exp
 * that stream objects are move-only RAII types
 * that both low-level I/O and higher-level facilities such as formatted I/O and CSV are included
 * that path-oriented file-entry operations are part of the header
+* that `realpath` is filesystem-dependent and distinct from lexical path operations
+* that `stream_get_contents` reads from the current stream position and intentionally does not provide an offset argument
+* that `file_get_contents` and `file_put_contents` are convenience APIs whose binary/text behavior is selected by the presence of an encoding argument
+* that `file_get_contents` and `file_put_contents` are file-opening wrappers around the stream-level content helpers
 
 Detailed per-function semantics should be described in the reference manual or generated API sections.
 
@@ -3124,6 +5605,10 @@ The following kinds of examples are especially suitable for this header:
 * using `tmpfile`
 * reading or writing CSV
 * performing `rename`, `remove`, or `copy`
+* changing and restoring the current working directory with `chdir` and `getcwd`
+* canonicalizing an existing path with `realpath`
+* reading and writing already-open streams with `stream_get_contents` and `stream_put_contents`
+* reading and writing whole files with `file_get_contents` and `file_put_contents`
 
 These are good candidates for executable examples under `examples/`.
 
@@ -3162,19 +5647,6 @@ This example shows the basic XER style:
 
 
 ---
-
-## Rewinding
-
-`<xer/stdio.h>` provides `rewind` for both stream kinds:
-
-```cpp
-auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
-auto rewind(text_stream& stream) noexcept -> xer::result<void>;
-```
-
-Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
-
-For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
 
 ---
 
@@ -3650,6 +6122,320 @@ This example shows the normal XER style:
 * `policy_project_outline.md`
 * `policy_path.md`
 * `header_stdio.md`
+
+---
+
+# `<xer/dirent.h>`
+
+## Purpose
+
+`<xer/dirent.h>` provides directory stream operations in XER.
+
+This header covers PHP/POSIX-style directory traversal facilities such as opening a directory, reading entry names, rewinding the directory stream, and closing it.
+
+The purpose is not to reproduce POSIX `dirent.h` exactly.
+Instead, XER provides a small C++23-friendly directory stream API that uses:
+
+- `xer::path` for path names
+- UTF-8 strings for directory entry names
+- `xer::result` for ordinary failure
+- a move-only RAII handle for directory streams
+
+---
+
+## Main Entities
+
+At minimum, `<xer/dirent.h>` provides the following entities:
+
+```cpp
+class xer::dir;
+
+auto xer::opendir(const path& dirname) noexcept -> result<dir>;
+auto xer::closedir(dir& directory) noexcept -> result<void>;
+auto xer::readdir(dir& directory) noexcept -> result<std::u8string>;
+auto xer::rewinddir(dir& directory) noexcept -> result<void>;
+````
+
+---
+
+## Design Role
+
+This header exists for directory stream traversal.
+
+It is separated from `<xer/stdio.h>` because directory streams are stateful traversal handles rather than ordinary file streams.
+Although the names are familiar from POSIX and PHP, the API is adapted to XER's own path, string, and error-handling model.
+
+---
+
+## `xer::dir`
+
+`xer::dir` is a move-only directory stream handle.
+
+It owns a native directory stream handle internally and closes it automatically when destroyed.
+
+```cpp
+class xer::dir;
+```
+
+### Basic Properties
+
+* move-only
+* non-copyable
+* RAII-based
+* represents either an open directory stream or an empty/closed state
+
+### Explicit Close
+
+The destructor closes the directory stream automatically, but failures from a destructor cannot be observed.
+
+When the caller needs to observe close errors, `xer::closedir` should be called explicitly.
+
+---
+
+## `xer::opendir`
+
+```cpp
+auto opendir(const path& dirname) noexcept -> result<dir>;
+```
+
+`opendir` opens a directory stream for the specified path.
+
+The path is converted from XER's UTF-8 `xer::path` representation to the platform-native path representation before the underlying directory API is called.
+
+### Return Value
+
+On success, it returns an open `xer::dir`.
+
+On failure, it returns `xer::result` failure.
+
+### Notes
+
+The returned directory stream is a snapshot-like traversal handle.
+If the directory contents are modified while the directory is being read, the observed behavior is platform- and filesystem-dependent.
+
+---
+
+## `xer::closedir`
+
+```cpp
+auto closedir(dir& directory) noexcept -> result<void>;
+```
+
+`closedir` closes a directory stream.
+
+After this function is called, the `xer::dir` object is treated as closed.
+
+### Return Value
+
+On success, it returns an empty success value.
+
+On failure, it returns `xer::result` failure.
+
+### Notes
+
+Calling `closedir` for an already closed or empty `xer::dir` is treated as a no-op success.
+
+The destructor of `xer::dir` also closes the directory stream, but explicit `closedir` is useful when the caller wants to observe close errors.
+
+---
+
+## `xer::readdir`
+
+```cpp
+auto readdir(dir& directory) noexcept -> result<std::u8string>;
+```
+
+`readdir` reads the next entry name from a directory stream.
+
+The returned string is a UTF-8 directory entry name.
+
+### Return Value
+
+On success, it returns the next entry name.
+
+At the end of the directory stream, it returns failure with:
+
+```cpp
+error_t::not_found
+```
+
+Other failures are reported through `xer::result` in the usual way.
+
+### Important Notes
+
+`readdir` returns only the entry name.
+
+It does not return a full path.
+
+For example, if the directory contains:
+
+```text
+example.txt
+```
+
+then `readdir` returns:
+
+```text
+example.txt
+```
+
+not:
+
+```text
+directory/example.txt
+```
+
+The special entries `"."` and `".."` are not filtered out.
+This follows the PHP/POSIX-style behavior more closely.
+Callers that do not want these entries should skip them explicitly.
+
+Entry order is platform- and filesystem-dependent.
+Code must not rely on a specific order unless it sorts the entries itself.
+
+---
+
+## `xer::rewinddir`
+
+```cpp
+auto rewinddir(dir& directory) noexcept -> result<void>;
+```
+
+`rewinddir` rewinds a directory stream to the beginning.
+
+After this function succeeds, subsequent calls to `readdir` read entries again from the beginning of the directory stream.
+
+### Return Value
+
+On success, it returns an empty success value.
+
+On failure, it returns `xer::result` failure.
+
+### Notes
+
+The order after rewinding is still platform- and filesystem-dependent.
+XER does not guarantee a stable ordering of directory entries.
+
+---
+
+## End-of-Directory Handling
+
+In XER, reaching the end of a directory stream is represented as:
+
+```cpp
+error_t::not_found
+```
+
+Typical usage is:
+
+```cpp
+for (;;) {
+    auto entry = xer::readdir(directory);
+    if (!entry.has_value()) {
+        if (entry.error().code == xer::error_t::not_found) {
+            break;
+        }
+
+        return 1;
+    }
+
+    // Use *entry.
+}
+```
+
+This keeps end-of-directory separate from ordinary successful reads while still using the normal `xer::result` failure channel.
+
+---
+
+## Relationship to Path Handling
+
+`<xer/dirent.h>` uses `xer::path` for directory paths.
+
+The `path` object stores a UTF-8 path in XER's normalized internal form.
+When `opendir` is called, the path is converted to the platform-native representation before being passed to the underlying directory API.
+
+The names returned by `readdir` are converted back into UTF-8 strings.
+
+---
+
+## Relationship to Other Headers
+
+`<xer/dirent.h>` is related to:
+
+* `<xer/path.h>`
+* `<xer/stdio.h>`
+* `<xer/error.h>`
+
+The rough boundary is:
+
+* `<xer/path.h>` handles lexical path representation and path utilities
+* `<xer/stdio.h>` handles ordinary file streams and file-related operations
+* `<xer/dirent.h>` handles directory stream traversal
+
+---
+
+## Documentation Notes
+
+When documenting this header, the most important points are:
+
+* `xer::dir` is a move-only RAII directory stream handle
+* `readdir` returns entry names, not full paths
+* `"."` and `".."` are not filtered out
+* end-of-directory is represented by `error_t::not_found`
+* entry order is filesystem-dependent
+* modifications during traversal have platform-dependent results
+
+---
+
+## Example
+
+```cpp
+#include <xer/dirent.h>
+#include <xer/error.h>
+#include <xer/stdio.h>
+
+auto main() -> int
+{
+    auto directory = xer::opendir(u8".");
+    if (!directory.has_value()) {
+        return 1;
+    }
+
+    for (;;) {
+        auto entry = xer::readdir(*directory);
+        if (!entry.has_value()) {
+            if (entry.error().code == xer::error_t::not_found) {
+                break;
+            }
+
+            return 1;
+        }
+
+        if (*entry == u8"." || *entry == u8"..") {
+            continue;
+        }
+
+        if (!xer::puts(*entry).has_value()) {
+            return 1;
+        }
+    }
+
+    if (!xer::closedir(*directory).has_value()) {
+        return 1;
+    }
+
+    return 0;
+}
+```
+
+---
+
+## See Also
+
+* `<xer/path.h>`
+* `<xer/stdio.h>`
+* `<xer/error.h>`
+* `policy_path.md`
+* `policy_examples.md`
 
 ---
 
@@ -4330,7 +7116,7 @@ Only literals whose destination type is available are provided.
 
 ---
 
-# `<xer/arithmetic.h>`
+﻿# `<xer/arithmetic.h>`
 
 ## Purpose
 
@@ -4652,6 +7438,48 @@ XER therefore makes that failure explicit.
 
 ---
 
+## Square and Cube Helpers
+
+`<xer/arithmetic.h>` also provides small power helpers:
+
+```cpp
+sq
+cb
+```
+
+### `sq`
+
+`sq(value)` returns the square of `value`.
+
+For integer input, it generally returns:
+
+```cpp
+xer::result<xer::int64_t>
+```
+
+and reports failure if the squared value cannot be represented in the signed result domain.
+
+For floating-point input, it follows the floating-point arithmetic rules of this header and returns a result whose success value is `long double`.
+
+### `cb`
+
+`cb(value)` returns the cube of `value`.
+
+It follows the same result and error-handling policy as `sq`.
+For integer input, overflow and out-of-range results are reported explicitly.
+
+### Chained Use
+
+As arithmetic helpers, `sq` and `cb` may also accept `xer::result` arguments.
+This allows forms such as:
+
+```cpp
+const auto value = xer::sq(xer::add(2, 3));
+```
+
+If the argument result already contains an error, that error is propagated.
+---
+
 ## Acceptance of `xer::result`
 
 One of the most important design points of `<xer/arithmetic.h>` is that arithmetic helpers may accept `xer::result` arguments.
@@ -4776,7 +7604,7 @@ The following kinds of examples are especially suitable for this header:
 * propagating failure through chained arithmetic helpers
 * checking representability with `in_range`
 * using `min`, `max`, or `clamp` with mixed numeric types
-* using `abs` or `uabs` with explicit result checking
+* using `abs` or `uabs` with explicit result checking\n* using `sq` or `cb` with explicit result checking
 
 These are good candidates for executable examples in `examples/`.
 
@@ -5337,7 +8165,7 @@ This example shows the normal XER style:
 
 ---
 
-# `<xer/quantity.h>`
+﻿# `<xer/quantity.h>`
 
 ## Purpose
 
@@ -5394,6 +8222,9 @@ class unit;
 
 template <std::floating_point T, typename Dim>
 class quantity;
+
+sq
+cb
 ```
 
 In addition, it provides predefined unit objects under the `xer::units` namespace.
@@ -5672,14 +8503,68 @@ This allows natural construction of derived quantities such as:
 using namespace xer::units;
 
 auto v = 3.0 * m / sec;
-auto a = 9.8 * m / (sec * sec);
-auto f = 2.0 * kg * m / (sec * sec);
+auto a = 9.8 * m / sq(sec);
+auto f = 2.0 * kg * m / sq(sec);
 ```
 
 ### Why This Matters
 
 This avoids the need to define every composite unit as a separate fixed name.
 
+---
+
+## Square and Cube Helpers for Units and Quantities
+
+`<xer/quantity.h>` provides `sq` and `cb` for units and quantities.
+
+```cpp
+sq(unit)
+cb(unit)
+sq(quantity)
+cb(quantity)
+```
+
+### Role
+
+These helpers make repeated multiplication easier to read in unit expressions.
+For example:
+
+```cpp
+using namespace xer::units;
+
+auto acceleration = 9.8 * m / sq(sec);
+```
+
+This is equivalent in meaning to:
+
+```cpp
+auto acceleration = 9.8 * m / (sec * sec);
+```
+
+For quantities, `sq` and `cb` multiply the stored value and combine the dimension exponents accordingly.
+
+### Symbolic Unit Aliases
+
+For common base units, symbolic aliases are also provided under `xer::units`:
+
+```cpp
+m²
+m³
+sec²
+sec³
+```
+
+These are aliases for the corresponding square or cube unit expressions:
+
+```cpp
+m²   // sq(m)
+m³   // cb(m)
+sec² // sq(sec)
+sec³ // cb(sec)
+```
+
+They are intended as readable symbolic notation.
+The ASCII forms `sq(m)`, `cb(m)`, `sq(sec)`, and `cb(sec)` remain available as the portable spelling.
 ---
 
 ## `xer::units`
@@ -5727,6 +8612,15 @@ At minimum:
 * `kg`
 * `sec`
 * `A`
+
+### Squared and Cubed Base Units
+
+At minimum:
+
+* `m²`
+* `m³`
+* `sec²`
+* `sec³`
 
 ### Selected Prefixed Units
 
@@ -5899,7 +8793,7 @@ The following kinds of examples are especially suitable for this header:
 
 * constructing a quantity from a scalar and a unit
 * converting a quantity to base units and to another unit
-* dividing distance by time to obtain velocity
+* dividing distance by time to obtain velocity\n* using `sq`, `cb`, `m²`, `m³`, and `sec²` in unit expressions
 * using predefined units from `xer::units`
 * handling angle quantities with `taurad` or `rad`
 
@@ -5950,6 +8844,410 @@ This example shows the normal XER style:
 * `policy_quantity.md`
 * `header_cyclic.md`
 * `header_arithmetic.md`
+
+---
+
+﻿# `<xer/matrix.h>`
+
+## Purpose
+
+`<xer/matrix.h>` provides fixed-size matrix and affine transform helpers in XER.
+
+The initial purpose of this header is deliberately practical and limited.
+It is not intended to become a full linear algebra framework at the beginning.
+Instead, it provides enough functionality to express common 2D and 3D affine transforms and their inverse transforms in a clear, lightweight way.
+
+---
+
+## Main Role
+
+The main role of `<xer/matrix.h>` is to provide:
+
+- fixed-size row-major matrices
+- 3x3 and 4x4 matrix aliases
+- 3x1 and 4x1 column-vector aliases
+- ordinary matrix multiplication
+- identity matrix creation
+- inverse calculation for 3x3 and 4x4 matrices
+- helper functions for 2D and 3D affine transforms
+
+This makes it possible to write transform code such as:
+
+```cpp
+const xer::vector3<double> point{2.0, 3.0, 1.0};
+
+const auto transform =
+    xer::translate2(10.0, 20.0) *
+    xer::scale2(1.5, 4.0);
+
+const auto transformed = transform * point;
+```
+
+---
+
+## Main Entities
+
+At minimum, `<xer/matrix.h>` provides the following entities:
+
+```cpp
+template <std::floating_point T, std::size_t Rows, std::size_t Cols>
+class matrix;
+
+template <std::floating_point T>
+using matrix3 = matrix<T, 3, 3>;
+
+template <std::floating_point T>
+using matrix4 = matrix<T, 4, 4>;
+
+template <std::floating_point T>
+using vector3 = matrix<T, 3, 1>;
+
+template <std::floating_point T>
+using vector4 = matrix<T, 4, 1>;
+```
+
+It also provides multiplication, identity matrix creation, inverse calculation, and affine transform helper functions.
+
+---
+
+## `matrix<T, Rows, Cols>`
+
+`matrix<T, Rows, Cols>` is the fundamental fixed-size matrix type.
+
+### Basic Shape
+
+```cpp
+template <std::floating_point T, std::size_t Rows, std::size_t Cols>
+class matrix;
+```
+
+### Element Type
+
+The element type is restricted to floating-point types.
+
+The main intended types are:
+
+* `float`
+* `double`
+* `long double`
+
+This keeps the first implementation focused on geometric transforms and numeric operations where fractional values are normal.
+
+### Storage Model
+
+The matrix is stored as a fixed-size row-major value.
+
+Conceptually, the element at row `r` and column `c` is accessed as:
+
+```cpp
+m(r, c)
+```
+
+Rows and columns are zero-based.
+Bounds are not checked by `operator()`.
+
+### Construction
+
+A default-constructed matrix is a zero matrix.
+
+A matrix may also be constructed from exactly `Rows * Cols` values in row-major order:
+
+```cpp
+xer::matrix<double, 2, 3> value{
+    1.0, 2.0, 3.0,
+    4.0, 5.0, 6.0
+};
+```
+
+The exact number of values is required so that incomplete or excessive matrix literals are detected at compile time.
+
+---
+
+## Matrix Aliases
+
+The header provides aliases for the matrix sizes used by the initial affine-transform functionality.
+
+```cpp
+template <std::floating_point T>
+using matrix3 = matrix<T, 3, 3>;
+
+template <std::floating_point T>
+using matrix4 = matrix<T, 4, 4>;
+```
+
+### Role
+
+* `matrix3<T>` is primarily used for 2D homogeneous affine transforms.
+* `matrix4<T>` is primarily used for 3D homogeneous affine transforms.
+
+---
+
+## Column Vector Aliases
+
+The header also provides aliases for homogeneous column vectors.
+
+```cpp
+template <std::floating_point T>
+using vector3 = matrix<T, 3, 1>;
+
+template <std::floating_point T>
+using vector4 = matrix<T, 4, 1>;
+```
+
+### Role
+
+* `vector3<T>` is typically used as a 2D homogeneous column vector: `(x, y, 1)`.
+* `vector4<T>` is typically used as a 3D homogeneous column vector: `(x, y, z, 1)`.
+
+They are aliases of `matrix`, not separate vector classes.
+This keeps the first implementation simple and makes matrix-vector multiplication the ordinary matrix multiplication operation.
+
+---
+
+## Matrix Multiplication
+
+`<xer/matrix.h>` provides ordinary row-by-column matrix multiplication.
+
+```cpp
+auto operator*(
+    const matrix<T, R, C>& left,
+    const matrix<T, C, K>& right) noexcept
+    -> matrix<T, R, K>;
+```
+
+### Role
+
+This single operation covers:
+
+* matrix × matrix
+* matrix × column vector
+* affine transform composition
+* applying an affine transform to a homogeneous point
+
+### Transform Composition Order
+
+XER uses column vectors in this matrix facility.
+Therefore, in an expression such as:
+
+```cpp
+const auto transform = translate2<double>(10.0, 20.0) * scale2<double>(2.0, 3.0);
+const auto result = transform * point;
+```
+
+`point` is transformed by the rightmost transform first.
+In this example, scaling is applied first, and translation is applied afterward.
+
+---
+
+## Identity Matrices
+
+The header provides a generic identity matrix helper:
+
+```cpp
+template <std::floating_point T, std::size_t N>
+auto identity_matrix() noexcept -> matrix<T, N, N>;
+```
+
+It also provides convenience helpers for the two main affine-transform sizes:
+
+```cpp
+template <std::floating_point T>
+auto identity3() noexcept -> matrix3<T>;
+
+template <std::floating_point T>
+auto identity4() noexcept -> matrix4<T>;
+```
+
+---
+
+## Inverse Matrices
+
+The header provides inverse calculation for 3x3 and 4x4 matrices:
+
+```cpp
+template <std::floating_point T>
+auto inverse(const matrix<T, 3, 3>& value) noexcept
+    -> xer::result<matrix<T, 3, 3>>;
+
+template <std::floating_point T>
+auto inverse(const matrix<T, 4, 4>& value) noexcept
+    -> xer::result<matrix<T, 4, 4>>;
+```
+
+### Error Handling
+
+If the matrix is singular or too close to singular for the implemented calculation, `inverse` returns failure.
+
+The current implementation reports this as `error_t::divide_by_zero`.
+This expresses the fact that the inverse operation requires division by a usable pivot value.
+
+---
+
+## 2D Affine Transform Helpers
+
+For 2D homogeneous column vectors, the header provides 3x3 transform helpers.
+
+```cpp
+template <std::floating_point T>
+auto translate2(T tx, T ty) noexcept -> matrix3<T>;
+
+template <std::floating_point T>
+auto scale2(T sx, T sy) noexcept -> matrix3<T>;
+
+template <std::floating_point T>
+auto rotate2(T radian) noexcept -> matrix3<T>;
+```
+
+### Rotation Direction
+
+`rotate2` uses radians and follows the ordinary mathematical convention: positive angles rotate counterclockwise.
+
+---
+
+## 3D Affine Transform Helpers
+
+For 3D homogeneous column vectors, the header provides 4x4 transform helpers.
+
+```cpp
+template <std::floating_point T>
+auto translate3(T tx, T ty, T tz) noexcept -> matrix4<T>;
+
+template <std::floating_point T>
+auto scale3(T sx, T sy, T sz) noexcept -> matrix4<T>;
+
+template <std::floating_point T>
+auto rotate_x(T radian) noexcept -> matrix4<T>;
+
+template <std::floating_point T>
+auto rotate_y(T radian) noexcept -> matrix4<T>;
+
+template <std::floating_point T>
+auto rotate_z(T radian) noexcept -> matrix4<T>;
+```
+
+### Rotation Units
+
+The rotation helpers take raw radian values.
+
+Angle quantities, `cyclic`, and other higher-level angle abstractions are not mixed into the first matrix API.
+Callers may convert into radians before calling these functions when needed.
+
+---
+
+## Scope of the Initial Matrix Facility
+
+The initial matrix facility is intentionally small.
+
+It focuses on:
+
+* 2D affine transforms using 3x3 matrices
+* 3D affine transforms using 4x4 matrices
+* homogeneous column vectors
+* inverse transforms for 3x3 and 4x4 matrices
+
+It does not initially try to provide a complete linear algebra library.
+
+Deferred or intentionally omitted items include:
+
+* dynamic-size matrices
+* decomposition algorithms
+* eigenvalues or eigenvectors
+* specialized vector classes
+* determinant APIs
+* full numerical linear algebra facilities
+
+These may be considered later only if they become necessary.
+
+---
+
+## Relationship to Other Headers
+
+`<xer/matrix.h>` should be understood together with:
+
+* `policy_project_outline.md`
+* `policy_arithmetic.md`
+* `header_arithmetic.md`
+* `header_cyclic.md`
+* `header_quantity.md`
+
+The rough boundary is:
+
+* `<xer/arithmetic.h>` handles scalar arithmetic and comparison helpers
+* `<xer/cyclic.h>` handles circular values such as normalized angles and directions
+* `<xer/quantity.h>` handles physical quantities and units
+* `<xer/matrix.h>` handles fixed-size matrices and affine transforms
+
+---
+
+## Documentation Notes
+
+When this header is used in generated documentation, it is usually enough to explain:
+
+* that the matrix type is fixed-size and row-major
+* that column vectors are represented as `matrix<T, N, 1>` aliases
+* that the initial focus is 2D and 3D affine transforms
+* that inverse calculation is provided for 3x3 and 4x4 matrices
+* that rotation helpers take radians
+
+Detailed numerical behavior and future linear algebra expansion should be documented separately when those features are added.
+
+---
+
+## Example Topics Commonly Worth Showing
+
+The following kinds of examples are especially suitable for this header:
+
+* applying a 2D affine transform to a point
+* composing translation, scaling, and rotation transforms
+* applying a 3D affine transform to a point
+* computing an inverse transform and restoring the original point
+
+These are good candidates for executable examples in `examples/`.
+
+---
+
+## Example
+
+```cpp
+#include <xer/matrix.h>
+
+auto main() -> int
+{
+    const xer::vector3<double> point{2.0, 3.0, 1.0};
+
+    const auto transform =
+        xer::translate2(10.0, 20.0) *
+        xer::scale2(1.5, 4.0);
+
+    const auto transformed = transform * point;
+    const auto inverse = xer::inverse(transform);
+    if (!inverse.has_value()) {
+        return 1;
+    }
+
+    const auto restored = *inverse * transformed;
+
+    static_cast<void>(restored);
+    return 0;
+}
+```
+
+This example shows the normal XER style:
+
+* represent points as homogeneous column vectors
+* compose transforms with matrix multiplication
+* apply a transform by multiplying the matrix and the point
+* check `xer::result` explicitly when computing an inverse matrix
+
+---
+
+## See Also
+
+* `policy_project_outline.md`
+* `policy_arithmetic.md`
+* `header_arithmetic.md`
+* `header_cyclic.md`
+* `header_quantity.md`
 
 ---
 
@@ -6064,6 +9362,408 @@ Call `process_wait` explicitly when the exit code is needed.
 - On Windows, command-line quoting is performed internally for direct process creation.
 - On POSIX, the child process is created using the platform process facilities and then executed directly.
 - Pipe streams are binary streams. Higher-level text handling can be layered separately if needed.
+
+---
+
+# `<xer/cmdline.h>`
+
+## Purpose
+
+`<xer/cmdline.h>` provides command-line argument handling facilities for the current process.
+
+The purpose of this header is to make command-line arguments available as UTF-8 strings without requiring the caller to pass `main`'s `argc` and `argv` around manually.
+
+This is useful in situations such as:
+
+* code that runs outside `main`
+* non-local object initialization
+* code running on threads other than the main thread
+* utility functions where carrying `argc` and `argv` explicitly would be awkward
+
+---
+
+## Main Entities
+
+At minimum, `<xer/cmdline.h>` provides the following entities:
+
+```cpp
+using cmdline_arg =
+    std::pair<std::u8string_view, std::u8string_view>;
+
+class cmdline;
+
+auto parse_arg(std::u8string_view value) noexcept -> cmdline_arg;
+
+auto get_cmdline() -> xer::result<cmdline>;
+````
+
+---
+
+## `cmdline`
+
+`cmdline` owns an argv-like sequence of UTF-8 strings.
+
+```cpp
+class cmdline;
+```
+
+Internally, it stores command-line arguments as:
+
+```cpp
+std::vector<std::u8string>
+```
+
+The class itself does not interpret options.
+It is responsible only for owning and exposing the argument sequence.
+
+### Basic Operations
+
+```cpp
+auto size() const noexcept -> std::size_t;
+auto empty() const noexcept -> bool;
+
+auto args() const noexcept -> std::span<const std::u8string>;
+
+auto at(std::size_t index) const -> xer::result<std::u8string_view>;
+```
+
+### `size`
+
+`size()` returns the number of stored arguments.
+
+### `empty`
+
+`empty()` returns whether the argument list is empty.
+
+In normal successful use of `get_cmdline`, the command-line list is expected to contain at least the program name, but callers should not rely on that in manually constructed `cmdline` objects.
+
+### `args`
+
+`args()` returns a span over the raw stored UTF-8 arguments.
+
+The returned span and its string references are valid as long as the `cmdline` object remains alive and is not modified.
+
+### `at`
+
+`at(index)` returns one raw argument as `std::u8string_view`.
+
+If `index` is out of range, it returns an error through `xer::result`.
+
+---
+
+## `parse_arg`
+
+```cpp
+auto parse_arg(std::u8string_view value) noexcept -> cmdline_arg;
+```
+
+`parse_arg` parses one raw command-line argument according to XER's simple command-line rule.
+
+The return value is a pair:
+
+```cpp
+{ option_name, value }
+```
+
+The meaning is:
+
+* if `first` is not empty, the argument is an option
+* if `first` is empty, the argument is an ordinary value
+* `second` contains the option value or the ordinary value
+
+---
+
+## Supported Argument Forms
+
+XER recognizes only simple long-option forms.
+
+Supported option forms are:
+
+```text
+--option
+--option=value
+```
+
+Ordinary values are also accepted:
+
+```text
+value
+```
+
+A single-leading-hyphen form such as `-x` is not treated as an option.
+It is treated as an ordinary value.
+
+### Examples
+
+```text
+--name        -> { "name", "" }
+--name=       -> { "name", "" }
+--name=value  -> { "name", "value" }
+value         -> { "", "value" }
+-name         -> { "", "-name" }
+--            -> { "", "--" }
+--=value      -> { "", "--=value" }
+```
+
+`--name` and `--name=` are intentionally treated the same.
+
+Distinguishing “no value” from “empty value” would require a more complex representation, and XER's initial command-line helper deliberately avoids that complexity.
+
+---
+
+## Why Short Options Are Not Special
+
+`parse_arg` does not treat single-leading-hyphen arguments as options.
+
+For example:
+
+```text
+-x
+```
+
+is parsed as:
+
+```text
+{ "", "-x" }
+```
+
+This is intentional.
+
+The initial command-line model supports only:
+
+* `--option`
+* `--option=value`
+* ordinary values
+
+This keeps the rule simple and avoids introducing a larger command-line parser at this stage.
+
+---
+
+## `get_cmdline`
+
+```cpp
+auto get_cmdline() -> xer::result<cmdline>;
+```
+
+`get_cmdline` obtains the current process command-line arguments and returns them as a `cmdline` object.
+
+The returned arguments are UTF-8 strings.
+
+### Windows Behavior
+
+On Windows, the implementation obtains the raw command line through:
+
+```cpp
+GetCommandLineW
+```
+
+and splits it through:
+
+```cpp
+CommandLineToArgvW
+```
+
+This avoids relying on CRT-specific globals such as `__wargv`.
+
+That choice is intentional because command-line access should not depend on details of how the C runtime library is linked.
+
+The resulting UTF-16 strings are converted to UTF-8.
+
+### Linux Behavior
+
+On Linux, the implementation reads:
+
+```text
+/proc/self/cmdline
+```
+
+This file contains the current process command-line arguments as NUL-separated byte strings.
+
+The byte strings are interpreted as UTF-8 according to XER's Linux text assumptions.
+If an argument is not valid UTF-8, `get_cmdline` fails.
+
+Reading `/proc/self/cmdline` can theoretically fail in unusual environments.
+In that case, `get_cmdline` returns an error through `xer::result`.
+
+---
+
+## Lifetime of Views
+
+`cmdline::at` and `parse_arg` return `std::u8string_view` values.
+
+These views do not own the underlying text.
+
+For views obtained from a `cmdline` object, the referenced data remains valid only while the `cmdline` object remains alive and unchanged.
+
+Example:
+
+```cpp
+const auto line = xer::get_cmdline();
+if (!line.has_value()) {
+    return 1;
+}
+
+const auto raw = line->at(1);
+if (!raw.has_value()) {
+    return 1;
+}
+
+const auto parsed = xer::parse_arg(*raw);
+```
+
+Here, `parsed.first` and `parsed.second` refer to the string owned by `line`.
+
+---
+
+## Error Handling
+
+`<xer/cmdline.h>` follows XER's ordinary failure model.
+
+`parse_arg` itself does not fail.
+It is a simple view-based parser and returns an ordinary `cmdline_arg`.
+
+`cmdline::at` can fail when the requested index is out of range.
+
+`get_cmdline` can fail when the platform-specific command-line retrieval fails or when command-line data cannot be converted to XER's UTF-8 representation.
+
+Typical failure conditions include:
+
+* out-of-range argument access
+* failure to retrieve the platform command line
+* failure to read `/proc/self/cmdline`
+* invalid UTF-8 in Linux command-line byte strings
+* failure to convert Windows UTF-16 command-line strings to UTF-8
+
+---
+
+## Relationship to `main`
+
+The ordinary C and C++ way to receive command-line arguments is through `main`.
+
+```cpp
+auto main(int argc, char** argv) -> int;
+```
+
+XER does not reject that approach.
+
+However, `<xer/cmdline.h>` exists for cases where explicit `argc` / `argv` propagation is inconvenient or unavailable.
+
+This means `get_cmdline` is a convenience facility for the current process, not a replacement for all uses of `main` arguments.
+
+---
+
+## Relationship to Process Handling
+
+`<xer/cmdline.h>` handles the current process command line.
+
+`<xer/process.h>` handles child process creation and management.
+
+These are related topics, but they are intentionally separate:
+
+* `cmdline.h` observes how the current process was launched
+* `process.h` launches and controls child processes
+
+This separation keeps each header focused.
+
+---
+
+## Design Role
+
+`<xer/cmdline.h>` is intentionally small.
+
+It is not a full command-line option parser.
+
+In particular, it does not currently provide:
+
+* short option parsing such as `-x`
+* grouped short options such as `-abc`
+* option terminator handling such as `--`
+* automatic type conversion
+* required-option validation
+* help text generation
+* subcommand handling
+
+The initial feature is only a small argv retrieval and simple long-option parsing facility.
+
+---
+
+## Example
+
+```cpp
+#include <xer/cmdline.h>
+#include <xer/stdio.h>
+
+auto main() -> int
+{
+    const auto line = xer::get_cmdline();
+    if (!line.has_value()) {
+        return 1;
+    }
+
+    for (std::size_t i = 1; i < line->size(); ++i) {
+        const auto raw = line->at(i);
+        if (!raw.has_value()) {
+            return 1;
+        }
+
+        const auto parsed = xer::parse_arg(*raw);
+
+        if (!parsed.first.empty()) {
+            if (!xer::printf(
+                    u8"option %@ = %@\n",
+                    parsed.first,
+                    parsed.second)
+                     .has_value()) {
+                return 1;
+            }
+        } else {
+            if (!xer::printf(u8"value %@\n", parsed.second).has_value()) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+```
+
+---
+
+## Documentation Notes
+
+When this header is used in generated documentation, it is usually enough to explain:
+
+* that `cmdline` owns UTF-8 command-line arguments
+* that `get_cmdline` obtains the current process arguments without using `main` parameters
+* that Windows uses `GetCommandLineW` and `CommandLineToArgvW`
+* that Linux reads `/proc/self/cmdline`
+* that `parse_arg` recognizes only simple `--option` and `--option=value` forms
+* that single-leading-hyphen arguments are treated as ordinary values
+
+Detailed command-line parser behavior should not be implied.
+This header is intentionally not a full option parsing framework.
+
+---
+
+## Example Topics Commonly Worth Showing
+
+The following kinds of examples are especially suitable for this header:
+
+* listing raw command-line arguments
+* parsing `--option` and `--option=value`
+* treating ordinary values separately from options
+* showing that `-x` is treated as a value
+
+These are good candidates for executable examples under `examples/`.
+
+---
+
+## See Also
+
+* `policy_project_outline.md`
+* `policy_result_arguments.md`
+* `policy_process.md`
+* `header_process.md`
 
 ---
 
@@ -6695,8 +10395,8 @@ XER_VERSION_STRING
 * `XER_VERSION_MAJOR`: major version number
 * `XER_VERSION_MINOR`: minor version number
 * `XER_VERSION_PATCH`: patch version number
-* `XER_VERSION_SUFFIX`: suffix such as `a5`
-* `XER_VERSION_STRING`: full version string such as `0.2.0a1`
+* `XER_VERSION_SUFFIX`: suffix such as `a3`
+* `XER_VERSION_STRING`: full version string such as `0.2.0a3`
 
 ### Notes
 
@@ -6765,15 +10465,15 @@ The suffix represents additional release-state information such as alpha-stage n
 For example:
 
 ```text id="uh0aq6"
-0.2.0a1
+0.2.0a3
 ```
 
 may be interpreted as:
 
 * major: `0`
-* minor: `1`
+* minor: `2`
 * patch: `0`
-* suffix: `a5`
+* suffix: `a3`
 
 ### Full Version String
 

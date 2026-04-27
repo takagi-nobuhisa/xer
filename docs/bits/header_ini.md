@@ -427,7 +427,7 @@ The rough boundary is:
 * `<xer/string.h>` handles general string and text utilities
 * `<xer/json.h>` handles JSON as a structured data format
 * `<xer/ini.h>` handles INI as a simple configuration data format
-* future `<xer/toml.h>` may handle a stricter typed configuration format
+* `<xer/toml.h>` handles a stricter typed configuration format
 
 This separation is intentional.
 INI is treated as an independent data-format facility rather than as a string helper or stream helper.

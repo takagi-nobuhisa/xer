@@ -42,6 +42,7 @@ At a high level, `<xer/string.h>` contains the following groups of functionality
 - case-insensitive search and comparison
 - copy and concatenation
 - split / join / trim
+- string replacement
 - raw memory helpers
 - prefix/suffix checks
 - case conversion and dynamic string transformation
@@ -173,6 +174,38 @@ The `ltrim_view`, `rtrim_view`, and `trim_view` family are especially important 
 
 ---
 
+## String Replacement
+
+`<xer/string.h>` provides a PHP-inspired string replacement helper:
+
+```cpp
+auto str_replace(
+    std::u8string_view search,
+    std::u8string_view replace,
+    std::u8string_view subject,
+    std::size_t* count = nullptr) -> xer::result<std::u8string>;
+```
+
+### Role of This Function
+
+`str_replace` replaces all non-overlapping occurrences of `search` in `subject` with `replace`.
+
+The argument order follows PHP's `str_replace` naming tradition: search string, replacement string, and subject string.
+
+### Behavior
+
+Replacement is performed on UTF-8 code units. The function does not attempt grapheme-cluster processing.
+
+If `search` is empty, no replacement is performed and `subject` is returned unchanged.
+
+If `count` is not `nullptr`, the number of performed replacements is stored there.
+
+### Notes
+
+This function is useful for simple text substitution. More advanced text processing, such as regular-expression replacement or locale-sensitive transformation, is outside the scope of this helper.
+
+---
+
 ## Raw Memory Helpers
 
 `<xer/string.h>` also groups raw memory helpers through the related memory facilities.
@@ -286,6 +319,7 @@ The following kinds of examples are especially suitable for this header:
 
 * trimming a UTF-8 string with `trim_view`
 * splitting and joining text with `explode` / `implode`
+* replacing text with `str_replace`
 * searching for a Unicode scalar value in UTF-8 text
 * performing familiar C-style comparison or copying in XER style
 

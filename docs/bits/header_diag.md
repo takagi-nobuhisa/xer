@@ -1,4 +1,6 @@
-# Purpose
+# `<xer/diag.h>`
+
+## Purpose
 
 `<xer/diag.h>` provides lightweight diagnostic facilities for XER.
 
@@ -6,7 +8,7 @@ It groups tracing and logging support under one public diagnostic header while k
 
 ---
 
-# Main Entities
+## Main Entities
 
 At minimum, `<xer/diag.h>` provides the following entities:
 
@@ -30,7 +32,7 @@ It also provides functions for setting trace and log output streams and levels.
 
 ---
 
-# Design Role
+## Design Role
 
 This header is intended for diagnostics, development-time tracing, and simple runtime logging.
 
@@ -44,7 +46,7 @@ Their output destinations and current levels are configured independently.
 
 ---
 
-# Trace
+## Trace
 
 `xer_trace(category, level, object)` prints one diagnostic line containing:
 
@@ -64,7 +66,7 @@ When `NDEBUG` is defined, `xer_trace` expands to a no-op expression and does not
 
 ---
 
-# Log
+## Log
 
 `xer_log(category, level, message)` writes one simple log record.
 
@@ -112,14 +114,14 @@ Logging is designed to remain reasonably lightweight.
 
 ---
 
-# Output Streams
+## Output Streams
 
 Trace and log output default to the standard error text stream.
 They can be changed independently through the corresponding stream-setting functions.
 
 ---
 
-# Notes
+## Notes
 
 These facilities are intentionally small.
 They are not a full logging framework, but they provide a useful diagnostic foundation for XER itself and for small programs using XER.

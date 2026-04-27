@@ -193,3 +193,18 @@ As a rule, the return type of these functions is:
 
 ```cpp
 xer::result<std::size_t>
+```
+
+The returned size represents the number of source elements consumed or destination elements written, depending on the function.
+
+On failure, these functions return an error through `xer::result`. Encoding failures detected by XER's own conversion logic may use `error_t::encoding_error`. Failures that directly reflect an external implementation's `EILSEQ` may use `error_t::ilseq`.
+
+---
+
+## Summary
+
+- XER multibyte conversion is locale-independent.
+- Supported encodings are limited to CP932, UTF-8, UTF-16, and UTF-32.
+- Conversion state is explicit through `xer::mbstate_t`.
+- No hidden internal static conversion state is used.
+- Ordinary conversion failure is reported through `xer::result`.

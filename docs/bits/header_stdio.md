@@ -16,6 +16,8 @@ This header is one of the most important public headers in XER because it provid
 - CSV input/output
 - stream state and positioning
 - stream rewinding
+- stream content convenience operations
+- whole-file content convenience operations
 
 ---
 
@@ -826,7 +828,7 @@ If file locking is required, the caller should perform it explicitly with an out
 
 If append-style output is required, the caller should use stream APIs directly, such as opening a stream with append mode and writing with `fwrite` or `fputs`.
 
-A future `stream_get_contents` / `stream_put_contents` pair may be added for stream-oriented convenience, but it should be separate from file-opening convenience functions.
+If append-style output is required, the caller should use stream APIs directly, such as opening a stream with append mode and writing with `fwrite`, `fputs`, or `stream_put_contents`.
 
 ### Error Handling
 
