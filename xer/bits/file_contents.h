@@ -8,8 +8,6 @@
 #ifndef XER_BITS_FILE_CONTENTS_H_INCLUDED_
 #define XER_BITS_FILE_CONTENTS_H_INCLUDED_
 
-#include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <limits>
@@ -17,11 +15,11 @@
 #include <string>
 #include <vector>
 
-#include <xer/bits/binary_stream_io.h>
+#include <xer/bits/binary_stream.h>
 #include <xer/bits/fopen.h>
+#include <xer/bits/stream_contents.h>
 #include <xer/bits/stream_position_io.h>
-#include <xer/bits/text_stream_io.h>
-#include <xer/bits/utf8_char_encode.h>
+#include <xer/bits/text_stream.h>
 #include <xer/error.h>
 #include <xer/path.h>
 
@@ -43,21 +41,6 @@ namespace xer::detail {
     return static_cast<std::int64_t>(value);
 }
 
-/**
- * @brief Appends one read chunk to a byte vector.
- *
- * @param out Destination vector.
- * @param buffer Source buffer.
- * @param size Number of bytes to append.
- */
-inline auto append_file_contents_chunk(
-    std::vector<std::byte>& out,
-    const std::byte* buffer,
-    std::size_t size) -> void
-{
-    out.insert(out.end(), buffer, buffer + size);
-}
-
 } // namespace xer::detail
 
 namespace xer {
@@ -70,6 +53,10 @@ namespace xer {
  * overload. If @p offset is greater than the file size, this function returns
  * `error_t::invalid_argument`. If @p offset is exactly equal to the file size,
  * it succeeds and returns an empty byte vector.
+ *
+ * This function is a file-opening convenience wrapper around
+ * `stream_get_contents`. After opening the file and applying the requested
+ * byte offset, the actual reading loop is delegated to the stream-level helper.
  *
  * @param filename Source file path.
  * @param offset Byte offset from the beginning of the file.
@@ -111,43 +98,7 @@ namespace xer {
         return std::unexpected(seek_result.error());
     }
 
-    const std::uint64_t readable_size = *file_size - offset;
-    const std::uint64_t requested_size = std::min(readable_size, length);
-
-    if (requested_size == 0) {
-        return std::vector<std::byte>{};
-    }
-
-    if (requested_size > static_cast<std::uint64_t>(
-                             std::vector<std::byte>{}.max_size())) {
-        return std::unexpected(make_error(error_t::length_error));
-    }
-
-    std::vector<std::byte> result;
-    result.reserve(static_cast<std::size_t>(requested_size));
-
-    std::byte buffer[8192];
-    std::uint64_t remaining = requested_size;
-
-    while (remaining > 0) {
-        const std::size_t chunk_size = static_cast<std::size_t>(std::min<std::uint64_t>(
-            remaining,
-            static_cast<std::uint64_t>(sizeof(buffer))));
-
-        const auto read_size = fread(std::span<std::byte>(buffer, chunk_size), *stream);
-        if (!read_size.has_value()) {
-            return std::unexpected(read_size.error());
-        }
-
-        if (*read_size == 0) {
-            break;
-        }
-
-        detail::append_file_contents_chunk(result, buffer, *read_size);
-        remaining -= static_cast<std::uint64_t>(*read_size);
-    }
-
-    return result;
+    return stream_get_contents(*stream, length);
 }
 
 /**
@@ -155,6 +106,9 @@ namespace xer {
  *
  * This overload opens the file as a text stream using the specified encoding.
  * `encoding_t::auto_detect` is valid for this input-side operation.
+ *
+ * This function is a file-opening convenience wrapper around
+ * `stream_get_contents`.
  *
  * @param filename Source file path.
  * @param encoding Source text encoding.
@@ -169,23 +123,7 @@ namespace xer {
         return std::unexpected(stream.error());
     }
 
-    std::u8string result;
-
-    for (;;) {
-        const auto ch = fgetc(*stream);
-        if (!ch.has_value()) {
-            if (ch.error().code == error_t::not_found) {
-                return result;
-            }
-
-            return std::unexpected(ch.error());
-        }
-
-        const auto appended = detail::append_utf8_char(result, *ch);
-        if (!appended.has_value()) {
-            return std::unexpected(appended.error());
-        }
-    }
+    return stream_get_contents(*stream);
 }
 
 /**
@@ -194,13 +132,15 @@ namespace xer {
  * This overload opens the file as a binary stream and writes @p contents from
  * the beginning of the file, replacing any existing file contents.
  *
+ * This function is a file-opening convenience wrapper around
+ * `stream_put_contents`.
+ *
  * XER intentionally does not provide PHP-style `flags` here. In particular,
  * append and locking behavior are not hidden inside this convenience function.
  * If locking is required, the caller should use an explicit outer operation
  * such as `flock`. If append-style stream output is required, it should be
  * expressed through stream APIs such as `fopen` with append mode and `fwrite`,
- * or through a future `stream_put_contents` helper paired with
- * `stream_get_contents`.
+ * or through `stream_put_contents` paired with `stream_get_contents`.
  *
  * @param filename Destination file path.
  * @param contents Bytes to write.
@@ -215,21 +155,7 @@ namespace xer {
         return std::unexpected(stream.error());
     }
 
-    std::size_t offset = 0;
-    while (offset < contents.size()) {
-        const auto written = fwrite(contents.subspan(offset), *stream);
-        if (!written.has_value()) {
-            return std::unexpected(written.error());
-        }
-
-        if (*written == 0) {
-            return std::unexpected(make_error(error_t::io_error));
-        }
-
-        offset += *written;
-    }
-
-    return {};
+    return stream_put_contents(*stream, contents);
 }
 
 /**
@@ -240,13 +166,15 @@ namespace xer {
  * file contents. `encoding_t::auto_detect` is invalid for writing and returns
  * `error_t::invalid_argument`.
  *
+ * This function is a file-opening convenience wrapper around
+ * `stream_put_contents`.
+ *
  * XER intentionally does not provide PHP-style `flags` here. In particular,
  * append and locking behavior are not hidden inside this convenience function.
  * If locking is required, the caller should use an explicit outer operation
  * such as `flock`. If append-style stream output is required, it should be
  * expressed through stream APIs such as `fopen` with append mode and `fputs`,
- * or through a future `stream_put_contents` helper paired with
- * `stream_get_contents`.
+ * or through `stream_put_contents` paired with `stream_get_contents`.
  *
  * @param filename Destination file path.
  * @param contents UTF-8 text to write.
@@ -267,12 +195,7 @@ namespace xer {
         return std::unexpected(stream.error());
     }
 
-    const auto written = fputs(contents, *stream);
-    if (!written.has_value()) {
-        return std::unexpected(written.error());
-    }
-
-    return {};
+    return stream_put_contents(*stream, contents);
 }
 
 } // namespace xer

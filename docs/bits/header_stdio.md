@@ -340,6 +340,193 @@ This reflects the fact that text streams may not always map cleanly to simple by
 
 ---
 
+## Rewinding
+
+`<xer/stdio.h>` provides `rewind` for both stream kinds:
+
+```cpp
+auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
+auto rewind(text_stream& stream) noexcept -> xer::result<void>;
+```
+
+Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
+
+For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
+
+---
+
+## Whole-Stream Convenience Operations
+
+`<xer/stdio.h>` provides whole-stream convenience operations:
+
+```cpp
+auto stream_get_contents(
+    binary_stream& stream,
+    std::uint64_t length = std::numeric_limits<std::uint64_t>::max())
+    -> xer::result<std::vector<std::byte>>;
+
+auto stream_get_contents(text_stream& stream)
+    -> xer::result<std::u8string>;
+
+auto stream_put_contents(
+    binary_stream& stream,
+    std::span<const std::byte> contents)
+    -> xer::result<void>;
+
+auto stream_put_contents(
+    text_stream& stream,
+    std::u8string_view contents)
+    -> xer::result<void>;
+```
+
+### Purpose
+
+`stream_get_contents` and `stream_put_contents` provide compact helpers for reading from and writing to an already-open XER stream.
+
+They are the stream-level counterparts of `file_get_contents` and `file_put_contents`.
+
+Because they operate on streams rather than file names, they can be used with any stream source or destination supported by XER, including files, temporary files, memory streams, string streams, process pipes, and socket-derived streams where applicable.
+
+### Binary `stream_get_contents`
+
+```cpp
+auto stream_get_contents(
+    binary_stream& stream,
+    std::uint64_t length = std::numeric_limits<std::uint64_t>::max())
+    -> xer::result<std::vector<std::byte>>;
+```
+
+This overload reads binary data from the current position of `stream`.
+
+It reads at most `length` bytes, or stops earlier if EOF is reached.
+
+If `length` is zero, the function succeeds and returns an empty byte vector.
+
+### No Offset Argument
+
+XER intentionally does not provide an offset parameter for `stream_get_contents`.
+
+A stream already has a current position. If the caller needs to choose the starting position, the caller should use `fseek`, `fsetpos`, or another appropriate positioning function explicitly before calling `stream_get_contents`.
+
+This also avoids the confusing argument-order difference found in PHP, where `file_get_contents` and `stream_get_contents` place offset and length differently.
+
+In XER, the rule is simple:
+
+* `file_get_contents` may take an offset because it opens the file internally
+* `stream_get_contents` reads from the stream's current position
+
+### Text `stream_get_contents`
+
+```cpp
+auto stream_get_contents(text_stream& stream)
+    -> xer::result<std::u8string>;
+```
+
+This overload reads text from the current position of `stream` until EOF.
+
+The returned string is UTF-8 text.
+
+The stream's own encoding state controls how external bytes are decoded.
+
+Text-mode `stream_get_contents` does not provide `offset` or `length` arguments because byte offsets, decoded characters, line ending behavior, and encoding state can otherwise become ambiguous.
+
+### Binary `stream_put_contents`
+
+```cpp
+auto stream_put_contents(
+    binary_stream& stream,
+    std::span<const std::byte> contents)
+    -> xer::result<void>;
+```
+
+This overload writes all bytes in `contents` to the current position of `stream`.
+
+The exact placement behavior is determined by the stream's current position and open mode.
+
+For example, if the stream was opened in append mode, the write follows the stream's append behavior.
+
+### Text `stream_put_contents`
+
+```cpp
+auto stream_put_contents(
+    text_stream& stream,
+    std::u8string_view contents)
+    -> xer::result<void>;
+```
+
+This overload writes the UTF-8 text in `contents` to the current position of `stream`.
+
+The stream's encoding controls how the UTF-8 text is encoded externally.
+
+### Relationship to File Convenience Functions
+
+`file_get_contents` and `file_put_contents` are file-opening convenience wrappers around these stream-level helpers.
+
+Conceptually:
+
+```cpp
+auto stream = xer::fopen(filename, "r");
+return xer::stream_get_contents(*stream);
+```
+
+or:
+
+```cpp
+auto stream = xer::fopen(filename, "w");
+return xer::stream_put_contents(*stream, contents);
+```
+
+The stream-level functions contain the reusable read/write logic, while the file-level functions handle opening the file and applying file-specific options such as the binary `offset` argument.
+
+### Error Handling
+
+These functions follow XER's ordinary failure model.
+
+On success:
+
+* `stream_get_contents` returns the read data
+* `stream_put_contents` returns an empty success value
+
+On failure, they return an error through `xer::result`.
+
+Typical failure conditions include:
+
+* the stream is not readable or writable for the requested operation
+* reading or writing fails
+* text decoding or encoding fails
+* memory allocation fails while collecting the result
+
+### Example
+
+```cpp
+std::u8string buffer;
+
+auto stream = xer::stropen(buffer, "w+");
+if (!stream.has_value()) {
+    return 1;
+}
+
+const auto written = xer::stream_put_contents(
+    *stream,
+    std::u8string_view(u8"hello XER"));
+
+if (!written.has_value()) {
+    return 1;
+}
+
+const auto rewound = xer::rewind(*stream);
+if (!rewound.has_value()) {
+    return 1;
+}
+
+const auto text = xer::stream_get_contents(*stream);
+if (!text.has_value()) {
+    return 1;
+}
+```
+
+---
+
 ## Closing and Flushing
 
 This header also provides operations such as:
@@ -552,6 +739,8 @@ auto file_put_contents(
 
 `file_get_contents` and `file_put_contents` provide compact helpers for reading and writing an entire file without manually opening a stream.
 
+They are file-opening convenience wrappers around `stream_get_contents` and `stream_put_contents`. The reusable read/write behavior belongs to the stream-level helpers, while the file-level helpers additionally open the target file and apply file-specific options.
+
 They are inspired by PHP functions of the same names, but their behavior follows XER's stream and encoding model.
 
 ### Binary and Text Selection
@@ -754,7 +943,9 @@ When this header is used in generated documentation, it is usually enough to exp
 * that both low-level I/O and higher-level facilities such as formatted I/O and CSV are included
 * that path-oriented file-entry operations are part of the header
 * that `realpath` is filesystem-dependent and distinct from lexical path operations
+* that `stream_get_contents` reads from the current stream position and intentionally does not provide an offset argument
 * that `file_get_contents` and `file_put_contents` are convenience APIs whose binary/text behavior is selected by the presence of an encoding argument
+* that `file_get_contents` and `file_put_contents` are file-opening wrappers around the stream-level content helpers
 
 Detailed per-function semantics should be described in the reference manual or generated API sections.
 
@@ -773,6 +964,7 @@ The following kinds of examples are especially suitable for this header:
 * performing `rename`, `remove`, or `copy`
 * changing and restoring the current working directory with `chdir` and `getcwd`
 * canonicalizing an existing path with `realpath`
+* reading and writing already-open streams with `stream_get_contents` and `stream_put_contents`
 * reading and writing whole files with `file_get_contents` and `file_put_contents`
 
 These are good candidates for executable examples under `examples/`.
@@ -812,16 +1004,3 @@ This example shows the basic XER style:
 
 
 ---
-
-## Rewinding
-
-`<xer/stdio.h>` provides `rewind` for both stream kinds:
-
-```cpp
-auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
-auto rewind(text_stream& stream) noexcept -> xer::result<void>;
-```
-
-Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
-
-For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
