@@ -26,6 +26,7 @@
 #include <xer/bits/text_stream_io.h>
 #include <xer/bits/stream_position_io.h>
 #include <xer/bits/rewind.h>
+#include <xer/bits/file_contents.h>
 
 #include <xer/bits/feof.h>
 #include <xer/bits/ferror.h>

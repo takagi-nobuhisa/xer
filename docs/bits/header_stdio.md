@@ -340,23 +340,6 @@ This reflects the fact that text streams may not always map cleanly to simple by
 
 ---
 
----
-
-## Rewinding
-
-`<xer/stdio.h>` provides `rewind` for both stream kinds:
-
-```cpp
-auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
-auto rewind(text_stream& stream) noexcept -> xer::result<void>;
-```
-
-Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
-
-For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
-
----
-
 ## Closing and Flushing
 
 This header also provides operations such as:
@@ -407,6 +390,9 @@ copy
 chdir
 getcwd
 realpath
+
+file_get_contents
+file_put_contents
 ```
 
 ### Role of This Group
@@ -534,6 +520,168 @@ After success, `resolved` contains the canonicalized absolute path of the curren
 
 ---
 
+## Whole-File Convenience Operations
+
+`<xer/stdio.h>` provides PHP-inspired whole-file convenience operations:
+
+```cpp
+auto file_get_contents(
+    const path& filename,
+    std::uint64_t offset = 0,
+    std::uint64_t length = std::numeric_limits<std::uint64_t>::max())
+    -> xer::result<std::vector<std::byte>>;
+
+auto file_get_contents(
+    const path& filename,
+    encoding_t encoding)
+    -> xer::result<std::u8string>;
+
+auto file_put_contents(
+    const path& filename,
+    std::span<const std::byte> contents)
+    -> xer::result<void>;
+
+auto file_put_contents(
+    const path& filename,
+    std::u8string_view contents,
+    encoding_t encoding)
+    -> xer::result<void>;
+```
+
+### Purpose
+
+`file_get_contents` and `file_put_contents` provide compact helpers for reading and writing an entire file without manually opening a stream.
+
+They are inspired by PHP functions of the same names, but their behavior follows XER's stream and encoding model.
+
+### Binary and Text Selection
+
+The overload set uses the presence or absence of an `encoding_t` argument to select binary or text behavior.
+
+* when no encoding is specified, the file is handled through `binary_stream`
+* when an encoding is specified, the file is handled through `text_stream`
+
+This keeps the call site explicit without introducing a separate mode flag.
+
+### Binary `file_get_contents`
+
+```cpp
+auto file_get_contents(
+    const path& filename,
+    std::uint64_t offset = 0,
+    std::uint64_t length = std::numeric_limits<std::uint64_t>::max())
+    -> xer::result<std::vector<std::byte>>;
+```
+
+This overload opens the file as binary and returns its contents as `std::vector<std::byte>`.
+
+The optional `offset` and `length` arguments are byte-based.
+
+If `offset` is greater than the file size, the function returns `error_t::invalid_argument`.
+
+If `offset` is exactly equal to the file size, the function succeeds and returns an empty byte vector.
+
+If `length` is zero, the function succeeds and returns an empty byte vector.
+
+### Text `file_get_contents`
+
+```cpp
+auto file_get_contents(
+    const path& filename,
+    encoding_t encoding)
+    -> xer::result<std::u8string>;
+```
+
+This overload opens the file as text and returns its contents as UTF-8 text.
+
+The specified encoding controls how the external file bytes are decoded.
+
+`encoding_t::auto_detect` is valid for this input-side operation.
+
+Text-mode `file_get_contents` does not provide `offset` or `length` arguments because byte offsets, decoded characters, line ending behavior, and encoding state can otherwise become ambiguous.
+
+### Binary `file_put_contents`
+
+```cpp
+auto file_put_contents(
+    const path& filename,
+    std::span<const std::byte> contents)
+    -> xer::result<void>;
+```
+
+This overload opens the file as binary and writes all bytes in `contents`.
+
+Existing file contents are replaced.
+
+### Text `file_put_contents`
+
+```cpp
+auto file_put_contents(
+    const path& filename,
+    std::u8string_view contents,
+    encoding_t encoding)
+    -> xer::result<void>;
+```
+
+This overload opens the file as text and writes the UTF-8 text in `contents` using the specified output encoding.
+
+`encoding_t::auto_detect` is invalid for writing and results in `error_t::invalid_argument`.
+
+### Why PHP-Style Flags Are Not Provided
+
+XER intentionally does not provide PHP-style `flags` arguments for these functions.
+
+In particular, append behavior and locking behavior are not hidden inside `file_put_contents`.
+
+If file locking is required, the caller should perform it explicitly with an outer operation such as `flock`.
+
+If append-style output is required, the caller should use stream APIs directly, such as opening a stream with append mode and writing with `fwrite` or `fputs`.
+
+A future `stream_get_contents` / `stream_put_contents` pair may be added for stream-oriented convenience, but it should be separate from file-opening convenience functions.
+
+### Error Handling
+
+These functions follow XER's ordinary failure model.
+
+On success:
+
+* `file_get_contents` returns the read data
+* `file_put_contents` returns an empty success value
+
+On failure, they return an error through `xer::result`.
+
+Typical failure conditions include:
+
+* the file cannot be opened
+* seeking fails
+* reading or writing fails
+* `offset` is invalid
+* `encoding_t::auto_detect` is used for text output
+* text decoding or encoding fails
+
+### Example
+
+```cpp
+const auto text = xer::file_get_contents(
+    xer::path(u8"sample.txt"),
+    xer::encoding_t::utf8);
+
+if (!text.has_value()) {
+    return 1;
+}
+
+const auto written = xer::file_put_contents(
+    xer::path(u8"copy.txt"),
+    *text,
+    xer::encoding_t::utf8);
+
+if (!written.has_value()) {
+    return 1;
+}
+```
+
+---
+
 ## Native Handle Access
 
 The header may also expose support related to native-handle access.
@@ -606,6 +754,7 @@ When this header is used in generated documentation, it is usually enough to exp
 * that both low-level I/O and higher-level facilities such as formatted I/O and CSV are included
 * that path-oriented file-entry operations are part of the header
 * that `realpath` is filesystem-dependent and distinct from lexical path operations
+* that `file_get_contents` and `file_put_contents` are convenience APIs whose binary/text behavior is selected by the presence of an encoding argument
 
 Detailed per-function semantics should be described in the reference manual or generated API sections.
 
@@ -620,11 +769,11 @@ The following kinds of examples are especially suitable for this header:
 * writing text with `puts` or `fputs`
 * using `fgetpos` / `fsetpos`
 * using `tmpfile`
-* rewinding binary or text streams with `rewind`
 * reading or writing CSV
 * performing `rename`, `remove`, or `copy`
 * changing and restoring the current working directory with `chdir` and `getcwd`
 * canonicalizing an existing path with `realpath`
+* reading and writing whole files with `file_get_contents` and `file_put_contents`
 
 These are good candidates for executable examples under `examples/`.
 
@@ -660,3 +809,19 @@ This example shows the basic XER style:
 * `policy_encoding.md`
 * `header_path.md`
 * `header_stdlib.md`
+
+
+---
+
+## Rewinding
+
+`<xer/stdio.h>` provides `rewind` for both stream kinds:
+
+```cpp
+auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
+auto rewind(text_stream& stream) noexcept -> xer::result<void>;
+```
+
+Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
+
+For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
