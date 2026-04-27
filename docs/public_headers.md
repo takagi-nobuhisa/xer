@@ -51,6 +51,7 @@
 ### Process
 
 - `xer/process.h`
+- `xer/cmdline.h`
 
 ### Time
 
@@ -192,5 +193,6 @@ xer/cyclic.h
 xer/quantity.h
 xer/matrix.h
 xer/process.h
+xer/cmdline.h
 xer/time.h
 xer/version.h
