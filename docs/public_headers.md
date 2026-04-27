@@ -18,6 +18,7 @@
 - `xer/assert.h`
 - `xer/typeinfo.h`
 - `xer/diag.h`
+- `xer/scope.h`
 
 ### Character and String Processing
 
@@ -173,6 +174,7 @@ xer/error.h
 xer/assert.h
 xer/typeinfo.h
 xer/diag.h
+xer/scope.h
 xer/string.h
 xer/ctype.h
 xer/stdlib.h
