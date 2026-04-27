@@ -26,8 +26,9 @@
 - `xer/ctype.h`
 - `xer/stdlib.h`
 
-### Data Format Processing
+### Data Encoding and Format Processing
 
+- `xer/base64.h`
 - `xer/json.h`
 - `xer/ini.h`
 - `xer/toml.h`
@@ -118,6 +119,19 @@ Accordingly, functionality related to `wchar_t` and wide-character classificatio
 - character classification and character conversion: `ctype.h`
 - time-string formatting related facilities: `time.h`
 
+### Why `base64.h` Is Independent
+
+Base64 encode/decode is a binary-to-text conversion facility.
+It is useful together with text-based data formats, but it is not itself a structured data format like JSON, INI, or TOML.
+It is also not ordinary string processing, because its input and output cross the boundary between binary bytes and textual representation.
+
+For that reason, Base64 functionality is not absorbed into `xer/string.h`, `xer/stdlib.h`, or `xer/stdio.h`, but is provided as the independent public header `xer/base64.h`.
+
+This keeps the API boundary clear:
+
+- `base64_encode` converts bytes into UTF-8 text
+- `base64_decode` converts UTF-8 Base64 text back into bytes
+
 ### Why `json.h` Is Independent
 
 JSON encode/decode is not merely string manipulation.
@@ -179,6 +193,7 @@ xer/scope.h
 xer/string.h
 xer/ctype.h
 xer/stdlib.h
+xer/base64.h
 xer/json.h
 xer/ini.h
 xer/toml.h
