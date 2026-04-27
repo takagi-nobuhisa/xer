@@ -29,6 +29,7 @@
 
 - `xer/json.h`
 - `xer/ini.h`
+- `xer/toml.h`
 
 ### Input/Output and File-Related Facilities
 
@@ -131,6 +132,16 @@ For that reason, it is not absorbed into `xer/string.h` or `xer/stdio.h`, but in
 
 This also keeps it parallel with `xer/json.h` and leaves room for `xer/toml.h` to be added later as another data-format header.
 
+### Why `toml.h` Is Independent
+
+TOML decode/encode is an independent data-format facility for configuration data.
+
+Unlike INI, TOML has typed values such as booleans, integers, floating-point numbers, strings, arrays, and tables.
+It is therefore not merely string processing.
+For that reason, TOML functionality is not absorbed into `xer/string.h`, `xer/stdlib.h`, or `xer/stdio.h`, but is provided as the independent public header `xer/toml.h`.
+
+This keeps TOML parallel with `xer/json.h` and `xer/ini.h` as a data-format header.
+
 ### Why `dirent.h` Is Independent
 
 Directory stream operations such as `opendir`, `closedir`, `readdir`, and `rewinddir` form a small but distinct group of filesystem traversal facilities.
@@ -167,6 +178,7 @@ xer/ctype.h
 xer/stdlib.h
 xer/json.h
 xer/ini.h
+xer/toml.h
 xer/stdio.h
 xer/path.h
 xer/dirent.h
