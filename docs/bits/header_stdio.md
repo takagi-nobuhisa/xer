@@ -340,6 +340,23 @@ This reflects the fact that text streams may not always map cleanly to simple by
 
 ---
 
+---
+
+## Rewinding
+
+`<xer/stdio.h>` provides `rewind` for both stream kinds:
+
+```cpp
+auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
+auto rewind(text_stream& stream) noexcept -> xer::result<void>;
+```
+
+Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
+
+For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
+
+---
+
 ## Closing and Flushing
 
 This header also provides operations such as:
@@ -375,11 +392,21 @@ Even though stream destructors perform automatic cleanup, explicit close and flu
 `<xer/stdio.h>` also provides file-entry operations such as:
 
 ```cpp
+file_exists
+is_file
+is_dir
+is_readable
+is_writable
+
 remove
 rename
 mkdir
 rmdir
 copy
+
+chdir
+getcwd
+realpath
 ```
 
 ### Role of This Group
@@ -394,7 +421,116 @@ These functions are intentionally separate from stream objects themselves.
 
 They typically operate on `xer::path`, not on raw native path strings.
 
-This aligns them with XER's own path model.
+This aligns them with XER's own path model, where path values are represented internally as UTF-8 strings with `/` as the normalized separator.
+
+Some functions in this group are simple predicates, while others perform actual filesystem operations.
+
+Predicate functions such as `file_exists`, `is_file`, `is_dir`, `is_readable`, and `is_writable` return `bool`.
+
+Operations that can fail normally return `xer::result`.
+
+---
+
+## Current Working Directory Operations
+
+`<xer/stdio.h>` provides current-working-directory helpers:
+
+```cpp
+auto chdir(const path& target) -> xer::result<void>;
+auto getcwd() -> xer::result<path>;
+```
+
+### `chdir`
+
+`chdir` changes the process-wide current working directory.
+
+```cpp
+auto chdir(const path& target) -> xer::result<void>;
+```
+
+The argument is a `xer::path`.
+
+On success, the function returns an empty success value.
+On failure, it returns an error through `xer::result`.
+
+Because the current working directory is process-wide state, callers should use this function carefully in programs where multiple components or threads may depend on the current directory.
+
+### `getcwd`
+
+`getcwd` returns the current working directory.
+
+```cpp
+auto getcwd() -> xer::result<path>;
+```
+
+The returned value is a `xer::path`.
+
+The path is converted into XER's internal UTF-8 representation and uses `/` as the normalized separator.
+
+The result is a snapshot of the process-wide current working directory at the time of the call.
+
+---
+
+## `realpath`
+
+```cpp
+auto realpath(const path& filename) -> xer::result<path>;
+```
+
+### Purpose
+
+`realpath` returns the canonicalized absolute path of an existing filesystem entry.
+
+It queries the actual filesystem through the platform path canonicalization mechanism.
+
+### Behavior
+
+The target path must exist.
+
+Relative path components are resolved.
+Symbolic links and other filesystem-level indirections are resolved according to the behavior of the underlying platform.
+
+On POSIX-like environments, the behavior follows the platform `realpath` facility.
+On Windows, the implementation uses Windows path canonicalization facilities and converts the result back into XER's path representation.
+
+### Return Value
+
+On success, `realpath` returns a `xer::path`.
+
+The returned path:
+
+* is absolute
+* refers to an existing filesystem entry
+* is converted to XER's UTF-8 path representation
+* uses `/` as the internal separator
+
+On failure, it returns an error through `xer::result`.
+
+Typical failure conditions include:
+
+* the target path does not exist
+* the caller lacks permission to access the path
+* native path conversion fails
+* platform path canonicalization fails
+
+### Difference from Lexical Path Operations
+
+`realpath` is not a purely lexical path operation.
+
+It depends on the actual filesystem and may observe filesystem state such as symbolic links, mounted volumes, permissions, and existing entries.
+
+For purely lexical path manipulation, use path helpers such as `basename`, `parent_path`, `extension`, `stem`, `is_absolute`, and `is_relative`.
+
+### Example
+
+```cpp
+const auto resolved = xer::realpath(xer::path(u8"."));
+if (!resolved.has_value()) {
+    return 1;
+}
+```
+
+After success, `resolved` contains the canonicalized absolute path of the current directory.
 
 ---
 
@@ -469,6 +605,7 @@ When this header is used in generated documentation, it is usually enough to exp
 * that stream objects are move-only RAII types
 * that both low-level I/O and higher-level facilities such as formatted I/O and CSV are included
 * that path-oriented file-entry operations are part of the header
+* that `realpath` is filesystem-dependent and distinct from lexical path operations
 
 Detailed per-function semantics should be described in the reference manual or generated API sections.
 
@@ -483,8 +620,11 @@ The following kinds of examples are especially suitable for this header:
 * writing text with `puts` or `fputs`
 * using `fgetpos` / `fsetpos`
 * using `tmpfile`
+* rewinding binary or text streams with `rewind`
 * reading or writing CSV
 * performing `rename`, `remove`, or `copy`
+* changing and restoring the current working directory with `chdir` and `getcwd`
+* canonicalizing an existing path with `realpath`
 
 These are good candidates for executable examples under `examples/`.
 
@@ -520,19 +660,3 @@ This example shows the basic XER style:
 * `policy_encoding.md`
 * `header_path.md`
 * `header_stdlib.md`
-
-
----
-
-## Rewinding
-
-`<xer/stdio.h>` provides `rewind` for both stream kinds:
-
-```cpp
-auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
-auto rewind(text_stream& stream) noexcept -> xer::result<void>;
-```
-
-Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
-
-For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.

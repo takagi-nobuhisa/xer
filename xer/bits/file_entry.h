@@ -10,7 +10,9 @@
 
 #include <cerrno>
 #include <cstddef>
+#include <cstdlib>
 #include <expected>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -38,7 +40,8 @@ namespace xer::detail {
  * @param value Windows error code.
  * @return Converted error code.
  */
-[[nodiscard]] inline auto win32_error_to_error_t(unsigned long value) noexcept -> error_t {
+[[nodiscard]] inline auto win32_error_to_error_t(unsigned long value) noexcept -> error_t
+{
     switch (value) {
     case ERROR_FILE_NOT_FOUND:
     case ERROR_PATH_NOT_FOUND:
@@ -84,6 +87,49 @@ namespace xer::detail {
     }
 }
 
+/**
+ * @brief Closes a Windows handle if it is valid.
+ *
+ * @param handle Target handle.
+ */
+inline auto close_handle_if_valid(HANDLE handle) noexcept -> void
+{
+    if (handle != nullptr && handle != INVALID_HANDLE_VALUE) {
+        ::CloseHandle(handle);
+    }
+}
+
+/**
+ * @brief Removes Windows extended path prefixes from a final path name.
+ *
+ * GetFinalPathNameByHandleW usually returns paths such as "\\?\C:\dir\file"
+ * or "\\?\UNC\server\share\dir". XER path conversion expects ordinary native
+ * path spelling, so this helper converts them back to "C:\dir\file" and
+ * "\\server\share\dir".
+ *
+ * @param value Native Windows final path.
+ * @return Native Windows path without the extended prefix.
+ */
+[[nodiscard]] inline auto strip_windows_final_path_prefix(std::wstring value)
+    -> std::wstring
+{
+    constexpr std::wstring_view drive_prefix = L"\\\\?\\";
+    constexpr std::wstring_view unc_prefix = L"\\\\?\\UNC\\";
+
+    if (value.starts_with(unc_prefix)) {
+        value.erase(0, unc_prefix.size());
+        value.insert(0, L"\\\\");
+        return value;
+    }
+
+    if (value.starts_with(drive_prefix)) {
+        value.erase(0, drive_prefix.size());
+        return value;
+    }
+
+    return value;
+}
+
 #else
 
 /**
@@ -92,7 +138,8 @@ namespace xer::detail {
  * @param value errno value.
  * @return Converted error code.
  */
-[[nodiscard]] inline auto errno_to_error_t(int value) noexcept -> error_t {
+[[nodiscard]] inline auto errno_to_error_t(int value) noexcept -> error_t
+{
     return static_cast<error_t>(value);
 }
 
@@ -101,7 +148,8 @@ namespace xer::detail {
  *
  * @param fd Target file descriptor.
  */
-inline auto close_fd_if_valid(int fd) noexcept -> void {
+inline auto close_fd_if_valid(int fd) noexcept -> void
+{
     if (fd >= 0) {
         ::close(fd);
     }
@@ -372,6 +420,108 @@ namespace xer {
 
         buffer.resize(buffer.size() * 2);
     }
+#endif
+}
+
+/**
+ * @brief Gets the canonicalized absolute path of an existing file system entry.
+ *
+ * This function queries the actual file system through the platform path
+ * canonicalization mechanism. The target must exist. Relative path components
+ * and symbolic links are resolved according to the underlying platform
+ * behavior.
+ *
+ * The returned path is converted into XER's UTF-8 path representation and uses
+ * '/' as the internal separator.
+ *
+ * @param filename Target path.
+ * @return Canonicalized absolute path on success.
+ */
+[[nodiscard]] inline auto realpath(const path& filename) -> result<path>
+{
+#ifdef _WIN32
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return std::unexpected(native_filename.error());
+    }
+
+    const HANDLE handle = ::CreateFileW(
+        native_filename->c_str(),
+        0,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS,
+        nullptr);
+
+    if (handle == INVALID_HANDLE_VALUE) {
+        return std::unexpected(
+            make_error(detail::win32_error_to_error_t(::GetLastError())));
+    }
+
+    const DWORD required_size = ::GetFinalPathNameByHandleW(
+        handle,
+        nullptr,
+        0,
+        FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+
+    if (required_size == 0) {
+        const DWORD error = ::GetLastError();
+        detail::close_handle_if_valid(handle);
+        return std::unexpected(
+            make_error(detail::win32_error_to_error_t(error)));
+    }
+
+    std::wstring buffer(required_size + 1, L'\0');
+    const DWORD written_size = ::GetFinalPathNameByHandleW(
+        handle,
+        buffer.data(),
+        static_cast<DWORD>(buffer.size()),
+        FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+
+    if (written_size == 0) {
+        const DWORD error = ::GetLastError();
+        detail::close_handle_if_valid(handle);
+        return std::unexpected(
+            make_error(detail::win32_error_to_error_t(error)));
+    }
+
+    detail::close_handle_if_valid(handle);
+
+    if (written_size >= buffer.size()) {
+        return std::unexpected(make_error(error_t::range));
+    }
+
+    buffer.resize(written_size);
+    buffer = detail::strip_windows_final_path_prefix(std::move(buffer));
+
+    const auto converted = from_native_path(std::wstring_view(buffer));
+    if (!converted.has_value()) {
+        return std::unexpected(converted.error());
+    }
+
+    return *converted;
+#else
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return std::unexpected(native_filename.error());
+    }
+
+    errno = 0;
+    std::unique_ptr<char, decltype(&std::free)> resolved(
+        ::realpath(native_filename->c_str(), nullptr),
+        &std::free);
+
+    if (!resolved) {
+        return std::unexpected(make_error(detail::errno_to_error_t(errno)));
+    }
+
+    const auto converted = from_native_path(std::string_view(resolved.get()));
+    if (!converted.has_value()) {
+        return std::unexpected(converted.error());
+    }
+
+    return *converted;
 #endif
 }
 
