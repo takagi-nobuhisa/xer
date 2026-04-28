@@ -46,6 +46,7 @@
 - `xer/stdfloat.h`
 - `xer/arithmetic.h`
 - `xer/cyclic.h`
+- `xer/interval.h`
 - `xer/quantity.h`
 - `xer/matrix.h`
 
@@ -165,6 +166,14 @@ Directory stream operations such as `opendir`, `closedir`, `readdir`, and `rewin
 Although they are related to file handling, they manage a directory stream state rather than an ordinary file stream.
 For that reason, they are provided through the independent public header `xer/dirent.h` rather than being absorbed into `xer/stdio.h`.
 
+### Why `interval.h` Is Independent
+
+Interval values are bounded scalar value types distinct from ordinary arithmetic helpers.
+They are especially useful for normalized values such as color components, alpha values, gain values, and ratios.
+
+Although interval values are numeric, their main role is to preserve the invariant that the stored value remains inside a fixed closed interval.
+For that reason, interval functionality is not absorbed into `xer/arithmetic.h`, but is provided as the independent public header `xer/interval.h`.
+
 ### Why `quantity.h` Is Independent
 
 Physical quantity and unit facilities are a kind of type-system-oriented feature distinct from string handling, input/output, and arithmetic helpers.
@@ -205,6 +214,7 @@ xer/stdint.h
 xer/stdfloat.h
 xer/arithmetic.h
 xer/cyclic.h
+xer/interval.h
 xer/quantity.h
 xer/matrix.h
 xer/process.h
