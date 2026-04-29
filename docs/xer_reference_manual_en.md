@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.2.0a3**
+Target version: **v0.2.0a4**
 
 ---
 
@@ -2361,6 +2361,362 @@ This example shows the general XER style:
 * `policy_multibyte.md`
 * `header_string.md`
 * `header_ctype.md`
+
+---
+
+# `<xer/base64.h>`
+
+## Purpose
+
+`<xer/base64.h>` provides Base64 encode and decode facilities in XER.
+
+Base64 is treated as a small binary-to-text conversion facility. It is not a structured data format like JSON, INI, or TOML, and it is not ordinary string processing either. Its role is to convert binary byte sequences into UTF-8 text that can be embedded in text-based data and to convert that text representation back into bytes.
+
+The initial implementation deliberately supports only the standard Base64 form. Variants such as URL-safe Base64 and unpadded Base64 are deferred.
+
+---
+
+## Main Role
+
+The main role of `<xer/base64.h>` is to make it possible to:
+
+- encode binary data into standard Base64 text
+- decode standard Base64 text back into binary data
+- handle invalid encoded text through XER's ordinary `xer::result` error model
+- provide a compact public API that can be extended later without changing its basic shape
+
+This makes the header useful for simple binary payload handling, text-based interchange, configuration data, diagnostics, and small utility programs.
+
+---
+
+## Main Entities
+
+At minimum, `<xer/base64.h>` provides the following functions:
+
+```cpp
+auto base64_encode(std::span<const std::byte> data)
+    -> xer::result<std::u8string>;
+
+auto base64_decode(std::u8string_view text)
+    -> xer::result<std::vector<std::byte>>;
+```
+
+The current API is intentionally small. Additional overloads or options may be added later.
+
+---
+
+## `base64_encode`
+
+```cpp
+auto base64_encode(std::span<const std::byte> data)
+    -> xer::result<std::u8string>;
+```
+
+### Purpose
+
+`base64_encode` converts a binary byte sequence into standard Base64 text.
+
+### Input Model
+
+The input is provided as:
+
+```cpp
+std::span<const std::byte>
+```
+
+This makes the function explicitly byte-oriented. The input is not interpreted as text and is not validated as UTF-8.
+
+### Output Model
+
+On success, the function returns:
+
+```cpp
+std::u8string
+```
+
+The output contains only ASCII Base64 characters and is therefore valid UTF-8.
+
+### Return Model
+
+The return type is `xer::result<std::u8string>`.
+
+The current minimal encoder normally has no content-based failure condition. However, the function still returns `xer::result` so that future variants can report ordinary failures without changing the public API shape.
+
+Possible future failure cases include output-size limits, formatting options, stream-oriented output failures, or invalid option combinations.
+
+---
+
+## `base64_decode`
+
+```cpp
+auto base64_decode(std::u8string_view text)
+    -> xer::result<std::vector<std::byte>>;
+```
+
+### Purpose
+
+`base64_decode` converts standard Base64 text back into binary data.
+
+### Input Model
+
+The input is provided as:
+
+```cpp
+std::u8string_view
+```
+
+Only ASCII Base64 characters, `=`, and ignored ASCII whitespace are meaningful. Non-ASCII input is rejected because it is not part of the supported Base64 alphabet.
+
+### Output Model
+
+On success, the function returns:
+
+```cpp
+std::vector<std::byte>
+```
+
+The output is binary data. It is not interpreted as text.
+
+---
+
+## Supported Base64 Form
+
+The initial implementation supports standard Base64 with the following alphabet:
+
+```text
+ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
+```
+
+Padding uses:
+
+```text
+=
+```
+
+### Encoding Behavior
+
+`base64_encode` currently behaves as follows:
+
+- emits standard Base64 text
+- always emits padding when padding is needed
+- does not insert line breaks
+- does not insert spaces
+- does not support URL-safe output
+- does not support unpadded output
+
+Examples:
+
+```text
+f      -> Zg==
+fo     -> Zm8=
+foo    -> Zm9v
+foobar -> Zm9vYmFy
+```
+
+### Decoding Behavior
+
+`base64_decode` currently behaves as follows:
+
+- accepts the standard Base64 alphabet
+- accepts `=` padding only in valid final positions
+- ignores ASCII whitespace
+- rejects non-Base64 characters
+- rejects malformed padding
+- rejects inputs whose effective length is not a multiple of four
+- rejects non-canonical padding bits
+
+ASCII whitespace means the following characters:
+
+```text
+space, tab, LF, CR, FF, VT
+```
+
+Whitespace is ignored only while decoding. The encoder does not generate whitespace.
+
+---
+
+## Error Handling
+
+`<xer/base64.h>` follows XER's ordinary failure model.
+
+That means:
+
+- normal failure is reported through `xer::result`
+- invalid encoded text is not handled by exceptions
+- callers explicitly check whether the returned `xer::result` has a value
+
+The initial decoder reports malformed Base64 input as:
+
+```cpp
+error_t::invalid_argument
+```
+
+This includes at least the following cases:
+
+- invalid Base64 character
+- invalid effective input length
+- padding before the final quartet
+- malformed padding pattern
+- non-canonical unused padding bits
+
+At this stage, detailed error positions are not reported. If position-aware diagnostics become useful later, the error detail type can be extended separately.
+
+---
+
+## Deferred Items and Limitations
+
+The following items are intentionally deferred from the initial implementation.
+
+### URL-Safe Base64
+
+URL-safe Base64, which uses `-` and `_` instead of `+` and `/`, is not supported yet.
+
+A future API may add an option or separate variant for URL-safe Base64.
+
+### Unpadded Base64
+
+Unpadded Base64 is not supported yet.
+
+The current decoder requires the effective input length after whitespace removal to be a multiple of four. Therefore, input that relies on omitted `=` padding is rejected.
+
+A future API may add an option to accept or emit unpadded Base64.
+
+### MIME-Style Line Wrapping on Encode
+
+The encoder does not insert line breaks.
+
+The decoder ignores ASCII whitespace, so it can read many line-wrapped Base64 strings. However, line-wrapped output generation is not provided yet.
+
+A future API may add a line-width option.
+
+### Streaming Encode and Decode
+
+The initial API operates on complete input data and returns complete output data.
+
+Streaming Base64 processing is deferred. This includes direct integration with `binary_stream` and `text_stream`.
+
+### Custom Alphabets
+
+Custom Base64 alphabets are not supported.
+
+Only the standard alphabet is accepted in the initial implementation.
+
+### Detailed Error Positions
+
+The initial decoder reports invalid input as `error_t::invalid_argument`, but it does not report the exact position of the invalid character or malformed padding.
+
+Detailed position information may be added later through `xer::error<Detail>`.
+
+### Text Encoding Conversion
+
+Base64 text itself is ASCII and therefore valid UTF-8, but `<xer/base64.h>` does not perform character encoding conversion.
+
+The input to `base64_decode` is treated as UTF-8-oriented text storage, but only the ASCII Base64 subset is meaningful. Binary output is returned as bytes and is not interpreted as UTF-8.
+
+---
+
+## Relationship to Other Headers
+
+`<xer/base64.h>` is related to the following headers and policies:
+
+- `<xer/error.h>`
+- `<xer/stdio.h>`
+- `policy_project_outline.md`
+- `policy_result_arguments.md`
+- `policy_encoding.md`
+
+The rough boundary is:
+
+- `<xer/string.h>` handles general string and memory utilities
+- `<xer/stdio.h>` handles stream I/O
+- `<xer/json.h>`, `<xer/ini.h>`, and `<xer/toml.h>` handle structured or semi-structured data formats
+- `<xer/base64.h>` handles byte-oriented binary-to-text conversion
+
+This separation is intentional. Base64 is useful together with text formats, but it is not itself a structured data format.
+
+---
+
+## Documentation Notes
+
+When this header is used in generated documentation, it is usually enough to explain:
+
+- that Base64 encoding is byte-oriented
+- that encoded output is UTF-8 text containing only ASCII characters
+- that decoding returns binary bytes
+- that both encode and decode return `xer::result`
+- that the initial implementation supports only standard padded Base64
+- that URL-safe, unpadded, wrapped-output, and streaming variants are deferred
+
+Detailed option behavior should be added when such options are actually introduced.
+
+---
+
+## Example Topics Commonly Worth Showing
+
+The following kinds of examples are especially suitable for this header:
+
+- encoding a small byte sequence into Base64
+- decoding the Base64 result back into bytes
+- showing explicit `xer::result` checking
+- printing encoded text with `<xer/stdio.h>`
+
+These are good candidates for executable examples in `examples/`.
+
+---
+
+## Example
+
+```cpp
+#include <array>
+#include <cstddef>
+
+#include <xer/base64.h>
+#include <xer/stdio.h>
+
+auto main() -> int
+{
+    const std::array<std::byte, 5> data = {
+        std::byte{'h'},
+        std::byte{'e'},
+        std::byte{'l'},
+        std::byte{'l'},
+        std::byte{'o'},
+    };
+
+    const auto encoded = xer::base64_encode(data);
+    if (!encoded.has_value()) {
+        return 1;
+    }
+
+    if (!xer::printf(u8"Encoded: %@\n", *encoded).has_value()) {
+        return 1;
+    }
+
+    const auto decoded = xer::base64_decode(*encoded);
+    if (!decoded.has_value()) {
+        return 1;
+    }
+
+    return 0;
+}
+```
+
+This example shows the general style:
+
+- pass ordinary byte data to `base64_encode`
+- check `xer::result` explicitly
+- pass the encoded text to `base64_decode`
+- treat decoded data as bytes rather than as text unless the caller knows its content
+
+---
+
+## See Also
+
+- `policy_project_outline.md`
+- `policy_result_arguments.md`
+- `policy_encoding.md`
+- `header_error.md`
+- `header_stdio.md`
 
 ---
 
@@ -8162,6 +8518,706 @@ This example shows the normal XER style:
 * `policy_project_outline.md`
 * `policy_cyclic.md`
 * `header_quantity.md`
+
+---
+
+﻿# `<xer/interval.h>`
+
+## Purpose
+
+`<xer/interval.h>` provides bounded floating-point value types.
+
+The main entity is `xer::interval<T, Min, Max>`, a lightweight value type that stores a finite scalar value constrained to a fixed closed interval.
+
+The default interval is `[0, 1]`, which is useful for values such as color components, alpha values, normalized ratios, opacity, brightness, gain, and other bounded control values.
+
+---
+
+## Main Entity
+
+At minimum, `<xer/interval.h>` provides the following entity:
+
+```cpp
+template <
+    std::floating_point T,
+    T Min = static_cast<T>(0),
+    T Max = static_cast<T>(1)>
+class interval;
+```
+
+The implementation is provided through the corresponding internal header:
+
+```cpp
+#include <xer/bits/interval.h>
+```
+
+Users should normally include the public header:
+
+```cpp
+#include <xer/interval.h>
+```
+
+---
+
+## Design Role
+
+`interval` is a small numeric value type whose main purpose is to preserve an invariant.
+
+For `interval<T, Min, Max>`, the stored value always satisfies:
+
+```text
+Min <= value() <= Max
+```
+
+The stored value is always finite.
+
+Finite out-of-range values are clamped to the nearest bound.
+Invalid floating-point values such as `NaN` and infinity are rejected by throwing an exception.
+
+This makes `interval` useful for values that should never escape a known range during ordinary use.
+
+---
+
+## Relationship to `cyclic`
+
+`interval` is closely related to `cyclic`, but the two types represent different concepts.
+
+`cyclic<T>` represents a circular value normalized into `[0, 1)`.
+
+Typical examples include:
+
+- hue
+- angle
+- phase
+- direction
+
+`interval<T, Min, Max>` represents a linear bounded value in `[Min, Max]`.
+
+Typical examples include:
+
+- red, green, and blue components
+- alpha values
+- grayscale values
+- brightness
+- gain
+- opacity
+- normalized ratios
+
+This distinction is especially important in color handling.
+Hue naturally wraps around, while color components do not.
+
+---
+
+## Template Parameters
+
+```cpp
+template <
+    std::floating_point T,
+    T Min = static_cast<T>(0),
+    T Max = static_cast<T>(1)>
+class interval;
+```
+
+### `T`
+
+`T` is the stored floating-point type.
+
+The main intended types are:
+
+- `float`
+- `double`
+- `long double`
+
+Integer types are not accepted.
+
+### `Min`
+
+`Min` is the inclusive lower bound.
+
+### `Max`
+
+`Max` is the inclusive upper bound.
+
+The type requires:
+
+```cpp
+Min < Max
+```
+
+An empty interval or reversed interval is not accepted.
+
+---
+
+## Default Interval
+
+The default form:
+
+```cpp
+xer::interval<float>
+```
+
+means:
+
+```cpp
+xer::interval<float, 0.0f, 1.0f>
+```
+
+This is the most common form for normalized values.
+
+Example:
+
+```cpp
+using component = xer::interval<float>;
+
+auto r = component(1.25f);  // stored as 1.0f
+auto g = component(0.5f);   // stored as 0.5f
+auto b = component(-0.25f); // stored as 0.0f
+```
+
+---
+
+## Custom Intervals
+
+Custom bounds can be specified as floating-point non-type template parameters.
+
+Example:
+
+```cpp
+using gain = xer::interval<float, -1.0f, 1.0f>;
+
+auto center = gain(0.0f);
+auto upper = gain(2.0f);   // clamped to 1.0f
+auto lower = gain(-2.0f);  // clamped to -1.0f
+```
+
+This is useful when a value has a natural range other than `[0, 1]`.
+
+---
+
+## Construction
+
+### Default Construction
+
+Default construction initializes the stored value to `Min`.
+
+```cpp
+xer::interval<float> x;
+// x.value() == 0.0f
+
+xer::interval<float, -1.0f, 1.0f> y;
+// y.value() == -1.0f
+```
+
+### Construction from a Raw Value
+
+Construction from a raw scalar is explicit.
+
+```cpp
+explicit constexpr interval(T value);
+```
+
+Finite values are accepted and clamped into the interval.
+
+For `xer::interval<float>`:
+
+```cpp
+auto a = xer::interval<float>(0.5f);   // 0.5f
+auto b = xer::interval<float>(-0.5f);  // 0.0f
+auto c = xer::interval<float>(1.5f);   // 1.0f
+```
+
+`NaN` and infinity are rejected by exception.
+
+---
+
+## Exception Policy
+
+`interval` throws `std::domain_error` for values that cannot be represented as valid finite interval values.
+
+At minimum, the following cases throw:
+
+- construction from `NaN`
+- construction from positive infinity
+- construction from negative infinity
+- assignment from `NaN`
+- assignment from infinity
+- arithmetic that produces `NaN`
+- arithmetic that produces infinity
+- division by zero
+
+This is intentional.
+Silently clamping `NaN` or infinity would hide a serious numeric error.
+
+---
+
+## Member Types and Constants
+
+`interval` provides the following public members:
+
+```cpp
+using value_type = T;
+
+static constexpr T min_value = Min;
+static constexpr T max_value = Max;
+```
+
+`value_type` is the stored floating-point type.
+
+`min_value` and `max_value` expose the compile-time interval bounds.
+
+---
+
+## Value Access
+
+### `value`
+
+```cpp
+constexpr auto value() const noexcept -> T;
+```
+
+Returns the stored scalar value.
+
+The returned value is always finite and always inside `[Min, Max]`.
+
+---
+
+## Assignment
+
+### `assign`
+
+```cpp
+constexpr auto assign(T value) -> void;
+```
+
+Assigns a raw scalar value.
+
+Finite values are clamped into `[Min, Max]`.
+`NaN` and infinity throw `std::domain_error`.
+
+### Assignment from `T`
+
+```cpp
+constexpr auto operator=(T value) -> interval&;
+```
+
+Assigns a raw scalar value and returns `*this`.
+
+This behaves the same as `assign`.
+
+Example:
+
+```cpp
+auto x = xer::interval<float>();
+
+x = 0.75f; // stored as 0.75f
+x = 2.0f;  // stored as 1.0f
+```
+
+---
+
+## Ratio Conversion
+
+### `ratio`
+
+```cpp
+constexpr auto ratio() const noexcept -> T;
+```
+
+Returns the relative position of the stored value in the interval.
+
+The result is in `[0, 1]`.
+
+Conceptually:
+
+```text
+(value() - Min) / (Max - Min)
+```
+
+Example:
+
+```cpp
+using level = xer::interval<float, 10.0f, 20.0f>;
+
+auto x = level(15.0f);
+auto r = x.ratio(); // 0.5f
+```
+
+### `from_ratio`
+
+```cpp
+static constexpr auto from_ratio(T ratio) -> interval;
+```
+
+Creates an interval value from a relative position.
+
+The input ratio is treated as a bounded value in `[0, 1]`.
+
+Finite input is clamped into `[0, 1]`.
+`NaN` and infinity throw `std::domain_error`.
+
+Conceptually:
+
+```text
+Min + ratio * (Max - Min)
+```
+
+Example:
+
+```cpp
+using gain = xer::interval<float, -1.0f, 1.0f>;
+
+auto center = gain::from_ratio(0.5f);
+// center.value() == 0.0f
+```
+
+---
+
+## Comparison
+
+`interval` represents a linear bounded value, so comparison operators are provided.
+
+At minimum, the type supports:
+
+```cpp
+operator==
+operator<=>
+```
+
+The remaining comparison operators are available through ordinary C++ comparison rewriting.
+
+Comparison is based on the stored scalar value.
+
+Unlike `cyclic`, `interval` does not use tolerance-based equality.
+Since `interval` rejects `NaN`, ordinary linear ordering is meaningful.
+
+Example:
+
+```cpp
+auto a = xer::interval<float>(0.25f);
+auto b = xer::interval<float>(0.75f);
+
+if (a < b) {
+    // true
+}
+```
+
+---
+
+## Arithmetic Between Interval Values
+
+Arithmetic between values of the same `interval` type is supported.
+
+```cpp
+operator+
+operator-
+operator*
+operator/
+```
+
+The operation is ordinary scalar arithmetic on the stored values, followed by validation and clamping.
+
+Example:
+
+```cpp
+using component = xer::interval<float>;
+
+auto a = component(0.8f);
+auto b = component(0.5f);
+
+auto sum = a + b;       // 1.0f
+auto product = a * b;   // 0.4f
+auto diff = b - a;      // 0.0f
+```
+
+Division by an interval value whose stored value is zero throws `std::domain_error`.
+
+---
+
+## Arithmetic with Right-Hand Scalar Values
+
+The following forms are supported:
+
+```cpp
+interval + scalar
+interval - scalar
+interval * scalar
+interval / scalar
+```
+
+They are useful for increasing, decreasing, scaling, and dividing bounded values.
+
+Example:
+
+```cpp
+using component = xer::interval<float>;
+
+auto brightness = component(0.5f);
+
+brightness += 0.25f; // 0.75f
+brightness *= 2.0f;  // 1.0f
+brightness -= 2.0f;  // 0.0f
+```
+
+The scalar is converted to the interval's value type and then validated.
+
+`NaN`, infinity, and division by zero throw `std::domain_error`.
+
+---
+
+## Left-Hand Scalar Multiplication
+
+Scalar multiplication is also supported in the left-hand form:
+
+```cpp
+scalar * interval
+```
+
+Example:
+
+```cpp
+using component = xer::interval<float>;
+
+auto brightness = component(0.75f);
+auto dimmed = 0.5f * brightness;
+// dimmed.value() == 0.375f
+```
+
+This form is provided because multiplication is natural in either order.
+
+---
+
+## Unsupported Left-Hand Scalar Forms
+
+The following forms are intentionally not provided:
+
+```cpp
+scalar + interval
+scalar - interval
+scalar / interval
+```
+
+Scalar addition and subtraction are intended to express increasing or decreasing the interval value.
+For readability, the interval value should appear on the left-hand side.
+
+Scalar division by an interval value has a reciprocal-like meaning and is not considered a common bounded-value operation.
+
+If such behavior is needed, callers can use `value()` explicitly.
+
+---
+
+## Compound Assignment
+
+`interval` provides compound assignment operators.
+
+With another interval value:
+
+```cpp
+operator+=
+operator-=
+operator*=
+operator/=
+```
+
+With a right-hand scalar value:
+
+```cpp
+operator+=
+operator-=
+operator*=
+operator/=
+```
+
+Each operation preserves the interval invariant.
+
+Example:
+
+```cpp
+using component = xer::interval<float>;
+
+auto x = component(0.5f);
+
+x += 0.2f; // 0.7f
+x *= 2.0f; // 1.0f
+x /= 4.0f; // 0.25f
+```
+
+---
+
+## Unary Operators
+
+Unary plus and unary minus are provided.
+
+```cpp
++x
+-x
+```
+
+Unary plus returns the value unchanged.
+
+Unary minus negates the stored value and then constructs a new interval value from the result.
+For the default `[0, 1]` interval, this usually clamps to `0`.
+
+Example:
+
+```cpp
+auto x = xer::interval<float>(0.25f);
+auto y = -x;
+// y.value() == 0.0f
+```
+
+For a symmetric interval, unary minus behaves more naturally.
+
+```cpp
+using gain = xer::interval<float, -1.0f, 1.0f>;
+
+auto x = gain(0.25f);
+auto y = -x;
+// y.value() == -0.25f
+```
+
+---
+
+## Error Handling Model
+
+`interval` uses exceptions only for exceptional numeric conditions.
+
+This differs from ordinary XER APIs that return `xer::result` for normal recoverable failures.
+
+The reason is that `interval` is a value type with a simple invariant.
+`NaN`, infinity, and division by zero are treated as invalid numeric states rather than ordinary input failures.
+
+This design keeps normal arithmetic expressions readable:
+
+```cpp
+auto x = xer::interval<float>(0.5f);
+auto y = x + 0.25f;
+auto z = 0.5f * y;
+```
+
+---
+
+## Typical Uses
+
+### Color Components
+
+```cpp
+using component = xer::interval<float>;
+
+auto r = component(1.25f);  // 1.0f
+auto g = component(0.5f);   // 0.5f
+auto b = component(-0.25f); // 0.0f
+```
+
+### Gain
+
+```cpp
+using gain = xer::interval<float, -1.0f, 1.0f>;
+
+auto center = gain::from_ratio(0.5f);
+// center.value() == 0.0f
+```
+
+### Brightness Adjustment
+
+```cpp
+using component = xer::interval<float>;
+
+auto brightness = component(0.5f);
+brightness += 0.25f;
+brightness *= 2.0f;
+```
+
+---
+
+## Relationship to Other Headers
+
+`<xer/interval.h>` is related to the following headers:
+
+- `<xer/cyclic.h>`
+- `<xer/arithmetic.h>`
+- `<xer/stdfloat.h>`
+
+The rough boundary is:
+
+- `<xer/cyclic.h>` handles circular normalized values
+- `<xer/interval.h>` handles linear bounded values
+- `<xer/arithmetic.h>` provides arithmetic helper functions
+- `<xer/stdfloat.h>` provides floating-point type aliases and literals
+
+`interval` is not absorbed into `<xer/arithmetic.h>` because it is a value type with an invariant, not merely an arithmetic helper function group.
+
+---
+
+## Documentation Notes
+
+When documenting `interval`, it is important to make the following points explicit:
+
+- the interval is closed
+- the default interval is `[0, 1]`
+- finite out-of-range values are clamped
+- `NaN` and infinity throw
+- division by zero throws
+- arithmetic is scalar arithmetic followed by clamping
+- this is not mathematical interval arithmetic
+- `interval` is linear and non-wrapping, unlike `cyclic`
+
+---
+
+## Example
+
+```cpp
+#include <xer/interval.h>
+#include <xer/stdio.h>
+
+auto main() -> int
+{
+    using component = xer::interval<float>;
+
+    const auto r = component(1.25f);
+    const auto g = component(0.5f);
+    const auto b = component(-0.25f);
+
+    if (!xer::printf(u8"r = %g\n", static_cast<double>(r.value())).has_value()) {
+        return 1;
+    }
+    if (!xer::printf(u8"g = %g\n", static_cast<double>(g.value())).has_value()) {
+        return 1;
+    }
+    if (!xer::printf(u8"b = %g\n", static_cast<double>(b.value())).has_value()) {
+        return 1;
+    }
+
+    auto brightness = component(0.5f);
+    brightness += 0.25f;
+
+    if (!xer::printf(
+            u8"brightness = %g\n",
+            static_cast<double>(brightness.value()))
+            .has_value()) {
+        return 1;
+    }
+
+    return 0;
+}
+```
+
+This example shows the basic XER style:
+
+- use the public header
+- construct bounded values naturally
+- let finite out-of-range input clamp
+- use XER formatted output for examples
+- check fallible output operations explicitly
+
+---
+
+## See Also
+
+- `policy_interval.md`
+- `policy_cyclic.md`
+- `header_cyclic.md`
+- `policy_arithmetic.md`
+- `header_arithmetic.md`
 
 ---
 

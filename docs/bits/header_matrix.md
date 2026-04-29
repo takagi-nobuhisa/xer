@@ -1,4 +1,4 @@
-﻿# `<xer/matrix.h>`
+# `<xer/matrix.h>`
 
 ## Purpose
 

@@ -1,4 +1,4 @@
-﻿# `<xer/quantity.h>`
+# `<xer/quantity.h>`
 
 ## Purpose
 

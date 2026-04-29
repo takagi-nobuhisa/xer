@@ -1,4 +1,4 @@
-﻿# `<xer/interval.h>`
+# `<xer/interval.h>`
 
 ## Purpose
 

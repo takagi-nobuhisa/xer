@@ -1,4 +1,4 @@
-﻿# Policy for Physical Quantities and Units
+# Policy for Physical Quantities and Units
 
 ## Overview
 

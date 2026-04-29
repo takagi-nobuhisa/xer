@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file tests/test_strto.cpp
  * @brief Execution tests for xer/bits/strto.h.
  */

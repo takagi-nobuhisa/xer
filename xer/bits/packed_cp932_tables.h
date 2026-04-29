@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file xer/bits/packed_cp932_tables.h
  * @brief Packed CP932 <-> UTF-16 lookup tables.
  */

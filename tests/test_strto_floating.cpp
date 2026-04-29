@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file tests/test_strto_floating.cpp
  * @brief Execution tests for xer/bits/strto_floating.h.
  */

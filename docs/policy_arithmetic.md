@@ -1,4 +1,4 @@
-﻿# Policy for Arithmetic and Comparison
+# Policy for Arithmetic and Comparison
 
 ## Overview
 

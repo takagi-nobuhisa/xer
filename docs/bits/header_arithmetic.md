@@ -1,4 +1,4 @@
-﻿# `<xer/arithmetic.h>`
+# `<xer/arithmetic.h>`
 
 ## Purpose
 

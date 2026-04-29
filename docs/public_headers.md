@@ -47,6 +47,7 @@
 - `xer/arithmetic.h`
 - `xer/cyclic.h`
 - `xer/interval.h`
+- `xer/color.h`
 - `xer/quantity.h`
 - `xer/matrix.h`
 
@@ -215,6 +216,7 @@ xer/stdfloat.h
 xer/arithmetic.h
 xer/cyclic.h
 xer/interval.h
+xer/color.h
 xer/quantity.h
 xer/matrix.h
 xer/process.h
