@@ -9,12 +9,13 @@
 #define XER_BITS_TOML_H_INCLUDED_
 
 #include <cerrno>
-#include <charconv>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
 #include <cstdint>
 #include <cstdlib>
 #include <expected>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -554,24 +555,260 @@ namespace xer::detail {
     return toml_value(std::move(array));
 }
 
-[[nodiscard]] inline auto toml_parse_integer(std::u8string_view value)
-    -> result<toml_value>
+[[nodiscard]] constexpr auto toml_is_decimal_digit(char8_t ch) noexcept -> bool
 {
-    std::int64_t out = 0;
-    const char* first = reinterpret_cast<const char*>(value.data());
-    const char* last = first + value.size();
-    const auto parsed = std::from_chars(first, last, out, 10);
+    return ch >= u8'0' && ch <= u8'9';
+}
 
-    if (parsed.ec != std::errc{} || parsed.ptr != last) {
+[[nodiscard]] constexpr auto toml_is_hex_digit(char8_t ch) noexcept -> bool
+{
+    return (ch >= u8'0' && ch <= u8'9') ||
+           (ch >= u8'a' && ch <= u8'f') ||
+           (ch >= u8'A' && ch <= u8'F');
+}
+
+[[nodiscard]] constexpr auto toml_is_octal_digit(char8_t ch) noexcept -> bool
+{
+    return ch >= u8'0' && ch <= u8'7';
+}
+
+[[nodiscard]] constexpr auto toml_is_binary_digit(char8_t ch) noexcept -> bool
+{
+    return ch == u8'0' || ch == u8'1';
+}
+
+template <class Pred>
+[[nodiscard]] inline auto toml_digits_with_separators_are_valid(
+    std::u8string_view value,
+    Pred is_digit) noexcept -> bool
+{
+    if (value.empty()) {
+        return false;
+    }
+
+    bool previous_was_digit = false;
+
+    for (std::size_t i = 0; i < value.size(); ++i) {
+        const char8_t ch = value[i];
+
+        if (is_digit(ch)) {
+            previous_was_digit = true;
+            continue;
+        }
+
+        if (ch == u8'_') {
+            if (!previous_was_digit || i + 1 >= value.size() ||
+                !is_digit(value[i + 1])) {
+                return false;
+            }
+
+            previous_was_digit = false;
+            continue;
+        }
+
+        return false;
+    }
+
+    return previous_was_digit;
+}
+
+template <class Pred>
+[[nodiscard]] inline auto toml_remove_digit_separators(
+    std::u8string_view value,
+    Pred is_digit) -> result<std::u8string>
+{
+    if (!toml_digits_with_separators_are_valid(value, is_digit)) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
 
-    return toml_value(out);
+    std::u8string out;
+    out.reserve(value.size());
+
+    for (const char8_t ch : value) {
+        if (ch != u8'_') {
+            out.push_back(ch);
+        }
+    }
+
+    return out;
+}
+
+[[nodiscard]] constexpr auto toml_digit_value(char8_t ch) noexcept -> int
+{
+    if (ch >= u8'0' && ch <= u8'9') {
+        return static_cast<int>(ch - u8'0');
+    }
+
+    if (ch >= u8'a' && ch <= u8'f') {
+        return static_cast<int>(ch - u8'a') + 10;
+    }
+
+    if (ch >= u8'A' && ch <= u8'F') {
+        return static_cast<int>(ch - u8'A') + 10;
+    }
+
+    return -1;
+}
+
+[[nodiscard]] inline auto toml_parse_integer_digits(
+    std::u8string_view digits,
+    int base,
+    bool negative) -> result<toml_value>
+{
+    if (digits.empty() || base < 2 || base > 16) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    constexpr auto max_value =
+        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
+    constexpr auto min_magnitude = max_value + UINT64_C(1);
+    const std::uint64_t limit = negative ? min_magnitude : max_value;
+
+    std::uint64_t magnitude = 0;
+
+    for (const char8_t ch : digits) {
+        const int digit = toml_digit_value(ch);
+        if (digit < 0 || digit >= base) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        const auto value = static_cast<std::uint64_t>(digit);
+        if (magnitude > (limit - value) / static_cast<std::uint64_t>(base)) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        magnitude = magnitude * static_cast<std::uint64_t>(base) + value;
+    }
+
+    if (negative) {
+        if (magnitude == min_magnitude) {
+            return toml_value(std::numeric_limits<std::int64_t>::min());
+        }
+
+        return toml_value(-static_cast<std::int64_t>(magnitude));
+    }
+
+    return toml_value(static_cast<std::int64_t>(magnitude));
+}
+[[nodiscard]] inline auto toml_parse_integer(std::u8string_view value)
+    -> result<toml_value>
+{
+    bool negative = false;
+
+    if (!value.empty() && (value.front() == u8'+' || value.front() == u8'-')) {
+        negative = value.front() == u8'-';
+        value.remove_prefix(1);
+    }
+
+    if (value.size() >= 2 && value[0] == u8'0') {
+        if (value[1] == u8'x' || value[1] == u8'X') {
+            auto digits =
+                toml_remove_digit_separators(value.substr(2), toml_is_hex_digit);
+            if (!digits.has_value()) {
+                return std::unexpected(digits.error());
+            }
+
+            return toml_parse_integer_digits(*digits, 16, negative);
+        }
+
+        if (value[1] == u8'o' || value[1] == u8'O') {
+            auto digits =
+                toml_remove_digit_separators(value.substr(2), toml_is_octal_digit);
+            if (!digits.has_value()) {
+                return std::unexpected(digits.error());
+            }
+
+            return toml_parse_integer_digits(*digits, 8, negative);
+        }
+
+        if (value[1] == u8'b' || value[1] == u8'B') {
+            auto digits =
+                toml_remove_digit_separators(value.substr(2), toml_is_binary_digit);
+            if (!digits.has_value()) {
+                return std::unexpected(digits.error());
+            }
+
+            return toml_parse_integer_digits(*digits, 2, negative);
+        }
+    }
+
+    auto digits = toml_remove_digit_separators(value, toml_is_decimal_digit);
+    if (!digits.has_value()) {
+        return std::unexpected(digits.error());
+    }
+
+    return toml_parse_integer_digits(*digits, 10, negative);
+}
+
+[[nodiscard]] inline auto toml_float_syntax_is_valid(
+    std::u8string_view value) noexcept -> bool
+{
+    if (value.empty()) {
+        return false;
+    }
+
+    if (value.front() == u8'+' || value.front() == u8'-') {
+        value.remove_prefix(1);
+    }
+
+    const std::size_t exponent_pos = value.find_first_of(u8"eE");
+    const std::u8string_view significand =
+        exponent_pos == std::u8string_view::npos ? value
+                                                 : value.substr(0, exponent_pos);
+
+    if (significand.empty()) {
+        return false;
+    }
+
+    const std::size_t dot_pos = significand.find(u8'.');
+    if (dot_pos == std::u8string_view::npos &&
+        exponent_pos == std::u8string_view::npos) {
+        return false;
+    }
+
+    if (dot_pos != std::u8string_view::npos &&
+        significand.find(u8'.', dot_pos + 1) != std::u8string_view::npos) {
+        return false;
+    }
+
+    if (dot_pos == std::u8string_view::npos) {
+        if (!toml_digits_with_separators_are_valid(
+                significand, toml_is_decimal_digit)) {
+            return false;
+        }
+    } else {
+        const std::u8string_view whole = significand.substr(0, dot_pos);
+        const std::u8string_view fraction = significand.substr(dot_pos + 1);
+
+        if (!toml_digits_with_separators_are_valid(
+                whole, toml_is_decimal_digit) ||
+            !toml_digits_with_separators_are_valid(
+                fraction, toml_is_decimal_digit)) {
+            return false;
+        }
+    }
+
+    if (exponent_pos == std::u8string_view::npos) {
+        return true;
+    }
+
+    std::u8string_view exponent = value.substr(exponent_pos + 1);
+    if (!exponent.empty() &&
+        (exponent.front() == u8'+' || exponent.front() == u8'-')) {
+        exponent.remove_prefix(1);
+    }
+
+    return toml_digits_with_separators_are_valid(
+        exponent, toml_is_decimal_digit);
 }
 
 [[nodiscard]] inline auto toml_parse_float(std::u8string_view value)
     -> result<toml_value>
 {
+    if (!toml_float_syntax_is_valid(value)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
     std::string narrow;
     narrow.reserve(value.size());
 
@@ -580,7 +817,9 @@ namespace xer::detail {
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
-        narrow.push_back(static_cast<char>(ch));
+        if (ch != u8'_') {
+            narrow.push_back(static_cast<char>(ch));
+        }
     }
 
     char* end = nullptr;
@@ -593,6 +832,19 @@ namespace xer::detail {
     }
 
     return toml_value(out);
+}
+
+[[nodiscard]] inline auto toml_has_integer_base_prefix(
+    std::u8string_view value) noexcept -> bool
+{
+    if (!value.empty() && (value.front() == u8'+' || value.front() == u8'-')) {
+        value.remove_prefix(1);
+    }
+
+    return value.size() >= 2 && value[0] == u8'0' &&
+           (value[1] == u8'x' || value[1] == u8'X' ||
+            value[1] == u8'o' || value[1] == u8'O' ||
+            value[1] == u8'b' || value[1] == u8'B');
 }
 
 [[nodiscard]] inline auto toml_parse_value(std::u8string_view value)
@@ -623,6 +875,10 @@ namespace xer::detail {
 
     if (value == u8"false") {
         return toml_value(false);
+    }
+
+    if (toml_has_integer_base_prefix(value)) {
+        return toml_parse_integer(value);
     }
 
     if (value.find(u8'.') != std::u8string_view::npos ||
@@ -870,15 +1126,19 @@ inline void toml_encode_string(std::u8string& out, std::u8string_view value)
 
     if (const auto* integer = value.as_integer()) {
         char buffer[64]{};
-        const auto converted =
-            std::to_chars(buffer, buffer + sizeof(buffer), *integer);
-        if (converted.ec != std::errc{}) {
+        const auto length = std::snprintf(
+            buffer,
+            sizeof(buffer),
+            "%lld",
+            static_cast<long long>(*integer));
+        if (length < 0 ||
+            static_cast<std::size_t>(length) >= sizeof(buffer)) {
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
         out.append(
             reinterpret_cast<const char8_t*>(buffer),
-            static_cast<std::size_t>(converted.ptr - buffer));
+            static_cast<std::size_t>(length));
         return {};
     }
 
@@ -888,15 +1148,19 @@ inline void toml_encode_string(std::u8string& out, std::u8string_view value)
         }
 
         char buffer[128]{};
-        const auto converted =
-            std::to_chars(buffer, buffer + sizeof(buffer), *number);
-        if (converted.ec != std::errc{}) {
+        const auto length = std::snprintf(
+            buffer,
+            sizeof(buffer),
+            "%.17g",
+            *number);
+        if (length < 0 ||
+            static_cast<std::size_t>(length) >= sizeof(buffer)) {
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
         out.append(
             reinterpret_cast<const char8_t*>(buffer),
-            static_cast<std::size_t>(converted.ptr - buffer));
+            static_cast<std::size_t>(length));
         return {};
     }
 
@@ -962,12 +1226,14 @@ namespace xer {
  * @brief Decodes TOML text into an ordered TOML representation.
  *
  * The initial implementation supports a practical subset: bare keys, ordinary
- * tables, basic double-quoted strings, signed decimal integers, finite decimal
- * floating-point numbers, booleans, arrays, comments, and blank lines.
+ * tables, basic double-quoted strings, signed integers, finite decimal
+ * floating-point numbers, numeric separators, booleans, arrays, comments, and
+ * blank lines.
  *
- * Dotted keys, quoted keys, inline tables, array-of-tables, date/time values,
- * literal strings, multiline strings, non-decimal integers, numeric separators,
- * and special floating-point values are intentionally deferred.
+ * Integers may use decimal, hexadecimal, octal, or binary notation. Dotted
+ * keys, quoted keys, inline tables, array-of-tables, date/time values, literal
+ * strings, multiline strings, and special floating-point values are
+ * intentionally deferred.
  *
  * @param text UTF-8 TOML text.
  * @return Parsed TOML value. On success, the returned value is a table.

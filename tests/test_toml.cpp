@@ -149,6 +149,90 @@ void test_toml_decode_comments_and_escapes()
     xer_assert_eq(*text->as_string(), u8"a\nb");
 }
 
+void test_toml_decode_extended_numbers()
+{
+    const auto result = xer::toml_decode(
+        u8"decimal = 1_000_000\n"
+        u8"positive = +123\n"
+        u8"negative = -123\n"
+        u8"hex = 0xDEAD_BEEF\n"
+        u8"octal = 0o755\n"
+        u8"binary = 0b1010_0101\n"
+        u8"float_value = 1_000.25_5\n"
+        u8"exponent = +1.0e-3\n");
+
+    xer_assert(result.has_value());
+
+    const auto* table = result->as_table();
+    xer_assert(table != nullptr);
+
+    const auto* decimal = find_key(*table, u8"decimal");
+    const auto* positive = find_key(*table, u8"positive");
+    const auto* negative = find_key(*table, u8"negative");
+    const auto* hex = find_key(*table, u8"hex");
+    const auto* octal = find_key(*table, u8"octal");
+    const auto* binary = find_key(*table, u8"binary");
+    const auto* float_value = find_key(*table, u8"float_value");
+    const auto* exponent = find_key(*table, u8"exponent");
+
+    xer_assert(decimal != nullptr);
+    xer_assert(positive != nullptr);
+    xer_assert(negative != nullptr);
+    xer_assert(hex != nullptr);
+    xer_assert(octal != nullptr);
+    xer_assert(binary != nullptr);
+    xer_assert(float_value != nullptr);
+    xer_assert(exponent != nullptr);
+
+    xer_assert_eq(*decimal->as_integer(), static_cast<std::int64_t>(1000000));
+    xer_assert_eq(*positive->as_integer(), static_cast<std::int64_t>(123));
+    xer_assert_eq(*negative->as_integer(), static_cast<std::int64_t>(-123));
+    xer_assert_eq(*hex->as_integer(), static_cast<std::int64_t>(0xDEADBEEF));
+    xer_assert_eq(*octal->as_integer(), static_cast<std::int64_t>(493));
+    xer_assert_eq(*binary->as_integer(), static_cast<std::int64_t>(165));
+    xer_assert_eq(*float_value->as_float(), 1000.255);
+    xer_assert_eq(*exponent->as_float(), 0.001);
+}
+
+void test_toml_decode_rejects_invalid_numbers()
+{
+    const auto double_separator = xer::toml_decode(u8"a = 1__000\n");
+    const auto trailing_separator = xer::toml_decode(u8"a = 1000_\n");
+    const auto prefixed_separator = xer::toml_decode(u8"a = 0x_DEAD\n");
+    const auto bad_binary_digit = xer::toml_decode(u8"a = 0b102\n");
+    const auto bad_octal_digit = xer::toml_decode(u8"a = 0o778\n");
+    const auto bad_float_fraction = xer::toml_decode(u8"a = 1._0\n");
+    const auto bad_float_exponent = xer::toml_decode(u8"a = 1.0e_3\n");
+    const auto infinity = xer::toml_decode(u8"a = inf\n");
+    const auto not_a_number = xer::toml_decode(u8"a = nan\n");
+
+    xer_assert_not(double_separator.has_value());
+    xer_assert_eq(double_separator.error().code, xer::error_t::invalid_argument);
+
+    xer_assert_not(trailing_separator.has_value());
+    xer_assert_eq(trailing_separator.error().code, xer::error_t::invalid_argument);
+
+    xer_assert_not(prefixed_separator.has_value());
+    xer_assert_eq(prefixed_separator.error().code, xer::error_t::invalid_argument);
+
+    xer_assert_not(bad_binary_digit.has_value());
+    xer_assert_eq(bad_binary_digit.error().code, xer::error_t::invalid_argument);
+
+    xer_assert_not(bad_octal_digit.has_value());
+    xer_assert_eq(bad_octal_digit.error().code, xer::error_t::invalid_argument);
+
+    xer_assert_not(bad_float_fraction.has_value());
+    xer_assert_eq(bad_float_fraction.error().code, xer::error_t::invalid_argument);
+
+    xer_assert_not(bad_float_exponent.has_value());
+    xer_assert_eq(bad_float_exponent.error().code, xer::error_t::invalid_argument);
+
+    xer_assert_not(infinity.has_value());
+    xer_assert_eq(infinity.error().code, xer::error_t::invalid_argument);
+
+    xer_assert_not(not_a_number.has_value());
+    xer_assert_eq(not_a_number.error().code, xer::error_t::invalid_argument);
+}
 void test_toml_decode_rejects_invalid_syntax()
 {
     const auto no_equal = xer::toml_decode(u8"name\n");
@@ -291,6 +375,8 @@ auto main() -> int
     test_toml_decode_array();
     test_toml_decode_table();
     test_toml_decode_comments_and_escapes();
+    test_toml_decode_extended_numbers();
+    test_toml_decode_rejects_invalid_numbers();
     test_toml_decode_rejects_invalid_syntax();
     test_toml_decode_rejects_invalid_utf8();
     test_toml_encode_basic_document();

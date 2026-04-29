@@ -3789,7 +3789,10 @@ The initial implementation supports the following TOML-style input:
 title = "xer"
 enabled = true
 count = 123
+hex = 0xFF
+mask = 0b1010_0101
 ratio = 1.5
+large = 1_000_000
 ports = [8000, 8001, 8002]
 
 [project]
@@ -3810,6 +3813,8 @@ The initial decoder supports:
 * basic double-quoted strings
 * booleans
 * signed decimal integers
+* hexadecimal, octal, and binary integers
+* numeric separators between digits
 * finite decimal floating-point numbers
 * arrays
 
@@ -3837,8 +3842,6 @@ The following TOML features are intentionally deferred:
 * inline tables
 * array-of-tables
 * special floating-point values such as `inf` and `nan`
-* hexadecimal, octal, and binary integers
-* numeric separators
 * detailed error position reporting
 
 These features may be added later one by one.
@@ -3929,36 +3932,39 @@ They are stored as `bool`.
 
 ## Integers
 
-The initial implementation supports signed decimal integers.
+The initial implementation supports signed decimal integers and prefixed non-decimal integers. Numeric separators may be used between digits.
 
 ```toml
 count = 123
 offset = -5
+positive = +123
+large = 1_000_000
+hex = 0xFF
+octal = 0o755
+binary = 0b1010_0101
 ```
 
 They are stored as `std::int64_t`.
 
-The following forms are deferred:
-
-* hexadecimal integers
-* octal integers
-* binary integers
-* numeric separators
+The supported integer prefixes are `0x` for hexadecimal, `0o` for octal, and `0b` for binary. A leading `+` or `-` may be used before the prefix. Separators are valid only between digits of the corresponding base.
 
 ---
 
 ## Floating-Point Numbers
 
-The initial implementation supports finite decimal floating-point numbers.
+The initial implementation supports finite decimal floating-point numbers. Numeric separators may be used between decimal digits.
 
 ```toml
 ratio = 1.5
 scale = 1e-3
+large = 1_000.25_5
+positive = +1.5
+negative = -1.5
 ```
 
 They are stored as `double`.
 
-Special values such as `inf` and `nan` are deferred.
+Special values such as `inf` and `nan` are deferred. Separators are valid only between digits; forms such as `1_.0`, `1._0`, and `1.0e_3` are rejected.
 
 ---
 
@@ -4157,6 +4163,8 @@ When this header is used in generated documentation, it is usually enough to exp
 * that top-level decode results are table values
 * that TOML values are typed
 * that duplicate keys and duplicate tables are rejected
+* that hexadecimal, octal, and binary integers are supported
+* that numeric separators are supported only between digits
 * that deferred TOML features are not yet supported
 
 Detailed feature coverage should be kept in sync with the implementation as support expands.
