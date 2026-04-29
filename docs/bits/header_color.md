@@ -9,6 +9,7 @@ The purpose of this header is to support practical formula-based color represent
 The initial supported color systems are:
 
 - RGB
+- Grayscale
 - CMY
 - HSV
 - CIE 1931 XYZ
@@ -27,6 +28,9 @@ At minimum, `<xer/color.h>` provides the following class templates:
 ```cpp
 template <std::floating_point T>
 struct basic_rgb;
+
+template <std::floating_point T>
+struct basic_gray;
 
 template <std::floating_point T>
 struct basic_cmy;
@@ -48,6 +52,7 @@ It also provides ordinary `float` aliases:
 
 ```cpp
 using rgb = basic_rgb<float>;
+using gray = basic_gray<float>;
 using cmy = basic_cmy<float>;
 using hsv = basic_hsv<float>;
 using xyz = basic_xyz<float>;
@@ -157,6 +162,24 @@ If alpha support becomes necessary later, it should be provided as a separate ty
 It should not be mixed into `basic_rgb<T>`.
 
 ---
+
+## Grayscale
+
+## `basic_gray`
+
+```cpp
+template <std::floating_point T>
+struct basic_gray {
+    using value_type = T;
+    using component_type = interval<T>;
+
+    component_type y;
+};
+```
+
+`basic_gray<T>` represents a display-oriented grayscale value. The component is represented by `interval<T>` and is kept in `[0, 1]`.
+
+`to_luma_gray` computes simple luma directly from nonlinear sRGB components. `to_luminance_gray` computes relative luminance after sRGB decoding and then encodes it back to a display grayscale value. `to_gray` is an alias for `to_luma_gray`. `to_rgb(gray)` duplicates the grayscale component into RGB.
 
 ## CMY
 
@@ -547,7 +570,7 @@ They do not return `xer::result`, because the supported conversions are determin
 
 However:
 
-- RGB, CMY, and HSV normalized components use `interval<T>`
+- RGB, grayscale, CMY, and HSV normalized components use `interval<T>`
 - hue uses `cyclic<T>`
 
 Therefore, invalid finite-state cases such as `NaN` or infinity may be rejected according to the policies of `interval<T>` and `cyclic<T>`.
@@ -563,6 +586,7 @@ For raw colorimetric types such as XYZ, Lab, and Luv, the initial implementation
 The initial supported color systems are:
 
 - RGB
+- Grayscale
 - CMY
 - HSV
 - CIE 1931 XYZ
@@ -633,7 +657,7 @@ When documenting `<xer/color.h>`, it is important to state:
 
 - `rgb` is used as the code name, not `srgb`
 - RGB/XYZ conversion assumes sRGB/D65
-- RGB, CMY, and HSV normalized components use `interval<T>`
+- RGB, grayscale, CMY, and HSV normalized components use `interval<T>`
 - HSV hue uses `cyclic<T>`
 - XYZ, Lab, and Luv use raw floating-point members
 - alpha is not part of RGB

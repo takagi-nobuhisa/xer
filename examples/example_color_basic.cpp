@@ -6,6 +6,9 @@
 // RGB: r=0.25, g=0.5, b=0.75
 // CMY: c=0.75, m=0.5, y=0.25
 // HSV: h=0.583333, s=0.666667, v=0.75
+// Luma gray: y=0.4649
+// Luminance gray: y=0.510946
+// RGB from gray: r=0.4649, g=0.4649, b=0.4649
 // RGB from HSV: r=0.25, g=0.5, b=0.75
 // XYZ: x=0.191803, y=0.201624, z=0.523052
 // Lab: l=52.018, a=0.0952846, b=-39.3692
@@ -45,6 +48,33 @@ auto main() -> int
              static_cast<double>(hsv.h.value()),
              static_cast<double>(hsv.s.value()),
              static_cast<double>(hsv.v.value()))
+             .has_value()) {
+        return 1;
+    }
+
+    const auto luma_gray = xer::to_gray(color);
+    const auto luminance_gray = xer::to_luminance_gray(color);
+    const auto rgb_from_gray = xer::to_rgb(luma_gray);
+
+    if (!xer::printf(
+             u8"Luma gray: y=%g\n",
+             static_cast<double>(luma_gray.y.value()))
+             .has_value()) {
+        return 1;
+    }
+
+    if (!xer::printf(
+             u8"Luminance gray: y=%g\n",
+             static_cast<double>(luminance_gray.y.value()))
+             .has_value()) {
+        return 1;
+    }
+
+    if (!xer::printf(
+             u8"RGB from gray: r=%g, g=%g, b=%g\n",
+             static_cast<double>(rgb_from_gray.r.value()),
+             static_cast<double>(rgb_from_gray.g.value()),
+             static_cast<double>(rgb_from_gray.b.value()))
              .has_value()) {
         return 1;
     }

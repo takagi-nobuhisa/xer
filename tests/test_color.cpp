@@ -30,6 +30,24 @@ void test_rgb_constructor_clamps_components()
     xer_assert_eq(value.b.value(), 0.0f);
 }
 
+void test_gray_default_constructor()
+{
+    constexpr xer::gray value;
+
+    xer_assert_eq(value.y.value(), 0.0f);
+}
+
+void test_gray_constructor_clamps_component()
+{
+    const xer::gray low(-0.25f);
+    const xer::gray mid(0.5f);
+    const xer::gray high(1.25f);
+
+    xer_assert_eq(low.y.value(), 0.0f);
+    xer_assert_eq(mid.y.value(), 0.5f);
+    xer_assert_eq(high.y.value(), 1.0f);
+}
+
 void test_cmy_constructor_clamps_components()
 {
     const xer::cmy value(1.25f, 0.5f, -0.25f);
@@ -129,6 +147,38 @@ void test_hsv_to_rgb_blue()
     xer_assert(near(value.b.value(), 1.0f, 1e-6f));
 }
 
+void test_rgb_to_luma_gray()
+{
+    const auto value = xer::to_luma_gray(xer::rgb(0.25f, 0.5f, 0.75f));
+
+    xer_assert(near(value.y.value(), 0.4649f, 1e-6f));
+}
+
+void test_rgb_to_luminance_gray()
+{
+    const auto value =
+        xer::to_luminance_gray(xer::rgb(0.25f, 0.5f, 0.75f));
+
+    xer_assert(near(value.y.value(), 0.510946f, 1e-5f));
+}
+
+void test_rgb_to_gray_is_luma_gray()
+{
+    const auto luma = xer::to_luma_gray(xer::rgb(0.25f, 0.5f, 0.75f));
+    const auto value = xer::to_gray(xer::rgb(0.25f, 0.5f, 0.75f));
+
+    xer_assert(near(value.y.value(), luma.y.value(), 1e-6f));
+}
+
+void test_gray_to_rgb()
+{
+    const auto value = xer::to_rgb(xer::gray(0.4f));
+
+    xer_assert(near(value.r.value(), 0.4f, 1e-6f));
+    xer_assert(near(value.g.value(), 0.4f, 1e-6f));
+    xer_assert(near(value.b.value(), 0.4f, 1e-6f));
+}
+
 void test_rgb_xyz_white_point()
 {
     const auto value = xer::to_xyz(xer::rgb(1.0f, 1.0f, 1.0f));
@@ -189,6 +239,7 @@ void test_luv_xyz_round_trip()
 void test_type_aliases()
 {
     static_assert(std::is_same_v<xer::rgb, xer::basic_rgb<float>>);
+    static_assert(std::is_same_v<xer::gray, xer::basic_gray<float>>);
     static_assert(std::is_same_v<xer::cmy, xer::basic_cmy<float>>);
     static_assert(std::is_same_v<xer::hsv, xer::basic_hsv<float>>);
     static_assert(std::is_same_v<xer::xyz, xer::basic_xyz<float>>);
@@ -198,6 +249,9 @@ void test_type_aliases()
     static_assert(std::is_same_v<xer::basic_rgb<double>::value_type, double>);
     static_assert(std::is_same_v<
                   xer::basic_rgb<double>::component_type,
+                  xer::interval<double>>);
+    static_assert(std::is_same_v<
+                  xer::basic_gray<double>::component_type,
                   xer::interval<double>>);
     static_assert(std::is_same_v<
                   xer::basic_hsv<double>::hue_type,
@@ -210,6 +264,8 @@ auto main() -> int
 {
     test_rgb_default_constructor();
     test_rgb_constructor_clamps_components();
+    test_gray_default_constructor();
+    test_gray_constructor_clamps_component();
     test_cmy_constructor_clamps_components();
     test_hsv_constructor_normalizes_hue_and_clamps_components();
     test_rgb_to_cmy();
@@ -221,6 +277,10 @@ auto main() -> int
     test_hsv_to_rgb_red();
     test_hsv_to_rgb_green();
     test_hsv_to_rgb_blue();
+    test_rgb_to_luma_gray();
+    test_rgb_to_luminance_gray();
+    test_rgb_to_gray_is_luma_gray();
+    test_gray_to_rgb();
     test_rgb_xyz_white_point();
     test_xyz_rgb_round_trip();
     test_xyz_lab_white();

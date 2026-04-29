@@ -1,4 +1,4 @@
-﻿# Policy for Color Systems
+# Policy for Color Systems
 
 ## Overview
 
@@ -10,6 +10,7 @@ Instead, XER focuses on color systems that can be handled as numeric value types
 The initial supported color systems are:
 
 - RGB
+- Grayscale
 - CMY
 - HSV
 - CIE 1931 XYZ
@@ -91,6 +92,9 @@ template <std::floating_point T>
 struct basic_rgb;
 
 template <std::floating_point T>
+struct basic_gray;
+
+template <std::floating_point T>
 struct basic_cmy;
 
 template <std::floating_point T>
@@ -110,6 +114,7 @@ The ordinary aliases use `float`.
 
 ```cpp
 using rgb = basic_rgb<float>;
+using gray = basic_gray<float>;
 using cmy = basic_cmy<float>;
 using hsv = basic_hsv<float>;
 using xyz = basic_xyz<float>;
@@ -183,6 +188,29 @@ If alpha support becomes necessary, it should be provided separately as a differ
 It should not be mixed into `basic_rgb<T>`.
 
 ---
+
+## Grayscale
+
+`basic_gray<T>` represents a display-oriented grayscale value. Its component is `interval<T>` in `[0, 1]`.
+
+```cpp
+template <std::floating_point T>
+struct basic_gray {
+    using value_type = T;
+    using component_type = interval<T>;
+
+    component_type y;
+};
+
+using gray = basic_gray<float>;
+```
+
+XER provides both simple luma grayscale and luminance-based grayscale.
+
+- `to_luma_gray(rgb)` computes `0.2126 R' + 0.7152 G' + 0.0722 B'` directly from nonlinear sRGB components.
+- `to_luminance_gray(rgb)` decodes sRGB to linear RGB, computes relative luminance, and encodes the result back to a nonlinear display grayscale value.
+- `to_gray(rgb)` is the ordinary convenience function and is an alias for `to_luma_gray`.
+- `to_rgb(gray)` duplicates the grayscale component into RGB.
 
 ## CMY
 
@@ -581,6 +609,7 @@ This is deferred.
 This includes:
 
 - RGB components
+- grayscale component
 - CMY components
 - HSV saturation
 - HSV value
@@ -766,7 +795,7 @@ Documentation should explicitly state the following:
 
 ## Summary
 
-- XER supports RGB, CMY, HSV, XYZ, Lab, and Luv color values
+- XER supports RGB, grayscale, CMY, HSV, XYZ, Lab, and Luv color values
 - ordinary aliases use `float`
 - `rgb` means the practical sRGB-based RGB model for conversion purposes
 - code uses `rgb`, not `srgb`

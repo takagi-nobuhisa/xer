@@ -88,6 +88,53 @@ struct basic_rgb {
 };
 
 /**
+ * @brief Grayscale color with a normalized display component.
+ *
+ * `basic_gray<T>` stores one normalized grayscale component. The component is
+ * interpreted as a nonlinear display value, like an RGB component.
+ *
+ * @tparam T Floating-point storage type.
+ */
+template<std::floating_point T>
+struct basic_gray {
+    /**
+     * @brief Underlying floating-point type.
+     */
+    using value_type = T;
+
+    /**
+     * @brief Normalized component type.
+     */
+    using component_type = interval<T>;
+
+    /**
+     * @brief Grayscale component in [0, 1].
+     */
+    component_type y;
+
+    /**
+     * @brief Constructs black.
+     */
+    constexpr basic_gray() noexcept = default;
+
+    /**
+     * @brief Constructs a grayscale value from a normalized scalar.
+     *
+     * Finite out-of-range values are clamped by `interval<T>`.
+     *
+     * @param value Grayscale component.
+     */
+    constexpr explicit basic_gray(T value) : y(value) {}
+
+    /**
+     * @brief Constructs a grayscale value from an interval component.
+     *
+     * @param value Grayscale component.
+     */
+    constexpr explicit basic_gray(component_type value) noexcept : y(value) {}
+};
+
+/**
  * @brief CMY color with normalized components.
  *
  * This is a simple normalized complement model, not a device-specific printer
@@ -371,6 +418,11 @@ struct basic_luv {
 using rgb = basic_rgb<float>;
 
 /**
+ * @brief Ordinary grayscale color type using float.
+ */
+using gray = basic_gray<float>;
+
+/**
  * @brief Ordinary CMY color type using float.
  */
 using cmy = basic_cmy<float>;
@@ -409,6 +461,17 @@ template<std::floating_point T>
 {
     T value = b < a ? b : a;
     return c < value ? c : value;
+}
+
+template<std::floating_point T>
+[[nodiscard]] constexpr auto color_luma(
+    T red,
+    T green,
+    T blue) noexcept -> T
+{
+    return static_cast<T>(0.2126L) * red +
+           static_cast<T>(0.7152L) * green +
+           static_cast<T>(0.0722L) * blue;
 }
 
 template<std::floating_point T>
@@ -624,6 +687,74 @@ template<std::floating_point T>
     default:
         return basic_rgb<T>(v, p, q);
     }
+}
+
+/**
+ * @brief Converts RGB to simple luma grayscale.
+ *
+ * This function computes a weighted average directly from nonlinear sRGB
+ * components.
+ *
+ * @tparam T Floating-point storage type.
+ * @param value RGB color.
+ * @return Grayscale value.
+ */
+template<std::floating_point T>
+[[nodiscard]] constexpr auto to_luma_gray(basic_rgb<T> value)
+    -> basic_gray<T>
+{
+    return basic_gray<T>(detail::color_luma(
+        value.r.value(), value.g.value(), value.b.value()));
+}
+
+/**
+ * @brief Converts RGB to luminance-based grayscale.
+ *
+ * This function decodes nonlinear sRGB components to linear RGB, computes
+ * relative luminance, and encodes the result back to a nonlinear display
+ * grayscale component.
+ *
+ * @tparam T Floating-point storage type.
+ * @param value RGB color.
+ * @return Grayscale value.
+ */
+template<std::floating_point T>
+[[nodiscard]] auto to_luminance_gray(basic_rgb<T> value) -> basic_gray<T>
+{
+    const T red = detail::color_gamma_decode(value.r.value());
+    const T green = detail::color_gamma_decode(value.g.value());
+    const T blue = detail::color_gamma_decode(value.b.value());
+    const T luminance = detail::color_luma(red, green, blue);
+
+    return basic_gray<T>(detail::color_gamma_encode(luminance));
+}
+
+/**
+ * @brief Converts RGB to grayscale.
+ *
+ * This is an alias for `to_luma_gray`.
+ *
+ * @tparam T Floating-point storage type.
+ * @param value RGB color.
+ * @return Grayscale value.
+ */
+template<std::floating_point T>
+[[nodiscard]] constexpr auto to_gray(basic_rgb<T> value) -> basic_gray<T>
+{
+    return to_luma_gray(value);
+}
+
+/**
+ * @brief Converts grayscale to RGB.
+ *
+ * @tparam T Floating-point storage type.
+ * @param value Grayscale value.
+ * @return RGB color with all components equal to the grayscale component.
+ */
+template<std::floating_point T>
+[[nodiscard]] constexpr auto to_rgb(basic_gray<T> value) -> basic_rgb<T>
+{
+    return basic_rgb<T>(value.y, value.y, value.y);
 }
 
 /**
