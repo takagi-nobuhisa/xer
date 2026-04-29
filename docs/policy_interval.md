@@ -568,3 +568,49 @@ At least the following are deferred:
 - left-hand scalar multiplication is supported
 - left-hand scalar addition, subtraction, and division are not provided
 - `interval` is distinct from `cyclic`: it is linear, closed, and non-wrapping
+
+---
+
+## Relationship to `cyclic` and Explicit Conversion
+
+`interval` and `cyclic` intentionally do not provide implicit conversion constructors.
+
+The two types both use normalized scalar values, but they differ at the upper endpoint.
+
+- `interval<T>` uses the closed interval `[0, 1]`.
+- `cyclic<T>` uses the half-open interval `[0, 1)`.
+
+Therefore, an interval value at the upper endpoint maps to the zero position when converted to a cyclic value.
+This behavior is useful and correct, but it should be visible at the call site.
+
+The following explicit helper functions are provided:
+
+```cpp
+template <std::floating_point T, T Min, T Max>
+constexpr auto to_cyclic(interval<T, Min, Max> value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+constexpr auto to_interval(cyclic<T> value) -> interval<T>;
+```
+
+`to_cyclic(interval)` converts through `value.ratio()`.
+
+Examples:
+
+```cpp
+using level = xer::interval<float, 10.0f, 20.0f>;
+
+auto a = xer::to_cyclic(level(10.0f)); // 0.0f
+auto b = xer::to_cyclic(level(15.0f)); // 0.5f
+auto c = xer::to_cyclic(level(20.0f)); // 0.0f
+```
+
+`to_interval(cyclic)` converts to the default interval `[0, 1]`.
+
+For a custom interval, use `from_ratio` explicitly.
+
+```cpp
+using gain = xer::interval<float, -1.0f, 1.0f>;
+
+auto x = gain::from_ratio(hue.ratio());
+```

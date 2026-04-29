@@ -27,6 +27,15 @@ void test_normalize_negative_wrap()
     xer_assert_eq(value.value(), 0.75f);
 }
 
+void test_ratio_conversion()
+{
+    const xer::cyclic<float> value(1.25f);
+    const auto from_ratio = xer::cyclic<float>::from_ratio(-0.25f);
+
+    xer_assert(std::abs(value.ratio() - 0.25f) < 1e-6f);
+    xer_assert(std::abs(from_ratio.value() - 0.75f) < 1e-6f);
+}
+
 void test_cw_and_ccw()
 {
     const xer::cyclic<float> from(0.1f);
@@ -164,6 +173,7 @@ int main()
     test_default_constructor();
     test_normalize_positive_wrap();
     test_normalize_negative_wrap();
+    test_ratio_conversion();
     test_cw_and_ccw();
     test_diff_positive();
     test_diff_negative();

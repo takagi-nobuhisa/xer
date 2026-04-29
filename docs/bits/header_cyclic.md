@@ -507,3 +507,43 @@ This example shows the normal XER style:
 * `policy_project_outline.md`
 * `policy_cyclic.md`
 * `header_quantity.md`
+
+---
+
+## Ratio Conversion
+
+`cyclic<T>` provides ratio-oriented member functions for symmetry with `interval`.
+
+```cpp
+constexpr auto ratio() const noexcept -> T;
+static constexpr auto from_ratio(T ratio) noexcept -> cyclic;
+```
+
+`ratio()` returns the normalized internal position in `[0, 1)`.
+It is an alias of `value()`.
+
+`from_ratio()` constructs a cyclic value from a turn-based ratio and applies normal cyclic normalization.
+
+```cpp
+auto a = xer::cyclic<float>::from_ratio(1.25f);
+// a.value() == 0.25f
+```
+
+---
+
+## Explicit Conversion with `interval`
+
+Implicit conversion between `cyclic` and `interval` is not provided.
+The endpoint semantics are different, so conversion should be visible in the source code.
+
+The interval header provides explicit helpers:
+
+```cpp
+auto to_cyclic(interval<T, Min, Max> value) noexcept -> cyclic<T>;
+auto to_interval(cyclic<T> value) -> interval<T>;
+```
+
+`to_cyclic` maps an interval through its ratio.
+`to_interval` maps a cyclic value to the default interval `[0, 1]`.
+
+For custom interval bounds, use `interval<T, Min, Max>::from_ratio(value.ratio())`.

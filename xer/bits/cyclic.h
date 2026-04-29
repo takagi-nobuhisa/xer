@@ -58,6 +58,28 @@ public:
     [[nodiscard]] constexpr auto value() const noexcept -> T { return value_; }
 
     /**
+     * @brief Returns the normalized position as a ratio.
+     *
+     * This is an alias of `value()` provided for symmetry with `interval`.
+     *
+     * @return Normalized value in [0, 1).
+     */
+    [[nodiscard]] constexpr auto ratio() const noexcept -> T { return value_; }
+
+    /**
+     * @brief Creates a cyclic value from a normalized ratio.
+     *
+     * The input is normalized in the same way as the ordinary constructor.
+     *
+     * @param ratio Source ratio where one full turn is 1.
+     * @return Corresponding cyclic value.
+     */
+    [[nodiscard]] static constexpr auto from_ratio(T ratio) noexcept -> cyclic
+    {
+        return cyclic(ratio);
+    }
+
+    /**
      * @brief Returns the clockwise distance from this value to @p to.
      *
      * @param to Destination cyclic value.

@@ -9,6 +9,8 @@
 // brightness = 0.75
 // gain = 0
 // dimmed = 0.375
+// cyclic = 0.5
+// interval = 0.25
 
 #include <xer/interval.h>
 #include <xer/stdio.h>
@@ -56,6 +58,24 @@ auto main() -> int
     const auto dimmed = 0.5f * brightness;
 
     if (!xer::printf(u8"dimmed = %g\n", static_cast<double>(dimmed.value()))
+             .has_value()) {
+        return 1;
+    }
+
+    const auto cyclic_value = xer::to_cyclic(gain(0.0f));
+
+    if (!xer::printf(
+             u8"cyclic = %g\n",
+             static_cast<double>(cyclic_value.value()))
+             .has_value()) {
+        return 1;
+    }
+
+    const auto interval_value = xer::to_interval(xer::cyclic<float>(0.25f));
+
+    if (!xer::printf(
+             u8"interval = %g\n",
+             static_cast<double>(interval_value.value()))
              .has_value()) {
         return 1;
     }

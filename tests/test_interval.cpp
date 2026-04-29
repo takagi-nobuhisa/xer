@@ -166,6 +166,23 @@ auto test_from_ratio_nan_throws() -> bool
     return false;
 }
 
+auto test_cyclic_conversion() -> bool
+{
+    using level = xer::interval<float, 10.0f, 20.0f>;
+
+    const auto min_value = xer::to_cyclic(level(10.0f));
+    const auto mid_value = xer::to_cyclic(level(15.0f));
+    const auto max_value = xer::to_cyclic(level(20.0f));
+    const auto interval_value = xer::to_interval(xer::cyclic<float>(0.25f));
+    const auto custom_value = level::from_ratio(xer::cyclic<float>(0.25f).ratio());
+
+    return min_value.value() == 0.0f &&
+           mid_value.value() == 0.5f &&
+           max_value.value() == 0.0f &&
+           interval_value.value() == 0.25f &&
+           custom_value.value() == 12.5f;
+}
+
 auto test_comparison() -> bool
 {
     const xer::interval<float> left(0.25f);
@@ -384,6 +401,9 @@ auto main() -> int
         return 1;
     }
     if (!test_from_ratio_nan_throws()) {
+        return 1;
+    }
+    if (!test_cyclic_conversion()) {
         return 1;
     }
     if (!test_comparison()) {

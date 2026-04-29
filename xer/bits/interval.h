@@ -13,6 +13,8 @@
 #include <limits>
 #include <stdexcept>
 
+#include <xer/cyclic.h>
+
 namespace xer {
 
 /**
@@ -342,6 +344,45 @@ private:
 
     T value_ = Min;
 };
+
+/**
+ * @brief Converts an interval value to a cyclic value through its ratio.
+ *
+ * The interval value is first mapped to `[0, 1]` by `ratio()`. The resulting
+ * ratio is then normalized as a cyclic value. Therefore the upper bound of an
+ * interval maps to the zero position of the cycle.
+ *
+ * @tparam T Floating-point storage type.
+ * @tparam Min Inclusive lower bound of the interval.
+ * @tparam Max Inclusive upper bound of the interval.
+ * @param value Source interval value.
+ * @return Corresponding cyclic value.
+ */
+template<std::floating_point T, T Min, T Max>
+[[nodiscard]] constexpr auto to_cyclic(interval<T, Min, Max> value) noexcept
+    -> cyclic<T>
+{
+    return cyclic<T>::from_ratio(value.ratio());
+}
+
+/**
+ * @brief Converts a cyclic value to a default interval value.
+ *
+ * The cyclic internal value is copied into `interval<T>`. Since a cyclic value
+ * is always in `[0, 1)`, it is also valid for the default interval `[0, 1]`.
+ *
+ * For custom interval bounds, use `interval<T, Min, Max>::from_ratio`
+ * explicitly.
+ *
+ * @tparam T Floating-point storage type.
+ * @param value Source cyclic value.
+ * @return Corresponding default interval value.
+ */
+template<std::floating_point T>
+[[nodiscard]] constexpr auto to_interval(cyclic<T> value) -> interval<T>
+{
+    return interval<T>(value.ratio());
+}
 
 /**
  * @brief Adds two interval values and clamps the result.

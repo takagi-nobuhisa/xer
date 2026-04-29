@@ -695,3 +695,40 @@ This example shows the basic XER style:
 - `header_cyclic.md`
 - `policy_arithmetic.md`
 - `header_arithmetic.md`
+
+---
+
+## Explicit Conversion with `cyclic`
+
+`interval` provides explicit helper functions for conversion with `cyclic`.
+
+```cpp
+template <std::floating_point T, T Min, T Max>
+constexpr auto to_cyclic(interval<T, Min, Max> value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+constexpr auto to_interval(cyclic<T> value) -> interval<T>;
+```
+
+`to_cyclic(interval)` first maps the interval value to `[0, 1]` using `ratio()`, then constructs a cyclic value from that ratio.
+Because `cyclic` uses `[0, 1)`, the upper endpoint of an interval maps to the zero position of the cycle.
+
+```cpp
+using level = xer::interval<float, 10.0f, 20.0f>;
+
+auto a = xer::to_cyclic(level(10.0f)); // 0.0f
+auto b = xer::to_cyclic(level(15.0f)); // 0.5f
+auto c = xer::to_cyclic(level(20.0f)); // 0.0f
+```
+
+`to_interval(cyclic)` maps a cyclic value to the default interval `[0, 1]`.
+
+For custom interval bounds, use `from_ratio` explicitly.
+
+```cpp
+using gain = xer::interval<float, -1.0f, 1.0f>;
+
+auto value = gain::from_ratio(hue.ratio());
+```
+
+Implicit conversion constructors are intentionally not provided.

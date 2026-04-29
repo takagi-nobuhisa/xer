@@ -466,3 +466,41 @@ constexpr auto to_radian(cyclic<T> value) noexcept -> T;
 * conversion to and from degrees and radians is handled by free functions
 * mathematical constants such as π are separated into a dedicated header
 * the initial priority is to establish the basic design of `cyclic<T>` itself
+
+---
+
+## Relationship to `interval`
+
+`cyclic` and `interval` are both normalized scalar value types, but their endpoint semantics differ.
+
+- `cyclic<T>` stores values in `[0, 1)` and wraps around.
+- `interval<T>` stores values in a closed interval `[Min, Max]` and clamps finite out-of-range input.
+
+For better interoperability, `cyclic<T>` provides `ratio()` and `from_ratio()`.
+
+```cpp
+constexpr auto ratio() const noexcept -> T;
+static constexpr auto from_ratio(T ratio) noexcept -> cyclic;
+```
+
+`ratio()` is an alias of `value()` and returns the normalized position in `[0, 1)`.
+`from_ratio()` constructs a cyclic value from a turn-based ratio and applies normal cyclic normalization.
+
+Implicit conversion between `cyclic` and `interval` is not provided.
+The endpoint meanings are different, especially because `interval<T>(1)` is the upper endpoint while `cyclic<T>(1)` is the same position as `cyclic<T>(0)`.
+
+Explicit helper functions are provided from the interval side:
+
+```cpp
+template <std::floating_point T, T Min, T Max>
+constexpr auto to_cyclic(interval<T, Min, Max> value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+constexpr auto to_interval(cyclic<T> value) -> interval<T>;
+```
+
+`to_cyclic(interval)` maps the interval value through `ratio()`.
+This means the upper bound maps to zero on the cycle.
+
+`to_interval(cyclic)` maps a cyclic value to the default interval `[0, 1]`.
+For custom intervals, callers should use `interval<T, Min, Max>::from_ratio(value.ratio())` explicitly.
