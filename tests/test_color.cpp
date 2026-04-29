@@ -159,7 +159,7 @@ void test_rgb_to_luminance_gray()
     const auto value =
         xer::to_luminance_gray(xer::rgb(0.25f, 0.5f, 0.75f));
 
-    xer_assert(near(value.y.value(), 0.510946f, 1e-5f));
+    xer_assert(near(value.y.value(), 0.486351f, 1e-5f));
 }
 
 void test_rgb_to_gray_is_luma_gray()
