@@ -347,6 +347,92 @@ void test_toml_decode_special_floats()
     xer_assert(std::isnan(*not_a_number->as_float()));
 }
 
+
+void test_toml_decode_inline_tables()
+{
+    const auto result = xer::toml_decode(
+        u8"point = { x = 1, y = 2 }\n"
+        u8"package = { name = \"xer\", metadata.version = \"0.2.0a5\" }\n"
+        u8"items = [{ name = \"one\" }, { name = \"two\", enabled = true }]\n");
+
+    xer_assert(result.has_value());
+
+    const auto* root = result->as_table();
+    xer_assert(root != nullptr);
+
+    const auto* point = find_key(*root, u8"point");
+    const auto* package = find_key(*root, u8"package");
+    const auto* items = find_key(*root, u8"items");
+
+    xer_assert(point != nullptr);
+    xer_assert(package != nullptr);
+    xer_assert(items != nullptr);
+
+    const auto* point_table = point->as_table();
+    xer_assert(point_table != nullptr);
+
+    const auto* x = find_key(*point_table, u8"x");
+    const auto* y = find_key(*point_table, u8"y");
+
+    xer_assert(x != nullptr);
+    xer_assert(y != nullptr);
+    xer_assert_eq(*x->as_integer(), static_cast<std::int64_t>(1));
+    xer_assert_eq(*y->as_integer(), static_cast<std::int64_t>(2));
+
+    const auto* package_table = package->as_table();
+    xer_assert(package_table != nullptr);
+
+    const auto* name = find_key(*package_table, u8"name");
+    const auto* metadata = find_key(*package_table, u8"metadata");
+
+    xer_assert(name != nullptr);
+    xer_assert(metadata != nullptr);
+    xer_assert_eq(*name->as_string(), u8"xer");
+
+    const auto* metadata_table = metadata->as_table();
+    xer_assert(metadata_table != nullptr);
+
+    const auto* version = find_key(*metadata_table, u8"version");
+    xer_assert(version != nullptr);
+    xer_assert_eq(*version->as_string(), u8"0.2.0a5");
+
+    const auto* array = items->as_array();
+    xer_assert(array != nullptr);
+    xer_assert_eq(array->size(), static_cast<std::size_t>(2));
+
+    const auto* first = (*array)[0].as_table();
+    const auto* second = (*array)[1].as_table();
+
+    xer_assert(first != nullptr);
+    xer_assert(second != nullptr);
+
+    const auto* first_name = find_key(*first, u8"name");
+    const auto* second_name = find_key(*second, u8"name");
+    const auto* second_enabled = find_key(*second, u8"enabled");
+
+    xer_assert(first_name != nullptr);
+    xer_assert(second_name != nullptr);
+    xer_assert(second_enabled != nullptr);
+
+    xer_assert_eq(*first_name->as_string(), u8"one");
+    xer_assert_eq(*second_name->as_string(), u8"two");
+    xer_assert_eq(*second_enabled->as_bool(), true);
+}
+
+void test_toml_decode_rejects_invalid_inline_tables()
+{
+    const auto no_equal = xer::toml_decode(u8"value = { a }\n");
+    const auto duplicate_key = xer::toml_decode(u8"value = { a = 1, a = 2 }\n");
+    const auto trailing_comma = xer::toml_decode(u8"value = { a = 1, }\n");
+    const auto scalar_conflict = xer::toml_decode(u8"value = { a = 1, a.b = 2 }\n");
+
+    xer_assert_not(no_equal.has_value());
+    xer_assert_not(duplicate_key.has_value());
+    xer_assert_not(trailing_comma.has_value());
+    xer_assert_not(scalar_conflict.has_value());
+}
+
+
 void test_toml_decode_rejects_invalid_numbers()
 {
     const auto double_separator = xer::toml_decode(u8"a = 1__000\n");
@@ -544,6 +630,33 @@ void test_toml_encode_quoted_keys_and_nested_tables()
             u8"\"build.target\" = \"ucrt64\"\n"));
 }
 
+
+void test_toml_encode_inline_tables_in_arrays()
+{
+    xer::toml_table first;
+    first.push_back({u8"name", xer::toml_value(u8"one")});
+
+    xer::toml_table second;
+    second.push_back({u8"name", xer::toml_value(u8"two")});
+    second.push_back({u8"enabled", xer::toml_value(true)});
+
+    xer::toml_array items;
+    items.push_back(xer::toml_value(std::move(first)));
+    items.push_back(xer::toml_value(std::move(second)));
+
+    xer::toml_table root;
+    root.push_back({u8"items", xer::toml_value(std::move(items))});
+
+    const auto result = xer::toml_encode(xer::toml_value(std::move(root)));
+
+    xer_assert(result.has_value());
+    xer_assert_eq(
+        *result,
+        std::u8string(
+            u8"items = [{name = \"one\"}, {name = \"two\", enabled = true}]\n"));
+}
+
+
 void test_toml_encode_rejects_invalid_values()
 {
     xer::toml_table bad_key_root;
@@ -574,12 +687,15 @@ auto main() -> int
     test_toml_decode_extended_strings();
     test_toml_decode_extended_numbers();
     test_toml_decode_special_floats();
+    test_toml_decode_inline_tables();
+    test_toml_decode_rejects_invalid_inline_tables();
     test_toml_decode_rejects_invalid_numbers();
     test_toml_decode_rejects_invalid_syntax();
     test_toml_decode_rejects_invalid_utf8();
     test_toml_encode_basic_document();
     test_toml_encode_special_floats();
     test_toml_encode_quoted_keys_and_nested_tables();
+    test_toml_encode_inline_tables_in_arrays();
     test_toml_round_trip();
     test_toml_encode_rejects_invalid_values();
 

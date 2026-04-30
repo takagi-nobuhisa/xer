@@ -38,8 +38,7 @@ using toml_table = std::vector<std::pair<std::u8string, toml_value>>;
  * The initial subset supports booleans, signed 64-bit integers, double-precision
  * floating-point numbers, UTF-8 strings, arrays, and tables.
  *
- * TOML date/time values, inline tables, dotted keys, quoted keys, and
- * array-of-tables are intentionally deferred.
+ * TOML date/time values and array-of-tables are intentionally deferred.
  */
 struct toml_value {
     using array_type = toml_array;
@@ -587,6 +586,7 @@ namespace xer::detail {
 
     bool escaped = false;
     int array_depth = 0;
+    int inline_table_depth = 0;
 
     for (std::size_t i = start; i < value.size(); ++i) {
         const char8_t ch = value[i];
@@ -626,7 +626,17 @@ namespace xer::detail {
                 continue;
             }
 
-            if (ch == u8',' && array_depth == 0) {
+            if (ch == u8'{') {
+                ++inline_table_depth;
+                continue;
+            }
+
+            if (ch == u8'}') {
+                --inline_table_depth;
+                continue;
+            }
+
+            if (ch == u8',' && array_depth == 0 && inline_table_depth == 0) {
                 return i;
             }
 
@@ -1056,6 +1066,9 @@ using toml_key_path = std::vector<std::u8string>;
 [[nodiscard]] inline auto toml_parse_value(std::u8string_view value)
     -> result<toml_value>;
 
+[[nodiscard]] inline auto toml_parse_inline_table(std::u8string_view value)
+    -> result<toml_value>;
+
 [[nodiscard]] inline auto toml_parse_array(std::u8string_view value)
     -> result<toml_value>
 {
@@ -1098,6 +1111,83 @@ using toml_key_path = std::vector<std::u8string>;
     }
 
     return toml_value(std::move(array));
+}
+
+[[nodiscard]] inline auto toml_parse_inline_table(std::u8string_view value)
+    -> result<toml_value>
+{
+    if (value.size() < 2 || value.front() != u8'{' || value.back() != u8'}') {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    toml_table table;
+    std::u8string_view body = value.substr(1, value.size() - 2);
+    body = toml_trim_ascii_space(body);
+
+    if (body.empty()) {
+        return toml_value(std::move(table));
+    }
+
+    std::size_t start = 0;
+    while (start <= body.size()) {
+        const std::size_t comma = toml_find_top_level_comma(body, start);
+        const std::size_t end =
+            comma == std::u8string_view::npos ? body.size() : comma;
+        const std::u8string_view token =
+            toml_trim_ascii_space(body.substr(start, end - start));
+
+        if (token.empty()) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        const std::size_t separator = toml_find_unquoted(token, u8'=');
+        if (separator == std::u8string_view::npos) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        const std::u8string_view raw_key =
+            toml_trim_ascii_space(token.substr(0, separator));
+        const std::u8string_view raw_value =
+            toml_trim_ascii_space(token.substr(separator + 1));
+
+        auto path = toml_parse_key_path(raw_key);
+        if (!path.has_value()) {
+            return std::unexpected(path.error());
+        }
+
+        auto* destination = &table;
+        if (path->size() > 1) {
+            auto nested = toml_get_or_create_table(
+                table,
+                *path,
+                path->size() - 1);
+            if (!nested.has_value()) {
+                return std::unexpected(nested.error());
+            }
+
+            destination = *nested;
+        }
+
+        const auto& key = path->back();
+        if (toml_find_key(*destination, key) != nullptr) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        auto parsed = toml_parse_value(raw_value);
+        if (!parsed.has_value()) {
+            return std::unexpected(parsed.error());
+        }
+
+        destination->push_back({key, std::move(*parsed)});
+
+        if (comma == std::u8string_view::npos) {
+            break;
+        }
+
+        start = comma + 1;
+    }
+
+    return toml_value(std::move(table));
 }
 
 [[nodiscard]] constexpr auto toml_is_decimal_digit(char8_t ch) noexcept -> bool
@@ -1455,6 +1545,10 @@ template <class Pred>
         return toml_parse_array(value);
     }
 
+    if (value.front() == u8'{') {
+        return toml_parse_inline_table(value);
+    }
+
     if (value == u8"true") {
         return toml_value(true);
     }
@@ -1715,7 +1809,7 @@ private:
 
     if (const auto* array = value.as_array()) {
         for (const auto& element : *array) {
-            if (element.is_table() || !toml_value_can_encode(element)) {
+            if (!toml_value_can_encode(element)) {
                 return false;
             }
         }
@@ -1767,6 +1861,42 @@ inline void toml_encode_string(std::u8string& out, std::u8string_view value)
     }
 
     out.push_back(u8'"');
+}
+
+inline void toml_encode_key_segment(std::u8string& out, std::u8string_view key);
+
+[[nodiscard]] inline auto toml_encode_value(
+    std::u8string& out,
+    const toml_value& value) -> result<void>;
+
+[[nodiscard]] inline auto toml_encode_inline_table(
+    std::u8string& out,
+    const toml_table& table) -> result<void>
+{
+    out.push_back(u8'{');
+
+    for (std::size_t i = 0; i < table.size(); ++i) {
+        const auto& entry = table[i];
+
+        if (!toml_key_can_encode(entry.first)) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        if (i != 0) {
+            out.append(u8", ");
+        }
+
+        toml_encode_key_segment(out, entry.first);
+        out.append(u8" = ");
+
+        auto encoded = toml_encode_value(out, entry.second);
+        if (!encoded.has_value()) {
+            return encoded;
+        }
+    }
+
+    out.push_back(u8'}');
+    return {};
 }
 
 [[nodiscard]] inline auto toml_encode_value(
@@ -1841,10 +1971,6 @@ inline void toml_encode_string(std::u8string& out, std::u8string_view value)
                 out.append(u8", ");
             }
 
-            if ((*array)[i].is_table()) {
-                return std::unexpected(make_error(error_t::invalid_argument));
-            }
-
             auto encoded = toml_encode_value(out, (*array)[i]);
             if (!encoded.has_value()) {
                 return encoded;
@@ -1853,6 +1979,10 @@ inline void toml_encode_string(std::u8string& out, std::u8string_view value)
 
         out.push_back(u8']');
         return {};
+    }
+
+    if (const auto* table = value.as_table()) {
+        return toml_encode_inline_table(out, *table);
     }
 
     return std::unexpected(make_error(error_t::invalid_argument));
@@ -1959,11 +2089,11 @@ namespace xer {
  * The initial implementation supports a practical subset: bare keys, ordinary
  * tables, basic strings, literal strings, multiline strings, signed integers,
  * finite and special floating-point numbers, numeric separators, booleans,
- * arrays, comments, and blank lines.
+ * arrays, inline tables, comments, and blank lines.
  *
  * Integers may use decimal, hexadecimal, octal, or binary notation. Dotted
- * keys, quoted keys, inline tables, array-of-tables, and date/time values are
- * intentionally deferred.
+ * keys, quoted keys, nested tables, and inline tables are supported.
+ * Array-of-tables and date/time values are intentionally deferred.
  *
  * @param text UTF-8 TOML text.
  * @return Parsed TOML value. On success, the returned value is a table.
@@ -1977,9 +2107,9 @@ namespace xer {
 /**
  * @brief Encodes a TOML representation into UTF-8 TOML text.
  *
- * The value to encode must be a top-level table. Nested tables, inline tables,
- * array-of-tables, and other deferred TOML features are not emitted by the
- * initial implementation.
+ * The value to encode must be a top-level table. Nested tables are emitted as
+ * table sections, and table values in value contexts such as arrays may be
+ * emitted as inline tables. Array-of-tables and date/time values are deferred.
  *
  * @param value TOML value to encode. It must hold a table.
  * @return UTF-8 TOML text on success.

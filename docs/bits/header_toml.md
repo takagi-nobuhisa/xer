@@ -180,6 +180,8 @@ mask = 0b1010_0101
 ratio = 1.5
 large = 1_000_000
 ports = [8000, 8001, 8002]
+point = { x = 1, y = 2 }
+items = [{ name = "one" }, { name = "two" }]
 
 [project]
 name = "xer"
@@ -207,6 +209,7 @@ The initial decoder supports:
 * numeric separators between digits
 * finite and special floating-point numbers
 * arrays
+* inline tables
 
 ### Line Endings
 
@@ -223,7 +226,6 @@ The decoder accepts the following line endings:
 The following TOML features are intentionally deferred:
 
 * date and time values
-* inline tables
 * array-of-tables
 * detailed error position reporting
 
@@ -387,7 +389,7 @@ Special values `inf`, `+inf`, `-inf`, `nan`, `+nan`, and `-nan` are accepted. Se
 
 ## Arrays
 
-The initial implementation supports arrays.
+The implementation supports arrays.
 
 ```toml
 ports = [8000, 8001, 8002]
@@ -400,9 +402,24 @@ The implementation stores arrays as `toml_array`.
 
 ### Notes
 
-* arrays can contain supported scalar values and arrays
-* arrays containing tables are not supported by the initial encoder
+* arrays can contain supported scalar values, arrays, and inline tables
 * array-of-tables syntax is deferred
+
+---
+
+## Inline Tables
+
+The implementation supports inline tables.
+
+```toml
+point = { x = 1, y = 2 }
+package = { name = "xer", metadata.version = "0.2.0a5" }
+items = [{ name = "one" }, { name = "two" }]
+```
+
+Inline tables are stored as ordinary `toml_table` values. Dotted keys inside inline tables create nested table values in the same representation used by ordinary dotted keys.
+
+Trailing commas in inline tables are rejected.
 
 ---
 
@@ -512,16 +529,14 @@ A blank line is inserted before a table when there is preceding output.
 
 ### Representability
 
-Because the initial TOML implementation supports only a subset, `toml_encode` rejects values that cannot be represented by that subset.
+Because the current TOML implementation supports only a subset, `toml_encode` rejects values that cannot be represented by that subset.
 
 For example, it rejects:
 
 * a top-level value that is not a table
 * unsupported key forms
 * array-of-tables
-* arrays containing tables
 * invalid UTF-8 strings
-* non-finite floating-point values
 
 ---
 
