@@ -2,10 +2,13 @@
 #include <string>
 
 #include <xer/assert.h>
+#include <xer/color.h>
 #include <xer/cyclic.h>
 #include <xer/error.h>
 #include <xer/interval.h>
 #include <xer/iostream.h>
+#include <xer/matrix.h>
+#include <xer/quantity.h>
 #include <xer/path.h>
 #include <xer/typeinfo.h>
 
@@ -118,6 +121,83 @@ void test_interval_input_clamps()
     xer_assert(in);
     xer_assert_eq(value.value(), 1.0);
 }
+void test_quantity_output()
+{
+    using namespace xer::units;
+
+    std::ostringstream out;
+    out << 1.5 * km;
+    xer_assert_eq(out.str(), "1500");
+}
+
+void test_quantity_input()
+{
+    std::istringstream in("2.5");
+    xer::quantity<double, xer::units::length_dim> value;
+
+    in >> value;
+
+    xer_assert(in);
+    xer_assert_eq(value.value(), 2.5);
+}
+
+void test_matrix_output()
+{
+    const xer::matrix<double, 2, 3> value(1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
+
+    std::ostringstream out;
+    out << value;
+    xer_assert_eq(out.str(), "[[1, 2, 3], [4, 5, 6]]");
+}
+
+void test_rgb_output()
+{
+    std::ostringstream out;
+    out << xer::rgb(1.0f, 0.5f, 0.0f);
+    xer_assert_eq(out.str(), "rgb(1, 0.5, 0)");
+}
+
+void test_gray_output()
+{
+    std::ostringstream out;
+    out << xer::gray(0.25f);
+    xer_assert_eq(out.str(), "gray(0.25)");
+}
+
+void test_cmy_output()
+{
+    std::ostringstream out;
+    out << xer::cmy(0.0f, 0.5f, 1.0f);
+    xer_assert_eq(out.str(), "cmy(0, 0.5, 1)");
+}
+
+void test_hsv_output()
+{
+    std::ostringstream out;
+    out << xer::hsv(1.25f, 0.5f, 1.0f);
+    xer_assert_eq(out.str(), "hsv(0.25, 0.5, 1)");
+}
+
+void test_xyz_output()
+{
+    std::ostringstream out;
+    out << xer::xyz(0.1f, 0.2f, 0.3f);
+    xer_assert_eq(out.str(), "xyz(0.1, 0.2, 0.3)");
+}
+
+void test_lab_output()
+{
+    std::ostringstream out;
+    out << xer::lab(50.0f, 10.0f, -20.0f);
+    xer_assert_eq(out.str(), "lab(50, 10, -20)");
+}
+
+void test_luv_output()
+{
+    std::ostringstream out;
+    out << xer::luv(50.0f, 10.0f, -20.0f);
+    xer_assert_eq(out.str(), "luv(50, 10, -20)");
+}
 
 } // namespace
 
@@ -135,6 +215,16 @@ auto main() -> int
     test_interval_output();
     test_interval_input();
     test_interval_input_clamps();
+    test_quantity_output();
+    test_quantity_input();
+    test_matrix_output();
+    test_rgb_output();
+    test_gray_output();
+    test_cmy_output();
+    test_hsv_output();
+    test_xyz_output();
+    test_lab_output();
+    test_luv_output();
 
     return 0;
 }

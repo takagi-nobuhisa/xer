@@ -19,8 +19,11 @@
 #include <xer/bits/strerror.h>
 #include <xer/cyclic.h>
 #include <xer/error.h>
+#include <xer/color.h>
 #include <xer/interval.h>
+#include <xer/matrix.h>
 #include <xer/path.h>
+#include <xer/quantity.h>
 #include <xer/typeinfo.h>
 
 namespace xer::detail {
@@ -318,6 +321,173 @@ inline auto operator>>(
     }
 
     return stream;
+}
+
+/**
+ * @brief Writes the base-unit scalar value of a quantity.
+ *
+ * @tparam T Floating-point type.
+ * @tparam Dim Dimension type.
+ * @param stream Output stream.
+ * @param value Quantity value.
+ * @return Output stream.
+ */
+template<std::floating_point T, class Dim>
+inline auto operator<<(
+    std::ostream& stream,
+    quantity<T, Dim> value) -> std::ostream&
+{
+    return stream << value.value();
+}
+
+/**
+ * @brief Reads a base-unit scalar value and constructs a quantity.
+ *
+ * The input value is interpreted as already normalized to the base unit system
+ * of the quantity dimension.
+ *
+ * @tparam T Floating-point type.
+ * @tparam Dim Dimension type.
+ * @param stream Input stream.
+ * @param value Destination quantity value.
+ * @return Input stream.
+ */
+template<std::floating_point T, class Dim>
+inline auto operator>>(
+    std::istream& stream,
+    quantity<T, Dim>& value) -> std::istream&
+{
+    T scalar{};
+    if (!(stream >> scalar)) {
+        return stream;
+    }
+
+    value = quantity<T, Dim>(scalar);
+    return stream;
+}
+
+/**
+ * @brief Writes a fixed-size matrix in a compact row-major form.
+ *
+ * The output form is `[[a, b], [c, d]]` for a 2x2 matrix. This operator is
+ * intended for diagnostics and default formatted output, not for stable
+ * serialization.
+ *
+ * @tparam T Floating-point element type.
+ * @tparam Rows Number of rows.
+ * @tparam Cols Number of columns.
+ * @param stream Output stream.
+ * @param value Matrix value.
+ * @return Output stream.
+ */
+template<std::floating_point T, std::size_t Rows, std::size_t Cols>
+inline auto operator<<(
+    std::ostream& stream,
+    const matrix<T, Rows, Cols>& value) -> std::ostream&
+{
+    stream << '[';
+
+    for (std::size_t row = 0; row < Rows; ++row) {
+        if (row != 0) {
+            stream << ", ";
+        }
+
+        stream << '[';
+        for (std::size_t col = 0; col < Cols; ++col) {
+            if (col != 0) {
+                stream << ", ";
+            }
+
+            stream << value(row, col);
+        }
+        stream << ']';
+    }
+
+    stream << ']';
+    return stream;
+}
+
+/**
+ * @brief Writes an RGB color.
+ */
+template<std::floating_point T>
+inline auto operator<<(
+    std::ostream& stream,
+    basic_rgb<T> value) -> std::ostream&
+{
+    return stream << "rgb(" << value.r.value() << ", " << value.g.value()
+                  << ", " << value.b.value() << ')';
+}
+
+/**
+ * @brief Writes a grayscale color.
+ */
+template<std::floating_point T>
+inline auto operator<<(
+    std::ostream& stream,
+    basic_gray<T> value) -> std::ostream&
+{
+    return stream << "gray(" << value.y.value() << ')';
+}
+
+/**
+ * @brief Writes a CMY color.
+ */
+template<std::floating_point T>
+inline auto operator<<(
+    std::ostream& stream,
+    basic_cmy<T> value) -> std::ostream&
+{
+    return stream << "cmy(" << value.c.value() << ", " << value.m.value()
+                  << ", " << value.y.value() << ')';
+}
+
+/**
+ * @brief Writes an HSV color.
+ */
+template<std::floating_point T>
+inline auto operator<<(
+    std::ostream& stream,
+    basic_hsv<T> value) -> std::ostream&
+{
+    return stream << "hsv(" << value.h.value() << ", " << value.s.value()
+                  << ", " << value.v.value() << ')';
+}
+
+/**
+ * @brief Writes an XYZ color.
+ */
+template<std::floating_point T>
+inline auto operator<<(
+    std::ostream& stream,
+    basic_xyz<T> value) -> std::ostream&
+{
+    return stream << "xyz(" << value.x << ", " << value.y << ", " << value.z
+                  << ')';
+}
+
+/**
+ * @brief Writes a Lab color.
+ */
+template<std::floating_point T>
+inline auto operator<<(
+    std::ostream& stream,
+    basic_lab<T> value) -> std::ostream&
+{
+    return stream << "lab(" << value.l << ", " << value.a << ", " << value.b
+                  << ')';
+}
+
+/**
+ * @brief Writes a Luv color.
+ */
+template<std::floating_point T>
+inline auto operator<<(
+    std::ostream& stream,
+    basic_luv<T> value) -> std::ostream&
+{
+    return stream << "luv(" << value.l << ", " << value.u << ", " << value.v
+                  << ')';
 }
 
 } // namespace xer
