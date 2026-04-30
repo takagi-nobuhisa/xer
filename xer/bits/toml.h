@@ -934,6 +934,125 @@ inline auto toml_append_utf8_code_point(
     return toml_parse_basic_string(value);
 }
 
+
+[[nodiscard]] inline auto toml_find_key(
+    toml_table& table,
+    std::u8string_view key) noexcept -> toml_value*;
+
+[[nodiscard]] inline auto toml_find_key(
+    const toml_table& table,
+    std::u8string_view key) noexcept -> const toml_value*;
+
+using toml_key_path = std::vector<std::u8string>;
+
+[[nodiscard]] inline auto toml_parse_key_segment(std::u8string_view value)
+    -> result<std::u8string>
+{
+    value = toml_trim_ascii_space(value);
+
+    if (value.empty()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    if (toml_is_bare_key(value)) {
+        return std::u8string(value);
+    }
+
+    if (toml_starts_with(value, u8"\"\"\"") ||
+        toml_starts_with(value, u8"'''")) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    if (value.front() == u8'"' || value.front() == u8'\'') {
+        auto segment = toml_parse_string(value);
+        if (!segment.has_value()) {
+            return std::unexpected(segment.error());
+        }
+
+        return *segment;
+    }
+
+    return std::unexpected(make_error(error_t::invalid_argument));
+}
+
+[[nodiscard]] inline auto toml_parse_key_path(std::u8string_view value)
+    -> result<toml_key_path>
+{
+    value = toml_trim_ascii_space(value);
+
+    toml_key_path path;
+    std::size_t start = 0;
+
+    while (start <= value.size()) {
+        const std::size_t dot = toml_find_unquoted(value.substr(start), u8'.');
+        const std::size_t end = dot == std::u8string_view::npos
+            ? value.size()
+            : start + dot;
+
+        auto segment = toml_parse_key_segment(value.substr(start, end - start));
+        if (!segment.has_value()) {
+            return std::unexpected(segment.error());
+        }
+
+        path.push_back(std::move(*segment));
+
+        if (dot == std::u8string_view::npos) {
+            break;
+        }
+
+        start = end + 1;
+        if (start > value.size()) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+    }
+
+    if (path.empty()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return path;
+}
+
+[[nodiscard]] inline auto toml_key_path_equal(
+    const toml_key_path& lhs,
+    const toml_key_path& rhs) noexcept -> bool
+{
+    if (lhs.size() != rhs.size()) {
+        return false;
+    }
+
+    for (std::size_t i = 0; i < lhs.size(); ++i) {
+        if (lhs[i] != rhs[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+[[nodiscard]] inline auto toml_get_or_create_table(
+    toml_table& base,
+    const toml_key_path& path,
+    std::size_t count) -> result<toml_table*>
+{
+    toml_table* table = &base;
+
+    for (std::size_t i = 0; i < count; ++i) {
+        toml_value* existing = toml_find_key(*table, path[i]);
+        if (existing == nullptr) {
+            table->push_back({path[i], toml_value(toml_table{})});
+            existing = &table->back().second;
+        }
+
+        table = existing->as_table();
+        if (table == nullptr) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+    }
+
+    return table;
+}
+
 [[nodiscard]] inline auto toml_parse_value(std::u8string_view value)
     -> result<toml_value>;
 
@@ -1387,6 +1506,7 @@ template <class Pred>
     return nullptr;
 }
 
+
 class toml_decoder {
 public:
     explicit toml_decoder(std::u8string_view text_) noexcept
@@ -1427,6 +1547,7 @@ private:
     std::u8string_view text;
     std::size_t pos;
     toml_table* current_table = nullptr;
+    std::vector<toml_key_path> declared_tables;
 
     [[nodiscard]] auto read_line() noexcept -> std::u8string_view
     {
@@ -1451,6 +1572,18 @@ private:
         return text.substr(begin, end - begin);
     }
 
+    [[nodiscard]] auto table_was_declared(
+        const toml_key_path& path) const noexcept -> bool
+    {
+        for (const auto& declared : declared_tables) {
+            if (toml_key_path_equal(declared, path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     [[nodiscard]] auto parse_line(
         toml_value& root,
         std::u8string_view line) -> result<void>
@@ -1472,23 +1605,34 @@ private:
         toml_value& root,
         std::u8string_view line) -> result<void>
     {
-        if (line.size() < 3 || line.back() != u8']') {
+        if (line.size() < 3 || line.back() != u8']' ||
+            (line.size() >= 2 && line[1] == u8'[')) {
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
-        const std::u8string_view name =
+        const std::u8string_view raw_name =
             toml_trim_ascii_space(line.substr(1, line.size() - 2));
-        if (!toml_is_bare_key(name)) {
+        auto path = toml_parse_key_path(raw_name);
+        if (!path.has_value()) {
+            return std::unexpected(path.error());
+        }
+
+        if (table_was_declared(*path)) {
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
         auto* root_table = root.as_table();
-        if (root_table == nullptr || toml_find_key(*root_table, name) != nullptr) {
+        if (root_table == nullptr) {
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
-        root_table->push_back({std::u8string(name), toml_value(toml_table{})});
-        current_table = root_table->back().second.as_table();
+        auto table = toml_get_or_create_table(*root_table, *path, path->size());
+        if (!table.has_value()) {
+            return std::unexpected(table.error());
+        }
+
+        declared_tables.push_back(std::move(*path));
+        current_table = *table;
         return {};
     }
 
@@ -1499,13 +1643,35 @@ private:
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
-        const std::u8string_view key =
+        const std::u8string_view raw_key =
             toml_trim_ascii_space(line.substr(0, separator));
         const std::u8string_view raw_value =
             toml_trim_ascii_space(line.substr(separator + 1));
 
-        if (!toml_is_bare_key(key) || current_table == nullptr ||
-            toml_find_key(*current_table, key) != nullptr) {
+        if (current_table == nullptr) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        auto path = toml_parse_key_path(raw_key);
+        if (!path.has_value()) {
+            return std::unexpected(path.error());
+        }
+
+        auto* destination = current_table;
+        if (path->size() > 1) {
+            auto table = toml_get_or_create_table(
+                *current_table,
+                *path,
+                path->size() - 1);
+            if (!table.has_value()) {
+                return std::unexpected(table.error());
+            }
+
+            destination = *table;
+        }
+
+        const auto& key = path->back();
+        if (toml_find_key(*destination, key) != nullptr) {
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
@@ -1514,18 +1680,25 @@ private:
             return std::unexpected(value.error());
         }
 
-        current_table->push_back({std::u8string(key), std::move(*value)});
+        destination->push_back({key, std::move(*value)});
         return {};
     }
 };
 
 [[nodiscard]] inline auto toml_value_can_encode(const toml_value& value) -> bool;
 
+[[nodiscard]] inline auto toml_key_can_encode(std::u8string_view key) -> bool
+{
+    return toml_is_valid_utf8(key) &&
+           key.find(u8'\n') == std::u8string_view::npos &&
+           key.find(u8'\r') == std::u8string_view::npos;
+}
+
 [[nodiscard]] inline auto toml_table_can_encode_as_section(
     const toml_table& table) -> bool
 {
     for (const auto& entry : table) {
-        if (!toml_is_bare_key(entry.first) || entry.second.is_table() ||
+        if (!toml_key_can_encode(entry.first) ||
             !toml_value_can_encode(entry.second)) {
             return false;
         }
@@ -1685,15 +1858,38 @@ inline void toml_encode_string(std::u8string& out, std::u8string_view value)
     return std::unexpected(make_error(error_t::invalid_argument));
 }
 
+inline void toml_encode_key_segment(std::u8string& out, std::u8string_view key)
+{
+    if (toml_is_bare_key(key)) {
+        out.append(key);
+        return;
+    }
+
+    toml_encode_string(out, key);
+}
+
+inline void toml_encode_key_path(
+    std::u8string& out,
+    const std::vector<std::u8string_view>& path)
+{
+    for (std::size_t i = 0; i < path.size(); ++i) {
+        if (i != 0) {
+            out.push_back(u8'.');
+        }
+
+        toml_encode_key_segment(out, path[i]);
+    }
+}
+
 [[nodiscard]] inline auto toml_encode_entry(
     std::u8string& out,
     const std::pair<std::u8string, toml_value>& entry) -> result<void>
 {
-    if (!toml_is_bare_key(entry.first)) {
+    if (!toml_key_can_encode(entry.first) || entry.second.is_table()) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
 
-    out.append(entry.first);
+    toml_encode_key_segment(out, entry.first);
     out.append(u8" = ");
 
     auto encoded = toml_encode_value(out, entry.second);
@@ -1702,6 +1898,54 @@ inline void toml_encode_string(std::u8string& out, std::u8string_view value)
     }
 
     out.push_back(u8'\n');
+    return {};
+}
+
+[[nodiscard]] inline auto toml_encode_table_section(
+    std::u8string& out,
+    const toml_table& table,
+    std::vector<std::u8string_view>& path) -> result<void>
+{
+    if (!out.empty()) {
+        out.push_back(u8'\n');
+    }
+
+    out.push_back(u8'[');
+    toml_encode_key_path(out, path);
+    out.push_back(u8']');
+    out.push_back(u8'\n');
+
+    for (const auto& entry : table) {
+        if (entry.second.is_table()) {
+            continue;
+        }
+
+        auto encoded = toml_encode_entry(out, entry);
+        if (!encoded.has_value()) {
+            return std::unexpected(encoded.error());
+        }
+    }
+
+    for (const auto& entry : table) {
+        const auto* child = entry.second.as_table();
+        if (child == nullptr) {
+            continue;
+        }
+
+        if (!toml_key_can_encode(entry.first) ||
+            !toml_table_can_encode_as_section(*child)) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        path.push_back(entry.first);
+        auto encoded = toml_encode_table_section(out, *child, path);
+        path.pop_back();
+
+        if (!encoded.has_value()) {
+            return std::unexpected(encoded.error());
+        }
+    }
+
     return {};
 }
 
@@ -1748,15 +1992,15 @@ namespace xer {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
 
+    if (!detail::toml_table_can_encode_as_section(*root)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
     std::u8string out;
 
     for (const auto& entry : *root) {
         if (entry.second.is_table()) {
             continue;
-        }
-
-        if (!detail::toml_value_can_encode(entry.second)) {
-            return std::unexpected(make_error(error_t::invalid_argument));
         }
 
         auto encoded = detail::toml_encode_entry(out, entry);
@@ -1771,25 +2015,14 @@ namespace xer {
             continue;
         }
 
-        if (!detail::toml_is_bare_key(entry.first) ||
-            !detail::toml_table_can_encode_as_section(*section)) {
+        if (!detail::toml_key_can_encode(entry.first)) {
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
-        if (!out.empty()) {
-            out.push_back(u8'\n');
-        }
-
-        out.push_back(u8'[');
-        out.append(entry.first);
-        out.push_back(u8']');
-        out.push_back(u8'\n');
-
-        for (const auto& section_entry : *section) {
-            auto encoded = detail::toml_encode_entry(out, section_entry);
-            if (!encoded.has_value()) {
-                return std::unexpected(encoded.error());
-            }
+        std::vector<std::u8string_view> path{entry.first};
+        auto encoded = detail::toml_encode_table_section(out, *section, path);
+        if (!encoded.has_value()) {
+            return std::unexpected(encoded.error());
         }
     }
 

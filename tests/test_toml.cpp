@@ -129,6 +129,101 @@ void test_toml_decode_table()
     xer_assert_eq(*version->as_string(), u8"0.2.0a3");
 }
 
+
+void test_toml_decode_quoted_and_dotted_keys()
+{
+    const auto result = xer::toml_decode(
+        u8"\"site.name\" = \"xer\"\n"
+        u8"'literal.key' = 10\n"
+        u8"server.port = 8080\n"
+        u8"database.\"connection.pool\".size = 4\n");
+
+    xer_assert(result.has_value());
+
+    const auto* root = result->as_table();
+    xer_assert(root != nullptr);
+
+    const auto* site_name = find_key(*root, u8"site.name");
+    const auto* literal_key = find_key(*root, u8"literal.key");
+    const auto* server = find_key(*root, u8"server");
+    const auto* database = find_key(*root, u8"database");
+
+    xer_assert(site_name != nullptr);
+    xer_assert(literal_key != nullptr);
+    xer_assert(server != nullptr);
+    xer_assert(database != nullptr);
+
+    xer_assert_eq(*site_name->as_string(), u8"xer");
+    xer_assert_eq(*literal_key->as_integer(), static_cast<std::int64_t>(10));
+
+    const auto* server_table = server->as_table();
+    xer_assert(server_table != nullptr);
+
+    const auto* port = find_key(*server_table, u8"port");
+    xer_assert(port != nullptr);
+    xer_assert_eq(*port->as_integer(), static_cast<std::int64_t>(8080));
+
+    const auto* database_table = database->as_table();
+    xer_assert(database_table != nullptr);
+
+    const auto* pool = find_key(*database_table, u8"connection.pool");
+    xer_assert(pool != nullptr);
+
+    const auto* pool_table = pool->as_table();
+    xer_assert(pool_table != nullptr);
+
+    const auto* size = find_key(*pool_table, u8"size");
+    xer_assert(size != nullptr);
+    xer_assert_eq(*size->as_integer(), static_cast<std::int64_t>(4));
+}
+
+void test_toml_decode_nested_tables()
+{
+    const auto result = xer::toml_decode(
+        u8"[project.package]\n"
+        u8"name = \"xer\"\n"
+        u8"\n"
+        u8"[project]\n"
+        u8"enabled = true\n"
+        u8"\n"
+        u8"[project.\"build.target\"]\n"
+        u8"name = \"ucrt64\"\n");
+
+    xer_assert(result.has_value());
+
+    const auto* root = result->as_table();
+    xer_assert(root != nullptr);
+
+    const auto* project = find_key(*root, u8"project");
+    xer_assert(project != nullptr);
+
+    const auto* project_table = project->as_table();
+    xer_assert(project_table != nullptr);
+
+    const auto* enabled = find_key(*project_table, u8"enabled");
+    const auto* package = find_key(*project_table, u8"package");
+    const auto* build_target = find_key(*project_table, u8"build.target");
+
+    xer_assert(enabled != nullptr);
+    xer_assert(package != nullptr);
+    xer_assert(build_target != nullptr);
+    xer_assert_eq(*enabled->as_bool(), true);
+
+    const auto* package_table = package->as_table();
+    const auto* build_target_table = build_target->as_table();
+
+    xer_assert(package_table != nullptr);
+    xer_assert(build_target_table != nullptr);
+
+    const auto* package_name = find_key(*package_table, u8"name");
+    const auto* target_name = find_key(*build_target_table, u8"name");
+
+    xer_assert(package_name != nullptr);
+    xer_assert(target_name != nullptr);
+    xer_assert_eq(*package_name->as_string(), u8"xer");
+    xer_assert_eq(*target_name->as_string(), u8"ucrt64");
+}
+
 void test_toml_decode_comments_and_escapes()
 {
     const auto result = xer::toml_decode(
@@ -289,7 +384,10 @@ void test_toml_decode_rejects_invalid_syntax()
     const auto bad_table = xer::toml_decode(u8"[project\n");
     const auto duplicate_key = xer::toml_decode(u8"name = \"a\"\nname = \"b\"\n");
     const auto duplicate_table = xer::toml_decode(u8"[a]\nkey = 1\n[a]\nkey = 2\n");
-    const auto unsupported_dotted = xer::toml_decode(u8"a.b = 1\n");
+    const auto duplicate_dotted_key = xer::toml_decode(u8"a.b = 1\na.b = 2\n");
+    const auto scalar_table_conflict = xer::toml_decode(u8"a = 1\na.b = 2\n");
+    const auto duplicate_nested_table =
+        xer::toml_decode(u8"[a.b]\nkey = 1\n[a.b]\nkey = 2\n");
 
     xer_assert_not(no_equal.has_value());
     xer_assert_eq(no_equal.error().code, xer::error_t::invalid_argument);
@@ -306,8 +404,14 @@ void test_toml_decode_rejects_invalid_syntax()
     xer_assert_not(duplicate_table.has_value());
     xer_assert_eq(duplicate_table.error().code, xer::error_t::invalid_argument);
 
-    xer_assert_not(unsupported_dotted.has_value());
-    xer_assert_eq(unsupported_dotted.error().code, xer::error_t::invalid_argument);
+    xer_assert_not(duplicate_dotted_key.has_value());
+    xer_assert_eq(duplicate_dotted_key.error().code, xer::error_t::invalid_argument);
+
+    xer_assert_not(scalar_table_conflict.has_value());
+    xer_assert_eq(scalar_table_conflict.error().code, xer::error_t::invalid_argument);
+
+    xer_assert_not(duplicate_nested_table.has_value());
+    xer_assert_eq(duplicate_nested_table.error().code, xer::error_t::invalid_argument);
 }
 
 void test_toml_decode_rejects_invalid_utf8()
@@ -412,29 +516,46 @@ void test_toml_round_trip()
     xer_assert_eq(*encoded, source);
 }
 
+void test_toml_encode_quoted_keys_and_nested_tables()
+{
+    xer::toml_table metadata;
+    metadata.push_back({u8"build.target", xer::toml_value(u8"ucrt64")});
+
+    xer::toml_table project;
+    project.push_back({u8"name", xer::toml_value(u8"xer")});
+    project.push_back({u8"metadata", xer::toml_value(std::move(metadata))});
+
+    xer::toml_table root;
+    root.push_back({u8"site.name", xer::toml_value(u8"xer")});
+    root.push_back({u8"project", xer::toml_value(std::move(project))});
+
+    const auto result = xer::toml_encode(xer::toml_value(std::move(root)));
+
+    xer_assert(result.has_value());
+    xer_assert_eq(
+        *result,
+        std::u8string(
+            u8"\"site.name\" = \"xer\"\n"
+            u8"\n"
+            u8"[project]\n"
+            u8"name = \"xer\"\n"
+            u8"\n"
+            u8"[project.metadata]\n"
+            u8"\"build.target\" = \"ucrt64\"\n"));
+}
+
 void test_toml_encode_rejects_invalid_values()
 {
     xer::toml_table bad_key_root;
     bad_key_root.push_back(
-        {u8"bad.key", xer::toml_value(static_cast<std::int64_t>(1))});
-
-    xer::toml_table nested;
-    nested.push_back({u8"inner", xer::toml_value(xer::toml_table{})});
-
-    xer::toml_table nested_root;
-    nested_root.push_back({u8"outer", xer::toml_value(std::move(nested))});
+        {std::u8string(u8"bad\nkey"), xer::toml_value(static_cast<std::int64_t>(1))});
 
     const auto bad_key =
         xer::toml_encode(xer::toml_value(std::move(bad_key_root)));
-    const auto nested_table =
-        xer::toml_encode(xer::toml_value(std::move(nested_root)));
     const auto not_table = xer::toml_encode(xer::toml_value(u8"text"));
 
     xer_assert_not(bad_key.has_value());
     xer_assert_eq(bad_key.error().code, xer::error_t::invalid_argument);
-
-    xer_assert_not(nested_table.has_value());
-    xer_assert_eq(nested_table.error().code, xer::error_t::invalid_argument);
 
     xer_assert_not(not_table.has_value());
     xer_assert_eq(not_table.error().code, xer::error_t::invalid_argument);
@@ -448,6 +569,8 @@ auto main() -> int
     test_toml_decode_array();
     test_toml_decode_table();
     test_toml_decode_comments_and_escapes();
+    test_toml_decode_quoted_and_dotted_keys();
+    test_toml_decode_nested_tables();
     test_toml_decode_extended_strings();
     test_toml_decode_extended_numbers();
     test_toml_decode_special_floats();
@@ -456,6 +579,7 @@ auto main() -> int
     test_toml_decode_rejects_invalid_utf8();
     test_toml_encode_basic_document();
     test_toml_encode_special_floats();
+    test_toml_encode_quoted_keys_and_nested_tables();
     test_toml_round_trip();
     test_toml_encode_rejects_invalid_values();
 

@@ -194,8 +194,10 @@ The initial decoder supports:
 * comments beginning with `#`
 * end-of-line comments outside strings
 * bare keys
+* quoted keys
+* dotted keys
 * key-value pairs
-* ordinary tables
+* ordinary and nested tables
 * basic double-quoted strings
 * literal strings
 * multiline basic and literal strings
@@ -220,9 +222,6 @@ The decoder accepts the following line endings:
 
 The following TOML features are intentionally deferred:
 
-* quoted keys
-* dotted keys
-* nested table syntax such as `[a.b]`
 * date and time values
 * inline tables
 * array-of-tables
@@ -236,7 +235,7 @@ The initial implementation should therefore be described as a practical TOML sub
 
 ## Keys
 
-The initial implementation supports bare keys only.
+The implementation supports bare keys, quoted keys, and dotted keys.
 
 A bare key may contain:
 
@@ -253,7 +252,21 @@ build-target = "ucrt64"
 version_1 = "0.2.0a3"
 ```
 
-Quoted keys and dotted keys are not supported in the initial implementation.
+Quoted keys use the same single-line basic-string or literal-string syntax as values.
+
+```toml
+"site.name" = "xer"
+'literal.key' = 10
+```
+
+Dotted keys create nested tables implicitly when necessary.
+
+```toml
+server.port = 8080
+database."connection.pool".size = 4
+```
+
+In this representation, each dotted-key segment is stored as an ordinary table key. Quoted segments may contain dots without being split.
 
 ---
 
@@ -265,14 +278,22 @@ A table line has the following form:
 [project]
 ```
 
-The table name must be a supported bare key.
+Nested table names are also supported through dotted key syntax.
 
-The table becomes the destination for subsequent key-value entries until another table is declared.
+```toml
+[project.package]
+name = "xer"
+
+[project."build.target"]
+name = "ucrt64"
+```
+
+The table name is parsed as a key path. The table becomes the destination for subsequent key-value entries until another table is declared.
 
 ### Notes
 
-* duplicate table declarations are rejected
-* nested table names such as `[a.b]` are deferred
+* duplicate explicit table declarations are rejected
+* tables created implicitly by dotted keys may later be declared explicitly
 * array-of-tables syntax such as `[[project]]` is deferred
 
 ---
@@ -497,7 +518,7 @@ For example, it rejects:
 
 * a top-level value that is not a table
 * unsupported key forms
-* nested tables beyond the initial section model
+* array-of-tables
 * arrays containing tables
 * invalid UTF-8 strings
 * non-finite floating-point values
