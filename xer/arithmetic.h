@@ -15,6 +15,7 @@
 #include <xer/bits/power.h>
 #include <xer/bits/compare.h>
 #include <xer/bits/in_range.h>
+#include <xer/bits/is_close.h>
 #include <xer/bits/minmax.h>
 
 #endif /* XER_ARITHMETIC_H_INCLUDED_ */

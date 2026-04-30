@@ -1,8 +1,8 @@
-﻿#include <xer/assert.h>
+﻿#include <xer/arithmetic.h>
+#include <xer/assert.h>
 #include <xer/error.h>
 #include <xer/matrix.h>
 
-#include <cmath>
 #include <concepts>
 #include <type_traits>
 
@@ -11,7 +11,7 @@ namespace {
 template<std::floating_point T>
 auto assert_near(T actual, T expected, T epsilon = static_cast<T>(1e-10)) -> void
 {
-    xer_assert(std::fabs(actual - expected) <= epsilon);
+    xer_assert(xer::is_close(actual, expected, epsilon));
 }
 
 auto test_matrix_aliases() -> void

@@ -1,17 +1,12 @@
-﻿#include <cmath>
-#include <exception>
+﻿#include <exception>
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
 
+#include <xer/arithmetic.h>
 #include <xer/interval.h>
 
 namespace {
-
-auto near(float left, float right) -> bool
-{
-    return std::abs(left - right) < 1e-6f;
-}
 
 auto test_default_constructor() -> bool
 {
@@ -209,7 +204,7 @@ auto test_interval_arithmetic() -> bool
 
     return sum.value() == 1.0f &&
            difference.value() == 0.0f &&
-           near(product.value(), 0.4f) &&
+           xer::is_close(product.value(), 0.4f, 1e-6f) &&
            quotient.value() == 1.0f;
 }
 
