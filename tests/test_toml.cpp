@@ -1,4 +1,6 @@
-﻿#include <cstdint>
+﻿#include <cmath>
+#include <cstdint>
+#include <limits>
 #include <string>
 #include <string_view>
 
@@ -149,6 +151,35 @@ void test_toml_decode_comments_and_escapes()
     xer_assert_eq(*text->as_string(), u8"a\nb");
 }
 
+void test_toml_decode_extended_strings()
+{
+    const auto result = xer::toml_decode(
+        u8"literal = 'C:\\Users\\xer'\n"
+        u8"unicode = \"A\\u03C0\\U0001F600\"\n"
+        u8"multiline_basic = \"\"\"\nline1\nline2\"\"\"\n"
+        u8"multiline_literal = '''\nC:\\Users\\xer\n'''\n");
+
+    xer_assert(result.has_value());
+
+    const auto* table = result->as_table();
+    xer_assert(table != nullptr);
+
+    const auto* literal = find_key(*table, u8"literal");
+    const auto* unicode = find_key(*table, u8"unicode");
+    const auto* multiline_basic = find_key(*table, u8"multiline_basic");
+    const auto* multiline_literal = find_key(*table, u8"multiline_literal");
+
+    xer_assert(literal != nullptr);
+    xer_assert(unicode != nullptr);
+    xer_assert(multiline_basic != nullptr);
+    xer_assert(multiline_literal != nullptr);
+
+    xer_assert_eq(*literal->as_string(), u8"C:\\Users\\xer");
+    xer_assert_eq(*unicode->as_string(), u8"Aπ😀");
+    xer_assert_eq(*multiline_basic->as_string(), u8"line1\nline2");
+    xer_assert_eq(*multiline_literal->as_string(), u8"C:\\Users\\xer\n");
+}
+
 void test_toml_decode_extended_numbers()
 {
     const auto result = xer::toml_decode(
@@ -194,6 +225,33 @@ void test_toml_decode_extended_numbers()
     xer_assert_eq(*exponent->as_float(), 0.001);
 }
 
+void test_toml_decode_special_floats()
+{
+    const auto result = xer::toml_decode(
+        u8"positive_inf = inf\n"
+        u8"negative_inf = -inf\n"
+        u8"not_a_number = nan\n");
+
+    xer_assert(result.has_value());
+
+    const auto* table = result->as_table();
+    xer_assert(table != nullptr);
+
+    const auto* positive_inf = find_key(*table, u8"positive_inf");
+    const auto* negative_inf = find_key(*table, u8"negative_inf");
+    const auto* not_a_number = find_key(*table, u8"not_a_number");
+
+    xer_assert(positive_inf != nullptr);
+    xer_assert(negative_inf != nullptr);
+    xer_assert(not_a_number != nullptr);
+
+    xer_assert(std::isinf(*positive_inf->as_float()));
+    xer_assert(*positive_inf->as_float() > 0.0);
+    xer_assert(std::isinf(*negative_inf->as_float()));
+    xer_assert(*negative_inf->as_float() < 0.0);
+    xer_assert(std::isnan(*not_a_number->as_float()));
+}
+
 void test_toml_decode_rejects_invalid_numbers()
 {
     const auto double_separator = xer::toml_decode(u8"a = 1__000\n");
@@ -203,9 +261,6 @@ void test_toml_decode_rejects_invalid_numbers()
     const auto bad_octal_digit = xer::toml_decode(u8"a = 0o778\n");
     const auto bad_float_fraction = xer::toml_decode(u8"a = 1._0\n");
     const auto bad_float_exponent = xer::toml_decode(u8"a = 1.0e_3\n");
-    const auto infinity = xer::toml_decode(u8"a = inf\n");
-    const auto not_a_number = xer::toml_decode(u8"a = nan\n");
-
     xer_assert_not(double_separator.has_value());
     xer_assert_eq(double_separator.error().code, xer::error_t::invalid_argument);
 
@@ -226,12 +281,6 @@ void test_toml_decode_rejects_invalid_numbers()
 
     xer_assert_not(bad_float_exponent.has_value());
     xer_assert_eq(bad_float_exponent.error().code, xer::error_t::invalid_argument);
-
-    xer_assert_not(infinity.has_value());
-    xer_assert_eq(infinity.error().code, xer::error_t::invalid_argument);
-
-    xer_assert_not(not_a_number.has_value());
-    xer_assert_eq(not_a_number.error().code, xer::error_t::invalid_argument);
 }
 void test_toml_decode_rejects_invalid_syntax()
 {
@@ -318,6 +367,30 @@ void test_toml_encode_basic_document()
             u8"version = \"0.2.0a3\"\n"));
 }
 
+void test_toml_encode_special_floats()
+{
+    xer::toml_table root;
+    root.push_back({
+        u8"positive_inf",
+        xer::toml_value(std::numeric_limits<double>::infinity())});
+    root.push_back({
+        u8"negative_inf",
+        xer::toml_value(-std::numeric_limits<double>::infinity())});
+    root.push_back({
+        u8"not_a_number",
+        xer::toml_value(std::numeric_limits<double>::quiet_NaN())});
+
+    const auto result = xer::toml_encode(xer::toml_value(std::move(root)));
+
+    xer_assert(result.has_value());
+    xer_assert_eq(
+        *result,
+        std::u8string(
+            u8"positive_inf = inf\n"
+            u8"negative_inf = -inf\n"
+            u8"not_a_number = nan\n"));
+}
+
 void test_toml_round_trip()
 {
     const std::u8string source =
@@ -375,11 +448,14 @@ auto main() -> int
     test_toml_decode_array();
     test_toml_decode_table();
     test_toml_decode_comments_and_escapes();
+    test_toml_decode_extended_strings();
     test_toml_decode_extended_numbers();
+    test_toml_decode_special_floats();
     test_toml_decode_rejects_invalid_numbers();
     test_toml_decode_rejects_invalid_syntax();
     test_toml_decode_rejects_invalid_utf8();
     test_toml_encode_basic_document();
+    test_toml_encode_special_floats();
     test_toml_round_trip();
     test_toml_encode_rejects_invalid_values();
 

@@ -3926,11 +3926,13 @@ The initial decoder supports:
 * key-value pairs
 * ordinary tables
 * basic double-quoted strings
+* literal strings
+* multiline basic and literal strings
 * booleans
 * signed decimal integers
 * hexadecimal, octal, and binary integers
 * numeric separators between digits
-* finite decimal floating-point numbers
+* finite and special floating-point numbers
 * arrays
 
 ### Line Endings
@@ -3950,13 +3952,9 @@ The following TOML features are intentionally deferred:
 * quoted keys
 * dotted keys
 * nested table syntax such as `[a.b]`
-* literal strings
-* multiline strings
-* full escape-sequence support
 * date and time values
 * inline tables
 * array-of-tables
-* special floating-point values such as `inf` and `nan`
 * detailed error position reporting
 
 These features may be added later one by one.
@@ -4010,13 +4008,20 @@ The table becomes the destination for subsequent key-value entries until another
 
 ## Strings
 
-The initial implementation supports basic double-quoted strings.
+The implementation supports basic strings, literal strings, multiline basic strings, and multiline literal strings.
 
 ```toml
 name = "xer"
+path = 'C:\\Users\\xer'
+description = """
+first line
+second line"""
+literal_block = '''
+C:\\Users\\xer
+'''
 ```
 
-The following simple escapes are supported:
+Basic strings support the following escapes:
 
 ```text
 \"
@@ -4026,9 +4031,11 @@ The following simple escapes are supported:
 \n
 \f
 \r
+\uXXXX
+\UXXXXXXXX
 ```
 
-Other escapes, Unicode escapes, literal strings, and multiline strings are deferred.
+Literal strings do not process escape sequences. Multiline strings remove the first newline immediately following the opening delimiter, following TOML-style behavior.
 
 ---
 
@@ -4067,7 +4074,7 @@ The supported integer prefixes are `0x` for hexadecimal, `0o` for octal, and `0b
 
 ## Floating-Point Numbers
 
-The initial implementation supports finite decimal floating-point numbers. Numeric separators may be used between decimal digits.
+The implementation supports finite decimal floating-point numbers and TOML special floating-point values. Numeric separators may be used between decimal digits of finite decimal values.
 
 ```toml
 ratio = 1.5
@@ -4075,11 +4082,14 @@ scale = 1e-3
 large = 1_000.25_5
 positive = +1.5
 negative = -1.5
+positive_inf = inf
+negative_inf = -inf
+not_a_number = nan
 ```
 
 They are stored as `double`.
 
-Special values such as `inf` and `nan` are deferred. Separators are valid only between digits; forms such as `1_.0`, `1._0`, and `1.0e_3` are rejected.
+Special values `inf`, `+inf`, `-inf`, `nan`, `+nan`, and `-nan` are accepted. Separators are valid only between digits of finite decimal forms; forms such as `1_.0`, `1._0`, and `1.0e_3` are rejected.
 
 ---
 
@@ -4106,7 +4116,7 @@ The implementation stores arrays as `toml_array`.
 
 ## Comments
 
-A `#` starts a comment when it appears outside a double-quoted string.
+A `#` starts a comment when it appears outside a string.
 
 ```toml
 name = "xer" # comment
@@ -6152,15 +6162,6 @@ xer::type_info
 xer::path
 xer::cyclic<T>
 xer::interval<T, Min, Max>
-xer::quantity<T, Dim>
-xer::matrix<T, Rows, Cols>
-xer::basic_rgb<T>
-xer::basic_gray<T>
-xer::basic_cmy<T>
-xer::basic_hsv<T>
-xer::basic_xyz<T>
-xer::basic_lab<T>
-xer::basic_luv<T>
 ```
 
 It also provides `operator>>` for the following types where formatted extraction is straightforward:
@@ -6170,10 +6171,9 @@ xer::error_t
 xer::path
 xer::cyclic<T>
 xer::interval<T, Min, Max>
-xer::quantity<T, Dim>
 ```
 
-Formatted extraction for matrices and color values is intentionally deferred because their insertion format is meant for diagnostics rather than as a stable serialized grammar.
+The initial scope is deliberately small. More complex types, such as matrices, quantities, colors, JSON, INI, and TOML values, may be considered later.
 
 ---
 
@@ -6273,57 +6273,14 @@ is read as the normalized cyclic value:
 
 ---
 
-## `quantity<T, Dim>`
-
-`operator<<` for `quantity<T, Dim>` writes the stored value in the base unit system.
-
-`operator>>` reads a scalar value and constructs a quantity of the destination dimension. The input value is interpreted as already normalized to the base unit system.
-
-For example, if the destination type is a length quantity, the input value is interpreted as meters, not as kilometers or centimeters.
-
----
-
-## `matrix<T, Rows, Cols>`
-
-`operator<<` for `matrix<T, Rows, Cols>` writes a compact row-major diagnostic form.
-
-Example output for a 2x2 matrix:
-
-```text
-[[1, 2], [3, 4]]
-```
-
-There is no extraction operator for matrices at this stage. Parsing a matrix would require committing the diagnostic output form to a stable input grammar, which is intentionally avoided for now.
-
----
-
-## Color Types
-
-`operator<<` is provided for the basic color value types.
-
-Example output:
-
-```text
-rgb(1, 0.5, 0)
-gray(0.25)
-cmy(0, 0.5, 1)
-hsv(0.25, 0.5, 1)
-xyz(0.1, 0.2, 0.3)
-lab(50, 10, -20)
-luv(50, 10, -20)
-```
-
-There are no extraction operators for color values at this stage. The insertion format is intended for diagnostics and `%@` formatting, not for stable serialization.
-
----
-
 ## Deferred Items
 
-The following are intentionally deferred from the current implementation:
+The following are intentionally deferred from the initial implementation:
 
 - `operator<<` and `operator>>` for `error<Detail>`
-- `operator>>` for `matrix`
-- `operator>>` for color types
+- `operator<<` and `operator>>` for `quantity`
+- `operator<<` and `operator>>` for `matrix`
+- `operator<<` and `operator>>` for color types
 - `operator<<` and `operator>>` for JSON, INI, and TOML values
 - stream insertion for resource handles such as `binary_stream`, `text_stream`, `process`, and `socket`
 
@@ -6340,9 +6297,6 @@ These types either need additional formatting policy or are not ordinary value t
 - `<xer/path.h>`
 - `<xer/cyclic.h>`
 - `<xer/interval.h>`
-- `<xer/quantity.h>`
-- `<xer/matrix.h>`
-- `<xer/color.h>`
 - `<xer/stdio.h>`
 
 The rough boundary is:
@@ -6359,39 +6313,27 @@ The rough boundary is:
 #include <iostream>
 #include <sstream>
 
-#include <xer/color.h>
 #include <xer/cyclic.h>
 #include <xer/interval.h>
 #include <xer/iostream.h>
-#include <xer/matrix.h>
 #include <xer/path.h>
-#include <xer/quantity.h>
 
 auto main() -> int
 {
-    using namespace xer::units;
-
     const auto path = xer::path(u8"work/file.txt");
     const auto angle = xer::cyclic<double>(1.25);
     const auto gain = xer::interval<double>(1.25);
-    const auto distance = 1.5 * km;
-    const auto transform = xer::matrix<double, 2, 2>(1.0, 2.0, 3.0, 4.0);
-    const auto color = xer::rgb(1.0f, 0.5f, 0.0f);
 
     std::cout << path << '\n';
     std::cout << angle << '\n';
     std::cout << gain << '\n';
-    std::cout << distance << '\n';
-    std::cout << transform << '\n';
-    std::cout << color << '\n';
 
-    std::istringstream input("logs/output.txt -0.25 0.5 2.5");
+    std::istringstream input("logs/output.txt -0.25 0.5");
     xer::path read_path;
     xer::cyclic<double> read_angle;
     xer::interval<double> read_gain;
-    xer::quantity<double, xer::units::length_dim> read_distance;
 
-    input >> read_path >> read_angle >> read_gain >> read_distance;
+    input >> read_path >> read_angle >> read_gain;
     return input ? 0 : 1;
 }
 ```
@@ -6405,9 +6347,6 @@ auto main() -> int
 - `header_path.md`
 - `header_cyclic.md`
 - `header_interval.md`
-- `header_quantity.md`
-- `header_matrix.md`
-- `header_color.md`
 - `header_stdio.md`
 
 ---

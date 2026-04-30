@@ -197,11 +197,13 @@ The initial decoder supports:
 * key-value pairs
 * ordinary tables
 * basic double-quoted strings
+* literal strings
+* multiline basic and literal strings
 * booleans
 * signed decimal integers
 * hexadecimal, octal, and binary integers
 * numeric separators between digits
-* finite decimal floating-point numbers
+* finite and special floating-point numbers
 * arrays
 
 ### Line Endings
@@ -221,13 +223,9 @@ The following TOML features are intentionally deferred:
 * quoted keys
 * dotted keys
 * nested table syntax such as `[a.b]`
-* literal strings
-* multiline strings
-* full escape-sequence support
 * date and time values
 * inline tables
 * array-of-tables
-* special floating-point values such as `inf` and `nan`
 * detailed error position reporting
 
 These features may be added later one by one.
@@ -281,13 +279,20 @@ The table becomes the destination for subsequent key-value entries until another
 
 ## Strings
 
-The initial implementation supports basic double-quoted strings.
+The implementation supports basic strings, literal strings, multiline basic strings, and multiline literal strings.
 
 ```toml
 name = "xer"
+path = 'C:\\Users\\xer'
+description = """
+first line
+second line"""
+literal_block = '''
+C:\\Users\\xer
+'''
 ```
 
-The following simple escapes are supported:
+Basic strings support the following escapes:
 
 ```text
 \"
@@ -297,9 +302,11 @@ The following simple escapes are supported:
 \n
 \f
 \r
+\uXXXX
+\UXXXXXXXX
 ```
 
-Other escapes, Unicode escapes, literal strings, and multiline strings are deferred.
+Literal strings do not process escape sequences. Multiline strings remove the first newline immediately following the opening delimiter, following TOML-style behavior.
 
 ---
 
@@ -338,7 +345,7 @@ The supported integer prefixes are `0x` for hexadecimal, `0o` for octal, and `0b
 
 ## Floating-Point Numbers
 
-The initial implementation supports finite decimal floating-point numbers. Numeric separators may be used between decimal digits.
+The implementation supports finite decimal floating-point numbers and TOML special floating-point values. Numeric separators may be used between decimal digits of finite decimal values.
 
 ```toml
 ratio = 1.5
@@ -346,11 +353,14 @@ scale = 1e-3
 large = 1_000.25_5
 positive = +1.5
 negative = -1.5
+positive_inf = inf
+negative_inf = -inf
+not_a_number = nan
 ```
 
 They are stored as `double`.
 
-Special values such as `inf` and `nan` are deferred. Separators are valid only between digits; forms such as `1_.0`, `1._0`, and `1.0e_3` are rejected.
+Special values `inf`, `+inf`, `-inf`, `nan`, `+nan`, and `-nan` are accepted. Separators are valid only between digits of finite decimal forms; forms such as `1_.0`, `1._0`, and `1.0e_3` are rejected.
 
 ---
 
@@ -377,7 +387,7 @@ The implementation stores arrays as `toml_array`.
 
 ## Comments
 
-A `#` starts a comment when it appears outside a double-quoted string.
+A `#` starts a comment when it appears outside a string.
 
 ```toml
 name = "xer" # comment

@@ -38,8 +38,8 @@ using toml_table = std::vector<std::pair<std::u8string, toml_value>>;
  * The initial subset supports booleans, signed 64-bit integers, double-precision
  * floating-point numbers, UTF-8 strings, arrays, and tables.
  *
- * TOML date/time values, inline tables, dotted keys, quoted keys, literal
- * strings, multiline strings, and array-of-tables are intentionally deferred.
+ * TOML date/time values, inline tables, dotted keys, quoted keys, and
+ * array-of-tables are intentionally deferred.
  */
 struct toml_value {
     using array_type = toml_array;
@@ -348,17 +348,63 @@ namespace xer::detail {
     return true;
 }
 
+[[nodiscard]] inline auto toml_starts_with(
+    std::u8string_view value,
+    std::u8string_view prefix) noexcept -> bool
+{
+    return value.size() >= prefix.size() &&
+           value.substr(0, prefix.size()) == prefix;
+}
+
 [[nodiscard]] inline auto toml_find_unquoted(
     std::u8string_view value,
     char8_t target) noexcept -> std::size_t
 {
-    bool in_string = false;
+    enum class state {
+        ordinary,
+        basic_string,
+        literal_string,
+        multiline_basic_string,
+        multiline_literal_string,
+    } current = state::ordinary;
+
     bool escaped = false;
 
     for (std::size_t i = 0; i < value.size(); ++i) {
         const char8_t ch = value[i];
 
-        if (in_string) {
+        switch (current) {
+        case state::ordinary:
+            if (toml_starts_with(value.substr(i), u8"\"\"\"")) {
+                current = state::multiline_basic_string;
+                i += 2;
+                continue;
+            }
+
+            if (toml_starts_with(value.substr(i), u8"'''")) {
+                current = state::multiline_literal_string;
+                i += 2;
+                continue;
+            }
+
+            if (ch == u8'"') {
+                current = state::basic_string;
+                escaped = false;
+                continue;
+            }
+
+            if (ch == u8'\'') {
+                current = state::literal_string;
+                continue;
+            }
+
+            if (ch == target) {
+                return i;
+            }
+
+            break;
+
+        case state::basic_string:
             if (escaped) {
                 escaped = false;
                 continue;
@@ -370,23 +416,150 @@ namespace xer::detail {
             }
 
             if (ch == u8'"') {
-                in_string = false;
+                current = state::ordinary;
             }
 
-            continue;
-        }
+            break;
 
-        if (ch == u8'"') {
-            in_string = true;
-            continue;
-        }
+        case state::literal_string:
+            if (ch == u8'\'') {
+                current = state::ordinary;
+            }
 
-        if (ch == target) {
-            return i;
+            break;
+
+        case state::multiline_basic_string:
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (ch == u8'\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (toml_starts_with(value.substr(i), u8"\"\"\"")) {
+                current = state::ordinary;
+                i += 2;
+            }
+
+            break;
+
+        case state::multiline_literal_string:
+            if (toml_starts_with(value.substr(i), u8"'''")) {
+                current = state::ordinary;
+                i += 2;
+            }
+
+            break;
         }
     }
 
     return std::u8string_view::npos;
+}
+
+[[nodiscard]] inline auto toml_line_has_unclosed_multiline_string(
+    std::u8string_view value) noexcept -> bool
+{
+    enum class state {
+        ordinary,
+        basic_string,
+        literal_string,
+        multiline_basic_string,
+        multiline_literal_string,
+    } current = state::ordinary;
+
+    bool escaped = false;
+
+    for (std::size_t i = 0; i < value.size(); ++i) {
+        const char8_t ch = value[i];
+
+        switch (current) {
+        case state::ordinary:
+            if (ch == u8'#') {
+                return false;
+            }
+
+            if (toml_starts_with(value.substr(i), u8"\"\"\"")) {
+                current = state::multiline_basic_string;
+                i += 2;
+                continue;
+            }
+
+            if (toml_starts_with(value.substr(i), u8"'''")) {
+                current = state::multiline_literal_string;
+                i += 2;
+                continue;
+            }
+
+            if (ch == u8'"') {
+                current = state::basic_string;
+                escaped = false;
+                continue;
+            }
+
+            if (ch == u8'\'') {
+                current = state::literal_string;
+                continue;
+            }
+
+            break;
+
+        case state::basic_string:
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (ch == u8'\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (ch == u8'"') {
+                current = state::ordinary;
+            }
+
+            break;
+
+        case state::literal_string:
+            if (ch == u8'\'') {
+                current = state::ordinary;
+            }
+
+            break;
+
+        case state::multiline_basic_string:
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (ch == u8'\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (toml_starts_with(value.substr(i), u8"\"\"\"")) {
+                current = state::ordinary;
+                i += 2;
+            }
+
+            break;
+
+        case state::multiline_literal_string:
+            if (toml_starts_with(value.substr(i), u8"'''")) {
+                current = state::ordinary;
+                i += 2;
+            }
+
+            break;
+        }
+    }
+
+    return current == state::multiline_basic_string ||
+           current == state::multiline_literal_string;
 }
 
 [[nodiscard]] inline auto toml_strip_comment(
@@ -404,14 +577,62 @@ namespace xer::detail {
     std::u8string_view value,
     std::size_t start) noexcept -> std::size_t
 {
-    bool in_string = false;
+    enum class state {
+        ordinary,
+        basic_string,
+        literal_string,
+        multiline_basic_string,
+        multiline_literal_string,
+    } current = state::ordinary;
+
     bool escaped = false;
     int array_depth = 0;
 
     for (std::size_t i = start; i < value.size(); ++i) {
         const char8_t ch = value[i];
 
-        if (in_string) {
+        switch (current) {
+        case state::ordinary:
+            if (toml_starts_with(value.substr(i), u8"\"\"\"")) {
+                current = state::multiline_basic_string;
+                i += 2;
+                continue;
+            }
+
+            if (toml_starts_with(value.substr(i), u8"'''")) {
+                current = state::multiline_literal_string;
+                i += 2;
+                continue;
+            }
+
+            if (ch == u8'"') {
+                current = state::basic_string;
+                escaped = false;
+                continue;
+            }
+
+            if (ch == u8'\'') {
+                current = state::literal_string;
+                continue;
+            }
+
+            if (ch == u8'[') {
+                ++array_depth;
+                continue;
+            }
+
+            if (ch == u8']') {
+                --array_depth;
+                continue;
+            }
+
+            if (ch == u8',' && array_depth == 0) {
+                return i;
+            }
+
+            break;
+
+        case state::basic_string:
             if (escaped) {
                 escaped = false;
                 continue;
@@ -423,49 +644,135 @@ namespace xer::detail {
             }
 
             if (ch == u8'"') {
-                in_string = false;
+                current = state::ordinary;
             }
 
-            continue;
-        }
+            break;
 
-        if (ch == u8'"') {
-            in_string = true;
-            continue;
-        }
+        case state::literal_string:
+            if (ch == u8'\'') {
+                current = state::ordinary;
+            }
 
-        if (ch == u8'[') {
-            ++array_depth;
-            continue;
-        }
+            break;
 
-        if (ch == u8']') {
-            --array_depth;
-            continue;
-        }
+        case state::multiline_basic_string:
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
 
-        if (ch == u8',' && array_depth == 0) {
-            return i;
+            if (ch == u8'\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (toml_starts_with(value.substr(i), u8"\"\"\"")) {
+                current = state::ordinary;
+                i += 2;
+            }
+
+            break;
+
+        case state::multiline_literal_string:
+            if (toml_starts_with(value.substr(i), u8"'''")) {
+                current = state::ordinary;
+                i += 2;
+            }
+
+            break;
         }
     }
 
     return std::u8string_view::npos;
 }
 
-[[nodiscard]] inline auto toml_parse_string(std::u8string_view value)
-    -> result<std::u8string>
+[[nodiscard]] constexpr auto toml_hex_digit_value(char8_t ch) noexcept -> int
 {
-    if (value.size() < 2 || value.front() != u8'"' || value.back() != u8'"') {
+    if (ch >= u8'0' && ch <= u8'9') {
+        return static_cast<int>(ch - u8'0');
+    }
+
+    if (ch >= u8'a' && ch <= u8'f') {
+        return static_cast<int>(ch - u8'a') + 10;
+    }
+
+    if (ch >= u8'A' && ch <= u8'F') {
+        return static_cast<int>(ch - u8'A') + 10;
+    }
+
+    return -1;
+}
+
+inline auto toml_append_utf8_code_point(
+    std::u8string& out,
+    char32_t code_point) -> result<void>
+{
+    if (code_point > U'\U0010FFFF' ||
+        (code_point >= static_cast<char32_t>(0xD800) && code_point <= static_cast<char32_t>(0xDFFF))) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
 
+    if (code_point <= U'\u007F') {
+        out.push_back(static_cast<char8_t>(code_point));
+        return {};
+    }
+
+    if (code_point <= U'\u07FF') {
+        out.push_back(static_cast<char8_t>(0xC0u | (code_point >> 6)));
+        out.push_back(static_cast<char8_t>(0x80u | (code_point & 0x3Fu)));
+        return {};
+    }
+
+    if (code_point <= U'\uFFFF') {
+        out.push_back(static_cast<char8_t>(0xE0u | (code_point >> 12)));
+        out.push_back(static_cast<char8_t>(0x80u | ((code_point >> 6) & 0x3Fu)));
+        out.push_back(static_cast<char8_t>(0x80u | (code_point & 0x3Fu)));
+        return {};
+    }
+
+    out.push_back(static_cast<char8_t>(0xF0u | (code_point >> 18)));
+    out.push_back(static_cast<char8_t>(0x80u | ((code_point >> 12) & 0x3Fu)));
+    out.push_back(static_cast<char8_t>(0x80u | ((code_point >> 6) & 0x3Fu)));
+    out.push_back(static_cast<char8_t>(0x80u | (code_point & 0x3Fu)));
+    return {};
+}
+
+[[nodiscard]] inline auto toml_parse_unicode_escape(
+    std::u8string_view value,
+    std::size_t& index,
+    std::size_t digits) -> result<char32_t>
+{
+    if (index + digits > value.size()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    char32_t code_point = 0;
+    for (std::size_t i = 0; i < digits; ++i) {
+        const int digit = toml_hex_digit_value(value[index + i]);
+        if (digit < 0) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        code_point = static_cast<char32_t>((code_point << 4) |
+                                           static_cast<char32_t>(digit));
+    }
+
+    index += digits;
+    return code_point;
+}
+
+[[nodiscard]] inline auto toml_parse_basic_string_body(
+    std::u8string_view body,
+    bool multiline) -> result<std::u8string>
+{
     std::u8string out;
 
-    for (std::size_t i = 1; i + 1 < value.size(); ++i) {
-        const char8_t ch = value[i];
+    for (std::size_t i = 0; i < body.size();) {
+        const char8_t ch = body[i++];
 
         if (ch != u8'\\') {
-            if (ch == u8'"' || ch == u8'\n' || ch == u8'\r') {
+            if (!multiline && (ch == u8'"' || ch == u8'\n' || ch == u8'\r')) {
                 return std::unexpected(make_error(error_t::invalid_argument));
             }
 
@@ -473,11 +780,11 @@ namespace xer::detail {
             continue;
         }
 
-        if (i + 2 >= value.size()) {
+        if (i >= body.size()) {
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
-        const char8_t escaped = value[++i];
+        const char8_t escaped = body[i++];
         switch (escaped) {
         case u8'"':
             out.push_back(u8'"');
@@ -500,12 +807,131 @@ namespace xer::detail {
         case u8'r':
             out.push_back(u8'\r');
             break;
+        case u8'u': {
+            auto code_point = toml_parse_unicode_escape(body, i, 4);
+            if (!code_point.has_value()) {
+                return std::unexpected(code_point.error());
+            }
+
+            auto appended = toml_append_utf8_code_point(out, *code_point);
+            if (!appended.has_value()) {
+                return std::unexpected(appended.error());
+            }
+            break;
+        }
+        case u8'U': {
+            auto code_point = toml_parse_unicode_escape(body, i, 8);
+            if (!code_point.has_value()) {
+                return std::unexpected(code_point.error());
+            }
+
+            auto appended = toml_append_utf8_code_point(out, *code_point);
+            if (!appended.has_value()) {
+                return std::unexpected(appended.error());
+            }
+            break;
+        }
+        case u8'\n':
+            if (!multiline) {
+                return std::unexpected(make_error(error_t::invalid_argument));
+            }
+
+            while (i < body.size() && toml_is_ascii_space(body[i])) {
+                ++i;
+            }
+            break;
         default:
             return std::unexpected(make_error(error_t::invalid_argument));
         }
     }
 
     return out;
+}
+
+[[nodiscard]] inline auto toml_parse_basic_string(std::u8string_view value)
+    -> result<std::u8string>
+{
+    if (value.size() < 2 || value.front() != u8'"' || value.back() != u8'"') {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const std::u8string_view body = value.substr(1, value.size() - 2);
+    return toml_parse_basic_string_body(body, false);
+}
+
+[[nodiscard]] inline auto toml_parse_multiline_basic_string(
+    std::u8string_view value) -> result<std::u8string>
+{
+    if (value.size() < 6 || !toml_starts_with(value, u8"\"\"\"") ||
+        !toml_starts_with(value.substr(value.size() - 3), u8"\"\"\"")) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    std::u8string_view body = value.substr(3, value.size() - 6);
+    if (!body.empty() && body.front() == u8'\n') {
+        body.remove_prefix(1);
+    }
+
+    if (body.find(u8"\"\"\"") != std::u8string_view::npos) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return toml_parse_basic_string_body(body, true);
+}
+
+[[nodiscard]] inline auto toml_parse_literal_string(std::u8string_view value)
+    -> result<std::u8string>
+{
+    if (value.size() < 2 || value.front() != u8'\'' || value.back() != u8'\'') {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const std::u8string_view body = value.substr(1, value.size() - 2);
+    if (body.find(u8'\'') != std::u8string_view::npos ||
+        body.find(u8'\n') != std::u8string_view::npos ||
+        body.find(u8'\r') != std::u8string_view::npos) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return std::u8string(body);
+}
+
+[[nodiscard]] inline auto toml_parse_multiline_literal_string(
+    std::u8string_view value) -> result<std::u8string>
+{
+    if (value.size() < 6 || !toml_starts_with(value, u8"'''") ||
+        !toml_starts_with(value.substr(value.size() - 3), u8"'''")) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    std::u8string_view body = value.substr(3, value.size() - 6);
+    if (!body.empty() && body.front() == u8'\n') {
+        body.remove_prefix(1);
+    }
+
+    if (body.find(u8"'''") != std::u8string_view::npos) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return std::u8string(body);
+}
+
+[[nodiscard]] inline auto toml_parse_string(std::u8string_view value)
+    -> result<std::u8string>
+{
+    if (toml_starts_with(value, u8"\"\"\"")) {
+        return toml_parse_multiline_basic_string(value);
+    }
+
+    if (toml_starts_with(value, u8"'''")) {
+        return toml_parse_multiline_literal_string(value);
+    }
+
+    if (!value.empty() && value.front() == u8'\'') {
+        return toml_parse_literal_string(value);
+    }
+
+    return toml_parse_basic_string(value);
 }
 
 [[nodiscard]] inline auto toml_parse_value(std::u8string_view value)
@@ -834,6 +1260,47 @@ template <class Pred>
     return toml_value(out);
 }
 
+[[nodiscard]] inline auto toml_parse_special_float(std::u8string_view value)
+    -> result<toml_value>
+{
+    bool negative = false;
+
+    if (!value.empty() && (value.front() == u8'+' || value.front() == u8'-')) {
+        negative = value.front() == u8'-';
+        value.remove_prefix(1);
+    }
+
+    if (value == u8"inf") {
+        double out = std::numeric_limits<double>::infinity();
+        if (negative) {
+            out = -out;
+        }
+
+        return toml_value(out);
+    }
+
+    if (value == u8"nan") {
+        double out = std::numeric_limits<double>::quiet_NaN();
+        if (negative) {
+            out = -out;
+        }
+
+        return toml_value(out);
+    }
+
+    return std::unexpected(make_error(error_t::invalid_argument));
+}
+
+[[nodiscard]] inline auto toml_is_special_float(std::u8string_view value) noexcept
+    -> bool
+{
+    if (!value.empty() && (value.front() == u8'+' || value.front() == u8'-')) {
+        value.remove_prefix(1);
+    }
+
+    return value == u8"inf" || value == u8"nan";
+}
+
 [[nodiscard]] inline auto toml_has_integer_base_prefix(
     std::u8string_view value) noexcept -> bool
 {
@@ -856,7 +1323,7 @@ template <class Pred>
         return std::unexpected(make_error(error_t::invalid_argument));
     }
 
-    if (value.front() == u8'"') {
+    if (value.front() == u8'"' || value.front() == u8'\'') {
         auto string = toml_parse_string(value);
         if (!string.has_value()) {
             return std::unexpected(string.error());
@@ -875,6 +1342,10 @@ template <class Pred>
 
     if (value == u8"false") {
         return toml_value(false);
+    }
+
+    if (toml_is_special_float(value)) {
+        return toml_parse_special_float(value);
     }
 
     if (toml_has_integer_base_prefix(value)) {
@@ -933,7 +1404,16 @@ public:
         current_table = root.as_table();
 
         while (pos < text.size()) {
-            const std::u8string_view raw_line = read_line();
+            std::u8string raw_line(read_line());
+            while (toml_line_has_unclosed_multiline_string(raw_line)) {
+                if (pos >= text.size()) {
+                    return std::unexpected(make_error(error_t::invalid_argument));
+                }
+
+                raw_line.push_back(u8'\n');
+                raw_line.append(read_line());
+            }
+
             auto parsed = parse_line(root, raw_line);
             if (!parsed.has_value()) {
                 return std::unexpected(parsed.error());
@@ -1073,7 +1553,8 @@ private:
     }
 
     if (const auto* number = value.as_float()) {
-        return std::isfinite(*number);
+        return std::isfinite(*number) || std::isinf(*number) ||
+               std::isnan(*number);
     }
 
     return true;
@@ -1143,8 +1624,14 @@ inline void toml_encode_string(std::u8string& out, std::u8string_view value)
     }
 
     if (const auto* number = value.as_float()) {
-        if (!std::isfinite(*number)) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+        if (std::isnan(*number)) {
+            out.append(u8"nan");
+            return {};
+        }
+
+        if (std::isinf(*number)) {
+            out.append(*number < 0.0 ? u8"-inf" : u8"inf");
+            return {};
         }
 
         char buffer[128]{};
@@ -1226,13 +1713,12 @@ namespace xer {
  * @brief Decodes TOML text into an ordered TOML representation.
  *
  * The initial implementation supports a practical subset: bare keys, ordinary
- * tables, basic double-quoted strings, signed integers, finite decimal
- * floating-point numbers, numeric separators, booleans, arrays, comments, and
- * blank lines.
+ * tables, basic strings, literal strings, multiline strings, signed integers,
+ * finite and special floating-point numbers, numeric separators, booleans,
+ * arrays, comments, and blank lines.
  *
  * Integers may use decimal, hexadecimal, octal, or binary notation. Dotted
- * keys, quoted keys, inline tables, array-of-tables, date/time values, literal
- * strings, multiline strings, and special floating-point values are
+ * keys, quoted keys, inline tables, array-of-tables, and date/time values are
  * intentionally deferred.
  *
  * @param text UTF-8 TOML text.
