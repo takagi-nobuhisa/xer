@@ -37,6 +37,7 @@
 ### Input/Output and File-Related Facilities
 
 - `xer/stdio.h`
+- `xer/iostream.h`
 - `xer/path.h`
 - `xer/dirent.h`
 - `xer/socket.h`
@@ -176,6 +177,14 @@ Directory stream operations such as `opendir`, `closedir`, `readdir`, and `rewin
 Although they are related to file handling, they manage a directory stream state rather than an ordinary file stream.
 For that reason, they are provided through the independent public header `xer/dirent.h` rather than being absorbed into `xer/stdio.h`.
 
+### Why `iostream.h` Is Independent
+
+`xer/iostream.h` provides opt-in iostream insertion and extraction operators for selected XER value types.
+
+XER's ordinary input/output model remains based on `xer/stdio.h`, `binary_stream`, and `text_stream`. However, iostream operators are useful as a bridge for diagnostics, tests, examples, and generic `%@` formatting and scanning support.
+
+For that reason, iostream support is provided through the independent public header `xer/iostream.h` rather than being included automatically from each value-type header.
+
 ### Why `interval.h` Is Independent
 
 Interval values are bounded scalar value types distinct from ordinary arithmetic helpers.
@@ -218,6 +227,7 @@ xer/json.h
 xer/ini.h
 xer/toml.h
 xer/stdio.h
+xer/iostream.h
 xer/path.h
 xer/dirent.h
 xer/socket.h
