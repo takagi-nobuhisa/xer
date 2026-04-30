@@ -28,6 +28,7 @@
 
 ### Data Encoding and Format Processing
 
+- `xer/bytes.h`
 - `xer/base64.h`
 - `xer/json.h`
 - `xer/ini.h`
@@ -121,6 +122,14 @@ Accordingly, functionality related to `wchar_t` and wide-character classificatio
 - character classification and character conversion: `ctype.h`
 - time-string formatting related facilities: `time.h`
 
+### Why `bytes.h` Is Independent
+
+Byte-sequence conversion helpers are used across several areas, including Base64, binary streams, sockets, and process pipes.
+
+`to_bytes_view` creates a non-owning `std::span<const std::byte>` view from byte-like or text storage without copying. `to_bytes` creates an owning `std::vector<std::byte>` copy.
+
+These helpers are not ordinary string processing because their purpose is to cross the boundary from character storage or byte-like storage into explicit binary bytes. For that reason, they are provided through the independent public header `xer/bytes.h` rather than being absorbed into `xer/string.h`.
+
 ### Why `base64.h` Is Independent
 
 Base64 encode/decode is a binary-to-text conversion facility.
@@ -203,6 +212,7 @@ xer/scope.h
 xer/string.h
 xer/ctype.h
 xer/stdlib.h
+xer/bytes.h
 xer/base64.h
 xer/json.h
 xer/ini.h
