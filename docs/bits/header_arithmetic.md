@@ -40,6 +40,7 @@ At a high level, `<xer/arithmetic.h>` contains the following groups of functiona
 
 - integer arithmetic helpers
 - comparison helpers
+- approximate floating-point comparison
 - range and bounds helpers
 - absolute-value helpers
 - floating-point and complex-number support within the same general design
@@ -242,6 +243,90 @@ if (eq(a, b)) {
 should remain straightforward.
 
 For that reason, comparison helpers use `bool` and instead restrict their intended argument domain appropriately.
+
+---
+
+## Approximate Floating-Point Comparison
+
+`<xer/arithmetic.h>` provides an approximate comparison helper for floating-point-oriented checks:
+
+```cpp
+is_close
+```
+
+### `is_close`
+
+```cpp
+template<typename A, typename B, typename E>
+constexpr auto is_close(A lhs, B rhs, E epsilon) noexcept -> bool;
+
+template<typename A, typename B, typename E>
+constexpr auto is_close(
+    const result<A>& lhs,
+    B rhs,
+    E epsilon) noexcept -> result<bool>;
+
+template<typename A, typename B, typename E>
+constexpr auto is_close(
+    A lhs,
+    const result<B>& rhs,
+    E epsilon) noexcept -> result<bool>;
+
+template<typename A, typename B, typename E>
+constexpr auto is_close(
+    const result<A>& lhs,
+    const result<B>& rhs,
+    E epsilon) noexcept -> result<bool>;
+```
+
+`is_close(lhs, rhs, epsilon)` tests whether two arithmetic values are close enough under an absolute tolerance.
+
+Conceptually, the comparison is:
+
+```text
+abs(lhs - rhs) <= epsilon
+```
+
+The comparison is inclusive. Therefore, values exactly at the specified tolerance boundary are treated as close.
+
+### Rounding Margin
+
+For positive tolerance values, the implementation may apply a small rounding margin based on the common arithmetic type.
+
+This is intended to avoid rejecting values that are mathematically on the tolerance boundary but become slightly larger due to floating-point representation and subtraction rounding.
+
+For example, a difference that is mathematically `0.05` should not be rejected merely because the computed floating-point difference is slightly greater than `0.05`.
+
+When `epsilon` is zero, this extra rounding margin is not applied.
+A zero tolerance therefore behaves as an exact comparison after conversion to the internal comparison type.
+
+### Invalid Values
+
+`is_close` returns `false` when any of the following apply:
+
+- `lhs` is NaN or infinity
+- `rhs` is NaN or infinity
+- `epsilon` is NaN or infinity
+- `epsilon` is negative
+- the computed difference is not finite
+
+This keeps approximate comparison simple and avoids treating invalid floating-point states as ordinary closeness.
+
+### `xer::result` Arguments
+
+As part of `<xer/arithmetic.h>`, `is_close` may accept `xer::result` operands for `lhs` and `rhs`.
+
+If a result operand contains a success value, that value is compared.
+If a result operand contains an error, the error is propagated and the return type is `xer::result<bool>`.
+
+The tolerance argument is intentionally kept as an ordinary value.
+The tolerance is normally a fixed decision made by the caller, and accepting a result for it would add little practical value.
+
+### Naming
+
+The name `is_close` is used instead of shorter names such as `near`.
+
+This avoids collision with legacy platform macros while keeping the purpose of the function clear at the call site.
 
 ---
 
@@ -486,7 +571,10 @@ The following kinds of examples are especially suitable for this header:
 * propagating failure through chained arithmetic helpers
 * checking representability with `in_range`
 * using `min`, `max`, or `clamp` with mixed numeric types
-* using `abs` or `uabs` with explicit result checking\n* using `sq` or `cb` with explicit result checking
+* using `abs` or `uabs` with explicit result checking
+* using `sq` or `cb` with explicit result checking
+* comparing floating-point values with `is_close`
+* comparing floating-point values with `is_close`
 
 These are good candidates for executable examples in `examples/`.
 

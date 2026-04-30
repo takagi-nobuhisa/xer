@@ -77,23 +77,6 @@ Accordingly, internal comparisons in functions such as `min`, `max`, and `clamp`
 
 ---
 
-## `sq` and `cb`
-
-`sq(value)` returns the square of a value, and `cb(value)` returns the cube of a value.
-
-For integer values, these helpers follow the same signed-domain policy as `mul`:
-
-- the return type is `xer::result<std::int64_t>`
-- if the mathematical result cannot be represented by `std::int64_t`, it is an error
-
-For floating-point values, they follow the general floating-point arithmetic policy of this header:
-
-- the success value uses `long double`
-- non-computable cases are errors
-
-As part of `<xer/arithmetic.h>`, these helpers may accept `xer::result` arguments so that chained arithmetic can propagate intermediate errors naturally.
----
-
 ## Arithmetic for Integer Types
 
 ## `add`
