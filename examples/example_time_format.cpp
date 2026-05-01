@@ -5,7 +5,7 @@
 // Expected output:
 // The program prints:
 // - a ctime-style time string
-// - a strftime-formatted time string
+// - a strftime-formatted time string with milliseconds
 
 #include <xer/stdio.h>
 #include <xer/time.h>
@@ -32,7 +32,7 @@ auto main() -> int
         return 1;
     }
 
-    const auto formatted = xer::strftime(u8"%Y-%m-%d %H:%M:%S", *local);
+    const auto formatted = xer::strftime(u8"%Y-%m-%d %H:%M:%S.%L", *local);
     if (!formatted) {
         return 1;
     }

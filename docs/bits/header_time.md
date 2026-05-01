@@ -379,11 +379,19 @@ std::u8string
 
 through `xer::result`.
 
-### Initial Design Limits
+### XER-Specific Fractional-Second Extensions
 
-At least in the initial stage:
+In addition to the conversion specifications delegated to the underlying C library, XER provides the following fractional-second extensions:
 
-* `%f` is not yet supported
+* `%f`: microseconds as exactly six decimal digits
+* `%L`: milliseconds as exactly three decimal digits
+
+These specifiers are based on `tm_microsec`. They are supported only in their simple forms `%f` and `%L`; width, flag, and modifier forms such as `%3f` are rejected.
+
+### Current Design Limits
+
+At least in the current stage:
+
 * advanced locale behavior is not the priority
 * advanced timezone extensions are deferred
 
@@ -435,7 +443,7 @@ The detailed error taxonomy belongs to the implementation, but the intended desi
 At least in the initial stage, the following are intentionally deferred or simplified:
 
 * pre-epoch support
-* `%f` formatting in `strftime`
+* advanced timezone features in `strftime`
 * advanced locale control
 * advanced timezone features
 * C-style static-buffer behavior
@@ -521,7 +529,7 @@ auto main() -> int
         return 1;
     }
 
-    const auto text = xer::strftime(u8"%Y-%m-%d %H:%M:%S", *utc);
+    const auto text = xer::strftime(u8"%Y-%m-%d %H:%M:%S.%f", *utc);
     if (!text.has_value()) {
         return 1;
     }

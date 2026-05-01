@@ -212,9 +212,9 @@ void test_strftime_empty_format()
 }
 
 /**
- * @brief Tests strftime() rejection of unsupported %f.
+ * @brief Tests strftime() with XER's microsecond extension.
  */
-void test_strftime_unsupported_f()
+void test_strftime_microsecond_extension()
 {
     xer::tm value {};
     value.tm_year = 124;
@@ -229,6 +229,52 @@ void test_strftime_unsupported_f()
     value.tm_microsec = 123456;
 
     const auto result = xer::strftime(u8"%Y-%m-%d %H:%M:%S.%f", value);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(result.value(), u8"2024-01-02 03:04:05.123456");
+}
+
+/**
+ * @brief Tests strftime() with XER's millisecond extension.
+ */
+void test_strftime_millisecond_extension()
+{
+    xer::tm value {};
+    value.tm_year = 124;
+    value.tm_mon = 0;
+    value.tm_mday = 2;
+    value.tm_hour = 3;
+    value.tm_min = 4;
+    value.tm_sec = 5;
+    value.tm_wday = 2;
+    value.tm_yday = 1;
+    value.tm_isdst = 0;
+    value.tm_microsec = 123456;
+
+    const auto result = xer::strftime(u8"%H:%M:%S.%L", value);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(result.value(), u8"03:04:05.123");
+}
+
+/**
+ * @brief Tests strftime() rejection of modified XER fractional specifiers.
+ */
+void test_strftime_modified_fractional_extension()
+{
+    xer::tm value {};
+    value.tm_year = 124;
+    value.tm_mon = 0;
+    value.tm_mday = 2;
+    value.tm_hour = 3;
+    value.tm_min = 4;
+    value.tm_sec = 5;
+    value.tm_wday = 2;
+    value.tm_yday = 1;
+    value.tm_isdst = 0;
+    value.tm_microsec = 123456;
+
+    const auto result = xer::strftime(u8"%3f", value);
 
     xer_assert(!result.has_value());
     xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
@@ -294,7 +340,9 @@ int main()
     test_strftime_utf8_literal_text();
     test_strftime_percent_escape();
     test_strftime_empty_format();
-    test_strftime_unsupported_f();
+    test_strftime_microsecond_extension();
+    test_strftime_millisecond_extension();
+    test_strftime_modified_fractional_extension();
     test_strftime_trailing_percent();
     test_strftime_invalid_microsec();
 

@@ -92,13 +92,14 @@ inline auto append_zero_padded_decimal(std::u8string& out, int value, std::size_
 }
 
 /**
- * @brief Scans a UTF-8 format string for explicitly unsupported constructs.
+ * @brief Checks whether a UTF-8 format string has no standalone trailing percent.
  *
- * The initial implementation rejects XER's future `%f` extension and a trailing
- * standalone `%`.
+ * XER-specific extensions such as `%f` and `%L` are handled directly by
+ * xer::strftime(). Other conversion specifications are delegated to the
+ * underlying C library's strftime() where possible.
  *
  * @param format Format string.
- * @return `true` if supported; otherwise `false`.
+ * @return `true` if the format can be scanned safely; otherwise `false`.
  */
 [[nodiscard]] constexpr auto is_supported_strftime_format(std::u8string_view format) noexcept -> bool
 {
@@ -112,13 +113,31 @@ inline auto append_zero_padded_decimal(std::u8string& out, int value, std::size_
         if (index >= format.size()) {
             return false;
         }
-
-        if (format[index] == u8'f') {
-            return false;
-        }
     }
 
     return true;
+}
+
+/**
+ * @brief Appends the microsecond field as exactly six decimal digits.
+ *
+ * @param out Destination string.
+ * @param value Broken-down time value.
+ */
+inline auto append_strftime_microsecond(std::u8string& out, const xer::tm& value) -> void
+{
+    append_zero_padded_decimal(out, value.tm_microsec, 6);
+}
+
+/**
+ * @brief Appends the millisecond field as exactly three decimal digits.
+ *
+ * @param out Destination string.
+ * @param value Broken-down time value.
+ */
+inline auto append_strftime_millisecond(std::u8string& out, const xer::tm& value) -> void
+{
+    append_zero_padded_decimal(out, value.tm_microsec / 1000, 3);
 }
 
 /**
@@ -277,7 +296,7 @@ namespace xer {
  * underlying C library's `strftime()`, while preserving UTF-8 literal text
  * outside the conversion specifications as-is.
  *
- * The `%f` conversion specifier is intentionally unsupported at this stage.
+ * XER adds `%f` for microseconds and `%L` for milliseconds.
  *
  * @param format UTF-8 format string.
  * @param value Broken-down time.
@@ -330,6 +349,25 @@ namespace xer {
         }
 
         if (index >= format.size()) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        const bool is_xer_microsecond =
+            (index == spec_begin + 1) && format[index] == u8'f';
+        const bool is_xer_millisecond =
+            (index == spec_begin + 1) && format[index] == u8'L';
+
+        if (is_xer_microsecond) {
+            detail::append_strftime_microsecond(result, value);
+            continue;
+        }
+
+        if (is_xer_millisecond) {
+            detail::append_strftime_millisecond(result, value);
+            continue;
+        }
+
+        if (format[index] == u8'f' || format[index] == u8'L') {
             return std::unexpected(make_error(error_t::invalid_argument));
         }
 
