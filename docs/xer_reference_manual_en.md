@@ -2870,7 +2870,7 @@ struct json_value;
 using json_array = json_value::array_type;
 using json_object = json_value::object_type;
 
-auto json_decode(std::u8string_view text) -> xer::result<json_value>;
+auto json_decode(std::u8string_view text) -> xer::result<json_value, parse_error_detail>;
 auto json_encode(const json_value& value) -> xer::result<std::u8string>;
 ```
 
@@ -2962,7 +2962,7 @@ This means:
 ## `json_decode`
 
 ```cpp id="tjh4ki"
-auto json_decode(std::u8string_view text) -> xer::result<json_value>;
+auto json_decode(std::u8string_view text) -> xer::result<json_value, parse_error_detail>;
 ```
 
 ### Purpose
@@ -3246,7 +3246,7 @@ struct ini_entry;
 struct ini_section;
 struct ini_file;
 
-auto ini_decode(std::u8string_view text) -> xer::result<ini_file>;
+auto ini_decode(std::u8string_view text) -> xer::result<ini_file, parse_error_detail>;
 auto ini_encode(const ini_file& value) -> xer::result<std::u8string>;
 ````
 
@@ -3504,7 +3504,7 @@ XER keeps the initial INI feature small and predictable, and leaves typed or str
 ## `ini_decode`
 
 ```cpp
-auto ini_decode(std::u8string_view text) -> xer::result<ini_file>;
+auto ini_decode(std::u8string_view text) -> xer::result<ini_file, parse_error_detail>;
 ```
 
 ### Purpose
@@ -13088,3 +13088,18 @@ This example shows the normal style:
 
 * `policy_project_outline.md`
 * `public_headers.md`
+
+
+---
+
+# Data-format find and load/save helpers
+
+`<xer/json.h>`, `<xer/ini.h>`, and `<xer/toml.h>` provide small convenience helpers for searching decoded values and for loading/saving UTF-8 files.
+
+The search helpers are intentionally simple:
+
+- `json_find` searches the direct members of a JSON object.
+- `ini_find` searches global entries or entries in the first matching section.
+- `toml_find` searches a TOML table by a simple dot-separated path.
+
+The load helpers combine UTF-8 file reading with decoding and return results with `parse_error_detail`.  I/O failures use `parse_error_reason::none` and zero position fields.  The save helpers encode values and write UTF-8 files.

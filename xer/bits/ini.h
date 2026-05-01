@@ -17,6 +17,7 @@
 
 #include <xer/bits/common.h>
 #include <xer/error.h>
+#include <xer/parse.h>
 
 namespace xer {
 
@@ -278,14 +279,14 @@ namespace xer::detail {
 class ini_decoder {
 public:
     explicit ini_decoder(std::u8string_view text_) noexcept
-        : text(text_), pos(0), current_section(nullptr)
+        : text(text_), pos(0), line_number(1), line_begin(0), current_section(nullptr)
     {
     }
 
-    [[nodiscard]] auto parse() -> result<ini_file>
+    [[nodiscard]] auto parse() -> result<ini_file, parse_error_detail>
     {
         if (!ini_is_valid_utf8(text)) {
-            return std::unexpected(make_error(error_t::encoding_error));
+            return std::unexpected(make_parse_error(parse_error_reason::invalid_encoding, 0, error_t::encoding_error));
         }
 
         ini_file out;
@@ -296,6 +297,8 @@ public:
             if (!parsed.has_value()) {
                 return std::unexpected(parsed.error());
             }
+
+            ++line_number;
         }
 
         return out;
@@ -304,11 +307,24 @@ public:
 private:
     std::u8string_view text;
     std::size_t pos;
+    std::size_t line_number;
+    std::size_t line_begin;
     ini_section* current_section;
+
+    [[nodiscard]] auto make_parse_error(
+        parse_error_reason reason,
+        std::size_t offset,
+        error_t code = error_t::invalid_argument) const -> error<parse_error_detail>
+    {
+        return xer::make_error<parse_error_detail>(
+            code,
+            parse_error_detail{offset, line_number, 1, reason});
+    }
 
     [[nodiscard]] auto read_line() noexcept -> std::u8string_view
     {
         const std::size_t begin = pos;
+        line_begin = begin;
 
         while (pos < text.size() && text[pos] != u8'\n' && text[pos] != u8'\r') {
             ++pos;
@@ -330,7 +346,7 @@ private:
 
     [[nodiscard]] auto parse_line(
         ini_file& out,
-        std::u8string_view line) -> result<void>
+        std::u8string_view line) -> result<void, parse_error_detail>
     {
         line = ini_trim_ascii_space(line);
 
@@ -351,16 +367,16 @@ private:
 
     [[nodiscard]] auto parse_section(
         ini_file& out,
-        std::u8string_view line) -> result<void>
+        std::u8string_view line) -> result<void, parse_error_detail>
     {
         if (line.size() < 2 || line.back() != u8']') {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(make_parse_error(parse_error_reason::invalid_syntax, line_begin));
         }
 
         const std::u8string_view name = ini_trim_ascii_space(
             line.substr(1, line.size() - 2));
         if (name.empty()) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(make_parse_error(parse_error_reason::invalid_syntax, line_begin));
         }
 
         out.sections.push_back(ini_section{std::u8string(name), {}});
@@ -370,11 +386,11 @@ private:
 
     [[nodiscard]] auto parse_entry(
         ini_file& out,
-        std::u8string_view line) -> result<void>
+        std::u8string_view line) -> result<void, parse_error_detail>
     {
         const std::size_t separator = line.find(u8'=');
         if (separator == std::u8string_view::npos) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(make_parse_error(parse_error_reason::invalid_syntax, line_begin));
         }
 
         const std::u8string_view key = ini_trim_ascii_space(
@@ -383,7 +399,7 @@ private:
             line.substr(separator + 1));
 
         if (key.empty()) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(make_parse_error(parse_error_reason::invalid_syntax, line_begin));
         }
 
         ini_entry entry{std::u8string(key), std::u8string(value)};
@@ -456,7 +472,7 @@ namespace xer {
  * @param text UTF-8 INI text.
  * @return Parsed INI representation on success.
  */
-[[nodiscard]] inline auto ini_decode(std::u8string_view text) -> result<ini_file>
+[[nodiscard]] inline auto ini_decode(std::u8string_view text) -> result<ini_file, parse_error_detail>
 {
     detail::ini_decoder decoder(text);
     return decoder.parse();

@@ -30,6 +30,7 @@
 
 - `xer/bytes.h`
 - `xer/base64.h`
+- `xer/parse.h`
 - `xer/json.h`
 - `xer/ini.h`
 - `xer/toml.h`

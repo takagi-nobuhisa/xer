@@ -12,4 +12,8 @@
 #include <xer/bits/json_decode.h>
 #include <xer/bits/json_encode.h>
 
+#include <xer/bits/json_find.h>
+
+#include <xer/bits/json_io.h>
+
 #endif /* XER_JSON_H_INCLUDED_ */

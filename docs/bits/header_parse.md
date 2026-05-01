@@ -30,6 +30,7 @@ The current reason set includes:
 
 ```cpp
 enum class parse_error_reason {
+    none,
     invalid_syntax,
     invalid_encoding,
     invalid_token,
@@ -56,9 +57,9 @@ The reason is a more detailed classification than `error_t`.  For example, a par
 ```cpp
 struct parse_error_detail {
     std::size_t offset = 0;
-    std::size_t line = 1;
-    std::size_t column = 1;
-    parse_error_reason reason = parse_error_reason::invalid_syntax;
+    std::size_t line = 0;
+    std::size_t column = 0;
+    parse_error_reason reason = parse_error_reason::none;
 };
 ```
 
@@ -120,3 +121,10 @@ The rough boundary is:
 ## Documentation Notes
 
 `parse_error_detail` is intentionally not named after TOML, JSON, or INI.  It is a common parse detail type and should remain reusable by multiple parsers.
+
+
+### No-detail state
+
+`parse_error_reason::none` means that the parse-detail payload is intentionally unused.  In that state, `offset`, `line`, and `column` are all zero.  This is used by convenience functions such as `json_load`, `ini_load`, and `toml_load` when file I/O fails before parsing begins.
+
+When `reason` is not `none`, `line` and `column` are one-based positions and `offset` is a zero-based UTF-8 code-unit offset.

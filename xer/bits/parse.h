@@ -15,6 +15,7 @@
 namespace xer {
 
 enum class parse_error_reason {
+    none,
     invalid_syntax,
     invalid_encoding,
     invalid_token,
@@ -33,9 +34,9 @@ enum class parse_error_reason {
 
 struct parse_error_detail {
     std::size_t offset = 0;
-    std::size_t line = 1;
-    std::size_t column = 1;
-    parse_error_reason reason = parse_error_reason::invalid_syntax;
+    std::size_t line = 0;
+    std::size_t column = 0;
+    parse_error_reason reason = parse_error_reason::none;
 };
 
 } // namespace xer

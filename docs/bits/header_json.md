@@ -33,7 +33,7 @@ struct json_value;
 using json_array = json_value::array_type;
 using json_object = json_value::object_type;
 
-auto json_decode(std::u8string_view text) -> xer::result<json_value>;
+auto json_decode(std::u8string_view text) -> xer::result<json_value, parse_error_detail>;
 auto json_encode(const json_value& value) -> xer::result<std::u8string>;
 ```
 
@@ -125,7 +125,7 @@ This means:
 ## `json_decode`
 
 ```cpp id="tjh4ki"
-auto json_decode(std::u8string_view text) -> xer::result<json_value>;
+auto json_decode(std::u8string_view text) -> xer::result<json_value, parse_error_detail>;
 ```
 
 ### Purpose
@@ -370,3 +370,13 @@ This example shows the general style:
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
 * `header_string.md`
+
+---
+
+## JSON find and load/save helpers
+
+This header also provides json_find, json_load, and json_save.  The find helpers inspect already-decoded in-memory values and return pointers to existing entries or values.  They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+
+The load helpers combine UTF-8 file reading with decoding and return `xer::result<..., parse_error_detail>`.  If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+
+The save helpers combine encoding with UTF-8 file writing and return `xer::result<void>`.

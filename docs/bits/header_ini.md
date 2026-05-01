@@ -34,7 +34,7 @@ struct ini_entry;
 struct ini_section;
 struct ini_file;
 
-auto ini_decode(std::u8string_view text) -> xer::result<ini_file>;
+auto ini_decode(std::u8string_view text) -> xer::result<ini_file, parse_error_detail>;
 auto ini_encode(const ini_file& value) -> xer::result<std::u8string>;
 ````
 
@@ -292,7 +292,7 @@ XER keeps the initial INI feature small and predictable, and leaves typed or str
 ## `ini_decode`
 
 ```cpp
-auto ini_decode(std::u8string_view text) -> xer::result<ini_file>;
+auto ini_decode(std::u8string_view text) -> xer::result<ini_file, parse_error_detail>;
 ```
 
 ### Purpose
@@ -512,3 +512,13 @@ This example shows the general style:
 * `policy_result_arguments.md`
 * `policy_encoding.md`
 * `header_json.md`
+
+---
+
+## INI find and load/save helpers
+
+This header also provides ini_find, ini_load, and ini_save.  The find helpers inspect already-decoded in-memory values and return pointers to existing entries or values.  They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+
+The load helpers combine UTF-8 file reading with decoding and return `xer::result<..., parse_error_detail>`.  If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+
+The save helpers combine encoding with UTF-8 file writing and return `xer::result<void>`.
