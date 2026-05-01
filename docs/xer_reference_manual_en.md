@@ -2870,7 +2870,7 @@ struct json_value;
 using json_array = json_value::array_type;
 using json_object = json_value::object_type;
 
-auto json_decode(std::u8string_view text) -> xer::result<json_value>;
+auto json_decode(std::u8string_view text) -> xer::result<json_value, parse_error_detail>;
 auto json_encode(const json_value& value) -> xer::result<std::u8string>;
 ```
 
@@ -2962,7 +2962,7 @@ This means:
 ## `json_decode`
 
 ```cpp id="tjh4ki"
-auto json_decode(std::u8string_view text) -> xer::result<json_value>;
+auto json_decode(std::u8string_view text) -> xer::result<json_value, parse_error_detail>;
 ```
 
 ### Purpose
@@ -3210,6 +3210,16 @@ This example shows the general style:
 
 ---
 
+## JSON find and load/save helpers
+
+This header also provides json_find, json_load, and json_save.  The find helpers inspect already-decoded in-memory values and return pointers to existing entries or values.  They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+
+The load helpers combine UTF-8 file reading with decoding and return `xer::result<..., parse_error_detail>`.  If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+
+The save helpers combine encoding with UTF-8 file writing and return `xer::result<void>`.
+
+---
+
 # `<xer/ini.h>`
 
 ## Purpose
@@ -3246,7 +3256,7 @@ struct ini_entry;
 struct ini_section;
 struct ini_file;
 
-auto ini_decode(std::u8string_view text) -> xer::result<ini_file>;
+auto ini_decode(std::u8string_view text) -> xer::result<ini_file, parse_error_detail>;
 auto ini_encode(const ini_file& value) -> xer::result<std::u8string>;
 ````
 
@@ -3504,7 +3514,7 @@ XER keeps the initial INI feature small and predictable, and leaves typed or str
 ## `ini_decode`
 
 ```cpp
-auto ini_decode(std::u8string_view text) -> xer::result<ini_file>;
+auto ini_decode(std::u8string_view text) -> xer::result<ini_file, parse_error_detail>;
 ```
 
 ### Purpose
@@ -3724,6 +3734,16 @@ This example shows the general style:
 * `policy_result_arguments.md`
 * `policy_encoding.md`
 * `header_json.md`
+
+---
+
+## INI find and load/save helpers
+
+This header also provides ini_find, ini_load, and ini_save.  The find helpers inspect already-decoded in-memory values and return pointers to existing entries or values.  They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+
+The load helpers combine UTF-8 file reading with decoding and return `xer::result<..., parse_error_detail>`.  If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+
+The save helpers combine encoding with UTF-8 file writing and return `xer::result<void>`.
 
 ---
 
@@ -4456,6 +4476,16 @@ This example shows the general style:
 * `policy_encoding.md`
 * `header_json.md`
 * `header_ini.md`
+
+---
+
+## TOML find and load/save helpers
+
+This header also provides toml_find, toml_load, and toml_save.  The find helpers inspect already-decoded in-memory values and return pointers to existing entries or values.  They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+
+The load helpers combine UTF-8 file reading with decoding and return `xer::result<..., parse_error_detail>`.  If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+
+The save helpers combine encoding with UTF-8 file writing and return `xer::result<void>`.
 
 ---
 
@@ -12627,11 +12657,19 @@ std::u8string
 
 through `xer::result`.
 
-### Initial Design Limits
+### XER-Specific Fractional-Second Extensions
 
-At least in the initial stage:
+In addition to the conversion specifications delegated to the underlying C library, XER provides the following fractional-second extensions:
 
-* `%f` is not yet supported
+* `%f`: microseconds as exactly six decimal digits
+* `%L`: milliseconds as exactly three decimal digits
+
+These specifiers are based on `tm_microsec`. They are supported only in their simple forms `%f` and `%L`; width, flag, and modifier forms such as `%3f` are rejected.
+
+### Current Design Limits
+
+At least in the current stage:
+
 * advanced locale behavior is not the priority
 * advanced timezone extensions are deferred
 
