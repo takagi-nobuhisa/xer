@@ -631,7 +631,7 @@ void test_toml_encode_quoted_keys_and_nested_tables()
 }
 
 
-void test_toml_encode_inline_tables_in_arrays()
+void test_toml_encode_array_of_tables()
 {
     xer::toml_table first;
     first.push_back({u8"name", xer::toml_value(u8"one")});
@@ -653,7 +653,151 @@ void test_toml_encode_inline_tables_in_arrays()
     xer_assert_eq(
         *result,
         std::u8string(
-            u8"items = [{name = \"one\"}, {name = \"two\", enabled = true}]\n"));
+            u8"[[items]]\n"
+            u8"name = \"one\"\n"
+            u8"\n"
+            u8"[[items]]\n"
+            u8"name = \"two\"\n"
+            u8"enabled = true\n"));
+}
+
+
+void test_toml_decode_date_time_values()
+{
+    const auto result = xer::toml_decode(
+        u8"date = 2026-04-30\n"
+        u8"time = 23:59:58.123456\n"
+        u8"local = 2026-04-30T23:59:58\n"
+        u8"offset = 2026-04-30T23:59:58+09:00\n"
+        u8"utc = 2026-04-30T14:59:58Z\n");
+
+    xer_assert(result.has_value());
+
+    const auto* root = result->as_table();
+    xer_assert(root != nullptr);
+
+    const auto* date = find_key(*root, u8"date");
+    const auto* time = find_key(*root, u8"time");
+    const auto* local = find_key(*root, u8"local");
+    const auto* offset = find_key(*root, u8"offset");
+    const auto* utc = find_key(*root, u8"utc");
+
+    xer_assert(date != nullptr);
+    xer_assert(time != nullptr);
+    xer_assert(local != nullptr);
+    xer_assert(offset != nullptr);
+    xer_assert(utc != nullptr);
+
+    const auto* date_value = date->as_local_date();
+    const auto* time_value = time->as_local_time();
+    const auto* local_value = local->as_local_datetime();
+    const auto* offset_value = offset->as_offset_datetime();
+    const auto* utc_value = utc->as_offset_datetime();
+
+    xer_assert(date_value != nullptr);
+    xer_assert(time_value != nullptr);
+    xer_assert(local_value != nullptr);
+    xer_assert(offset_value != nullptr);
+    xer_assert(utc_value != nullptr);
+
+    xer_assert_eq(date_value->year, 2026);
+    xer_assert_eq(date_value->month, 4);
+    xer_assert_eq(date_value->day, 30);
+    xer_assert_eq(time_value->microsec, 123456);
+    xer_assert_eq(local_value->date.year, 2026);
+    xer_assert_eq(offset_value->offset_minutes, 9 * 60);
+    xer_assert_eq(utc_value->offset_minutes, 0);
+}
+
+void test_toml_decode_array_of_tables()
+{
+    const auto result = xer::toml_decode(
+        u8"[[products]]\n"
+        u8"name = \"Hammer\"\n"
+        u8"\n"
+        u8"[[products]]\n"
+        u8"name = \"Nail\"\n"
+        u8"\n"
+        u8"[[products.colors]]\n"
+        u8"name = \"silver\"\n");
+
+    xer_assert(result.has_value());
+
+    const auto* root = result->as_table();
+    xer_assert(root != nullptr);
+
+    const auto* products = find_key(*root, u8"products");
+    xer_assert(products != nullptr);
+
+    const auto* array = products->as_array();
+    xer_assert(array != nullptr);
+    xer_assert_eq(array->size(), static_cast<std::size_t>(2));
+
+    const auto* first = (*array)[0].as_table();
+    const auto* second = (*array)[1].as_table();
+    xer_assert(first != nullptr);
+    xer_assert(second != nullptr);
+
+    const auto* first_name = find_key(*first, u8"name");
+    const auto* second_name = find_key(*second, u8"name");
+    const auto* colors = find_key(*second, u8"colors");
+
+    xer_assert(first_name != nullptr);
+    xer_assert(second_name != nullptr);
+    xer_assert(colors != nullptr);
+    xer_assert_eq(*first_name->as_string(), u8"Hammer");
+    xer_assert_eq(*second_name->as_string(), u8"Nail");
+
+    const auto* color_array = colors->as_array();
+    xer_assert(color_array != nullptr);
+    xer_assert_eq(color_array->size(), static_cast<std::size_t>(1));
+
+    const auto* color_table = (*color_array)[0].as_table();
+    xer_assert(color_table != nullptr);
+
+    const auto* color_name = find_key(*color_table, u8"name");
+    xer_assert(color_name != nullptr);
+    xer_assert_eq(*color_name->as_string(), u8"silver");
+}
+
+void test_toml_decode_reports_parse_error_detail()
+{
+    const auto result = xer::toml_decode(
+        u8"name = \"ok\"\n"
+        u8"bad\n");
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+    xer_assert_eq(result.error().line, static_cast<std::size_t>(2));
+    xer_assert_eq(result.error().column, static_cast<std::size_t>(1));
+}
+
+void test_toml_encode_date_time_and_array_of_tables()
+{
+    xer::toml_table first;
+    first.push_back({u8"name", xer::toml_value(u8"Hammer")});
+    first.push_back({u8"available", xer::toml_value(xer::toml_local_date{2026, 4, 30})});
+
+    xer::toml_table second;
+    second.push_back({u8"name", xer::toml_value(u8"Nail")});
+    second.push_back({u8"created", xer::toml_value(xer::toml_offset_datetime{
+        xer::toml_local_date{2026, 4, 30},
+        xer::toml_local_time{23, 59, 58, 123000},
+        9 * 60})});
+
+    xer::toml_array products;
+    products.push_back(xer::toml_value(std::move(first)));
+    products.push_back(xer::toml_value(std::move(second)));
+
+    xer::toml_table root;
+    root.push_back({u8"products", xer::toml_value(std::move(products))});
+
+    const auto result = xer::toml_encode(xer::toml_value(std::move(root)));
+
+    xer_assert(result.has_value());
+    xer_assert(result->find(u8"[[products]]") != std::u8string::npos);
+    xer_assert(result->find(u8"available = 2026-04-30") != std::u8string::npos);
+    xer_assert(result->find(u8"created = 2026-04-30T23:59:58.123+09:00") != std::u8string::npos);
 }
 
 
@@ -687,7 +831,10 @@ auto main() -> int
     test_toml_decode_extended_strings();
     test_toml_decode_extended_numbers();
     test_toml_decode_special_floats();
+    test_toml_decode_date_time_values();
     test_toml_decode_inline_tables();
+    test_toml_decode_array_of_tables();
+    test_toml_decode_reports_parse_error_detail();
     test_toml_decode_rejects_invalid_inline_tables();
     test_toml_decode_rejects_invalid_numbers();
     test_toml_decode_rejects_invalid_syntax();
@@ -695,7 +842,8 @@ auto main() -> int
     test_toml_encode_basic_document();
     test_toml_encode_special_floats();
     test_toml_encode_quoted_keys_and_nested_tables();
-    test_toml_encode_inline_tables_in_arrays();
+    test_toml_encode_array_of_tables();
+    test_toml_encode_date_time_and_array_of_tables();
     test_toml_round_trip();
     test_toml_encode_rejects_invalid_values();
 

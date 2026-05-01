@@ -24,6 +24,7 @@
 
 #include <xer/bits/common.h>
 #include <xer/error.h>
+#include <xer/parse.h>
 
 namespace xer {
 
@@ -32,13 +33,37 @@ struct toml_value;
 using toml_array = std::vector<toml_value>;
 using toml_table = std::vector<std::pair<std::u8string, toml_value>>;
 
+struct toml_local_date {
+    int year = 0;
+    int month = 0;
+    int day = 0;
+};
+
+struct toml_local_time {
+    int hour = 0;
+    int minute = 0;
+    int second = 0;
+    int microsec = 0;
+};
+
+struct toml_local_datetime {
+    toml_local_date date;
+    toml_local_time time;
+};
+
+struct toml_offset_datetime {
+    toml_local_date date;
+    toml_local_time time;
+    int offset_minutes = 0;
+};
+
 /**
  * @brief Represents one TOML value in the initial XER TOML subset.
  *
  * The initial subset supports booleans, signed 64-bit integers, double-precision
- * floating-point numbers, UTF-8 strings, arrays, and tables.
+ * floating-point numbers, UTF-8 strings, date/time values, arrays, and tables.
  *
- * TOML date/time values and array-of-tables are intentionally deferred.
+ * Array-of-tables is represented as an array whose elements are tables.
  */
 struct toml_value {
     using array_type = toml_array;
@@ -48,6 +73,10 @@ struct toml_value {
         std::int64_t,
         double,
         std::u8string,
+        toml_local_date,
+        toml_local_time,
+        toml_local_datetime,
+        toml_offset_datetime,
         array_type,
         table_type>;
 
@@ -60,6 +89,10 @@ struct toml_value {
     toml_value(std::u8string v) : value(std::move(v)) {}
     toml_value(std::u8string_view v) : value(std::u8string(v)) {}
     toml_value(const char8_t* v) : value(std::u8string(v)) {}
+    toml_value(toml_local_date v) : value(v) {}
+    toml_value(toml_local_time v) : value(v) {}
+    toml_value(toml_local_datetime v) : value(v) {}
+    toml_value(toml_offset_datetime v) : value(v) {}
     toml_value(array_type v) : value(std::move(v)) {}
     toml_value(table_type v) : value(std::move(v)) {}
 
@@ -81,6 +114,26 @@ struct toml_value {
     [[nodiscard]] auto is_string() const noexcept -> bool
     {
         return std::holds_alternative<std::u8string>(value);
+    }
+
+    [[nodiscard]] auto is_local_date() const noexcept -> bool
+    {
+        return std::holds_alternative<toml_local_date>(value);
+    }
+
+    [[nodiscard]] auto is_local_time() const noexcept -> bool
+    {
+        return std::holds_alternative<toml_local_time>(value);
+    }
+
+    [[nodiscard]] auto is_local_datetime() const noexcept -> bool
+    {
+        return std::holds_alternative<toml_local_datetime>(value);
+    }
+
+    [[nodiscard]] auto is_offset_datetime() const noexcept -> bool
+    {
+        return std::holds_alternative<toml_offset_datetime>(value);
     }
 
     [[nodiscard]] auto is_array() const noexcept -> bool
@@ -133,6 +186,46 @@ struct toml_value {
         return std::get_if<std::u8string>(&value);
     }
 
+    [[nodiscard]] auto as_local_date() noexcept -> toml_local_date*
+    {
+        return std::get_if<toml_local_date>(&value);
+    }
+
+    [[nodiscard]] auto as_local_date() const noexcept -> const toml_local_date*
+    {
+        return std::get_if<toml_local_date>(&value);
+    }
+
+    [[nodiscard]] auto as_local_time() noexcept -> toml_local_time*
+    {
+        return std::get_if<toml_local_time>(&value);
+    }
+
+    [[nodiscard]] auto as_local_time() const noexcept -> const toml_local_time*
+    {
+        return std::get_if<toml_local_time>(&value);
+    }
+
+    [[nodiscard]] auto as_local_datetime() noexcept -> toml_local_datetime*
+    {
+        return std::get_if<toml_local_datetime>(&value);
+    }
+
+    [[nodiscard]] auto as_local_datetime() const noexcept -> const toml_local_datetime*
+    {
+        return std::get_if<toml_local_datetime>(&value);
+    }
+
+    [[nodiscard]] auto as_offset_datetime() noexcept -> toml_offset_datetime*
+    {
+        return std::get_if<toml_offset_datetime>(&value);
+    }
+
+    [[nodiscard]] auto as_offset_datetime() const noexcept -> const toml_offset_datetime*
+    {
+        return std::get_if<toml_offset_datetime>(&value);
+    }
+
     [[nodiscard]] auto as_array() noexcept -> array_type*
     {
         return std::get_if<array_type>(&value);
@@ -157,6 +250,19 @@ struct toml_value {
 } // namespace xer
 
 namespace xer::detail {
+
+
+[[nodiscard]] inline auto toml_make_parse_error(
+    parse_error_reason reason = parse_error_reason::invalid_syntax,
+    std::size_t offset = 0,
+    std::size_t line = 1,
+    std::size_t column = 1,
+    error_t code = error_t::invalid_argument) -> error<parse_error_detail>
+{
+    return make_error<parse_error_detail>(
+        code,
+        parse_error_detail{offset, line, column, reason});
+}
 
 [[nodiscard]] constexpr auto toml_is_ascii_space(char8_t ch) noexcept -> bool
 {
@@ -716,11 +822,11 @@ namespace xer::detail {
 
 inline auto toml_append_utf8_code_point(
     std::u8string& out,
-    char32_t code_point) -> result<void>
+    char32_t code_point) -> result<void, parse_error_detail>
 {
     if (code_point > U'\U0010FFFF' ||
         (code_point >= static_cast<char32_t>(0xD800) && code_point <= static_cast<char32_t>(0xDFFF))) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     if (code_point <= U'\u007F') {
@@ -751,17 +857,17 @@ inline auto toml_append_utf8_code_point(
 [[nodiscard]] inline auto toml_parse_unicode_escape(
     std::u8string_view value,
     std::size_t& index,
-    std::size_t digits) -> result<char32_t>
+    std::size_t digits) -> result<char32_t, parse_error_detail>
 {
     if (index + digits > value.size()) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     char32_t code_point = 0;
     for (std::size_t i = 0; i < digits; ++i) {
         const int digit = toml_hex_digit_value(value[index + i]);
         if (digit < 0) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         code_point = static_cast<char32_t>((code_point << 4) |
@@ -774,7 +880,7 @@ inline auto toml_append_utf8_code_point(
 
 [[nodiscard]] inline auto toml_parse_basic_string_body(
     std::u8string_view body,
-    bool multiline) -> result<std::u8string>
+    bool multiline) -> result<std::u8string, parse_error_detail>
 {
     std::u8string out;
 
@@ -783,7 +889,7 @@ inline auto toml_append_utf8_code_point(
 
         if (ch != u8'\\') {
             if (!multiline && (ch == u8'"' || ch == u8'\n' || ch == u8'\r')) {
-                return std::unexpected(make_error(error_t::invalid_argument));
+                return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
             }
 
             out.push_back(ch);
@@ -791,7 +897,7 @@ inline auto toml_append_utf8_code_point(
         }
 
         if (i >= body.size()) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         const char8_t escaped = body[i++];
@@ -843,7 +949,7 @@ inline auto toml_append_utf8_code_point(
         }
         case u8'\n':
             if (!multiline) {
-                return std::unexpected(make_error(error_t::invalid_argument));
+                return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
             }
 
             while (i < body.size() && toml_is_ascii_space(body[i])) {
@@ -851,7 +957,7 @@ inline auto toml_append_utf8_code_point(
             }
             break;
         default:
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
     }
 
@@ -859,10 +965,10 @@ inline auto toml_append_utf8_code_point(
 }
 
 [[nodiscard]] inline auto toml_parse_basic_string(std::u8string_view value)
-    -> result<std::u8string>
+    -> result<std::u8string, parse_error_detail>
 {
     if (value.size() < 2 || value.front() != u8'"' || value.back() != u8'"') {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     const std::u8string_view body = value.substr(1, value.size() - 2);
@@ -870,11 +976,11 @@ inline auto toml_append_utf8_code_point(
 }
 
 [[nodiscard]] inline auto toml_parse_multiline_basic_string(
-    std::u8string_view value) -> result<std::u8string>
+    std::u8string_view value) -> result<std::u8string, parse_error_detail>
 {
     if (value.size() < 6 || !toml_starts_with(value, u8"\"\"\"") ||
         !toml_starts_with(value.substr(value.size() - 3), u8"\"\"\"")) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     std::u8string_view body = value.substr(3, value.size() - 6);
@@ -883,35 +989,35 @@ inline auto toml_append_utf8_code_point(
     }
 
     if (body.find(u8"\"\"\"") != std::u8string_view::npos) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     return toml_parse_basic_string_body(body, true);
 }
 
 [[nodiscard]] inline auto toml_parse_literal_string(std::u8string_view value)
-    -> result<std::u8string>
+    -> result<std::u8string, parse_error_detail>
 {
     if (value.size() < 2 || value.front() != u8'\'' || value.back() != u8'\'') {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     const std::u8string_view body = value.substr(1, value.size() - 2);
     if (body.find(u8'\'') != std::u8string_view::npos ||
         body.find(u8'\n') != std::u8string_view::npos ||
         body.find(u8'\r') != std::u8string_view::npos) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     return std::u8string(body);
 }
 
 [[nodiscard]] inline auto toml_parse_multiline_literal_string(
-    std::u8string_view value) -> result<std::u8string>
+    std::u8string_view value) -> result<std::u8string, parse_error_detail>
 {
     if (value.size() < 6 || !toml_starts_with(value, u8"'''") ||
         !toml_starts_with(value.substr(value.size() - 3), u8"'''")) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     std::u8string_view body = value.substr(3, value.size() - 6);
@@ -920,14 +1026,14 @@ inline auto toml_append_utf8_code_point(
     }
 
     if (body.find(u8"'''") != std::u8string_view::npos) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     return std::u8string(body);
 }
 
 [[nodiscard]] inline auto toml_parse_string(std::u8string_view value)
-    -> result<std::u8string>
+    -> result<std::u8string, parse_error_detail>
 {
     if (toml_starts_with(value, u8"\"\"\"")) {
         return toml_parse_multiline_basic_string(value);
@@ -956,12 +1062,12 @@ inline auto toml_append_utf8_code_point(
 using toml_key_path = std::vector<std::u8string>;
 
 [[nodiscard]] inline auto toml_parse_key_segment(std::u8string_view value)
-    -> result<std::u8string>
+    -> result<std::u8string, parse_error_detail>
 {
     value = toml_trim_ascii_space(value);
 
     if (value.empty()) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     if (toml_is_bare_key(value)) {
@@ -970,7 +1076,7 @@ using toml_key_path = std::vector<std::u8string>;
 
     if (toml_starts_with(value, u8"\"\"\"") ||
         toml_starts_with(value, u8"'''")) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     if (value.front() == u8'"' || value.front() == u8'\'') {
@@ -982,11 +1088,11 @@ using toml_key_path = std::vector<std::u8string>;
         return *segment;
     }
 
-    return std::unexpected(make_error(error_t::invalid_argument));
+    return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
 }
 
 [[nodiscard]] inline auto toml_parse_key_path(std::u8string_view value)
-    -> result<toml_key_path>
+    -> result<toml_key_path, parse_error_detail>
 {
     value = toml_trim_ascii_space(value);
 
@@ -1012,12 +1118,12 @@ using toml_key_path = std::vector<std::u8string>;
 
         start = end + 1;
         if (start > value.size()) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
     }
 
     if (path.empty()) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     return path;
@@ -1043,7 +1149,7 @@ using toml_key_path = std::vector<std::u8string>;
 [[nodiscard]] inline auto toml_get_or_create_table(
     toml_table& base,
     const toml_key_path& path,
-    std::size_t count) -> result<toml_table*>
+    std::size_t count) -> result<toml_table*, parse_error_detail>
 {
     toml_table* table = &base;
 
@@ -1056,7 +1162,7 @@ using toml_key_path = std::vector<std::u8string>;
 
         table = existing->as_table();
         if (table == nullptr) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
     }
 
@@ -1064,16 +1170,16 @@ using toml_key_path = std::vector<std::u8string>;
 }
 
 [[nodiscard]] inline auto toml_parse_value(std::u8string_view value)
-    -> result<toml_value>;
+    -> result<toml_value, parse_error_detail>;
 
 [[nodiscard]] inline auto toml_parse_inline_table(std::u8string_view value)
-    -> result<toml_value>;
+    -> result<toml_value, parse_error_detail>;
 
 [[nodiscard]] inline auto toml_parse_array(std::u8string_view value)
-    -> result<toml_value>
+    -> result<toml_value, parse_error_detail>
 {
     if (value.size() < 2 || value.front() != u8'[' || value.back() != u8']') {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     toml_array array;
@@ -1093,7 +1199,7 @@ using toml_key_path = std::vector<std::u8string>;
             toml_trim_ascii_space(body.substr(start, end - start));
 
         if (token.empty()) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         auto element = toml_parse_value(token);
@@ -1114,10 +1220,10 @@ using toml_key_path = std::vector<std::u8string>;
 }
 
 [[nodiscard]] inline auto toml_parse_inline_table(std::u8string_view value)
-    -> result<toml_value>
+    -> result<toml_value, parse_error_detail>
 {
     if (value.size() < 2 || value.front() != u8'{' || value.back() != u8'}') {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     toml_table table;
@@ -1137,12 +1243,12 @@ using toml_key_path = std::vector<std::u8string>;
             toml_trim_ascii_space(body.substr(start, end - start));
 
         if (token.empty()) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         const std::size_t separator = toml_find_unquoted(token, u8'=');
         if (separator == std::u8string_view::npos) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         const std::u8string_view raw_key =
@@ -1170,7 +1276,7 @@ using toml_key_path = std::vector<std::u8string>;
 
         const auto& key = path->back();
         if (toml_find_key(*destination, key) != nullptr) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         auto parsed = toml_parse_value(raw_value);
@@ -1250,10 +1356,10 @@ template <class Pred>
 template <class Pred>
 [[nodiscard]] inline auto toml_remove_digit_separators(
     std::u8string_view value,
-    Pred is_digit) -> result<std::u8string>
+    Pred is_digit) -> result<std::u8string, parse_error_detail>
 {
     if (!toml_digits_with_separators_are_valid(value, is_digit)) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     std::u8string out;
@@ -1288,10 +1394,10 @@ template <class Pred>
 [[nodiscard]] inline auto toml_parse_integer_digits(
     std::u8string_view digits,
     int base,
-    bool negative) -> result<toml_value>
+    bool negative) -> result<toml_value, parse_error_detail>
 {
     if (digits.empty() || base < 2 || base > 16) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     constexpr auto max_value =
@@ -1304,12 +1410,12 @@ template <class Pred>
     for (const char8_t ch : digits) {
         const int digit = toml_digit_value(ch);
         if (digit < 0 || digit >= base) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         const auto value = static_cast<std::uint64_t>(digit);
         if (magnitude > (limit - value) / static_cast<std::uint64_t>(base)) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         magnitude = magnitude * static_cast<std::uint64_t>(base) + value;
@@ -1326,7 +1432,7 @@ template <class Pred>
     return toml_value(static_cast<std::int64_t>(magnitude));
 }
 [[nodiscard]] inline auto toml_parse_integer(std::u8string_view value)
-    -> result<toml_value>
+    -> result<toml_value, parse_error_detail>
 {
     bool negative = false;
 
@@ -1438,10 +1544,10 @@ template <class Pred>
 }
 
 [[nodiscard]] inline auto toml_parse_float(std::u8string_view value)
-    -> result<toml_value>
+    -> result<toml_value, parse_error_detail>
 {
     if (!toml_float_syntax_is_valid(value)) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     std::string narrow;
@@ -1449,7 +1555,7 @@ template <class Pred>
 
     for (const char8_t ch : value) {
         if (static_cast<unsigned char>(ch) > 0x7f) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         if (ch != u8'_') {
@@ -1463,14 +1569,14 @@ template <class Pred>
 
     if (errno == ERANGE || end == nullptr || *end != '\0' ||
         !std::isfinite(out)) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     return toml_value(out);
 }
 
 [[nodiscard]] inline auto toml_parse_special_float(std::u8string_view value)
-    -> result<toml_value>
+    -> result<toml_value, parse_error_detail>
 {
     bool negative = false;
 
@@ -1497,7 +1603,7 @@ template <class Pred>
         return toml_value(out);
     }
 
-    return std::unexpected(make_error(error_t::invalid_argument));
+    return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
 }
 
 [[nodiscard]] inline auto toml_is_special_float(std::u8string_view value) noexcept
@@ -1523,13 +1629,251 @@ template <class Pred>
             value[1] == u8'b' || value[1] == u8'B');
 }
 
+[[nodiscard]] constexpr auto toml_is_digit_at(
+    std::u8string_view value,
+    std::size_t index) noexcept -> bool
+{
+    return index < value.size() && value[index] >= u8'0' &&
+           value[index] <= u8'9';
+}
+
+[[nodiscard]] inline auto toml_parse_fixed_uint(
+    std::u8string_view value,
+    std::size_t offset,
+    std::size_t count) noexcept -> int
+{
+    if (offset + count > value.size()) {
+        return -1;
+    }
+
+    int out = 0;
+    for (std::size_t i = 0; i < count; ++i) {
+        const char8_t ch = value[offset + i];
+        if (ch < u8'0' || ch > u8'9') {
+            return -1;
+        }
+
+        out = out * 10 + static_cast<int>(ch - u8'0');
+    }
+
+    return out;
+}
+
+[[nodiscard]] constexpr auto toml_is_leap_year(int year) noexcept -> bool
+{
+    return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+}
+
+[[nodiscard]] constexpr auto toml_days_in_month(int year, int month) noexcept
+    -> int
+{
+    switch (month) {
+    case 1:
+    case 3:
+    case 5:
+    case 7:
+    case 8:
+    case 10:
+    case 12:
+        return 31;
+    case 4:
+    case 6:
+    case 9:
+    case 11:
+        return 30;
+    case 2:
+        return toml_is_leap_year(year) ? 29 : 28;
+    default:
+        return 0;
+    }
+}
+
+[[nodiscard]] constexpr auto toml_date_is_valid(
+    const toml_local_date& value) noexcept -> bool
+{
+    return value.year >= 0 && value.month >= 1 && value.month <= 12 &&
+           value.day >= 1 &&
+           value.day <= toml_days_in_month(value.year, value.month);
+}
+
+[[nodiscard]] constexpr auto toml_time_is_valid(
+    const toml_local_time& value) noexcept -> bool
+{
+    return value.hour >= 0 && value.hour <= 23 && value.minute >= 0 &&
+           value.minute <= 59 && value.second >= 0 && value.second <= 59 &&
+           value.microsec >= 0 && value.microsec <= 999999;
+}
+
+[[nodiscard]] inline auto toml_parse_local_date_token(
+    std::u8string_view value) -> result<toml_local_date, parse_error_detail>
+{
+    if (value.size() != 10 || value[4] != u8'-' || value[7] != u8'-') {
+        return std::unexpected(
+            toml_make_parse_error(parse_error_reason::invalid_date_time));
+    }
+
+    toml_local_date out{
+        toml_parse_fixed_uint(value, 0, 4),
+        toml_parse_fixed_uint(value, 5, 2),
+        toml_parse_fixed_uint(value, 8, 2),
+    };
+
+    if (!toml_date_is_valid(out)) {
+        return std::unexpected(
+            toml_make_parse_error(parse_error_reason::invalid_date_time));
+    }
+
+    return out;
+}
+
+[[nodiscard]] inline auto toml_parse_local_time_token(
+    std::u8string_view value) -> result<toml_local_time, parse_error_detail>
+{
+    if (value.size() < 8 || value[2] != u8':' || value[5] != u8':') {
+        return std::unexpected(
+            toml_make_parse_error(parse_error_reason::invalid_date_time));
+    }
+
+    toml_local_time out{
+        toml_parse_fixed_uint(value, 0, 2),
+        toml_parse_fixed_uint(value, 3, 2),
+        toml_parse_fixed_uint(value, 6, 2),
+        0,
+    };
+
+    std::size_t pos = 8;
+    if (pos < value.size()) {
+        if (value[pos] != u8'.') {
+            return std::unexpected(
+                toml_make_parse_error(parse_error_reason::invalid_date_time));
+        }
+
+        ++pos;
+        if (pos >= value.size() || !toml_is_digit_at(value, pos)) {
+            return std::unexpected(
+                toml_make_parse_error(parse_error_reason::invalid_date_time));
+        }
+
+        int scale = 100000;
+        while (pos < value.size()) {
+            if (!toml_is_digit_at(value, pos)) {
+                return std::unexpected(
+                    toml_make_parse_error(parse_error_reason::invalid_date_time));
+            }
+
+            if (scale > 0) {
+                out.microsec += static_cast<int>(value[pos] - u8'0') * scale;
+                scale /= 10;
+            }
+
+            ++pos;
+        }
+    }
+
+    if (!toml_time_is_valid(out)) {
+        return std::unexpected(
+            toml_make_parse_error(parse_error_reason::invalid_date_time));
+    }
+
+    return out;
+}
+
+[[nodiscard]] inline auto toml_parse_date_time(std::u8string_view value)
+    -> result<toml_value, parse_error_detail>
+{
+    if (value.size() == 10 && value[4] == u8'-' && value[7] == u8'-') {
+        auto date = toml_parse_local_date_token(value);
+        if (!date.has_value()) {
+            return std::unexpected(date.error());
+        }
+
+        return toml_value(*date);
+    }
+
+    if (value.size() >= 8 && value[2] == u8':' && value[5] == u8':') {
+        auto time = toml_parse_local_time_token(value);
+        if (!time.has_value()) {
+            return std::unexpected(time.error());
+        }
+
+        return toml_value(*time);
+    }
+
+    if (value.size() < 19 || value[4] != u8'-' || value[7] != u8'-' ||
+        (value[10] != u8'T' && value[10] != u8't' && value[10] != u8' ')) {
+        return std::unexpected(
+            toml_make_parse_error(parse_error_reason::invalid_date_time));
+    }
+
+    auto date = toml_parse_local_date_token(value.substr(0, 10));
+    if (!date.has_value()) {
+        return std::unexpected(date.error());
+    }
+
+    std::u8string_view time_and_offset = value.substr(11);
+    std::size_t offset_pos = std::u8string_view::npos;
+
+    for (std::size_t i = 8; i < time_and_offset.size(); ++i) {
+        if (time_and_offset[i] == u8'Z' || time_and_offset[i] == u8'z' ||
+            time_and_offset[i] == u8'+' || time_and_offset[i] == u8'-') {
+            offset_pos = i;
+            break;
+        }
+    }
+
+    const std::u8string_view time_part = offset_pos == std::u8string_view::npos
+        ? time_and_offset
+        : time_and_offset.substr(0, offset_pos);
+    auto time = toml_parse_local_time_token(time_part);
+    if (!time.has_value()) {
+        return std::unexpected(time.error());
+    }
+
+    if (offset_pos == std::u8string_view::npos) {
+        return toml_value(toml_local_datetime{*date, *time});
+    }
+
+    const std::u8string_view offset = time_and_offset.substr(offset_pos);
+    int offset_minutes = 0;
+    if (offset == u8"Z" || offset == u8"z") {
+        offset_minutes = 0;
+    } else {
+        if (offset.size() != 6 || (offset[0] != u8'+' && offset[0] != u8'-') ||
+            offset[3] != u8':') {
+            return std::unexpected(
+                toml_make_parse_error(parse_error_reason::invalid_date_time));
+        }
+
+        const int hours = toml_parse_fixed_uint(offset, 1, 2);
+        const int minutes = toml_parse_fixed_uint(offset, 4, 2);
+        if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+            return std::unexpected(
+                toml_make_parse_error(parse_error_reason::invalid_date_time));
+        }
+
+        offset_minutes = hours * 60 + minutes;
+        if (offset[0] == u8'-') {
+            offset_minutes = -offset_minutes;
+        }
+    }
+
+    return toml_value(toml_offset_datetime{*date, *time, offset_minutes});
+}
+
+[[nodiscard]] inline auto toml_may_be_date_time(std::u8string_view value) noexcept
+    -> bool
+{
+    return (value.size() >= 10 && value[4] == u8'-' && value[7] == u8'-') ||
+           (value.size() >= 8 && value[2] == u8':' && value[5] == u8':');
+}
+
 [[nodiscard]] inline auto toml_parse_value(std::u8string_view value)
-    -> result<toml_value>
+    -> result<toml_value, parse_error_detail>
 {
     value = toml_trim_ascii_space(value);
 
     if (value.empty()) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+        return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 
     if (value.front() == u8'"' || value.front() == u8'\'') {
@@ -1555,6 +1899,10 @@ template <class Pred>
 
     if (value == u8"false") {
         return toml_value(false);
+    }
+
+    if (toml_may_be_date_time(value)) {
+        return toml_parse_date_time(value);
     }
 
     if (toml_is_special_float(value)) {
@@ -1600,6 +1948,107 @@ template <class Pred>
     return nullptr;
 }
 
+[[nodiscard]] inline auto toml_array_is_array_of_tables(
+    const toml_array& array) noexcept -> bool
+{
+    if (array.empty()) {
+        return false;
+    }
+
+    for (const auto& element : array) {
+        if (!element.is_table()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+[[nodiscard]] inline auto toml_get_last_array_table(
+    toml_array& array) noexcept -> toml_table*
+{
+    if (array.empty()) {
+        return nullptr;
+    }
+
+    return array.back().as_table();
+}
+
+[[nodiscard]] inline auto toml_get_or_create_array_table_parent(
+    toml_table& base,
+    const toml_key_path& path,
+    std::size_t count) -> result<toml_table*, parse_error_detail>
+{
+    toml_table* table = &base;
+
+    for (std::size_t i = 0; i < count; ++i) {
+        toml_value* existing = toml_find_key(*table, path[i]);
+        if (existing == nullptr) {
+            table->push_back({path[i], toml_value(toml_table{})});
+            existing = &table->back().second;
+        }
+
+        if (auto* child = existing->as_table()) {
+            table = child;
+            continue;
+        }
+
+        if (auto* array = existing->as_array()) {
+            table = toml_get_last_array_table(*array);
+            if (table == nullptr) {
+                return std::unexpected(
+                    toml_make_parse_error(parse_error_reason::invalid_table));
+            }
+            continue;
+        }
+
+        return std::unexpected(
+            toml_make_parse_error(parse_error_reason::invalid_table));
+    }
+
+    return table;
+}
+
+[[nodiscard]] inline auto toml_create_array_table(
+    toml_table& base,
+    const toml_key_path& path) -> result<toml_table*, parse_error_detail>
+{
+    if (path.empty()) {
+        return std::unexpected(
+            toml_make_parse_error(parse_error_reason::invalid_table));
+    }
+
+    auto parent = toml_get_or_create_array_table_parent(
+        base,
+        path,
+        path.size() - 1);
+    if (!parent.has_value()) {
+        return std::unexpected(parent.error());
+    }
+
+    const auto& key = path.back();
+    toml_value* existing = toml_find_key(**parent, key);
+    if (existing == nullptr) {
+        (*parent)->push_back({key, toml_value(toml_array{})});
+        existing = &(*parent)->back().second;
+    }
+
+    toml_array* array = existing->as_array();
+    if (array == nullptr) {
+        return std::unexpected(
+            toml_make_parse_error(parse_error_reason::duplicate_table));
+    }
+
+    array->push_back(toml_value(toml_table{}));
+    toml_table* table = array->back().as_table();
+    if (table == nullptr) {
+        return std::unexpected(
+            toml_make_parse_error(parse_error_reason::invalid_table));
+    }
+
+    return table;
+}
+
 
 class toml_decoder {
 public:
@@ -1608,20 +2057,22 @@ public:
     {
     }
 
-    [[nodiscard]] auto parse() -> result<toml_value>
+    [[nodiscard]] auto parse() -> result<toml_value, parse_error_detail>
     {
         if (!toml_is_valid_utf8(text)) {
-            return std::unexpected(make_error(error_t::encoding_error));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_encoding, 0, 1, 1, error_t::encoding_error));
         }
 
         toml_value root(toml_table{});
         current_table = root.as_table();
 
         while (pos < text.size()) {
+            const std::size_t line_offset = pos;
+            const std::size_t start_line = line_number;
             std::u8string raw_line(read_line());
             while (toml_line_has_unclosed_multiline_string(raw_line)) {
                 if (pos >= text.size()) {
-                    return std::unexpected(make_error(error_t::invalid_argument));
+                    return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
                 }
 
                 raw_line.push_back(u8'\n');
@@ -1630,7 +2081,13 @@ public:
 
             auto parsed = parse_line(root, raw_line);
             if (!parsed.has_value()) {
-                return std::unexpected(parsed.error());
+                auto error = parsed.error();
+                if (error.offset == 0 && error.line == 1 && error.column == 1) {
+                    error.offset = line_offset;
+                    error.line = start_line;
+                    error.column = 1;
+                }
+                return std::unexpected(error);
             }
         }
 
@@ -1640,6 +2097,7 @@ public:
 private:
     std::u8string_view text;
     std::size_t pos;
+    std::size_t line_number = 1;
     toml_table* current_table = nullptr;
     std::vector<toml_key_path> declared_tables;
 
@@ -1661,6 +2119,7 @@ private:
             } else {
                 ++pos;
             }
+            ++line_number;
         }
 
         return text.substr(begin, end - begin);
@@ -1680,7 +2139,7 @@ private:
 
     [[nodiscard]] auto parse_line(
         toml_value& root,
-        std::u8string_view line) -> result<void>
+        std::u8string_view line) -> result<void, parse_error_detail>
     {
         line = toml_trim_ascii_space(toml_strip_comment(line));
 
@@ -1697,27 +2156,45 @@ private:
 
     [[nodiscard]] auto parse_table(
         toml_value& root,
-        std::u8string_view line) -> result<void>
+        std::u8string_view line) -> result<void, parse_error_detail>
     {
-        if (line.size() < 3 || line.back() != u8']' ||
-            (line.size() >= 2 && line[1] == u8'[')) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+        const bool array_table = line.size() >= 4 && line[0] == u8'[' &&
+            line[1] == u8'[' && line[line.size() - 2] == u8']' &&
+            line[line.size() - 1] == u8']';
+
+        if (!array_table && (line.size() < 3 || line.back() != u8']' ||
+            (line.size() >= 2 && line[1] == u8'['))) {
+            return std::unexpected(
+                toml_make_parse_error(parse_error_reason::invalid_table));
         }
 
-        const std::u8string_view raw_name =
-            toml_trim_ascii_space(line.substr(1, line.size() - 2));
+        const std::u8string_view raw_name = array_table
+            ? toml_trim_ascii_space(line.substr(2, line.size() - 4))
+            : toml_trim_ascii_space(line.substr(1, line.size() - 2));
         auto path = toml_parse_key_path(raw_name);
         if (!path.has_value()) {
             return std::unexpected(path.error());
         }
 
-        if (table_was_declared(*path)) {
-            return std::unexpected(make_error(error_t::invalid_argument));
-        }
-
         auto* root_table = root.as_table();
         if (root_table == nullptr) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(
+                toml_make_parse_error(parse_error_reason::invalid_table));
+        }
+
+        if (array_table) {
+            auto table = toml_create_array_table(*root_table, *path);
+            if (!table.has_value()) {
+                return std::unexpected(table.error());
+            }
+
+            current_table = *table;
+            return {};
+        }
+
+        if (table_was_declared(*path)) {
+            return std::unexpected(
+                toml_make_parse_error(parse_error_reason::duplicate_table));
         }
 
         auto table = toml_get_or_create_table(*root_table, *path, path->size());
@@ -1730,11 +2207,11 @@ private:
         return {};
     }
 
-    [[nodiscard]] auto parse_entry(std::u8string_view line) -> result<void>
+    [[nodiscard]] auto parse_entry(std::u8string_view line) -> result<void, parse_error_detail>
     {
         const std::size_t separator = toml_find_unquoted(line, u8'=');
         if (separator == std::u8string_view::npos) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         const std::u8string_view raw_key =
@@ -1743,7 +2220,7 @@ private:
             toml_trim_ascii_space(line.substr(separator + 1));
 
         if (current_table == nullptr) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         auto path = toml_parse_key_path(raw_key);
@@ -1766,7 +2243,7 @@ private:
 
         const auto& key = path->back();
         if (toml_find_key(*destination, key) != nullptr) {
-            return std::unexpected(make_error(error_t::invalid_argument));
+            return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
         }
 
         auto value = toml_parse_value(raw_value);
@@ -1825,6 +2302,88 @@ private:
     }
 
     return true;
+}
+
+[[nodiscard]] inline auto toml_value_is_array_of_tables(
+    const toml_value& value) noexcept -> bool
+{
+    const auto* array = value.as_array();
+    return array != nullptr && toml_array_is_array_of_tables(*array);
+}
+
+inline void toml_append_two_digits(std::u8string& out, int value)
+{
+    out.push_back(static_cast<char8_t>(u8'0' + (value / 10) % 10));
+    out.push_back(static_cast<char8_t>(u8'0' + value % 10));
+}
+
+inline void toml_append_four_digits(std::u8string& out, int value)
+{
+    out.push_back(static_cast<char8_t>(u8'0' + (value / 1000) % 10));
+    out.push_back(static_cast<char8_t>(u8'0' + (value / 100) % 10));
+    out.push_back(static_cast<char8_t>(u8'0' + (value / 10) % 10));
+    out.push_back(static_cast<char8_t>(u8'0' + value % 10));
+}
+
+inline void toml_encode_local_date(
+    std::u8string& out,
+    const toml_local_date& value)
+{
+    toml_append_four_digits(out, value.year);
+    out.push_back(u8'-');
+    toml_append_two_digits(out, value.month);
+    out.push_back(u8'-');
+    toml_append_two_digits(out, value.day);
+}
+
+inline void toml_encode_local_time(
+    std::u8string& out,
+    const toml_local_time& value)
+{
+    toml_append_two_digits(out, value.hour);
+    out.push_back(u8':');
+    toml_append_two_digits(out, value.minute);
+    out.push_back(u8':');
+    toml_append_two_digits(out, value.second);
+
+    if (value.microsec != 0) {
+        char buffer[16]{};
+        const auto length = std::snprintf(
+            buffer,
+            sizeof(buffer),
+            ".%06d",
+            value.microsec);
+        if (length > 0) {
+            std::u8string_view fraction(
+                reinterpret_cast<const char8_t*>(buffer),
+                static_cast<std::size_t>(length));
+            while (!fraction.empty() && fraction.back() == u8'0') {
+                fraction.remove_suffix(1);
+            }
+            out.append(fraction);
+        }
+    }
+}
+
+inline void toml_encode_offset(
+    std::u8string& out,
+    int offset_minutes)
+{
+    if (offset_minutes == 0) {
+        out.push_back(u8'Z');
+        return;
+    }
+
+    if (offset_minutes < 0) {
+        out.push_back(u8'-');
+        offset_minutes = -offset_minutes;
+    } else {
+        out.push_back(u8'+');
+    }
+
+    toml_append_two_digits(out, offset_minutes / 60);
+    out.push_back(u8':');
+    toml_append_two_digits(out, offset_minutes % 60);
 }
 
 inline void toml_encode_string(std::u8string& out, std::u8string_view value)
@@ -1963,6 +2522,31 @@ inline void toml_encode_key_segment(std::u8string& out, std::u8string_view key);
         return {};
     }
 
+    if (const auto* date = value.as_local_date()) {
+        toml_encode_local_date(out, *date);
+        return {};
+    }
+
+    if (const auto* time = value.as_local_time()) {
+        toml_encode_local_time(out, *time);
+        return {};
+    }
+
+    if (const auto* datetime = value.as_local_datetime()) {
+        toml_encode_local_date(out, datetime->date);
+        out.push_back(u8'T');
+        toml_encode_local_time(out, datetime->time);
+        return {};
+    }
+
+    if (const auto* datetime = value.as_offset_datetime()) {
+        toml_encode_local_date(out, datetime->date);
+        out.push_back(u8'T');
+        toml_encode_local_time(out, datetime->time);
+        toml_encode_offset(out, datetime->offset_minutes);
+        return {};
+    }
+
     if (const auto* array = value.as_array()) {
         out.push_back(u8'[');
 
@@ -2015,7 +2599,8 @@ inline void toml_encode_key_path(
     std::u8string& out,
     const std::pair<std::u8string, toml_value>& entry) -> result<void>
 {
-    if (!toml_key_can_encode(entry.first) || entry.second.is_table()) {
+    if (!toml_key_can_encode(entry.first) || entry.second.is_table() ||
+        toml_value_is_array_of_tables(entry.second)) {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
 
@@ -2030,6 +2615,11 @@ inline void toml_encode_key_path(
     out.push_back(u8'\n');
     return {};
 }
+
+[[nodiscard]] inline auto toml_encode_array_of_tables(
+    std::u8string& out,
+    const toml_array& array,
+    std::vector<std::u8string_view>& path) -> result<void>;
 
 [[nodiscard]] inline auto toml_encode_table_section(
     std::u8string& out,
@@ -2046,7 +2636,7 @@ inline void toml_encode_key_path(
     out.push_back(u8'\n');
 
     for (const auto& entry : table) {
-        if (entry.second.is_table()) {
+        if (entry.second.is_table() || toml_value_is_array_of_tables(entry.second)) {
             continue;
         }
 
@@ -2076,6 +2666,98 @@ inline void toml_encode_key_path(
         }
     }
 
+    for (const auto& entry : table) {
+        const auto* array = entry.second.as_array();
+        if (array == nullptr || !toml_array_is_array_of_tables(*array)) {
+            continue;
+        }
+
+        if (!toml_key_can_encode(entry.first)) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        path.push_back(entry.first);
+        auto encoded = toml_encode_array_of_tables(out, *array, path);
+        path.pop_back();
+
+        if (!encoded.has_value()) {
+            return std::unexpected(encoded.error());
+        }
+    }
+
+    return {};
+}
+
+[[nodiscard]] inline auto toml_encode_array_of_tables(
+    std::u8string& out,
+    const toml_array& array,
+    std::vector<std::u8string_view>& path) -> result<void>
+{
+    for (const auto& element : array) {
+        const auto* table = element.as_table();
+        if (table == nullptr) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        if (!out.empty()) {
+            out.push_back(u8'\n');
+        }
+
+        out.append(u8"[[");
+        toml_encode_key_path(out, path);
+        out.append(u8"]]\n");
+
+        for (const auto& entry : *table) {
+            if (entry.second.is_table() || toml_value_is_array_of_tables(entry.second)) {
+                continue;
+            }
+
+            auto encoded = toml_encode_entry(out, entry);
+            if (!encoded.has_value()) {
+                return std::unexpected(encoded.error());
+            }
+        }
+
+        for (const auto& entry : *table) {
+            const auto* child = entry.second.as_table();
+            if (child == nullptr) {
+                continue;
+            }
+
+            if (!toml_key_can_encode(entry.first) ||
+                !toml_table_can_encode_as_section(*child)) {
+                return std::unexpected(make_error(error_t::invalid_argument));
+            }
+
+            path.push_back(entry.first);
+            auto encoded = toml_encode_table_section(out, *child, path);
+            path.pop_back();
+
+            if (!encoded.has_value()) {
+                return std::unexpected(encoded.error());
+            }
+        }
+
+        for (const auto& entry : *table) {
+            const auto* child = entry.second.as_array();
+            if (child == nullptr || !toml_array_is_array_of_tables(*child)) {
+                continue;
+            }
+
+            if (!toml_key_can_encode(entry.first)) {
+                return std::unexpected(make_error(error_t::invalid_argument));
+            }
+
+            path.push_back(entry.first);
+            auto encoded = toml_encode_array_of_tables(out, *child, path);
+            path.pop_back();
+
+            if (!encoded.has_value()) {
+                return std::unexpected(encoded.error());
+            }
+        }
+    }
+
     return {};
 }
 
@@ -2089,16 +2771,16 @@ namespace xer {
  * The initial implementation supports a practical subset: bare keys, ordinary
  * tables, basic strings, literal strings, multiline strings, signed integers,
  * finite and special floating-point numbers, numeric separators, booleans,
- * arrays, inline tables, comments, and blank lines.
+ * arrays, inline tables, date/time values, array-of-tables, comments, and blank lines.
  *
  * Integers may use decimal, hexadecimal, octal, or binary notation. Dotted
  * keys, quoted keys, nested tables, and inline tables are supported.
- * Array-of-tables and date/time values are intentionally deferred.
+ * Date/time values and array-of-tables are supported in the current subset.
  *
  * @param text UTF-8 TOML text.
  * @return Parsed TOML value. On success, the returned value is a table.
  */
-[[nodiscard]] inline auto toml_decode(std::u8string_view text) -> result<toml_value>
+[[nodiscard]] inline auto toml_decode(std::u8string_view text) -> result<toml_value, parse_error_detail>
 {
     detail::toml_decoder decoder(text);
     return decoder.parse();
@@ -2109,7 +2791,7 @@ namespace xer {
  *
  * The value to encode must be a top-level table. Nested tables are emitted as
  * table sections, and table values in value contexts such as arrays may be
- * emitted as inline tables. Array-of-tables and date/time values are deferred.
+ * emitted as inline tables. Arrays whose elements are tables are emitted as array-of-tables in table context. Date/time values are emitted in TOML lexical form.
  *
  * @param value TOML value to encode. It must hold a table.
  * @return UTF-8 TOML text on success.
@@ -2129,7 +2811,7 @@ namespace xer {
     std::u8string out;
 
     for (const auto& entry : *root) {
-        if (entry.second.is_table()) {
+        if (entry.second.is_table() || detail::toml_value_is_array_of_tables(entry.second)) {
             continue;
         }
 
@@ -2151,6 +2833,23 @@ namespace xer {
 
         std::vector<std::u8string_view> path{entry.first};
         auto encoded = detail::toml_encode_table_section(out, *section, path);
+        if (!encoded.has_value()) {
+            return std::unexpected(encoded.error());
+        }
+    }
+
+    for (const auto& entry : *root) {
+        const auto* array = entry.second.as_array();
+        if (array == nullptr || !detail::toml_array_is_array_of_tables(*array)) {
+            continue;
+        }
+
+        if (!detail::toml_key_can_encode(entry.first)) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        std::vector<std::u8string_view> path{entry.first};
+        auto encoded = detail::toml_encode_array_of_tables(out, *array, path);
         if (!encoded.has_value()) {
             return std::unexpected(encoded.error());
         }

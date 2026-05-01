@@ -3764,7 +3764,8 @@ struct toml_value;
 using toml_array = std::vector<toml_value>;
 using toml_table = std::vector<std::pair<std::u8string, toml_value>>;
 
-auto toml_decode(std::u8string_view text) -> xer::result<toml_value>;
+auto toml_decode(std::u8string_view text)
+    -> xer::result<toml_value, parse_error_detail>;
 auto toml_encode(const toml_value& value) -> xer::result<std::u8string>;
 ````
 
@@ -3786,6 +3787,10 @@ The initial implementation supports the following value kinds:
 * integer
 * floating-point number
 * string
+* local date
+* local time
+* local date-time
+* offset date-time
 * array
 * table
 
@@ -3797,6 +3802,10 @@ std::variant<
     std::int64_t,
     double,
     std::u8string,
+    toml_local_date,
+    toml_local_time,
+    toml_local_datetime,
+    toml_offset_datetime,
     toml_array,
     toml_table
 >
@@ -3807,7 +3816,9 @@ std::variant<
 * integer values are stored as `std::int64_t`
 * floating-point values are stored as `double`
 * strings are stored as UTF-8 `std::u8string`
+* date/time values are stored in small TOML-specific value structs
 * arrays are stored as `std::vector<toml_value>`
+* array-of-tables is represented as an array whose elements are tables
 * tables are stored as ordered key-value pairs
 
 ---
@@ -3826,8 +3837,8 @@ The initial implementation stores arrays as ordinary ordered vectors.
 
 * array elements preserve order
 * arrays may contain values of different supported kinds
-* arrays containing tables are not supported by the initial encoder
-* array-of-tables syntax is deferred
+* arrays may contain table values
+* array-of-tables syntax is represented as an array of table values
 
 ---
 
@@ -3911,6 +3922,8 @@ large = 1_000_000
 ports = [8000, 8001, 8002]
 point = { x = 1, y = 2 }
 items = [{ name = "one" }, { name = "two" }]
+released = 2026-04-30
+created = 2026-04-30T23:59:58+09:00
 
 [project]
 name = "xer"
@@ -3939,6 +3952,8 @@ The initial decoder supports:
 * finite and special floating-point numbers
 * arrays
 * inline tables
+* local date, local time, local date-time, and offset date-time values
+* array-of-tables
 
 ### Line Endings
 
@@ -3997,7 +4012,7 @@ server.port = 8080
 database."connection.pool".size = 4
 ```
 
-Quoted segments may contain dots without being split.
+In this representation, each dotted-key segment is stored as an ordinary table key. Quoted segments may contain dots without being split.
 
 ---
 
@@ -4116,6 +4131,24 @@ Special values `inf`, `+inf`, `-inf`, `nan`, `+nan`, and `-nan` are accepted. Se
 
 ---
 
+## Date and Time Values
+
+The TOML decoder supports local dates, local times, local date-times, and offset date-times.
+
+Examples:
+
+```toml
+date = 2026-04-30
+time = 23:59:58.123456
+local = 2026-04-30T23:59:58
+offset = 2026-04-30T23:59:58+09:00
+utc = 2026-04-30T14:59:58Z
+```
+
+The value model stores these as `toml_local_date`, `toml_local_time`, `toml_local_datetime`, and `toml_offset_datetime`. Fractional seconds are stored with microsecond precision.
+
+---
+
 ## Arrays
 
 The implementation supports arrays.
@@ -4152,6 +4185,24 @@ Trailing commas in inline tables are rejected.
 
 ---
 
+## Array-of-Tables
+
+The decoder supports TOML array-of-tables syntax.
+
+```toml
+[[products]]
+name = "Hammer"
+
+[[products]]
+name = "Nail"
+```
+
+In the value model, this is represented as a `toml_array` whose elements are table values. Nested array-of-tables are attached to the latest table element in the parent array.
+
+The encoder emits an array whose elements are tables as `[[...]]` when it appears in table context.
+
+---
+
 ## Comments
 
 A `#` starts a comment when it appears outside a string.
@@ -4171,7 +4222,8 @@ name = "x#r"
 ## `toml_decode`
 
 ```cpp
-auto toml_decode(std::u8string_view text) -> xer::result<toml_value>;
+auto toml_decode(std::u8string_view text)
+    -> xer::result<toml_value, parse_error_detail>;
 ```
 
 ### Purpose
@@ -4209,6 +4261,16 @@ At minimum, decoding fails when:
 
 Invalid UTF-8 is treated as an encoding error.
 Malformed TOML structure is treated as an invalid argument.
+
+---
+
+## Parse Error Detail
+
+`toml_decode` returns `xer::result<toml_value, parse_error_detail>`.
+
+On parse failure, the error object contains the ordinary XER error code together with `offset`, `line`, `column`, and `reason` fields from `<xer/parse.h>`.
+
+The position fields are counted in UTF-8 code units. `line` and `column` are one-based, while `offset` is zero-based.
 
 ---
 
@@ -6198,6 +6260,15 @@ xer::type_info
 xer::path
 xer::cyclic<T>
 xer::interval<T, Min, Max>
+xer::quantity<T, Dim>
+xer::matrix<T, Rows, Cols>
+xer::basic_rgb<T>
+xer::basic_gray<T>
+xer::basic_cmy<T>
+xer::basic_hsv<T>
+xer::basic_xyz<T>
+xer::basic_lab<T>
+xer::basic_luv<T>
 ```
 
 It also provides `operator>>` for the following types where formatted extraction is straightforward:
@@ -6207,9 +6278,10 @@ xer::error_t
 xer::path
 xer::cyclic<T>
 xer::interval<T, Min, Max>
+xer::quantity<T, Dim>
 ```
 
-The initial scope is deliberately small. More complex types, such as matrices, quantities, colors, JSON, INI, and TOML values, may be considered later.
+Formatted extraction for matrices and color values is intentionally deferred because their insertion format is meant for diagnostics rather than as a stable serialized grammar.
 
 ---
 
@@ -6309,14 +6381,57 @@ is read as the normalized cyclic value:
 
 ---
 
+## `quantity<T, Dim>`
+
+`operator<<` for `quantity<T, Dim>` writes the stored value in the base unit system.
+
+`operator>>` reads a scalar value and constructs a quantity of the destination dimension. The input value is interpreted as already normalized to the base unit system.
+
+For example, if the destination type is a length quantity, the input value is interpreted as meters, not as kilometers or centimeters.
+
+---
+
+## `matrix<T, Rows, Cols>`
+
+`operator<<` for `matrix<T, Rows, Cols>` writes a compact row-major diagnostic form.
+
+Example output for a 2x2 matrix:
+
+```text
+[[1, 2], [3, 4]]
+```
+
+There is no extraction operator for matrices at this stage. Parsing a matrix would require committing the diagnostic output form to a stable input grammar, which is intentionally avoided for now.
+
+---
+
+## Color Types
+
+`operator<<` is provided for the basic color value types.
+
+Example output:
+
+```text
+rgb(1, 0.5, 0)
+gray(0.25)
+cmy(0, 0.5, 1)
+hsv(0.25, 0.5, 1)
+xyz(0.1, 0.2, 0.3)
+lab(50, 10, -20)
+luv(50, 10, -20)
+```
+
+There are no extraction operators for color values at this stage. The insertion format is intended for diagnostics and `%@` formatting, not for stable serialization.
+
+---
+
 ## Deferred Items
 
-The following are intentionally deferred from the initial implementation:
+The following are intentionally deferred from the current implementation:
 
 - `operator<<` and `operator>>` for `error<Detail>`
-- `operator<<` and `operator>>` for `quantity`
-- `operator<<` and `operator>>` for `matrix`
-- `operator<<` and `operator>>` for color types
+- `operator>>` for `matrix`
+- `operator>>` for color types
 - `operator<<` and `operator>>` for JSON, INI, and TOML values
 - stream insertion for resource handles such as `binary_stream`, `text_stream`, `process`, and `socket`
 
@@ -6333,6 +6448,9 @@ These types either need additional formatting policy or are not ordinary value t
 - `<xer/path.h>`
 - `<xer/cyclic.h>`
 - `<xer/interval.h>`
+- `<xer/quantity.h>`
+- `<xer/matrix.h>`
+- `<xer/color.h>`
 - `<xer/stdio.h>`
 
 The rough boundary is:
@@ -6349,27 +6467,39 @@ The rough boundary is:
 #include <iostream>
 #include <sstream>
 
+#include <xer/color.h>
 #include <xer/cyclic.h>
 #include <xer/interval.h>
 #include <xer/iostream.h>
+#include <xer/matrix.h>
 #include <xer/path.h>
+#include <xer/quantity.h>
 
 auto main() -> int
 {
+    using namespace xer::units;
+
     const auto path = xer::path(u8"work/file.txt");
     const auto angle = xer::cyclic<double>(1.25);
     const auto gain = xer::interval<double>(1.25);
+    const auto distance = 1.5 * km;
+    const auto transform = xer::matrix<double, 2, 2>(1.0, 2.0, 3.0, 4.0);
+    const auto color = xer::rgb(1.0f, 0.5f, 0.0f);
 
     std::cout << path << '\n';
     std::cout << angle << '\n';
     std::cout << gain << '\n';
+    std::cout << distance << '\n';
+    std::cout << transform << '\n';
+    std::cout << color << '\n';
 
-    std::istringstream input("logs/output.txt -0.25 0.5");
+    std::istringstream input("logs/output.txt -0.25 0.5 2.5");
     xer::path read_path;
     xer::cyclic<double> read_angle;
     xer::interval<double> read_gain;
+    xer::quantity<double, xer::units::length_dim> read_distance;
 
-    input >> read_path >> read_angle >> read_gain;
+    input >> read_path >> read_angle >> read_gain >> read_distance;
     return input ? 0 : 1;
 }
 ```
@@ -6383,6 +6513,9 @@ auto main() -> int
 - `header_path.md`
 - `header_cyclic.md`
 - `header_interval.md`
+- `header_quantity.md`
+- `header_matrix.md`
+- `header_color.md`
 - `header_stdio.md`
 
 ---

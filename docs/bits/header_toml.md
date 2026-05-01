@@ -35,7 +35,8 @@ struct toml_value;
 using toml_array = std::vector<toml_value>;
 using toml_table = std::vector<std::pair<std::u8string, toml_value>>;
 
-auto toml_decode(std::u8string_view text) -> xer::result<toml_value>;
+auto toml_decode(std::u8string_view text)
+    -> xer::result<toml_value, parse_error_detail>;
 auto toml_encode(const toml_value& value) -> xer::result<std::u8string>;
 ````
 
@@ -57,6 +58,10 @@ The initial implementation supports the following value kinds:
 * integer
 * floating-point number
 * string
+* local date
+* local time
+* local date-time
+* offset date-time
 * array
 * table
 
@@ -68,6 +73,10 @@ std::variant<
     std::int64_t,
     double,
     std::u8string,
+    toml_local_date,
+    toml_local_time,
+    toml_local_datetime,
+    toml_offset_datetime,
     toml_array,
     toml_table
 >
@@ -78,7 +87,9 @@ std::variant<
 * integer values are stored as `std::int64_t`
 * floating-point values are stored as `double`
 * strings are stored as UTF-8 `std::u8string`
+* date/time values are stored in small TOML-specific value structs
 * arrays are stored as `std::vector<toml_value>`
+* array-of-tables is represented as an array whose elements are tables
 * tables are stored as ordered key-value pairs
 
 ---
@@ -97,8 +108,8 @@ The initial implementation stores arrays as ordinary ordered vectors.
 
 * array elements preserve order
 * arrays may contain values of different supported kinds
-* arrays containing tables are not supported by the initial encoder
-* array-of-tables syntax is deferred
+* arrays may contain table values
+* array-of-tables syntax is represented as an array of table values
 
 ---
 
@@ -182,6 +193,8 @@ large = 1_000_000
 ports = [8000, 8001, 8002]
 point = { x = 1, y = 2 }
 items = [{ name = "one" }, { name = "two" }]
+released = 2026-04-30
+created = 2026-04-30T23:59:58+09:00
 
 [project]
 name = "xer"
@@ -210,6 +223,8 @@ The initial decoder supports:
 * finite and special floating-point numbers
 * arrays
 * inline tables
+* local date, local time, local date-time, and offset date-time values
+* array-of-tables
 
 ### Line Endings
 
@@ -387,6 +402,24 @@ Special values `inf`, `+inf`, `-inf`, `nan`, `+nan`, and `-nan` are accepted. Se
 
 ---
 
+## Date and Time Values
+
+The TOML decoder supports local dates, local times, local date-times, and offset date-times.
+
+Examples:
+
+```toml
+date = 2026-04-30
+time = 23:59:58.123456
+local = 2026-04-30T23:59:58
+offset = 2026-04-30T23:59:58+09:00
+utc = 2026-04-30T14:59:58Z
+```
+
+The value model stores these as `toml_local_date`, `toml_local_time`, `toml_local_datetime`, and `toml_offset_datetime`. Fractional seconds are stored with microsecond precision.
+
+---
+
 ## Arrays
 
 The implementation supports arrays.
@@ -423,6 +456,24 @@ Trailing commas in inline tables are rejected.
 
 ---
 
+## Array-of-Tables
+
+The decoder supports TOML array-of-tables syntax.
+
+```toml
+[[products]]
+name = "Hammer"
+
+[[products]]
+name = "Nail"
+```
+
+In the value model, this is represented as a `toml_array` whose elements are table values. Nested array-of-tables are attached to the latest table element in the parent array.
+
+The encoder emits an array whose elements are tables as `[[...]]` when it appears in table context.
+
+---
+
 ## Comments
 
 A `#` starts a comment when it appears outside a string.
@@ -442,7 +493,8 @@ name = "x#r"
 ## `toml_decode`
 
 ```cpp
-auto toml_decode(std::u8string_view text) -> xer::result<toml_value>;
+auto toml_decode(std::u8string_view text)
+    -> xer::result<toml_value, parse_error_detail>;
 ```
 
 ### Purpose
@@ -480,6 +532,16 @@ At minimum, decoding fails when:
 
 Invalid UTF-8 is treated as an encoding error.
 Malformed TOML structure is treated as an invalid argument.
+
+---
+
+## Parse Error Detail
+
+`toml_decode` returns `xer::result<toml_value, parse_error_detail>`.
+
+On parse failure, the error object contains the ordinary XER error code together with `offset`, `line`, `column`, and `reason` fields from `<xer/parse.h>`.
+
+The position fields are counted in UTF-8 code units. `line` and `column` are one-based, while `offset` is zero-based.
 
 ---
 
