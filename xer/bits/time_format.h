@@ -292,7 +292,7 @@ namespace xer {
 /**
  * @brief Formats a broken-down time according to a UTF-8 format string.
  *
- * The initial implementation delegates each conversion specification to the
+ * The implementation delegates ordinary conversion specifications to the
  * underlying C library's `strftime()`, while preserving UTF-8 literal text
  * outside the conversion specifications as-is.
  *

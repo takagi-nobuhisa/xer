@@ -1,6 +1,6 @@
 ﻿/**
  * @file xer/toml.h
- * @brief Public header for TOML subset encode/decode support.
+ * @brief Public header for TOML subset encode/decode, search, and file helpers.
  */
 
 #pragma once
@@ -9,9 +9,7 @@
 #define XER_TOML_H_INCLUDED_
 
 #include <xer/bits/toml.h>
-
 #include <xer/bits/toml_find.h>
-
 #include <xer/bits/toml_io.h>
 
 #endif /* XER_TOML_H_INCLUDED_ */

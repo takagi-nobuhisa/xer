@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.2.0b1**
+Target version: **v0.2.0**
 
 ---
 
@@ -4240,7 +4240,7 @@ The implementation supports inline tables.
 
 ```toml
 point = { x = 1, y = 2 }
-package = { name = "xer", metadata.version = "0.2.0a5" }
+package = { name = "xer", metadata.version = "example" }
 items = [{ name = "one" }, { name = "two" }]
 ```
 
@@ -4484,7 +4484,7 @@ auto main() -> int
         u8"\n"
         u8"[project]\n"
         u8"name = \"xer\"\n"
-        u8"version = \"0.2.0a3\"\n");
+        u8"version = \"example\"\n");
 
     if (!decoded.has_value()) {
         return 1;
@@ -12975,7 +12975,7 @@ XER_VERSION_STRING
 * `XER_VERSION_MINOR`: minor version number
 * `XER_VERSION_PATCH`: patch version number
 * `XER_VERSION_SUFFIX`: suffix such as `a3`
-* `XER_VERSION_STRING`: full version string such as `0.2.0a3`
+* `XER_VERSION_STRING`: full version string such as `1.2.3-beta`
 
 ### Notes
 
@@ -13044,7 +13044,7 @@ The suffix represents additional release-state information such as alpha-stage n
 For example:
 
 ```text id="uh0aq6"
-0.2.0a3
+1.2.3-beta
 ```
 
 may be interpreted as:

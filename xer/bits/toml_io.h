@@ -19,6 +19,17 @@
 
 namespace xer {
 
+/**
+ * @brief Loads a UTF-8 TOML file and decodes it.
+ *
+ * This convenience function combines UTF-8 file reading with @ref toml_decode.
+ * If file I/O fails before parsing begins, the returned error uses
+ * @ref parse_error_reason::none and leaves the position members of
+ * @ref parse_error_detail at zero.
+ *
+ * @param filename File path to read.
+ * @return Decoded TOML value on success.
+ */
 [[nodiscard]] inline auto toml_load(const path& filename)
     -> result<toml_value, parse_error_detail>
 {
@@ -32,6 +43,13 @@ namespace xer {
     return toml_decode(*text);
 }
 
+/**
+ * @brief Encodes a TOML value and saves it as UTF-8 text.
+ *
+ * @param filename File path to write.
+ * @param value TOML value to encode.
+ * @return Empty success result on success.
+ */
 [[nodiscard]] inline auto toml_save(
     const path& filename,
     const toml_value& value) -> result<void>

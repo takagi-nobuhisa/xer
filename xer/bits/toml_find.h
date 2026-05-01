@@ -44,6 +44,17 @@ namespace xer::detail {
 
 namespace xer {
 
+/**
+ * @brief Finds a TOML value through a simple dot-separated path.
+ *
+ * The path is split on literal dot characters and each component is looked up
+ * as a direct key in the current table. This helper is intentionally simpler
+ * than the TOML key grammar: quoted-key syntax is not parsed by this function.
+ *
+ * @param value Root TOML value to inspect.
+ * @param path Dot-separated path such as @c project.name.
+ * @return Pointer to the existing value, or @c nullptr.
+ */
 [[nodiscard]] inline auto toml_find(
     toml_value& value,
     std::u8string_view path) noexcept -> toml_value*
@@ -82,6 +93,15 @@ namespace xer {
     }
 }
 
+/**
+ * @brief Finds a TOML value through a simple dot-separated path.
+ *
+ * This const overload has the same lookup rules as the non-const overload.
+ *
+ * @param value Root TOML value to inspect.
+ * @param path Dot-separated path such as @c project.name.
+ * @return Pointer to the existing value, or @c nullptr.
+ */
 [[nodiscard]] inline auto toml_find(
     const toml_value& value,
     std::u8string_view path) noexcept -> const toml_value*

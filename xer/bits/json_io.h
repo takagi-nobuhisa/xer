@@ -20,6 +20,17 @@
 
 namespace xer {
 
+/**
+ * @brief Loads a UTF-8 JSON file and decodes it.
+ *
+ * This is a convenience function that combines UTF-8 file reading with
+ * @ref json_decode. If file I/O fails before parsing begins, the returned
+ * error uses @ref parse_error_reason::none and leaves the position members of
+ * @ref parse_error_detail at zero.
+ *
+ * @param filename File path to read.
+ * @return Decoded JSON value on success.
+ */
 [[nodiscard]] inline auto json_load(const path& filename)
     -> result<json_value, parse_error_detail>
 {
@@ -33,6 +44,16 @@ namespace xer {
     return json_decode(*text);
 }
 
+/**
+ * @brief Encodes a JSON value and saves it as a UTF-8 file.
+ *
+ * This is a convenience function that combines @ref json_encode with UTF-8 file
+ * writing.
+ *
+ * @param filename File path to write.
+ * @param value JSON value to encode.
+ * @return Empty success result on success.
+ */
 [[nodiscard]] inline auto json_save(
     const path& filename,
     const json_value& value) -> result<void>

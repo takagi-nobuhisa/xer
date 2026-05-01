@@ -19,6 +19,17 @@
 
 namespace xer {
 
+/**
+ * @brief Loads a UTF-8 INI file and decodes it.
+ *
+ * This convenience function combines UTF-8 file reading with @ref ini_decode.
+ * If file I/O fails before parsing begins, the returned error uses
+ * @ref parse_error_reason::none and leaves the position members of
+ * @ref parse_error_detail at zero.
+ *
+ * @param filename File path to read.
+ * @return Decoded INI file on success.
+ */
 [[nodiscard]] inline auto ini_load(const path& filename)
     -> result<ini_file, parse_error_detail>
 {
@@ -32,6 +43,13 @@ namespace xer {
     return ini_decode(*text);
 }
 
+/**
+ * @brief Encodes an INI file representation and saves it as UTF-8 text.
+ *
+ * @param filename File path to write.
+ * @param value INI representation to encode.
+ * @return Empty success result on success.
+ */
 [[nodiscard]] inline auto ini_save(
     const path& filename,
     const ini_file& value) -> result<void>

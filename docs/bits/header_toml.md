@@ -447,7 +447,7 @@ The implementation supports inline tables.
 
 ```toml
 point = { x = 1, y = 2 }
-package = { name = "xer", metadata.version = "0.2.0a5" }
+package = { name = "xer", metadata.version = "example" }
 items = [{ name = "one" }, { name = "two" }]
 ```
 
@@ -691,7 +691,7 @@ auto main() -> int
         u8"\n"
         u8"[project]\n"
         u8"name = \"xer\"\n"
-        u8"version = \"0.2.0a3\"\n");
+        u8"version = \"example\"\n");
 
     if (!decoded.has_value()) {
         return 1;

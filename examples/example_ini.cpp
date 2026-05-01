@@ -13,20 +13,20 @@ auto main() -> int
     // Expected output:
     // title = sample
     // name = xer
-    // version = 0.2.0a3
+    // version = example
     // encoded:
     // title=sample
     //
     // [project]
     // name=xer
-    // version=0.2.0a3
+    // version=example
 
     const auto decoded = xer::ini_decode(
         u8"title = sample\n"
         u8"\n"
         u8"[project]\n"
         u8"name = xer\n"
-        u8"version = 0.2.0a3\n");
+        u8"version = example\n");
 
     if (!decoded.has_value()) {
         return 1;

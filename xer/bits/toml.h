@@ -2768,10 +2768,11 @@ namespace xer {
 /**
  * @brief Decodes TOML text into an ordered TOML representation.
  *
- * The initial implementation supports a practical subset: bare keys, ordinary
+ * The current implementation supports a practical subset: bare keys, ordinary
  * tables, basic strings, literal strings, multiline strings, signed integers,
  * finite and special floating-point numbers, numeric separators, booleans,
- * arrays, inline tables, date/time values, array-of-tables, comments, and blank lines.
+ * arrays, inline tables, date/time values, array-of-tables, comments, and
+ * blank lines.
  *
  * Integers may use decimal, hexadecimal, octal, or binary notation. Dotted
  * keys, quoted keys, nested tables, and inline tables are supported.
@@ -2791,7 +2792,9 @@ namespace xer {
  *
  * The value to encode must be a top-level table. Nested tables are emitted as
  * table sections, and table values in value contexts such as arrays may be
- * emitted as inline tables. Arrays whose elements are tables are emitted as array-of-tables in table context. Date/time values are emitted in TOML lexical form.
+ * emitted as inline tables. Arrays whose elements are tables are emitted as
+ * array-of-tables in table context. Date/time values are emitted in TOML
+ * lexical form.
  *
  * @param value TOML value to encode. It must hold a table.
  * @return UTF-8 TOML text on success.

@@ -1,6 +1,6 @@
 ﻿/**
  * @file xer/json.h
- * @brief Public header for JSON encode/decode support.
+ * @brief Public header for JSON value, encode/decode, search, and file helpers.
  */
 
 #pragma once
@@ -11,9 +11,7 @@
 #include <xer/bits/json_value.h>
 #include <xer/bits/json_decode.h>
 #include <xer/bits/json_encode.h>
-
 #include <xer/bits/json_find.h>
-
 #include <xer/bits/json_io.h>
 
 #endif /* XER_JSON_H_INCLUDED_ */
