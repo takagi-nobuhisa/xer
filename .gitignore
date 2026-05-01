@@ -42,6 +42,10 @@
 
 # Test script output
 php/build/*
+php/*.tmp
+tests/error_log.txt
+tests/a.exe
+tests/a.out
 
 # Other
 Doxyfile
