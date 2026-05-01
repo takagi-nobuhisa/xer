@@ -134,7 +134,7 @@ key = value
 
 [section]
 name = xer
-version = 0.2.0a3
+version = example
 ```
 
 ### Supported Forms
@@ -474,7 +474,7 @@ auto main() -> int
         u8"\n"
         u8"[project]\n"
         u8"name = xer\n"
-        u8"version = 0.2.0a3\n");
+        u8"version = example\n");
 
     if (!decoded.has_value()) {
         return 1;
@@ -517,8 +517,36 @@ This example shows the general style:
 
 ## INI find and load/save helpers
 
-This header also provides ini_find, ini_load, and ini_save.  The find helpers inspect already-decoded in-memory values and return pointers to existing entries or values.  They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+This header also provides helper functions for inspecting decoded INI files and for loading or saving INI files.
 
-The load helpers combine UTF-8 file reading with decoding and return `xer::result<..., parse_error_detail>`.  If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+```cpp
+auto ini_find(ini_file& file, std::u8string_view key) noexcept
+    -> ini_entry*;
 
-The save helpers combine encoding with UTF-8 file writing and return `xer::result<void>`.
+auto ini_find(const ini_file& file, std::u8string_view key) noexcept
+    -> const ini_entry*;
+
+auto ini_find(
+    ini_file& file,
+    std::u8string_view section,
+    std::u8string_view key) noexcept -> ini_entry*;
+
+auto ini_find(
+    const ini_file& file,
+    std::u8string_view section,
+    std::u8string_view key) noexcept -> const ini_entry*;
+
+auto ini_load(const path& filename)
+    -> xer::result<ini_file, parse_error_detail>;
+
+auto ini_save(const path& filename, const ini_file& value)
+    -> xer::result<void>;
+```
+
+The two-argument `ini_find` helpers search global entries. The three-argument overloads search the first section whose name matches `section`, and then the first entry whose key matches `key` within that section.
+
+These helpers return pointers to existing entries. They return `nullptr` when the requested item is not present. Because the INI representation preserves duplicate keys and duplicate sections, these helpers return the first matching entry. A future `ini_find_all`-style helper may be added if bulk retrieval becomes necessary.
+
+The load helper combines UTF-8 file reading with decoding and returns `xer::result<ini_file, parse_error_detail>`. If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+
+The save helper combines encoding with UTF-8 file writing and returns `xer::result<void>`.

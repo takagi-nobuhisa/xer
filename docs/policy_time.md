@@ -119,7 +119,6 @@ Functions in `time.h` are classified as follows according to their nature.
 ### 6.5 Deferred or Simplified in the Initial Stage
 
 * `asctime` (merged into `ctime`)
-* XER-specific high-precision formatting such as `%f`
 * advanced locale-dependent functionality
 * timezone extension features
 
@@ -231,11 +230,16 @@ For example, the following format should be accepted:
 In this case, only `%` and the specifier immediately following it are interpreted specially.
 All other UTF-8 text is treated as fixed text and copied as is.
 
-### Initial Implementation
+### Implementation Policy
 
-In the initial implementation, the internal implementation may use the implementation's `std::strftime` or `wcsftime`.
+The implementation may use the implementation's `std::strftime` or `wcsftime` for ordinary C-style specifiers where appropriate.
 
-However, the XER-specific extension `%f` is not supported in the initial stage.
+XER also supports small XER-specific sub-second extensions based on `tm_microsec`:
+
+* `%f`: microseconds as exactly six decimal digits
+* `%L`: milliseconds as exactly three decimal digits
+
+These extensions are supported only in their simple forms `%f` and `%L`. Width, flag, and modifier forms such as `%3f` are unsupported and should result in failure.
 
 ### Locale Dependence
 
@@ -298,7 +302,6 @@ The following functions are included in the initial implementation:
 At least the following are unsupported or simplified in the initial stage:
 
 * times before the epoch
-* `%f` in `strftime`
 * advanced locale control in `strftime`
 * advanced timezone features
 * C-compatible static internal buffer behavior
@@ -347,9 +350,8 @@ auto strftime(std::u8string_view format, const tm& value) -> xer::result<std::u8
 
 The following extensions may be considered in the future:
 
-* adding `%f` to `strftime`
-* better ISO 8601 support including microseconds
-* extended timezone information
+* better ISO 8601 support
+* additional timezone-related formatting
 * a stricter internal representation for high-precision time
 
 ---
@@ -364,4 +366,4 @@ The following extensions may be considered in the future:
 * `xer::tm` extends C's `struct tm` with `tm_microsec`
 * `ctime` unifies the roles of C's `ctime` and `asctime`
 * `strftime` accepts UTF-8 format strings and returns `std::u8string`
-* `%f` and advanced locale/timezone features are deferred in the initial stage
+* `%f` and `%L` are supported as XER-specific `strftime` extensions

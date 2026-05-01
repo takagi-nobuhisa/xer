@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.2.0a5**
+Target version: **v0.2.0b1**
 
 ---
 
@@ -3212,11 +3212,27 @@ This example shows the general style:
 
 ## JSON find and load/save helpers
 
-This header also provides json_find, json_load, and json_save.  The find helpers inspect already-decoded in-memory values and return pointers to existing entries or values.  They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+This header also provides helper functions for inspecting decoded JSON values and for loading or saving JSON files.
 
-The load helpers combine UTF-8 file reading with decoding and return `xer::result<..., parse_error_detail>`.  If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+```cpp
+auto json_find(json_value& value, std::u8string_view key) noexcept
+    -> json_value*;
 
-The save helpers combine encoding with UTF-8 file writing and return `xer::result<void>`.
+auto json_find(const json_value& value, std::u8string_view key) noexcept
+    -> const json_value*;
+
+auto json_load(const path& filename)
+    -> xer::result<json_value, parse_error_detail>;
+
+auto json_save(const path& filename, const json_value& value)
+    -> xer::result<void>;
+```
+
+The `json_find` helpers inspect an already-decoded JSON object and search only its direct child entries. They return a pointer to the existing value when the key is found. They return `nullptr` when the searched value is not an object or when the key is not present.
+
+The load helper combines UTF-8 file reading with decoding and returns `xer::result<json_value, parse_error_detail>`. If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+
+The save helper combines encoding with UTF-8 file writing and returns `xer::result<void>`.
 
 ---
 
@@ -3356,7 +3372,7 @@ key = value
 
 [section]
 name = xer
-version = 0.2.0a3
+version = example
 ```
 
 ### Supported Forms
@@ -3696,7 +3712,7 @@ auto main() -> int
         u8"\n"
         u8"[project]\n"
         u8"name = xer\n"
-        u8"version = 0.2.0a3\n");
+        u8"version = example\n");
 
     if (!decoded.has_value()) {
         return 1;
@@ -3739,11 +3755,39 @@ This example shows the general style:
 
 ## INI find and load/save helpers
 
-This header also provides ini_find, ini_load, and ini_save.  The find helpers inspect already-decoded in-memory values and return pointers to existing entries or values.  They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+This header also provides helper functions for inspecting decoded INI files and for loading or saving INI files.
 
-The load helpers combine UTF-8 file reading with decoding and return `xer::result<..., parse_error_detail>`.  If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+```cpp
+auto ini_find(ini_file& file, std::u8string_view key) noexcept
+    -> ini_entry*;
 
-The save helpers combine encoding with UTF-8 file writing and return `xer::result<void>`.
+auto ini_find(const ini_file& file, std::u8string_view key) noexcept
+    -> const ini_entry*;
+
+auto ini_find(
+    ini_file& file,
+    std::u8string_view section,
+    std::u8string_view key) noexcept -> ini_entry*;
+
+auto ini_find(
+    const ini_file& file,
+    std::u8string_view section,
+    std::u8string_view key) noexcept -> const ini_entry*;
+
+auto ini_load(const path& filename)
+    -> xer::result<ini_file, parse_error_detail>;
+
+auto ini_save(const path& filename, const ini_file& value)
+    -> xer::result<void>;
+```
+
+The two-argument `ini_find` helpers search global entries. The three-argument overloads search the first section whose name matches `section`, and then the first entry whose key matches `key` within that section.
+
+These helpers return pointers to existing entries. They return `nullptr` when the requested item is not present. Because the INI representation preserves duplicate keys and duplicate sections, these helpers return the first matching entry. A future `ini_find_all`-style helper may be added if bulk retrieval becomes necessary.
+
+The load helper combines UTF-8 file reading with decoding and returns `xer::result<ini_file, parse_error_detail>`. If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+
+The save helper combines encoding with UTF-8 file writing and returns `xer::result<void>`.
 
 ---
 
@@ -3756,7 +3800,7 @@ The save helpers combine encoding with UTF-8 file writing and return `xer::resul
 TOML is treated as a typed configuration data format.
 The purpose of this header is to support practical reading and writing of simple UTF-8 TOML text while keeping the implementation small enough to fit XER's incremental development policy.
 
-The initial implementation supports a practical subset of TOML.
+The current implementation supports a practical subset of TOML.
 It does not claim complete TOML v1.0.0 compatibility.
 
 ---
@@ -3801,7 +3845,7 @@ It stores one TOML value in structured form.
 
 ### Supported Value Kinds
 
-The initial implementation supports the following value kinds:
+The current implementation supports the following value kinds:
 
 * boolean
 * integer
@@ -3851,7 +3895,7 @@ using toml_array = std::vector<toml_value>;
 
 `toml_array` represents an array of TOML values.
 
-The initial implementation stores arrays as ordinary ordered vectors.
+The current implementation stores arrays as ordinary ordered vectors.
 
 ### Notes
 
@@ -3929,7 +3973,7 @@ This style keeps type inspection explicit and avoids throwing exceptions for ord
 
 ## Supported TOML Subset
 
-The initial implementation supports the following TOML-style input:
+The current implementation supports the following TOML-style input:
 
 ```toml
 title = "xer"
@@ -3947,7 +3991,7 @@ created = 2026-04-30T23:59:58+09:00
 
 [project]
 name = "xer"
-version = "0.2.0a3"
+version = "example"
 ```
 
 ### Supported Forms
@@ -3985,17 +4029,18 @@ The decoder accepts the following line endings:
 
 ---
 
-## Deferred TOML Features
+## Deferred TOML Features and Limitations
 
-The following TOML features are intentionally deferred:
+The current implementation supports a practical subset of TOML, including date/time values and array-of-tables.
 
-* date and time values
-* array-of-tables
-* detailed error position reporting
+The following areas remain intentionally limited or deferred:
 
-These features may be added later one by one.
+* complete TOML v1.0.0 conformance
+* preservation of original formatting and comments during encoding
+* timezone names beyond TOML offset date-time syntax
+* full validation of every semantic rule required by TOML v1.0.0
 
-The initial implementation should therefore be described as a practical TOML subset, not as a complete TOML implementation.
+The implementation should therefore be described as a practical TOML subset, not as a complete TOML implementation.
 
 ---
 
@@ -4015,7 +4060,7 @@ Examples:
 ```toml
 name = "xer"
 build-target = "ucrt64"
-version_1 = "0.2.0a3"
+version_1 = "example"
 ```
 
 Quoted keys use the same single-line basic-string or literal-string syntax as values.
@@ -4060,7 +4105,7 @@ The table name is parsed as a key path. The table becomes the destination for su
 
 * duplicate explicit table declarations are rejected
 * tables created implicitly by dotted keys may later be declared explicitly
-* array-of-tables syntax such as `[[project]]` is deferred
+* array-of-tables syntax such as `[[project]]` is supported and represented as arrays whose elements are tables
 
 ---
 
@@ -4112,7 +4157,7 @@ They are stored as `bool`.
 
 ## Integers
 
-The initial implementation supports signed decimal integers and prefixed non-decimal integers. Numeric separators may be used between digits.
+The current implementation supports signed decimal integers and prefixed non-decimal integers. Numeric separators may be used between digits.
 
 ```toml
 count = 123
@@ -4185,7 +4230,7 @@ The implementation stores arrays as `toml_array`.
 ### Notes
 
 * arrays can contain supported scalar values, arrays, and inline tables
-* array-of-tables syntax is deferred
+* array-of-tables syntax is represented as arrays whose elements are tables
 
 ---
 
@@ -4333,7 +4378,7 @@ Then it emits table sections.
 ```toml
 [project]
 name = "xer"
-version = "0.2.0a3"
+version = "example"
 ```
 
 A blank line is inserted before a table when there is preceding output.
@@ -4346,7 +4391,6 @@ For example, it rejects:
 
 * a top-level value that is not a table
 * unsupported key forms
-* array-of-tables
 * invalid UTF-8 strings
 
 ---
@@ -4402,13 +4446,13 @@ TOML is treated as an independent data-format facility rather than as a string h
 When this header is used in generated documentation, it is usually enough to explain:
 
 * that TOML processing uses UTF-8 text
-* that the initial implementation is a practical TOML subset
+* that the current implementation is a practical TOML subset
 * that top-level decode results are table values
 * that TOML values are typed
 * that duplicate keys and duplicate tables are rejected
 * that hexadecimal, octal, and binary integers are supported
 * that numeric separators are supported only between digits
-* that deferred TOML features are not yet supported
+* that the remaining limitations should be described as limitations of a practical subset
 
 Detailed feature coverage should be kept in sync with the implementation as support expands.
 
@@ -4481,11 +4525,29 @@ This example shows the general style:
 
 ## TOML find and load/save helpers
 
-This header also provides toml_find, toml_load, and toml_save.  The find helpers inspect already-decoded in-memory values and return pointers to existing entries or values.  They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+This header also provides helper functions for inspecting decoded TOML values and for loading or saving TOML files.
 
-The load helpers combine UTF-8 file reading with decoding and return `xer::result<..., parse_error_detail>`.  If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+```cpp
+auto toml_find(toml_value& value, std::u8string_view path) noexcept
+    -> toml_value*;
 
-The save helpers combine encoding with UTF-8 file writing and return `xer::result<void>`.
+auto toml_find(const toml_value& value, std::u8string_view path) noexcept
+    -> const toml_value*;
+
+auto toml_load(const path& filename)
+    -> xer::result<toml_value, parse_error_detail>;
+
+auto toml_save(const path& filename, const toml_value& value)
+    -> xer::result<void>;
+```
+
+The `toml_find` helpers inspect already-decoded in-memory values and return pointers to existing values. They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+
+The `path` argument to `toml_find` is a simple dot-separated lookup path such as `project.name` or `database.port`. It is not a full TOML key parser. In particular, TOML quoted-key syntax is not interpreted by this helper; quoted dots are not treated specially in the lookup path.
+
+The load helper combines UTF-8 file reading with decoding and returns `xer::result<toml_value, parse_error_detail>`. If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+
+The save helper combines encoding with UTF-8 file writing and returns `xer::result<void>`.
 
 ---
 

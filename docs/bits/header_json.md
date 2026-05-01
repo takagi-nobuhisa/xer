@@ -375,8 +375,24 @@ This example shows the general style:
 
 ## JSON find and load/save helpers
 
-This header also provides json_find, json_load, and json_save.  The find helpers inspect already-decoded in-memory values and return pointers to existing entries or values.  They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+This header also provides helper functions for inspecting decoded JSON values and for loading or saving JSON files.
 
-The load helpers combine UTF-8 file reading with decoding and return `xer::result<..., parse_error_detail>`.  If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+```cpp
+auto json_find(json_value& value, std::u8string_view key) noexcept
+    -> json_value*;
 
-The save helpers combine encoding with UTF-8 file writing and return `xer::result<void>`.
+auto json_find(const json_value& value, std::u8string_view key) noexcept
+    -> const json_value*;
+
+auto json_load(const path& filename)
+    -> xer::result<json_value, parse_error_detail>;
+
+auto json_save(const path& filename, const json_value& value)
+    -> xer::result<void>;
+```
+
+The `json_find` helpers inspect an already-decoded JSON object and search only its direct child entries. They return a pointer to the existing value when the key is found. They return `nullptr` when the searched value is not an object or when the key is not present.
+
+The load helper combines UTF-8 file reading with decoding and returns `xer::result<json_value, parse_error_detail>`. If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+
+The save helper combines encoding with UTF-8 file writing and returns `xer::result<void>`.
