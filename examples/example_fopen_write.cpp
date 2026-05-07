@@ -14,7 +14,7 @@
 
 auto main() -> int
 {
-    const xer::path filename(u8"build/examples/example_output.txt");
+    const xer::path filename(u8"example_output.txt");
 
     auto stream = xer::fopen(filename, "w", xer::encoding_t::utf8);
     if (!stream) {

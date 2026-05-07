@@ -42,6 +42,7 @@
 - `xer/path.h`
 - `xer/dirent.h`
 - `xer/socket.h`
+- `xer/tk.h`
 
 ### Numeric and Arithmetic Facilities
 
