@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.2.0**
+Target version: **v0.3.0a1**
 
 ---
 
@@ -1951,7 +1951,7 @@ When a fullwidth Kana character with dakuten or handakuten would require multipl
 
 ---
 
-# `<xer/stdlib.h>`
+﻿# `<xer/stdlib.h>`
 
 ## Purpose
 
@@ -2212,15 +2212,54 @@ This is necessary because incomplete multibyte input cannot be interpreted corre
 
 ## Environment Access
 
-This header may provide:
+This header provides environment-variable access facilities such as:
 
 ```cpp
-getenv
+struct environ_entry;
+using environ_arg = std::pair<std::u8string_view, std::u8string_view>;
+
+class environs;
+
+auto getenv(std::u8string_view name) -> xer::result<std::u8string>;
+auto get_environs() -> xer::result<environs>;
 ```
 
 ### Role of This Group
 
 This function group provides access to process environment information.
+
+`getenv` obtains one environment variable by name.
+`get_environs` obtains a UTF-8 snapshot of all environment variables and returns it as an `environs` object.
+
+### `environs`
+
+`environs` owns environment-variable entries as UTF-8 strings.
+It is a snapshot of the process environment at the time `get_environs` is called.
+Later changes to the process environment do not update an already-created `environs` object.
+
+At minimum, `environs` provides:
+
+```cpp
+auto size() const noexcept -> std::size_t;
+auto empty() const noexcept -> bool;
+auto entries() const noexcept -> std::span<const environ_entry>;
+auto at(std::size_t index) const -> xer::result<environ_arg>;
+auto find(std::u8string_view name) const -> xer::result<std::u8string_view>;
+```
+
+`at` returns name and value views for one entry.
+`find` returns the first value whose name matches the requested name.
+If the requested name is empty, `find` fails with `error_t::invalid_argument`.
+If the name is not present, it fails with `error_t::not_found`.
+
+### Platform Encoding Policy
+
+On Windows, `get_environs` primarily reads `__wenvp` so that environment strings are obtained as UTF-16 and converted to UTF-8.
+If `__wenvp` is `nullptr`, it falls back to `__envp` and assumes that those byte strings are UTF-8.
+
+On Linux, `get_environs` reads the process environment array and requires each name and value to be valid UTF-8.
+
+Entries without `=` and entries whose name part is empty are ignored.
 
 ### Notes
 

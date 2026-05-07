@@ -46,6 +46,7 @@ inline constexpr event_flag_t event_dont_wait;
 
 struct error_detail;
 class interpreter;
+class obj;
 
 auto find_executable() -> xer::result<void, error_detail>;
 auto init(interpreter& interp) -> xer::result<void, error_detail>;
@@ -55,6 +56,14 @@ auto reset_result(interpreter& interp) noexcept -> void;
 auto eval(interpreter& interp, std::u8string_view script,
           eval_flag_t flags = eval_direct)
     -> xer::result<std::u8string, error_detail>;
+
+auto make_string_obj(std::u8string_view value)
+    -> xer::result<obj, error_detail>;
+auto make_int_obj(int value) -> obj;
+auto make_list_obj(std::span<const std::u8string_view> values)
+    -> xer::result<obj, error_detail>;
+auto make_list_obj(std::initializer_list<std::u8string_view> values)
+    -> xer::result<obj, error_detail>;
 
 auto set_var(interpreter& interp,
              std::u8string_view name,
@@ -66,6 +75,19 @@ auto set_var(interpreter& interp,
              std::u8string_view name1,
              std::u8string_view name2,
              std::u8string_view value,
+             var_flag_t flags = var_global_only)
+    -> xer::result<void, error_detail>;
+
+auto set_var(interpreter& interp,
+             std::u8string_view name,
+             obj& value,
+             var_flag_t flags = var_global_only)
+    -> xer::result<void, error_detail>;
+
+auto set_var(interpreter& interp,
+             std::u8string_view name1,
+             std::u8string_view name2,
+             obj& value,
              var_flag_t flags = var_global_only)
     -> xer::result<void, error_detail>;
 
@@ -87,6 +109,10 @@ auto create_command(interpreter& interp,
     -> xer::result<void, error_detail>;
 
 auto to_native_handle(interpreter& interp) noexcept -> Tcl_Interp*;
+auto to_native_handle(obj& value) noexcept -> Tcl_Obj*;
+
+template <class F>
+auto main(F&& callback) -> xer::result<void>;
 
 auto main_loop() -> void;
 auto do_one_event(event_flag_t flags = event_all) -> int;
@@ -219,6 +245,32 @@ There is no overload for `const interpreter&`. Tcl interpreter handles are commo
 
 ---
 
+## Tcl Objects
+
+```cpp
+class obj;
+
+auto make_string_obj(std::u8string_view value)
+    -> xer::result<obj, error_detail>;
+auto make_int_obj(int value) -> obj;
+auto make_list_obj(std::span<const std::u8string_view> values)
+    -> xer::result<obj, error_detail>;
+auto make_list_obj(std::initializer_list<std::u8string_view> values)
+    -> xer::result<obj, error_detail>;
+
+auto to_native_handle(obj& value) noexcept -> Tcl_Obj*;
+```
+
+`obj` is a RAII wrapper for `Tcl_Obj*`. It owns one Tcl reference to the wrapped object. Construction and copying increment the Tcl reference count, destruction decrements it, and moving transfers the owned reference without changing the Tcl reference count.
+
+`obj` has no public constructor from `Tcl_Obj*`. Ordinary code should create objects through factory functions such as `make_string_obj`, `make_int_obj`, and `make_list_obj`.
+
+`to_native_handle(obj&)` returns a borrowed `Tcl_Obj*` and does not change the Tcl reference count. The returned pointer should not be released by the caller.
+
+`make_list_obj` creates a real Tcl list object. It is useful when a value must behave as a Tcl list rather than as a manually joined string.
+
+---
+
 ## Tcl Result Handling
 
 ```cpp
@@ -268,6 +320,8 @@ auto get_var(interpreter& interp,
 
 These functions use `Tcl_ObjSetVar2` and `Tcl_ObjGetVar2`.
 
+In addition to UTF-8 text values, `set_var` can accept `xer::tk::obj`. This allows callers to assign Tcl objects such as list objects without converting them into manually joined strings.
+
 Array-variable forms are also provided:
 
 ```cpp
@@ -286,6 +340,21 @@ auto get_var(interpreter& interp,
 ```
 
 The default variable flag is `var_global_only`.
+
+For example, a Tcl list can be assigned as follows:
+
+```cpp
+auto list = xer::tk::make_list_obj({u8"first value", u8"second"});
+if (!list.has_value()) {
+    return 1;
+}
+
+if (!xer::tk::set_var(interp, u8"argv", *list).has_value()) {
+    return 1;
+}
+```
+
+Tcl code can then use ordinary list operations such as `llength $argv` and `lindex $argv 0`.
 
 ---
 
@@ -320,7 +389,86 @@ After registration, Tcl script can call:
 add 10 20
 ```
 
-The initial command bridge supports a practical subset of argument and return types. In unsupported cases, users can fall back to `Tcl_Obj*` or the native Tcl/Tk API.
+The initial command bridge supports a practical subset of argument and return types.
+
+Supported callback argument types include:
+
+- `Tcl_Obj*`
+- `xer::tk::obj`
+- `bool`
+- `int`
+- `long`
+- `long long`
+- `unsigned int`
+- `unsigned long`
+- `unsigned long long`
+- `float`
+- `double`
+- `long double`
+- `std::u8string`
+- `std::u8string_view`
+
+Supported callback return types include:
+
+- `void`
+- `bool`
+- `int`
+- `long`
+- `long long`
+- `unsigned int`
+- `unsigned long`
+- `unsigned long long`
+- `float`
+- `double`
+- `long double`
+- `std::u8string`
+- `std::u8string_view`
+- `const char8_t*`
+- `Tcl_Obj*`
+- `xer::tk::obj`
+- `xer::result<T, xer::tk::error_detail>`
+- `xer::result<T>` where supported by the implementation
+- `xer::tk::result_code_t`
+
+In unsupported cases, users can fall back to `Tcl_Obj*` or the native Tcl/Tk API.
+
+### `std::u8string_view` callback arguments
+
+When a C++ command callback takes `std::u8string_view`, the view refers to the string representation of the corresponding `Tcl_Obj`.
+The view is valid only while the callback is running.
+
+If the value must be stored, captured, returned later, or otherwise used after the callback returns, the callback must copy it into an owning object such as `std::u8string`.
+
+Returning `std::u8string_view` from a callback is different: XER copies the referenced text into the Tcl interpreter result before the command handler returns.
+The returned view only needs to remain valid until the command handler has finished setting the Tcl result.
+
+---
+
+## Tcl/Tk Main Helper
+
+```cpp
+template <class F>
+auto main(F&& callback) -> xer::result<void>;
+```
+
+`xer::tk::main` is a Tcl/Tk execution block, not a replacement for the C++ global `main` function. It may be called from the program's main thread or from another user-managed thread.
+
+The callback should have the following basic form:
+
+```cpp
+auto callback(xer::tk::interpreter& interp) -> xer::result<void>;
+```
+
+The helper performs the ordinary setup sequence: executable discovery, interpreter creation, Tcl/Tk initialization, setup of Tcl startup variables, callback invocation, and then `main_loop()` if the callback succeeds. The interpreter is destroyed by RAII after the event loop returns.
+
+The helper sets Tcl variables so that Tcl scripts can use the ordinary names:
+
+- `argc`
+- `argv`
+- `argv0`
+- `env`
+
+`argv` is set as a real Tcl list object. `env` is set as a Tcl array variable.
 
 ---
 
@@ -345,7 +493,13 @@ XER aims to allow Tcl/Tk to run on a thread chosen by the user.
 
 However, an interpreter is treated as thread-affine. It should normally be created, initialized, used, and destroyed on the same thread.
 
+This rule applies to ordinary operations such as evaluation, variable access, command registration, event-loop use related to that interpreter, and destruction.
+
 This means XER supports the idea of running Tcl/Tk on a non-main thread, but it does not make one interpreter freely callable from arbitrary threads.
+
+A safe pattern is to create an interpreter inside a worker thread, use it only inside that worker thread, and let it be destroyed before that thread exits.
+
+XER does not currently provide cross-thread invocation helpers, event posting helpers, or a thread-safe dispatch queue for Tcl/Tk.
 
 ---
 

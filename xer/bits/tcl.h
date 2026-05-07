@@ -12,17 +12,21 @@
 #include <cstddef>
 #include <expected>
 #include <functional>
+#include <initializer_list>
 #include <limits>
 #include <mutex>
+#include <span>
 #include <string>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <tcl.h>
 
 #include <xer/bits/common.h>
+#include <xer/bits/environs.h>
 #include <xer/cmdline.h>
 #include <xer/error.h>
 
@@ -55,14 +59,125 @@ struct error_detail {
 };
 
 class interpreter;
+class obj;
 
 /**
  * @brief Returns the native Tcl interpreter handle.
  *
  * This is an escape hatch for direct Tcl/Tk C API use. Ordinary code should
  * prefer the functions in `xer::tk`.
+ *
+ * The returned handle follows the same thread-affinity rules as `interpreter`.
  */
 [[nodiscard]] inline auto to_native_handle(interpreter& interp) noexcept -> Tcl_Interp*;
+
+/**
+ * @brief Returns the native Tcl object handle as a borrowed pointer.
+ *
+ * This is an escape hatch for direct Tcl C API use. The returned pointer is
+ * borrowed from the `obj` object and remains valid only while that `obj` keeps
+ * its owning reference. This function does not change the Tcl reference count.
+ */
+[[nodiscard]] inline auto to_native_handle(obj& value) noexcept -> Tcl_Obj*;
+
+namespace detail {
+
+[[nodiscard]] inline auto retain_obj(Tcl_Obj* value) noexcept -> obj;
+
+} // namespace detail
+
+/**
+ * @brief RAII wrapper for `Tcl_Obj*`.
+ *
+ * `obj` owns one Tcl reference to the wrapped object. Construction and copying
+ * increment the Tcl reference count. Destruction decrements it. Moving transfers
+ * the owned reference without changing the Tcl reference count.
+ *
+ * The class has no public `Tcl_Obj*` constructor. Use factory functions such as
+ * `make_string_obj`, `make_int_obj`, and `make_list_obj` to create objects.
+ */
+class obj {
+public:
+    obj() noexcept = default;
+
+    obj(const obj& other) noexcept
+        : obj_(other.obj_)
+    {
+        if (obj_ != nullptr) {
+            Tcl_IncrRefCount(obj_);
+        }
+    }
+
+    auto operator=(const obj& other) noexcept -> obj&
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        if (other.obj_ != nullptr) {
+            Tcl_IncrRefCount(other.obj_);
+        }
+
+        if (obj_ != nullptr) {
+            Tcl_DecrRefCount(obj_);
+        }
+
+        obj_ = other.obj_;
+        return *this;
+    }
+
+    obj(obj&& other) noexcept
+        : obj_(other.obj_)
+    {
+        other.obj_ = nullptr;
+    }
+
+    auto operator=(obj&& other) noexcept -> obj&
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        if (obj_ != nullptr) {
+            Tcl_DecrRefCount(obj_);
+        }
+
+        obj_ = other.obj_;
+        other.obj_ = nullptr;
+        return *this;
+    }
+
+    ~obj()
+    {
+        if (obj_ != nullptr) {
+            Tcl_DecrRefCount(obj_);
+        }
+    }
+
+    [[nodiscard]] auto valid() const noexcept -> bool
+    {
+        return obj_ != nullptr;
+    }
+
+private:
+    explicit obj(Tcl_Obj* value) noexcept
+        : obj_(value)
+    {
+        if (obj_ != nullptr) {
+            Tcl_IncrRefCount(obj_);
+        }
+    }
+
+    Tcl_Obj* obj_ = nullptr;
+
+    friend auto detail::retain_obj(Tcl_Obj* value) noexcept -> obj;
+    friend auto to_native_handle(obj& value) noexcept -> Tcl_Obj*;
+};
+
+[[nodiscard]] inline auto to_native_handle(obj& value) noexcept -> Tcl_Obj*
+{
+    return value.obj_;
+}
 
 namespace detail {
 
@@ -96,88 +211,6 @@ namespace detail {
     return value.find(char8_t{}) != std::u8string_view::npos;
 }
 
-class obj_ref {
-public:
-    obj_ref() noexcept = default;
-
-    explicit obj_ref(Tcl_Obj* obj) noexcept
-        : obj_(obj)
-    {
-        if (obj_ != nullptr) {
-            Tcl_IncrRefCount(obj_);
-        }
-    }
-
-    obj_ref(const obj_ref& other) noexcept
-        : obj_(other.obj_)
-    {
-        if (obj_ != nullptr) {
-            Tcl_IncrRefCount(obj_);
-        }
-    }
-
-    auto operator=(const obj_ref& other) noexcept -> obj_ref&
-    {
-        if (this == &other) {
-            return *this;
-        }
-
-        if (other.obj_ != nullptr) {
-            Tcl_IncrRefCount(other.obj_);
-        }
-
-        if (obj_ != nullptr) {
-            Tcl_DecrRefCount(obj_);
-        }
-
-        obj_ = other.obj_;
-        return *this;
-    }
-
-    obj_ref(obj_ref&& other) noexcept
-        : obj_(other.obj_)
-    {
-        other.obj_ = nullptr;
-    }
-
-    auto operator=(obj_ref&& other) noexcept -> obj_ref&
-    {
-        if (this == &other) {
-            return *this;
-        }
-
-        if (obj_ != nullptr) {
-            Tcl_DecrRefCount(obj_);
-        }
-
-        obj_ = other.obj_;
-        other.obj_ = nullptr;
-        return *this;
-    }
-
-    ~obj_ref()
-    {
-        if (obj_ != nullptr) {
-            Tcl_DecrRefCount(obj_);
-        }
-    }
-
-    [[nodiscard]] auto get() const noexcept -> Tcl_Obj*
-    {
-        return obj_;
-    }
-
-    [[nodiscard]] auto release() noexcept -> Tcl_Obj*
-    {
-        Tcl_Obj* const result = obj_;
-        obj_ = nullptr;
-        return result;
-    }
-
-private:
-    Tcl_Obj* obj_ = nullptr;
-};
-
 [[nodiscard]] inline auto new_string_obj(std::u8string_view value)
     -> result<Tcl_Obj*, error_detail>
 {
@@ -191,15 +224,9 @@ private:
         *length);
 }
 
-[[nodiscard]] inline auto make_string_obj(std::u8string_view value)
-    -> result<obj_ref, error_detail>
+[[nodiscard]] inline auto retain_obj(Tcl_Obj* value) noexcept -> obj
 {
-    const auto obj = new_string_obj(value);
-    if (!obj.has_value()) {
-        return std::unexpected(obj.error());
-    }
-
-    return obj_ref(*obj);
+    return obj(value);
 }
 
 [[nodiscard]] inline auto obj_to_u8string(Tcl_Obj* obj) -> std::u8string
@@ -309,6 +336,15 @@ inline auto set_string_result(Tcl_Interp* interp, std::u8string_view value)
     return {};
 }
 
+/**
+ * @brief Converts one Tcl command argument to a C++ callback argument.
+ *
+ * A callback argument of type `std::u8string_view` is a borrowed view into
+ * the string representation owned by the corresponding `Tcl_Obj`. The view is
+ * valid only while the command callback is running. If the value must be
+ * stored, returned later, or otherwise used after the callback returns, the
+ * callback must copy it into an owning object such as `std::u8string`.
+ */
 template<class T>
 [[nodiscard]] auto get_argument(Tcl_Interp* interp, Tcl_Obj* obj)
     -> result<std::remove_cvref_t<T>, error_detail>
@@ -317,6 +353,8 @@ template<class T>
 
     if constexpr (std::same_as<U, Tcl_Obj*>) {
         return obj;
+    } else if constexpr (std::same_as<U, xer::tk::obj>) {
+        return retain_obj(obj);
     } else if constexpr (std::same_as<U, std::u8string>) {
         return obj_to_u8string(obj);
     } else if constexpr (std::same_as<U, std::u8string_view>) {
@@ -381,6 +419,9 @@ template<class T>
 
     if constexpr (std::same_as<U, Tcl_Obj*>) {
         set_raw_result(interp, value);
+        return {};
+    } else if constexpr (std::same_as<U, obj>) {
+        set_raw_result(interp, to_native_handle(value));
         return {};
     } else if constexpr (std::same_as<U, std::u8string>) {
         return set_string_result(interp, std::u8string_view(value));
@@ -521,6 +562,12 @@ inline auto command_delete_proc(ClientData client_data) -> void
 
 /**
  * @brief Move-only RAII wrapper for `Tcl_Interp*`.
+ *
+ * An interpreter is thread-affine. It should be created, initialized, used,
+ * and destroyed on the same thread.
+ *
+ * XER does not require an interpreter to live on the program's main thread,
+ * but it does not make one interpreter safely callable from arbitrary threads.
  */
 class interpreter {
 public:
@@ -580,6 +627,63 @@ private:
     return interp.interp_;
 }
 
+
+/**
+ * @brief Creates a Tcl string object from UTF-8 text.
+ */
+[[nodiscard]] inline auto make_string_obj(std::u8string_view value)
+    -> result<obj, error_detail>
+{
+    const auto raw = detail::new_string_obj(value);
+    if (!raw.has_value()) {
+        return std::unexpected(raw.error());
+    }
+
+    return detail::retain_obj(*raw);
+}
+
+/**
+ * @brief Creates a Tcl integer object.
+ */
+[[nodiscard]] inline auto make_int_obj(int value) -> obj
+{
+    return detail::retain_obj(Tcl_NewIntObj(value));
+}
+
+/**
+ * @brief Creates a Tcl list object from UTF-8 text elements.
+ */
+[[nodiscard]] inline auto make_list_obj(std::span<const std::u8string_view> values)
+    -> result<obj, error_detail>
+{
+    auto list = detail::retain_obj(Tcl_NewListObj(0, nullptr));
+
+    for (const std::u8string_view value : values) {
+        auto element = make_string_obj(value);
+        if (!element.has_value()) {
+            return std::unexpected(element.error());
+        }
+
+        if (Tcl_ListObjAppendElement(
+                nullptr,
+                to_native_handle(list),
+                to_native_handle(*element)) != TCL_OK) {
+            return std::unexpected(detail::make_error(error_t::runtime_error));
+        }
+    }
+
+    return list;
+}
+
+/**
+ * @brief Creates a Tcl list object from UTF-8 text elements.
+ */
+[[nodiscard]] inline auto make_list_obj(std::initializer_list<std::u8string_view> values)
+    -> result<obj, error_detail>
+{
+    return make_list_obj(std::span<const std::u8string_view>(values.begin(), values.size()));
+}
+
 /**
  * @brief Initializes Tcl executable information from the current command line.
  */
@@ -636,6 +740,13 @@ private:
 [[nodiscard]] inline auto init(interpreter& interp) -> result<void, error_detail>;
 
 /**
+ * @brief Runs the Tk main event loop.
+ *
+ * This function is defined in `xer/bits/tk.h`.
+ */
+inline auto main_loop() -> void;
+
+/**
  * @brief Gets the current Tcl interpreter result as UTF-8 text.
  */
 [[nodiscard]] inline auto get_result(interpreter& interp) -> std::u8string
@@ -667,7 +778,7 @@ inline auto reset_result(interpreter& interp) noexcept -> void
     std::u8string_view script,
     eval_flag_t flags = eval_direct) -> result<std::u8string, error_detail>
 {
-    auto script_obj = detail::make_string_obj(script);
+    auto script_obj = make_string_obj(script);
     if (!script_obj.has_value()) {
         return std::unexpected(script_obj.error());
     }
@@ -677,7 +788,7 @@ inline auto reset_result(interpreter& interp) noexcept -> void
         return std::unexpected(detail::make_error(error_t::invalid_argument));
     }
 
-    const int code = Tcl_EvalObjEx(raw, script_obj->get(), flags);
+    const int code = Tcl_EvalObjEx(raw, to_native_handle(*script_obj), flags);
     const auto text = get_result(interp);
 
     if (code != TCL_OK) {
@@ -696,12 +807,12 @@ inline auto reset_result(interpreter& interp) noexcept -> void
     std::u8string_view value,
     var_flag_t flags = var_global_only) -> result<void, error_detail>
 {
-    auto name_obj = detail::make_string_obj(name);
+    auto name_obj = make_string_obj(name);
     if (!name_obj.has_value()) {
         return std::unexpected(name_obj.error());
     }
 
-    auto value_obj = detail::make_string_obj(value);
+    auto value_obj = make_string_obj(value);
     if (!value_obj.has_value()) {
         return std::unexpected(value_obj.error());
     }
@@ -713,9 +824,9 @@ inline auto reset_result(interpreter& interp) noexcept -> void
 
     Tcl_Obj* const result = Tcl_ObjSetVar2(
         raw,
-        name_obj->get(),
+        to_native_handle(*name_obj),
         nullptr,
-        value_obj->get(),
+        to_native_handle(*value_obj),
         flags);
 
     if (result == nullptr) {
@@ -735,17 +846,17 @@ inline auto reset_result(interpreter& interp) noexcept -> void
     std::u8string_view value,
     var_flag_t flags = var_global_only) -> result<void, error_detail>
 {
-    auto name1_obj = detail::make_string_obj(name1);
+    auto name1_obj = make_string_obj(name1);
     if (!name1_obj.has_value()) {
         return std::unexpected(name1_obj.error());
     }
 
-    auto name2_obj = detail::make_string_obj(name2);
+    auto name2_obj = make_string_obj(name2);
     if (!name2_obj.has_value()) {
         return std::unexpected(name2_obj.error());
     }
 
-    auto value_obj = detail::make_string_obj(value);
+    auto value_obj = make_string_obj(value);
     if (!value_obj.has_value()) {
         return std::unexpected(value_obj.error());
     }
@@ -757,9 +868,82 @@ inline auto reset_result(interpreter& interp) noexcept -> void
 
     Tcl_Obj* const result = Tcl_ObjSetVar2(
         raw,
-        name1_obj->get(),
-        name2_obj->get(),
-        value_obj->get(),
+        to_native_handle(*name1_obj),
+        to_native_handle(*name2_obj),
+        to_native_handle(*value_obj),
+        flags);
+
+    if (result == nullptr) {
+        return std::unexpected(detail::make_error(error_t::runtime_error));
+    }
+
+    return {};
+}
+
+
+/**
+ * @brief Sets a Tcl variable to an existing Tcl object.
+ */
+[[nodiscard]] inline auto set_var(
+    interpreter& interp,
+    std::u8string_view name,
+    obj& value,
+    var_flag_t flags = var_global_only) -> result<void, error_detail>
+{
+    auto name_obj = make_string_obj(name);
+    if (!name_obj.has_value()) {
+        return std::unexpected(name_obj.error());
+    }
+
+    Tcl_Interp* const raw = to_native_handle(interp);
+    if (raw == nullptr) {
+        return std::unexpected(detail::make_error(error_t::invalid_argument));
+    }
+
+    Tcl_Obj* const result = Tcl_ObjSetVar2(
+        raw,
+        to_native_handle(*name_obj),
+        nullptr,
+        to_native_handle(value),
+        flags);
+
+    if (result == nullptr) {
+        return std::unexpected(detail::make_error(error_t::runtime_error));
+    }
+
+    return {};
+}
+
+/**
+ * @brief Sets a Tcl array variable element to an existing Tcl object.
+ */
+[[nodiscard]] inline auto set_var(
+    interpreter& interp,
+    std::u8string_view name1,
+    std::u8string_view name2,
+    obj& value,
+    var_flag_t flags = var_global_only) -> result<void, error_detail>
+{
+    auto name1_obj = make_string_obj(name1);
+    if (!name1_obj.has_value()) {
+        return std::unexpected(name1_obj.error());
+    }
+
+    auto name2_obj = make_string_obj(name2);
+    if (!name2_obj.has_value()) {
+        return std::unexpected(name2_obj.error());
+    }
+
+    Tcl_Interp* const raw = to_native_handle(interp);
+    if (raw == nullptr) {
+        return std::unexpected(detail::make_error(error_t::invalid_argument));
+    }
+
+    Tcl_Obj* const result = Tcl_ObjSetVar2(
+        raw,
+        to_native_handle(*name1_obj),
+        to_native_handle(*name2_obj),
+        to_native_handle(value),
         flags);
 
     if (result == nullptr) {
@@ -777,7 +961,7 @@ inline auto reset_result(interpreter& interp) noexcept -> void
     std::u8string_view name,
     var_flag_t flags = var_global_only) -> result<std::u8string, error_detail>
 {
-    auto name_obj = detail::make_string_obj(name);
+    auto name_obj = make_string_obj(name);
     if (!name_obj.has_value()) {
         return std::unexpected(name_obj.error());
     }
@@ -789,7 +973,7 @@ inline auto reset_result(interpreter& interp) noexcept -> void
 
     Tcl_Obj* const result = Tcl_ObjGetVar2(
         raw,
-        name_obj->get(),
+        to_native_handle(*name_obj),
         nullptr,
         flags);
 
@@ -809,12 +993,12 @@ inline auto reset_result(interpreter& interp) noexcept -> void
     std::u8string_view name2,
     var_flag_t flags = var_global_only) -> result<std::u8string, error_detail>
 {
-    auto name1_obj = detail::make_string_obj(name1);
+    auto name1_obj = make_string_obj(name1);
     if (!name1_obj.has_value()) {
         return std::unexpected(name1_obj.error());
     }
 
-    auto name2_obj = detail::make_string_obj(name2);
+    auto name2_obj = make_string_obj(name2);
     if (!name2_obj.has_value()) {
         return std::unexpected(name2_obj.error());
     }
@@ -826,8 +1010,8 @@ inline auto reset_result(interpreter& interp) noexcept -> void
 
     Tcl_Obj* const result = Tcl_ObjGetVar2(
         raw,
-        name1_obj->get(),
-        name2_obj->get(),
+        to_native_handle(*name1_obj),
+        to_native_handle(*name2_obj),
         flags);
 
     if (result == nullptr) {
@@ -871,6 +1055,171 @@ template<class F>
         return std::unexpected(detail::make_error(error_t::runtime_error));
     }
 
+    return {};
+}
+
+
+namespace detail {
+
+[[nodiscard]] inline auto make_plain_unexpected(error_t code)
+    -> std::unexpected<error<void>>
+{
+    return std::unexpected(xer::make_error(code));
+}
+
+[[nodiscard]] inline auto make_plain_unexpected(const error<error_detail>& value)
+    -> std::unexpected<error<void>>
+{
+    return std::unexpected(xer::make_error(value.code));
+}
+
+[[nodiscard]] inline auto set_argc(interpreter& interp, std::size_t argc)
+    -> result<void, error_detail>
+{
+    if (argc > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        return std::unexpected(detail::make_error(error_t::out_of_range));
+    }
+
+    auto value = make_int_obj(static_cast<int>(argc));
+    return set_var(interp, u8"argc", value);
+}
+
+[[nodiscard]] inline auto set_argv(interpreter& interp, std::span<const std::u8string> args)
+    -> result<void, error_detail>
+{
+    std::vector<std::u8string_view> views;
+    views.reserve(args.size());
+
+    for (const auto& arg : args) {
+        views.push_back(std::u8string_view(arg));
+    }
+
+    auto list = make_list_obj(std::span<const std::u8string_view>(views.data(), views.size()));
+    if (!list.has_value()) {
+        return std::unexpected(list.error());
+    }
+
+    return set_var(interp, u8"argv", *list);
+}
+
+[[nodiscard]] inline auto set_argv0(interpreter& interp, const cmdline& line)
+    -> result<void, error_detail>
+{
+    const auto value = line.at(0);
+    if (!value.has_value()) {
+        return std::unexpected(detail::make_error(value.error().code));
+    }
+
+    return set_var(interp, u8"argv0", *value);
+}
+
+[[nodiscard]] inline auto set_environment_variables(interpreter& interp)
+    -> result<void, error_detail>
+{
+    const auto environment = xer::get_environs();
+    if (!environment.has_value()) {
+        return std::unexpected(detail::make_error(environment.error().code));
+    }
+
+    for (const auto& entry : environment->entries()) {
+        const auto set = set_var(
+            interp,
+            u8"env",
+            std::u8string_view(entry.name),
+            std::u8string_view(entry.value));
+        if (!set.has_value()) {
+            return std::unexpected(set.error());
+        }
+    }
+
+    return {};
+}
+
+[[nodiscard]] inline auto set_main_variables(interpreter& interp) -> result<void, error_detail>
+{
+    const auto line = get_cmdline();
+    if (!line.has_value()) {
+        return std::unexpected(detail::make_error(line.error().code));
+    }
+
+    if (line->empty()) {
+        return std::unexpected(detail::make_error(error_t::runtime_error));
+    }
+
+    const auto all_args = line->args();
+    const auto script_args = all_args.subspan(1);
+
+    const auto argc = set_argc(interp, script_args.size());
+    if (!argc.has_value()) {
+        return std::unexpected(argc.error());
+    }
+
+    const auto argv = set_argv(interp, script_args);
+    if (!argv.has_value()) {
+        return std::unexpected(argv.error());
+    }
+
+    const auto argv0 = set_argv0(interp, *line);
+    if (!argv0.has_value()) {
+        return std::unexpected(argv0.error());
+    }
+
+    const auto env = set_environment_variables(interp);
+    if (!env.has_value()) {
+        return std::unexpected(env.error());
+    }
+
+    return {};
+}
+
+} // namespace detail
+
+/**
+ * @brief Runs a Tcl/Tk application block without using `Tk_Main`.
+ *
+ * The callback is invoked after executable discovery, interpreter creation,
+ * Tcl/Tk initialization, and setup of Tcl startup variables. If the callback
+ * succeeds, `main_loop()` is entered. The interpreter is created, used, and
+ * destroyed on the thread that calls this function.
+ */
+template<class F>
+[[nodiscard]] auto main(F&& callback) -> result<void>
+{
+    using callback_result = std::invoke_result_t<F, interpreter&>;
+    static_assert(
+        std::same_as<std::remove_cvref_t<callback_result>, result<void>>,
+        "xer::tk::main callback must return xer::result<void>");
+
+    const auto executable = find_executable();
+    if (!executable.has_value()) {
+        return detail::make_plain_unexpected(executable.error());
+    }
+
+    auto interp = interpreter::create();
+    if (!interp.has_value()) {
+        return detail::make_plain_unexpected(interp.error());
+    }
+
+    const auto initialized = init(*interp);
+    if (!initialized.has_value()) {
+        return detail::make_plain_unexpected(initialized.error());
+    }
+
+    const auto variables = detail::set_main_variables(*interp);
+    if (!variables.has_value()) {
+        return detail::make_plain_unexpected(variables.error());
+    }
+
+    try {
+        auto prepared = std::invoke(std::forward<F>(callback), *interp);
+        if (!prepared.has_value()) {
+            return std::unexpected(prepared.error());
+        }
+    } catch (...) {
+        return std::unexpected(xer::make_error(error_t::runtime_error));
+    }
+
+    main_loop();
     return {};
 }
 

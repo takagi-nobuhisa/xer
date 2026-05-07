@@ -5,8 +5,10 @@
 
 // XER_TEST_FEATURES: tcltk
 
+#include <exception>
 #include <string>
 #include <string_view>
+#include <thread>
 
 #include <xer/assert.h>
 #include <xer/error.h>
@@ -115,6 +117,84 @@ void test_tk_set_get_array_var()
     xer_assert_eq(*get, std::u8string(u8"XER"));
 }
 
+void test_tk_obj_string_and_int_var()
+{
+    auto interp = make_interpreter();
+
+    auto name = xer::tk::make_string_obj(u8"xer");
+    xer_assert(name.has_value());
+
+    const auto set_name = xer::tk::set_var(interp, u8"name", *name);
+    xer_assert(set_name.has_value());
+
+    const auto get_name = xer::tk::get_var(interp, u8"name");
+    xer_assert(get_name.has_value());
+    xer_assert_eq(*get_name, std::u8string(u8"xer"));
+
+    auto count = xer::tk::make_int_obj(42);
+    const auto set_count = xer::tk::set_var(interp, u8"count", count);
+    xer_assert(set_count.has_value());
+
+    const auto get_count = xer::tk::get_var(interp, u8"count");
+    xer_assert(get_count.has_value());
+    xer_assert_eq(*get_count, std::u8string(u8"42"));
+}
+
+void test_tk_obj_list_var()
+{
+    auto interp = make_interpreter();
+
+    auto list = xer::tk::make_list_obj({u8"first value", u8"second", u8"third"});
+    xer_assert(list.has_value());
+
+    const auto set = xer::tk::set_var(interp, u8"argv", *list);
+    xer_assert(set.has_value());
+
+    const auto length = xer::tk::eval(interp, u8"llength $argv");
+    xer_assert(length.has_value());
+    xer_assert_eq(*length, std::u8string(u8"3"));
+
+    const auto first = xer::tk::eval(interp, u8"lindex $argv 0");
+    xer_assert(first.has_value());
+    xer_assert_eq(*first, std::u8string(u8"first value"));
+}
+
+void test_tk_obj_copy_keeps_reference()
+{
+    auto interp = make_interpreter();
+
+    auto original = xer::tk::make_string_obj(u8"copied");
+    xer_assert(original.has_value());
+
+    xer::tk::obj copy = *original;
+    original = xer::tk::make_string_obj(u8"other");
+    xer_assert(original.has_value());
+
+    const auto set = xer::tk::set_var(interp, u8"value", copy);
+    xer_assert(set.has_value());
+
+    const auto get = xer::tk::get_var(interp, u8"value");
+    xer_assert(get.has_value());
+    xer_assert_eq(*get, std::u8string(u8"copied"));
+}
+
+void test_tk_create_command_obj_argument_and_result()
+{
+    auto interp = make_interpreter();
+
+    const auto created = xer::tk::create_command(
+        interp,
+        u8"xer_obj_echo",
+        [](xer::tk::obj value) -> xer::tk::obj {
+            return value;
+        });
+    xer_assert(created.has_value());
+
+    const auto result = xer::tk::eval(interp, u8"xer_obj_echo hello");
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, std::u8string(u8"hello"));
+}
+
 void test_tk_to_native_handle()
 {
     auto interp = make_interpreter();
@@ -178,6 +258,64 @@ void test_tk_create_command_void_result()
     xer_assert_eq(*stored, std::u8string(u8"value"));
 }
 
+
+void test_tk_create_command_string_view_argument()
+{
+    auto interp = make_interpreter();
+
+    std::u8string copied;
+
+    const auto created = xer::tk::create_command(
+        interp,
+        u8"xer_view",
+        [&copied](std::u8string_view value) -> std::u8string_view {
+            // The view is valid only during this callback invocation.
+            // Copy it when the value must outlive the callback.
+            copied = std::u8string(value);
+            return value.substr(0, 3);
+        });
+    xer_assert(created.has_value());
+
+    const auto result = xer::tk::eval(interp, u8"xer_view example");
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, std::u8string(u8"exa"));
+    xer_assert_eq(copied, std::u8string(u8"example"));
+}
+
+void test_tk_create_command_bool_argument_and_result()
+{
+    auto interp = make_interpreter();
+
+    const auto created = xer::tk::create_command(
+        interp,
+        u8"xer_not",
+        [](bool value) -> bool {
+            return !value;
+        });
+    xer_assert(created.has_value());
+
+    const auto result = xer::tk::eval(interp, u8"xer_not false");
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, std::u8string(u8"1"));
+}
+
+void test_tk_create_command_unsigned_and_floating_arguments()
+{
+    auto interp = make_interpreter();
+
+    const auto created = xer::tk::create_command(
+        interp,
+        u8"xer_mix",
+        [](unsigned int count, double value) -> double {
+            return static_cast<double>(count) + value;
+        });
+    xer_assert(created.has_value());
+
+    const auto result = xer::tk::eval(interp, u8"xer_mix 3 2.5");
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, std::u8string(u8"5.5"));
+}
+
 void test_tk_create_command_result_return()
 {
     auto interp = make_interpreter();
@@ -205,6 +343,40 @@ void test_tk_create_command_result_return()
     xer_assert_eq(failed.error().result_code, xer::tk::result_error);
 }
 
+void test_tk_interpreter_worker_thread()
+{
+    std::exception_ptr failure;
+
+    std::thread worker([&failure] {
+        try {
+            auto interp = make_interpreter();
+
+            const auto created = xer::tk::create_command(
+                interp,
+                u8"worker_add",
+                [](int a, int b) -> int {
+                    return a + b;
+                });
+            xer_assert(created.has_value());
+
+            const auto result = xer::tk::eval(interp, u8"worker_add 10 20");
+            xer_assert(result.has_value());
+            xer_assert_eq(*result, std::u8string(u8"30"));
+
+            // The interpreter is intentionally destroyed inside this worker
+            // thread. This test does not share one interpreter across threads.
+        } catch (...) {
+            failure = std::current_exception();
+        }
+    });
+
+    worker.join();
+
+    if (failure != nullptr) {
+        std::rethrow_exception(failure);
+    }
+}
+
 } // namespace
 
 auto main() -> int
@@ -216,11 +388,19 @@ auto main() -> int
     test_tk_result_helpers();
     test_tk_set_get_var();
     test_tk_set_get_array_var();
+    test_tk_obj_string_and_int_var();
+    test_tk_obj_list_var();
+    test_tk_obj_copy_keeps_reference();
+    test_tk_create_command_obj_argument_and_result();
     test_tk_to_native_handle();
     test_tk_create_command_integer_result();
     test_tk_create_command_string_result();
     test_tk_create_command_void_result();
+    test_tk_create_command_string_view_argument();
+    test_tk_create_command_bool_argument_and_result();
+    test_tk_create_command_unsigned_and_floating_arguments();
     test_tk_create_command_result_return();
+    test_tk_interpreter_worker_thread();
 
     return 0;
 }
