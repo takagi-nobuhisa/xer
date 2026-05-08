@@ -577,6 +577,10 @@ rmdir
 copy
 touch
 
+fileatime
+filemtime
+filectime
+
 chdir
 getcwd
 realpath
@@ -604,6 +608,31 @@ Some functions in this group are simple predicates, while others perform actual 
 Predicate functions such as `file_exists`, `is_file`, `is_dir`, `is_readable`, and `is_writable` return `bool`.
 
 Operations that can fail normally return `xer::result`.
+
+### File Time Helpers
+
+`fileatime`, `filemtime`, and `filectime` return file time fields as seconds since the POSIX epoch. They use the platform's ordinary path status operation and may follow symbolic links when the platform's normal stat-like operation does so.
+
+`filectime` returns the same ctime field as `xer::stat::ctime`. The platform-specific meaning of that field is documented on `xer::stat`.
+
+```cpp
+auto fileatime(const path& filename) -> xer::result<time_t>;
+auto filemtime(const path& filename) -> xer::result<time_t>;
+auto filectime(const path& filename) -> xer::result<time_t>;
+```
+
+### `touch`
+
+```cpp
+auto touch(
+    const path& filename,
+    time_t mtime = -1,
+    time_t atime = -1) -> xer::result<void>;
+```
+
+`touch` changes the target's modification and access times. If the target does not exist, it creates an empty regular file.
+
+A negative `mtime` means that the current time is used. A negative `atime` means that the resolved `mtime` is also used as the access time. Non-finite time values are rejected as invalid arguments.
 
 ---
 

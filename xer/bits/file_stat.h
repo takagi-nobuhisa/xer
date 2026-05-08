@@ -14,6 +14,8 @@
 #include <limits>
 #include <type_traits>
 
+#include <xer/bits/time_types.h>
+
 #include <xer/bits/binary_stream.h>
 #include <xer/bits/text_stream.h>
 #include <xer/bits/to_native_handle.h>
@@ -39,9 +41,8 @@ namespace xer {
  * The exact meaning and availability of each field are platform-dependent.
  *
  * Time values are seconds since the POSIX epoch. Sub-second precision is not
- * exposed in the initial implementation. On Windows, ctime is based on the
- * file creation time because Windows does not expose POSIX inode-change time
- * through the APIs used here.
+ * exposed. On Windows, ctime is based on the file creation time because
+ * Windows does not expose POSIX inode-change time through the APIs used here.
  */
 struct stat {
     std::uintmax_t dev{};
@@ -192,6 +193,27 @@ namespace detail {
     return stat_native_handle(reinterpret_cast<HANDLE>(os_handle));
 }
 
+[[nodiscard]] inline auto stat_native_path(
+    const native_path_string& filename) noexcept -> result<stat> {
+    HANDLE const handle = ::CreateFileW(
+        filename.c_str(),
+        FILE_READ_ATTRIBUTES,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS,
+        nullptr);
+
+    if (handle == INVALID_HANDLE_VALUE) {
+        return std::unexpected(
+            make_error(stat_win32_error_to_error_t(::GetLastError())));
+    }
+
+    const auto result = stat_native_handle(handle);
+    ::CloseHandle(handle);
+    return result;
+}
+
 [[nodiscard]] inline auto lstat_native_path(
     const native_path_string& filename) noexcept -> result<stat> {
     HANDLE const handle = ::CreateFileW(
@@ -287,6 +309,16 @@ template<class T>
 
     struct ::stat status {};
     if (::fstat(fd, &status) != 0) {
+        return std::unexpected(make_error(stat_errno_to_error_t(errno)));
+    }
+
+    return convert_posix_stat(status);
+}
+
+[[nodiscard]] inline auto stat_native_path(
+    const native_path_string& filename) noexcept -> result<stat> {
+    struct ::stat status {};
+    if (::stat(filename.c_str(), &status) != 0) {
         return std::unexpected(make_error(stat_errno_to_error_t(errno)));
     }
 
@@ -427,6 +459,92 @@ template<class T>
     }
 
     return detail::filesize_native_path(*native_filename);
+}
+
+/**
+ * @brief Gets the last access time of a file system entry.
+ *
+ * This function returns the atime field from the platform's ordinary path
+ * status operation. Unlike lstat, it is intended as a PHP-style file-time
+ * helper and may follow symbolic links when the platform's normal stat-like
+ * operation does so.
+ *
+ * The returned value is seconds since the POSIX epoch. Sub-second precision is
+ * not exposed. The value is a snapshot-like result. The filesystem state may
+ * change immediately after this function returns.
+ *
+ * @param filename Target path.
+ * @return Last access time on success.
+ */
+[[nodiscard]] inline auto fileatime(const path& filename) noexcept -> result<time_t> {
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return std::unexpected(native_filename.error());
+    }
+
+    const auto status = detail::stat_native_path(*native_filename);
+    if (!status.has_value()) {
+        return std::unexpected(status.error());
+    }
+
+    return static_cast<time_t>(status->atime);
+}
+
+/**
+ * @brief Gets the last modification time of a file system entry.
+ *
+ * This function returns the mtime field from the platform's ordinary path
+ * status operation. Unlike lstat, it is intended as a PHP-style file-time
+ * helper and may follow symbolic links when the platform's normal stat-like
+ * operation does so.
+ *
+ * The returned value is seconds since the POSIX epoch. Sub-second precision is
+ * not exposed. The value is a snapshot-like result. The filesystem state may
+ * change immediately after this function returns.
+ *
+ * @param filename Target path.
+ * @return Last modification time on success.
+ */
+[[nodiscard]] inline auto filemtime(const path& filename) noexcept -> result<time_t> {
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return std::unexpected(native_filename.error());
+    }
+
+    const auto status = detail::stat_native_path(*native_filename);
+    if (!status.has_value()) {
+        return std::unexpected(status.error());
+    }
+
+    return static_cast<time_t>(status->mtime);
+}
+
+/**
+ * @brief Gets the ctime field of a file system entry.
+ *
+ * This function returns the ctime field from the platform's ordinary path
+ * status operation. The meaning of ctime is the same as xer::stat::ctime; see
+ * the documentation comment for xer::stat for the platform-specific details.
+ *
+ * The returned value is seconds since the POSIX epoch. Sub-second precision is
+ * not exposed. The value is a snapshot-like result. The filesystem state may
+ * change immediately after this function returns.
+ *
+ * @param filename Target path.
+ * @return ctime value on success.
+ */
+[[nodiscard]] inline auto filectime(const path& filename) noexcept -> result<time_t> {
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return std::unexpected(native_filename.error());
+    }
+
+    const auto status = detail::stat_native_path(*native_filename);
+    if (!status.has_value()) {
+        return std::unexpected(status.error());
+    }
+
+    return static_cast<time_t>(status->ctime);
 }
 
 } // namespace xer

@@ -161,6 +161,48 @@ void test_fstat_memory_stream_fails() {
     xer_assert_not(status.has_value());
 }
 
+
+void test_file_time_helpers_match_lstat() {
+    const test_directory_guard guard(make_unique_test_root());
+    const fs::path file_path = guard.path / "time.txt";
+    write_text_file(file_path, "time");
+
+    const xer::path target(filesystem_path_to_u8string(file_path));
+
+    const auto status = xer::lstat(target);
+    xer_assert(status.has_value());
+
+    const auto atime = xer::fileatime(target);
+    const auto mtime = xer::filemtime(target);
+    const auto ctime = xer::filectime(target);
+
+    xer_assert(atime.has_value());
+    xer_assert(mtime.has_value());
+    xer_assert(ctime.has_value());
+
+    xer_assert_eq(*atime, static_cast<xer::time_t>(status->atime));
+    xer_assert_eq(*mtime, static_cast<xer::time_t>(status->mtime));
+    xer_assert_eq(*ctime, static_cast<xer::time_t>(status->ctime));
+}
+
+void test_file_time_helpers_missing_file() {
+    const test_directory_guard guard(make_unique_test_root());
+    const fs::path file_path = guard.path / "missing_time.txt";
+
+    const xer::path target(filesystem_path_to_u8string(file_path));
+
+    const auto atime = xer::fileatime(target);
+    const auto mtime = xer::filemtime(target);
+    const auto ctime = xer::filectime(target);
+
+    xer_assert_not(atime.has_value());
+    xer_assert_not(mtime.has_value());
+    xer_assert_not(ctime.has_value());
+    xer_assert_eq(atime.error().code, xer::error_t::noent);
+    xer_assert_eq(mtime.error().code, xer::error_t::noent);
+    xer_assert_eq(ctime.error().code, xer::error_t::noent);
+}
+
 void test_filesize_invalid_path_encoding() {
     std::u8string invalid;
     invalid.push_back(static_cast<char8_t>(0x80));
@@ -181,6 +223,8 @@ int main() {
     test_fstat_binary_stream();
     test_fstat_text_stream();
     test_fstat_memory_stream_fails();
+    test_file_time_helpers_match_lstat();
+    test_file_time_helpers_missing_file();
     test_filesize_invalid_path_encoding();
 
     return 0;
