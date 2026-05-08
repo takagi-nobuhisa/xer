@@ -9,14 +9,18 @@
 #define XER_BITS_FILE_ENTRY_H_INCLUDED_
 
 #include <cerrno>
+#include <cmath>
+#include <cstdint>
 #include <cstddef>
 #include <cstdlib>
 #include <expected>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include <xer/bits/common.h>
+#include <xer/bits/time_clock.h>
 #include <xer/error.h>
 #include <xer/path.h>
 
@@ -100,6 +104,39 @@ inline auto close_handle_if_valid(HANDLE handle) noexcept -> void
 }
 
 /**
+ * @brief Converts XER calendar time to a Windows FILETIME value.
+ *
+ * @param value Seconds since the POSIX epoch.
+ * @return Converted FILETIME on success.
+ */
+[[nodiscard]] inline auto time_to_filetime(time_t value) noexcept -> result<FILETIME>
+{
+    constexpr long double windows_to_unix_epoch_100ns = 116444736000000000.0L;
+    constexpr long double ticks_per_second = 10000000.0L;
+    constexpr long double max_ticks =
+        static_cast<long double>(std::numeric_limits<std::uint64_t>::max());
+
+    if (!std::isfinite(value) || value < 0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const long double ticks =
+        (static_cast<long double>(value) * ticks_per_second) +
+        windows_to_unix_epoch_100ns;
+
+    if (ticks < 0.0L || ticks > max_ticks) {
+        return std::unexpected(make_error(error_t::range));
+    }
+
+    const auto integer_ticks = static_cast<std::uint64_t>(std::llround(ticks));
+
+    FILETIME result{};
+    result.dwLowDateTime = static_cast<DWORD>(integer_ticks & 0xffffffffULL);
+    result.dwHighDateTime = static_cast<DWORD>(integer_ticks >> 32U);
+    return result;
+}
+
+/**
  * @brief Removes Windows extended path prefixes from a final path name.
  *
  * GetFinalPathNameByHandleW usually returns paths such as "\\?\C:\dir\file"
@@ -153,6 +190,39 @@ inline auto close_fd_if_valid(int fd) noexcept -> void
     if (fd >= 0) {
         ::close(fd);
     }
+}
+
+/**
+ * @brief Converts XER calendar time to a POSIX timespec value.
+ *
+ * @param value Seconds since the POSIX epoch.
+ * @return Converted timespec on success.
+ */
+[[nodiscard]] inline auto time_to_timespec(time_t value) noexcept -> result<timespec>
+{
+    if (!std::isfinite(value) || value < 0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const long double whole = std::floor(static_cast<long double>(value));
+    const long double fraction = static_cast<long double>(value) - whole;
+
+    if (whole > static_cast<long double>(std::numeric_limits<::time_t>::max())) {
+        return std::unexpected(make_error(error_t::range));
+    }
+
+    auto seconds = static_cast<::time_t>(whole);
+    auto nanoseconds = static_cast<long>(std::llround(fraction * 1000000000.0L));
+
+    if (nanoseconds >= 1000000000L) {
+        ++seconds;
+        nanoseconds -= 1000000000L;
+    }
+
+    timespec result{};
+    result.tv_sec = seconds;
+    result.tv_nsec = nanoseconds;
+    return result;
 }
 
 #endif
@@ -522,6 +592,127 @@ namespace xer {
     }
 
     return *converted;
+#endif
+}
+
+
+/**
+ * @brief Changes file access and modification times.
+ *
+ * If the target does not exist, this function creates an empty regular file.
+ * Negative mtime means that the current time is used. Negative atime means
+ * that the resolved mtime is also used as the access time. Non-finite time
+ * values are rejected as invalid arguments.
+ *
+ * @param filename Target path.
+ * @param mtime Modification time, or a negative value to use the current time.
+ * @param atime Access time, or a negative value to use the resolved mtime.
+ * @return Empty success value on success.
+ */
+[[nodiscard]] inline auto touch(
+    const path& filename,
+    time_t mtime = -1,
+    time_t atime = -1) -> result<void>
+{
+    if (!std::isfinite(mtime) || !std::isfinite(atime)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    if (mtime < 0) {
+        const auto now = time();
+        if (!now.has_value()) {
+            return std::unexpected(now.error());
+        }
+
+        mtime = *now;
+    }
+
+    if (atime < 0) {
+        atime = mtime;
+    }
+
+    const auto native_filename = to_native_path(filename);
+    if (!native_filename.has_value()) {
+        return std::unexpected(native_filename.error());
+    }
+
+#ifdef _WIN32
+    const auto access_time = detail::time_to_filetime(atime);
+    if (!access_time.has_value()) {
+        return std::unexpected(access_time.error());
+    }
+
+    const auto write_time = detail::time_to_filetime(mtime);
+    if (!write_time.has_value()) {
+        return std::unexpected(write_time.error());
+    }
+
+    const HANDLE handle = ::CreateFileW(
+        native_filename->c_str(),
+        FILE_WRITE_ATTRIBUTES,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        nullptr,
+        OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS,
+        nullptr);
+
+    if (handle == INVALID_HANDLE_VALUE) {
+        return std::unexpected(
+            make_error(detail::win32_error_to_error_t(::GetLastError())));
+    }
+
+    if (::SetFileTime(handle, nullptr, &*access_time, &*write_time) == 0) {
+        const DWORD error = ::GetLastError();
+        detail::close_handle_if_valid(handle);
+        return std::unexpected(make_error(detail::win32_error_to_error_t(error)));
+    }
+
+    detail::close_handle_if_valid(handle);
+    return {};
+#else
+    const auto access_time = detail::time_to_timespec(atime);
+    if (!access_time.has_value()) {
+        return std::unexpected(access_time.error());
+    }
+
+    const auto write_time = detail::time_to_timespec(mtime);
+    if (!write_time.has_value()) {
+        return std::unexpected(write_time.error());
+    }
+
+    const struct timespec times[2] = {
+        *access_time,
+        *write_time,
+    };
+
+    if (::utimensat(AT_FDCWD, native_filename->c_str(), times, 0) == 0) {
+        return {};
+    }
+
+    if (errno != ENOENT) {
+        return std::unexpected(make_error(detail::errno_to_error_t(errno)));
+    }
+
+    const int fd = ::open(native_filename->c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
+    if (fd < 0) {
+        if (errno == EEXIST) {
+            if (::utimensat(AT_FDCWD, native_filename->c_str(), times, 0) == 0) {
+                return {};
+            }
+        }
+
+        return std::unexpected(make_error(detail::errno_to_error_t(errno)));
+    }
+
+    if (::close(fd) != 0) {
+        return std::unexpected(make_error(detail::errno_to_error_t(errno)));
+    }
+
+    if (::utimensat(AT_FDCWD, native_filename->c_str(), times, 0) != 0) {
+        return std::unexpected(make_error(detail::errno_to_error_t(errno)));
+    }
+
+    return {};
 #endif
 }
 

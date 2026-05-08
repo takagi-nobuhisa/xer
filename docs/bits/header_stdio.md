@@ -575,6 +575,7 @@ rename
 mkdir
 rmdir
 copy
+touch
 
 chdir
 getcwd

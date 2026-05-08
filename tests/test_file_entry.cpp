@@ -6,6 +6,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -19,6 +20,7 @@
 
 #include <xer/assert.h>
 #include <xer/bits/file_entry.h>
+#include <xer/bits/file_stat.h>
 #include <xer/error.h>
 #include <xer/path.h>
 
@@ -151,6 +153,94 @@ void test_file_status_invalid_path_encoding() {
     xer_assert_not(xer::is_dir(target));
     xer_assert_not(xer::is_readable(target));
     xer_assert_not(xer::is_writable(target));
+}
+
+
+void test_touch_creates_missing_file() {
+    const test_directory_guard guard(make_unique_test_root());
+    const fs::path file_path = guard.path / "touch_created.txt";
+
+    const xer::path target(filesystem_path_to_u8string(file_path));
+    const auto result = xer::touch(target);
+
+    xer_assert(result.has_value());
+    xer_assert(fs::exists(file_path));
+    xer_assert(fs::is_regular_file(file_path));
+    xer_assert_eq(fs::file_size(file_path), static_cast<std::uintmax_t>(0));
+}
+
+void test_touch_sets_explicit_times() {
+    const test_directory_guard guard(make_unique_test_root());
+    const fs::path file_path = guard.path / "touch_explicit.txt";
+    write_text_file(file_path, "touch");
+
+    const xer::path target(filesystem_path_to_u8string(file_path));
+    const auto result = xer::touch(target, 1000000000.0, 1000000001.0);
+
+    xer_assert(result.has_value());
+
+    const auto mtime = xer::filemtime(target);
+    const auto atime = xer::fileatime(target);
+
+    xer_assert(mtime.has_value());
+    xer_assert(atime.has_value());
+    xer_assert_eq(*mtime, 1000000000.0);
+    xer_assert_eq(*atime, 1000000001.0);
+}
+
+void test_touch_uses_mtime_when_atime_is_negative() {
+    const test_directory_guard guard(make_unique_test_root());
+    const fs::path file_path = guard.path / "touch_same_time.txt";
+    write_text_file(file_path, "touch");
+
+    const xer::path target(filesystem_path_to_u8string(file_path));
+    const auto result = xer::touch(target, 1000000002.0);
+
+    xer_assert(result.has_value());
+
+    const auto mtime = xer::filemtime(target);
+    const auto atime = xer::fileatime(target);
+
+    xer_assert(mtime.has_value());
+    xer_assert(atime.has_value());
+    xer_assert_eq(*mtime, 1000000002.0);
+    xer_assert_eq(*atime, 1000000002.0);
+}
+
+void test_touch_allows_atime_without_explicit_mtime() {
+    const test_directory_guard guard(make_unique_test_root());
+    const fs::path file_path = guard.path / "touch_atime_only.txt";
+    write_text_file(file_path, "touch");
+
+    const xer::path target(filesystem_path_to_u8string(file_path));
+    const auto before = xer::time();
+    xer_assert(before.has_value());
+
+    const auto result = xer::touch(target, -1, 1000000003.0);
+
+    xer_assert(result.has_value());
+
+    const auto mtime = xer::filemtime(target);
+    const auto atime = xer::fileatime(target);
+
+    xer_assert(mtime.has_value());
+    xer_assert(atime.has_value());
+    xer_assert(*mtime >= *before - 1.0);
+    xer_assert_eq(*atime, 1000000003.0);
+}
+
+void test_touch_rejects_nonfinite_time() {
+    const test_directory_guard guard(make_unique_test_root());
+    const fs::path file_path = guard.path / "touch_nonfinite.txt";
+
+    const xer::path target(filesystem_path_to_u8string(file_path));
+    const auto result = xer::touch(
+        target,
+        std::numeric_limits<xer::time_t>::quiet_NaN());
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+    xer_assert(!fs::exists(file_path));
 }
 
 void test_remove_regular_file() {
@@ -429,6 +519,13 @@ int main() {
     test_file_status_directory();
     test_file_status_missing_entry();
     test_file_status_invalid_path_encoding();
+
+    test_touch_creates_missing_file();
+    test_touch_sets_explicit_times();
+    test_touch_uses_mtime_when_atime_is_negative();
+    test_touch_allows_atime_without_explicit_mtime();
+    test_touch_rejects_nonfinite_time();
+
     test_remove_regular_file();
     test_remove_missing_file();
     test_remove_directory_fails();
