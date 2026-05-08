@@ -21,10 +21,10 @@
 #include <xer/error.h>
 
 #ifdef _WIN32
-extern "C" {
-extern wchar_t** __wenvp;
-extern char** __envp;
-}
+#    if !defined(NOMINMAX)
+#        define NOMINMAX
+#    endif
+#    include <windows.h>
 #else
 extern "C" {
 extern char** environ;
@@ -231,10 +231,8 @@ namespace detail {
 /**
  * @brief Gets all current process environment variables.
  *
- * On Windows, this function primarily uses `__wenvp` so that environment
- * strings are obtained as UTF-16 and converted to UTF-8. If `__wenvp` is
- * `nullptr`, it falls back to `__envp` and assumes that the byte strings are
- * UTF-8.
+ * On Windows, this function uses `GetEnvironmentStringsW` so that
+ * environment strings are obtained as UTF-16 and converted to UTF-8.
  *
  * On Linux, this function reads the process environment array and requires each
  * name and value to be valid UTF-8.
@@ -248,30 +246,27 @@ namespace detail {
     std::vector<environ_entry> entries;
 
 #ifdef _WIN32
-    if (__wenvp != nullptr) {
-        for (wchar_t** current = __wenvp; *current != nullptr; ++current) {
-            const auto appended = detail::append_environment_entry_from_wide(
-                entries,
-                std::wstring_view(*current));
-            if (!appended.has_value()) {
-                return std::unexpected(appended.error());
-            }
-        }
-
-        return environs(std::move(entries));
+    wchar_t* const block = ::GetEnvironmentStringsW();
+    if (block == nullptr) {
+        return std::unexpected(make_error(error_t::runtime_error));
     }
 
-    if (__envp == nullptr) {
-        return environs(std::move(entries));
-    }
-
-    for (char** current = __envp; *current != nullptr; ++current) {
-        const auto appended = detail::append_environment_entry_from_utf8_bytes(
+    wchar_t* current = block;
+    while (*current != L'\0') {
+        const auto entry = std::wstring_view(current);
+        const auto appended = detail::append_environment_entry_from_wide(
             entries,
-            std::string_view(*current));
+            entry);
         if (!appended.has_value()) {
+            ::FreeEnvironmentStringsW(block);
             return std::unexpected(appended.error());
         }
+
+        current += entry.size() + 1;
+    }
+
+    if (::FreeEnvironmentStringsW(block) == 0) {
+        return std::unexpected(make_error(error_t::runtime_error));
     }
 #else
     if (::environ == nullptr) {

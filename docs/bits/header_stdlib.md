@@ -1,4 +1,4 @@
-﻿# `<xer/stdlib.h>`
+# `<xer/stdlib.h>`
 
 ## Purpose
 
@@ -301,8 +301,7 @@ If the name is not present, it fails with `error_t::not_found`.
 
 ### Platform Encoding Policy
 
-On Windows, `get_environs` primarily reads `__wenvp` so that environment strings are obtained as UTF-16 and converted to UTF-8.
-If `__wenvp` is `nullptr`, it falls back to `__envp` and assumes that those byte strings are UTF-8.
+On Windows, `get_environs` uses `GetEnvironmentStringsW` so that environment strings are obtained as UTF-16 and converted to UTF-8.
 
 On Linux, `get_environs` reads the process environment array and requires each name and value to be valid UTF-8.
 
