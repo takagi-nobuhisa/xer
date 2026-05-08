@@ -54,6 +54,7 @@
 - `xer/color.h`
 - `xer/quantity.h`
 - `xer/matrix.h`
+- `xer/image.h`
 
 ### Process
 
@@ -210,6 +211,14 @@ They are related to arithmetic helpers, but their main concepts are fixed-size m
 
 For that reason, matrix functionality is not absorbed into `xer/arithmetic.h`, but is provided as the independent public header `xer/matrix.h`.
 
+### Why `image.h` Is Independent
+
+Image and framebuffer facilities form a small but coherent feature group.
+They are related to color handling and Tk GUI integration, but their main concepts are logical pixels, framebuffer storage policies, fixed-size images, dynamic-size images, and drawing helpers.
+
+For that reason, image functionality is not absorbed into `xer/color.h` or `xer/tk.h`, but is provided as the independent public header `xer/image.h`.
+`xer/tk.h` may provide bridge functions for Tk photo images, but pure image storage, drawing, and image processing belong to `xer/image.h`.
+
 ---
 
 ## Final List of Public Headers
@@ -241,6 +250,7 @@ xer/interval.h
 xer/color.h
 xer/quantity.h
 xer/matrix.h
+xer/image.h
 xer/process.h
 xer/cmdline.h
 xer/time.h
