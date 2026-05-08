@@ -47,6 +47,18 @@ inline constexpr event_flag_t event_dont_wait;
 struct error_detail;
 class interpreter;
 class obj;
+class photo_image;
+
+using photo_composite_rule_t = int;
+using photo_image_block = Tk_PhotoImageBlock;
+
+inline constexpr photo_composite_rule_t photo_composite_overlay;
+inline constexpr photo_composite_rule_t photo_composite_set;
+
+struct photo_size {
+    int width;
+    int height;
+};
 
 auto find_executable() -> xer::result<void, error_detail>;
 auto init(interpreter& interp) -> xer::result<void, error_detail>;
@@ -110,6 +122,46 @@ auto create_command(interpreter& interp,
 
 auto to_native_handle(interpreter& interp) noexcept -> Tcl_Interp*;
 auto to_native_handle(obj& value) noexcept -> Tcl_Obj*;
+auto to_native_handle(photo_image image) noexcept -> Tk_PhotoHandle;
+
+auto find_photo(interpreter& interp, const char8_t* name)
+    -> xer::result<photo_image, error_detail>;
+
+auto photo_get_size(photo_image image) noexcept -> photo_size;
+auto photo_blank(photo_image image) noexcept -> void;
+
+auto photo_expand(interpreter& interp, photo_image image, int width, int height)
+    -> xer::result<void, error_detail>;
+
+auto photo_set_size(interpreter& interp, photo_image image, int width, int height)
+    -> xer::result<void, error_detail>;
+
+auto photo_get_image(photo_image image, photo_image_block* block)
+    -> xer::result<void, error_detail>;
+
+auto photo_put_block(interpreter& interp,
+                     photo_image image,
+                     photo_image_block* block,
+                     int x,
+                     int y,
+                     int width,
+                     int height,
+                     photo_composite_rule_t rule = photo_composite_set)
+    -> xer::result<void, error_detail>;
+
+auto photo_put_zoomed_block(interpreter& interp,
+                            photo_image image,
+                            photo_image_block* block,
+                            int x,
+                            int y,
+                            int width,
+                            int height,
+                            int zoom_x,
+                            int zoom_y,
+                            int subsample_x,
+                            int subsample_y,
+                            photo_composite_rule_t rule = photo_composite_set)
+    -> xer::result<void, error_detail>;
 
 template <class F>
 auto main(F&& callback) -> xer::result<void>;
@@ -242,6 +294,125 @@ auto to_native_handle(interpreter& interp) noexcept -> Tcl_Interp*;
 This function is an escape hatch for direct Tcl/Tk C API use. It is intentionally not named like an ordinary accessor such as `get`, because using the native handle bypasses part of XER's abstraction.
 
 There is no overload for `const interpreter&`. Tcl interpreter handles are commonly used for state-changing operations, and a const overload would not provide meaningful const safety.
+
+---
+
+## Photo Image Helpers
+
+`<xer/tk.h>` provides thin wrappers for Tk photo image APIs such as `Tk_FindPhoto`, `Tk_PhotoGetImage`, `Tk_PhotoPutBlock`, and related size operations.
+
+These helpers are intentionally part of the Tk integration layer rather than the general image-processing layer. Pure image processing and framebuffer manipulation belong in `<xer/image.h>`, while `<xer/tk.h>` only handles the bridge to Tk photo images.
+
+### `photo_image`
+
+```cpp
+class photo_image;
+```
+
+`photo_image` is a non-owning handle for an existing Tk photo image.
+
+A `photo_image` value cannot be default-constructed. It is created only by `find_photo`, so it does not represent a null photo handle in ordinary XER code.
+
+The type does not own the underlying Tk image. The caller must ensure that the Tcl/Tk photo image outlives any `photo_image` handle referring to it. If the image is deleted on the Tcl/Tk side, an existing `photo_image` becomes invalid by the native Tk lifetime rules.
+
+The native escape hatch is:
+
+```cpp
+auto to_native_handle(photo_image image) noexcept -> Tk_PhotoHandle;
+```
+
+### Finding a Photo Image
+
+```cpp
+auto find_photo(interpreter& interp, const char8_t* name)
+    -> xer::result<photo_image, error_detail>;
+```
+
+`find_photo` searches for an existing Tk photo image by name.
+
+The `name` argument is a null-terminated UTF-8 string. This follows the native Tk API, which accepts a `const char*` image name. Unlike `eval`, this function does not take `std::u8string_view`, because the native API requires a null-terminated string rather than an object with an explicit length.
+
+If `name` is null, the function fails with `error_t::invalid_argument`. If the named image does not exist or is not a photo image, the function fails with `error_t::not_found`.
+
+### Size Operations
+
+```cpp
+struct photo_size {
+    int width;
+    int height;
+};
+
+auto photo_get_size(photo_image image) noexcept -> photo_size;
+
+auto photo_expand(interpreter& interp, photo_image image, int width, int height)
+    -> xer::result<void, error_detail>;
+
+auto photo_set_size(interpreter& interp, photo_image image, int width, int height)
+    -> xer::result<void, error_detail>;
+```
+
+`photo_get_size` returns the current Tk photo size.
+
+`photo_expand` expands the photo image to at least the requested size. If the photo image has an explicit `-width` or `-height` set on the Tcl/Tk side, Tk may preserve that explicit dimension instead of expanding it.
+
+`photo_set_size` sets the explicit size of the photo image. Passing zero for both dimensions can be used to clear the explicit size in the same manner as the native Tk API.
+
+Negative dimensions are rejected as `error_t::invalid_argument` before calling Tk.
+
+### Blank and Block Operations
+
+```cpp
+using photo_image_block = Tk_PhotoImageBlock;
+using photo_composite_rule_t = int;
+
+inline constexpr photo_composite_rule_t photo_composite_overlay;
+inline constexpr photo_composite_rule_t photo_composite_set;
+
+auto photo_blank(photo_image image) noexcept -> void;
+
+auto photo_get_image(photo_image image, photo_image_block* block)
+    -> xer::result<void, error_detail>;
+
+auto photo_put_block(interpreter& interp,
+                     photo_image image,
+                     photo_image_block* block,
+                     int x,
+                     int y,
+                     int width,
+                     int height,
+                     photo_composite_rule_t rule = photo_composite_set)
+    -> xer::result<void, error_detail>;
+
+auto photo_put_zoomed_block(interpreter& interp,
+                            photo_image image,
+                            photo_image_block* block,
+                            int x,
+                            int y,
+                            int width,
+                            int height,
+                            int zoom_x,
+                            int zoom_y,
+                            int subsample_x,
+                            int subsample_y,
+                            photo_composite_rule_t rule = photo_composite_set)
+    -> xer::result<void, error_detail>;
+```
+
+`photo_blank` clears the photo image.
+
+`photo_get_image` fills a `photo_image_block` descriptor for the current Tk photo image. The block points to Tk-managed memory and should be treated according to Tk's lifetime rules.
+
+`photo_put_block` writes a block into the photo image.
+
+`photo_put_zoomed_block` writes a block while applying integer zooming and subsampling.
+
+The block pointer must not be null. Coordinates, width, and height must not be negative. Zoom and subsample factors must be positive. Invalid arguments are rejected before calling Tk.
+
+### Relationship to XER Image Facilities
+
+The photo block helpers are low-level Tk wrappers. They intentionally expose `Tk_PhotoImageBlock` through the alias `photo_image_block` so that code can use the native Tk block layout when needed.
+
+Higher-level conversion between Tk photo images and XER image or framebuffer types should be built separately on top of these helpers. The ordinary image-processing algorithms themselves should not depend on Tcl/Tk.
 
 ---
 
