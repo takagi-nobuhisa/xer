@@ -4589,7 +4589,7 @@ The save helper combines encoding with UTF-8 file writing and returns `xer::resu
 
 ---
 
-﻿# `<xer/stdio.h>`
+# `<xer/stdio.h>`
 
 ## Purpose
 
