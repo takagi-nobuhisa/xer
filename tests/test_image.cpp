@@ -37,7 +37,9 @@ auto test_argb32_policy() -> bool
     xer::argb32_policy::set(storage, xer::pixel(0x12u, 0x34u, 0x56u, 0x78u));
     const auto value = xer::argb32_policy::get(storage);
 
-    return storage == 0x12345678u && value.argb == 0x12345678u;
+    return storage == 0x12345678u &&
+           value.argb == 0x12345678u &&
+           xer::argb32_policy::encode(value) == 0x12345678u;
 }
 
 auto test_rgba32_policy() -> bool
@@ -46,7 +48,9 @@ auto test_rgba32_policy() -> bool
     xer::rgba32_policy::set(storage, xer::pixel(0x12u, 0x34u, 0x56u, 0x78u));
     const auto value = xer::rgba32_policy::get(storage);
 
-    return storage == 0x34567812u && value.argb == 0x12345678u;
+    return storage == 0x34567812u &&
+           value.argb == 0x12345678u &&
+           xer::rgba32_policy::encode(value) == 0x34567812u;
 }
 
 auto test_rgb24_policy() -> bool
@@ -95,6 +99,22 @@ auto test_dynamic_image_basic() -> bool
 
     img.set_pixel(1, 1, xer::pixel(0x80u, 0x10u, 0x20u, 0x30u));
     return img.get_pixel(1, 1).argb == 0x80102030u;
+}
+
+auto test_set_pixel_checked_and_unchecked() -> bool
+{
+    xer::image<2, 2> img;
+    img.clear();
+
+    img.set_pixel(-1, 0, xer::pixel(0xffu, 0u, 0u));
+    img.set_pixel(2, 0, xer::pixel(0xffu, 0u, 0u));
+    if (img.get_pixel(0, 0).argb != 0xff000000u ||
+        img.get_pixel(1, 0).argb != 0xff000000u) {
+        return false;
+    }
+
+    img.set_pixel_unchecked(1, 1, xer::pixel(0u, 0xffu, 0u));
+    return img.get_pixel(1, 1).argb == 0xff00ff00u;
 }
 
 auto test_clear_and_fill() -> bool
@@ -240,6 +260,9 @@ auto main() -> int
         return 1;
     }
     if (!test_dynamic_image_basic()) {
+        return 1;
+    }
+    if (!test_set_pixel_checked_and_unchecked()) {
         return 1;
     }
     if (!test_clear_and_fill()) {

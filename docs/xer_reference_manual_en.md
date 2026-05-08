@@ -12026,6 +12026,7 @@ A policy provides:
 using storage_type = /* physical storage element type */;
 
 static constexpr auto get(const storage_type& value) noexcept -> pixel;
+static constexpr auto encode(pixel value) noexcept -> storage_type;
 static constexpr auto set(storage_type& dst, pixel value) noexcept -> void;
 ```
 
@@ -12097,14 +12098,21 @@ The public pixel API uses logical pixels:
 
 ```cpp
 auto get_pixel(std::size_t x, std::size_t y) const noexcept -> pixel;
-auto set_pixel(std::size_t x, std::size_t y, pixel value) noexcept -> void;
+auto set_pixel(int x, int y, pixel value) noexcept -> void;
+auto set_pixel_unchecked(std::size_t x,
+                         std::size_t y,
+                         pixel value) noexcept -> void;
 ```
 
 `image::at()` is intentionally not provided.
 
 Returning a reference to the physical storage element would expose the framebuffer layout and would be incorrect when the storage policy is not ARGB. `pixel` is logical. `Policy::storage_type` is physical.
 
-The coordinates passed to `get_pixel` and `set_pixel` are expected to be inside the image.
+`get_pixel` expects coordinates that are inside the image.
+
+`set_pixel` accepts signed coordinates and does nothing when the coordinates are outside the image boundary.
+
+`set_pixel_unchecked` does not perform boundary checks. The caller must guarantee that `x < width()` and `y < height()`. It is intended for code that has already performed clipping or bounds checks outside the inner drawing loop.
 
 ---
 
@@ -12142,7 +12150,9 @@ Drawing coordinates use `int` rather than `std::size_t` because drawing often be
 
 Drawing operations clip to the image bounds. If the target area is fully outside the image, nothing is drawn.
 
-`draw_line` uses a simple Bresenham-style integer line algorithm.
+After clipping, `draw_hline`, `draw_vline`, and `fill_rect` write directly to framebuffer storage. They do not call `set_pixel` for every pixel. This keeps inner loops based on simple pointer or stride increments instead of repeated coordinate-to-offset calculation.
+
+`draw_line` uses a simple Bresenham-style integer line algorithm. It still checks each generated point against the image boundary, but writes through `set_pixel_unchecked` after that check.
 
 ---
 
@@ -12183,9 +12193,12 @@ auto main() -> int
     xer::image<4, 4> img;
 
     img.clear();
-    xer::draw_hline(img, 1, 1, 2, xer::pixel(0xffu, 0x00u, 0x00u));
 
-    const auto value = img.get_pixel(1, 1);
+    // This line intentionally starts outside the image.
+    // XER clips it to the framebuffer boundary.
+    xer::draw_hline(img, -2, 1, 4, xer::pixel(0xffu, 0x00u, 0x00u));
+
+    const auto value = img.get_pixel(0, 1);
     return value.argb == 0xffff0000u ? 0 : 1;
 }
 ```

@@ -1,11 +1,11 @@
 ﻿// XER_EXAMPLE_BEGIN: image_basic
 //
-// This example creates a fixed-size framebuffer image, draws a small pattern,
+// This example creates a fixed-size framebuffer image, draws clipped shapes,
 // and reads logical pixels back from the framebuffer.
 //
 // Expected output:
-// p00 = ff000000
-// p11 = ffff0000
+// p00 = ffff0000
+// p11 = ff000000
 // p22 = ff00ff00
 // p33 = ff0000ff
 
@@ -31,9 +31,10 @@ auto main() -> int
 
     img.clear();
 
-    xer::draw_hline(img, 1, 1, 2, xer::pixel(0xffu, 0x00u, 0x00u));
-    xer::draw_vline(img, 2, 1, 2, xer::pixel(0x00u, 0xffu, 0x00u));
-    xer::draw_line(img, 0, 3, 3, 3, xer::pixel(0x00u, 0x00u, 0xffu));
+    // Drawing functions clip their requested area to the framebuffer boundary.
+    xer::draw_hline(img, -2, 0, 4, xer::pixel(0xffu, 0x00u, 0x00u));
+    xer::draw_vline(img, 2, -1, 4, xer::pixel(0x00u, 0xffu, 0x00u));
+    xer::fill_rect(img, 3, 2, 4, 4, xer::pixel(0x00u, 0x00u, 0xffu));
 
     if (!print_pixel(u8"p00", img.get_pixel(0, 0))) {
         return 1;

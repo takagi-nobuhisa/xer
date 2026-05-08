@@ -168,9 +168,15 @@ struct argb32_policy {
         return pixel(value);
     }
 
+    [[nodiscard]] static constexpr auto encode(pixel value) noexcept
+        -> storage_type
+    {
+        return value.argb;
+    }
+
     static constexpr auto set(storage_type& dst, pixel value) noexcept -> void
     {
-        dst = value.argb;
+        dst = encode(value);
     }
 };
 
@@ -192,12 +198,18 @@ struct rgba32_policy {
             static_cast<std::uint8_t>(value >> 8));
     }
 
+    [[nodiscard]] static constexpr auto encode(pixel value) noexcept
+        -> storage_type
+    {
+        return (static_cast<std::uint32_t>(value.red()) << 24) |
+               (static_cast<std::uint32_t>(value.green()) << 16) |
+               (static_cast<std::uint32_t>(value.blue()) << 8) |
+               static_cast<std::uint32_t>(value.alpha());
+    }
+
     static constexpr auto set(storage_type& dst, pixel value) noexcept -> void
     {
-        dst = (static_cast<std::uint32_t>(value.red()) << 24) |
-              (static_cast<std::uint32_t>(value.green()) << 16) |
-              (static_cast<std::uint32_t>(value.blue()) << 8) |
-              static_cast<std::uint32_t>(value.alpha());
+        dst = encode(value);
     }
 };
 
@@ -213,11 +225,15 @@ struct rgb24_policy {
         return pixel(value[0], value[1], value[2]);
     }
 
+    [[nodiscard]] static constexpr auto encode(pixel value) noexcept
+        -> storage_type
+    {
+        return {value.red(), value.green(), value.blue()};
+    }
+
     static constexpr auto set(storage_type& dst, pixel value) noexcept -> void
     {
-        dst[0] = value.red();
-        dst[1] = value.green();
-        dst[2] = value.blue();
+        dst = encode(value);
     }
 };
 
@@ -233,15 +249,21 @@ struct bgr24_policy {
         return pixel(value[2], value[1], value[0]);
     }
 
+    [[nodiscard]] static constexpr auto encode(pixel value) noexcept
+        -> storage_type
+    {
+        return {value.blue(), value.green(), value.red()};
+    }
+
     static constexpr auto set(storage_type& dst, pixel value) noexcept -> void
     {
-        dst[0] = value.blue();
-        dst[1] = value.green();
-        dst[2] = value.red();
+        dst = encode(value);
     }
 };
 
 namespace detail {
+
+struct image_access;
 
 template<std::size_t Width, std::size_t Height, class Policy>
 class image_storage {
@@ -422,13 +444,36 @@ public:
     }
 
     /**
-     * @brief Sets the logical pixel at the given coordinates.
+     * @brief Sets a logical pixel when the coordinates are inside the image.
      *
-     * The coordinates must be inside the image.
+     * If the coordinates are outside the image boundary, this function does
+     * nothing. Use `set_pixel_unchecked` only when the caller has already
+     * guaranteed that the coordinates are inside the framebuffer.
      */
-    auto set_pixel(std::size_t x, std::size_t y, pixel value) noexcept -> void
+    auto set_pixel(int x, int y, pixel value) noexcept -> void
     {
-        policy_type::set(storage_.data()[offset(x, y)], value);
+        if (!contains(x, y)) {
+            return;
+        }
+        set_pixel_unchecked(
+            static_cast<std::size_t>(x),
+            static_cast<std::size_t>(y),
+            value);
+    }
+
+    /**
+     * @brief Sets a logical pixel without checking the image boundary.
+     *
+     * The caller must guarantee `x < width()` and `y < height()`. This
+     * function is intended for code that performs clipping or bounds checking
+     * outside the inner drawing loop.
+     */
+    auto set_pixel_unchecked(
+        std::size_t x,
+        std::size_t y,
+        pixel value) noexcept -> void
+    {
+        storage_.data()[offset(x, y)] = policy_type::encode(value);
     }
 
     /**
@@ -436,11 +481,10 @@ public:
      */
     auto fill(pixel value) noexcept -> void
     {
+        const auto encoded = policy_type::encode(value);
         auto* first = storage_.data();
         auto* const last = first + size();
-        for (; first != last; ++first) {
-            policy_type::set(*first, value);
-        }
+        std::fill(first, last, encoded);
     }
 
     /**
@@ -452,6 +496,7 @@ public:
     }
 
 private:
+    friend struct detail::image_access;
     [[nodiscard]] auto offset(std::size_t x, std::size_t y) const noexcept
         -> std::size_t
     {
@@ -467,8 +512,43 @@ private:
 template<class Policy = argb32_policy>
 using dynamic_image = image<0, 0, Policy>;
 
+namespace detail {
+
+struct image_access {
+    template<std::size_t Width, std::size_t Height, class Policy>
+    [[nodiscard]] static auto data(image<Width, Height, Policy>& img) noexcept
+        -> typename image<Width, Height, Policy>::storage_type*
+    {
+        return img.storage_.data();
+    }
+
+    template<std::size_t Width, std::size_t Height, class Policy>
+    [[nodiscard]] static auto data(
+        const image<Width, Height, Policy>& img) noexcept
+        -> const typename image<Width, Height, Policy>::storage_type*
+    {
+        return img.storage_.data();
+    }
+
+    template<std::size_t Width, std::size_t Height, class Policy>
+    [[nodiscard]] static auto ptr(
+        image<Width, Height, Policy>& img,
+        std::size_t x,
+        std::size_t y) noexcept
+        -> typename image<Width, Height, Policy>::storage_type*
+    {
+        return data(img) + y * img.width() + x;
+    }
+};
+
+} // namespace detail
+
 /**
  * @brief Draws a clipped horizontal line.
+ *
+ * The requested line is clipped to the image boundary. After clipping, this
+ * function writes directly to framebuffer storage instead of calling
+ * `set_pixel` for every pixel.
  */
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_hline(
@@ -478,30 +558,40 @@ auto draw_hline(
     int length,
     pixel color) noexcept -> void
 {
-    if (length == 0 || !img.contains(0, y)) {
+    if (length == 0 || y < 0 || static_cast<std::size_t>(y) >= img.height()) {
         return;
     }
 
-    int x0 = x;
-    int x1 = x + length;
+    auto x0 = static_cast<long long>(x);
+    auto x1 = x0 + static_cast<long long>(length);
     if (x1 < x0) {
         std::swap(x0, x1);
     }
 
-    if (x1 <= 0 || x0 >= static_cast<int>(img.width())) {
+    if (x1 <= 0 || x0 >= static_cast<long long>(img.width())) {
         return;
     }
 
-    x0 = std::max(x0, 0);
-    x1 = std::min(x1, static_cast<int>(img.width()));
+    x0 = std::max(x0, 0LL);
+    x1 = std::min(x1, static_cast<long long>(img.width()));
 
-    for (int xx = x0; xx < x1; ++xx) {
-        img.set_pixel(static_cast<std::size_t>(xx), static_cast<std::size_t>(y), color);
+    const auto encoded = Policy::encode(color);
+    auto* first = detail::image_access::ptr(
+        img,
+        static_cast<std::size_t>(x0),
+        static_cast<std::size_t>(y));
+    auto* const last = first + (x1 - x0);
+    for (auto* p = first; p != last; ++p) {
+        *p = encoded;
     }
 }
 
 /**
  * @brief Draws a clipped vertical line.
+ *
+ * The requested line is clipped to the image boundary. After clipping, this
+ * function writes directly to framebuffer storage instead of calling
+ * `set_pixel` for every pixel.
  */
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_vline(
@@ -511,25 +601,32 @@ auto draw_vline(
     int length,
     pixel color) noexcept -> void
 {
-    if (length == 0 || !img.contains(x, 0)) {
+    if (length == 0 || x < 0 || static_cast<std::size_t>(x) >= img.width()) {
         return;
     }
 
-    int y0 = y;
-    int y1 = y + length;
+    auto y0 = static_cast<long long>(y);
+    auto y1 = y0 + static_cast<long long>(length);
     if (y1 < y0) {
         std::swap(y0, y1);
     }
 
-    if (y1 <= 0 || y0 >= static_cast<int>(img.height())) {
+    if (y1 <= 0 || y0 >= static_cast<long long>(img.height())) {
         return;
     }
 
-    y0 = std::max(y0, 0);
-    y1 = std::min(y1, static_cast<int>(img.height()));
+    y0 = std::max(y0, 0LL);
+    y1 = std::min(y1, static_cast<long long>(img.height()));
 
-    for (int yy = y0; yy < y1; ++yy) {
-        img.set_pixel(static_cast<std::size_t>(x), static_cast<std::size_t>(yy), color);
+    const auto encoded = Policy::encode(color);
+    auto* p = detail::image_access::ptr(
+        img,
+        static_cast<std::size_t>(x),
+        static_cast<std::size_t>(y0));
+    const auto stride = img.width();
+    for (auto yy = y0; yy < y1; ++yy) {
+        *p = encoded;
+        p += stride;
     }
 }
 
@@ -553,7 +650,7 @@ auto draw_line(
 
     for (;;) {
         if (img.contains(x0, y0)) {
-            img.set_pixel(
+            img.set_pixel_unchecked(
                 static_cast<std::size_t>(x0),
                 static_cast<std::size_t>(y0),
                 color);
@@ -619,17 +716,33 @@ auto fill_rect(
         return;
     }
 
-    int y0 = y;
-    int y1 = y + height;
-    if (y1 <= 0 || y0 >= static_cast<int>(img.height())) {
+    auto x0 = static_cast<long long>(x);
+    auto x1 = x0 + static_cast<long long>(width);
+    auto y0 = static_cast<long long>(y);
+    auto y1 = y0 + static_cast<long long>(height);
+
+    if (x1 <= 0 || y1 <= 0 ||
+        x0 >= static_cast<long long>(img.width()) ||
+        y0 >= static_cast<long long>(img.height())) {
         return;
     }
 
-    y0 = std::max(y0, 0);
-    y1 = std::min(y1, static_cast<int>(img.height()));
+    x0 = std::max(x0, 0LL);
+    y0 = std::max(y0, 0LL);
+    x1 = std::min(x1, static_cast<long long>(img.width()));
+    y1 = std::min(y1, static_cast<long long>(img.height()));
 
-    for (int yy = y0; yy < y1; ++yy) {
-        draw_hline(img, x, yy, width, color);
+    const auto encoded = Policy::encode(color);
+    const auto count = x1 - x0;
+    for (auto yy = y0; yy < y1; ++yy) {
+        auto* first = detail::image_access::ptr(
+            img,
+            static_cast<std::size_t>(x0),
+            static_cast<std::size_t>(yy));
+        auto* const last = first + count;
+        for (auto* p = first; p != last; ++p) {
+            *p = encoded;
+        }
     }
 }
 

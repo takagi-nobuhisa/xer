@@ -1,4 +1,4 @@
-# Policy for Image and Framebuffer Handling
+﻿# Policy for Image and Framebuffer Handling
 
 ## Overview
 
@@ -119,6 +119,7 @@ A policy type defines at least:
 using storage_type = /* physical storage element type */;
 
 static constexpr auto get(const storage_type& value) noexcept -> pixel;
+static constexpr auto encode(pixel value) noexcept -> storage_type;
 static constexpr auto set(storage_type& dst, pixel value) noexcept -> void;
 ```
 
@@ -132,6 +133,8 @@ struct bgr24_policy;
 ```
 
 The policy converts between the logical `pixel` type and the physical storage element.
+
+`encode` converts a logical pixel into one physical storage element without requiring an existing destination object. Drawing functions can use it once before entering an inner loop and then repeatedly write the encoded storage value.
 
 This design avoids runtime `switch` dispatch during per-pixel processing and allows the compiler to optimize format-specific operations.
 
@@ -235,12 +238,18 @@ The ordinary accessors are:
 
 ```cpp
 auto get_pixel(std::size_t x, std::size_t y) const noexcept -> pixel;
-auto set_pixel(std::size_t x, std::size_t y, pixel value) noexcept -> void;
+auto set_pixel(int x, int y, pixel value) noexcept -> void;
+auto set_pixel_unchecked(
+    std::size_t x,
+    std::size_t y,
+    pixel value) noexcept -> void;
 ```
 
 `image::at()` returning a physical storage reference should not be provided as an ordinary public API.
 
 The reason is that returning a reference to the physical framebuffer element would expose and depend on the storage format. If the framebuffer format is not ARGB, modifying such a reference as if it were a logical pixel would be incorrect.
+
+`set_pixel` should be safe for ordinary use and may ignore coordinates outside the image boundary. `set_pixel_unchecked` is a low-level member for code that has already performed boundary checks or clipping. Its caller must guarantee that the coordinates are inside the framebuffer.
 
 `pixel` is logical.
 `Policy::storage_type` is physical.
