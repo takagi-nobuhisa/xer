@@ -11,6 +11,7 @@ declare(strict_types=1);
  *   php test_public_header_pairs.php --compiler=g++
  *   php test_public_header_pairs.php --std=c++23
  *   php test_public_header_pairs.php --jobs=8
+ *   php test_public_header_pairs.php --build-id=msys2-ucrt64
  *   php test_public_header_pairs.php --keep-going=0
  *   php test_public_header_pairs.php --verbose=0
  *   php test_public_header_pairs.php --tcltk-cflags="-I/usr/include/tcl -I/usr/include/tk"
@@ -25,6 +26,7 @@ final class Config
     public string $projectRoot;
     public string $phpDir;
     public string $xerDir;
+    public string $buildId;
     public string $buildRoot;
     public string $buildDir;
     public string $stateFile;
@@ -93,6 +95,8 @@ function main(array $argv): int
 
     echo "Project root : {$config->projectRoot}\n";
     echo "Header dir   : {$config->xerDir}\n";
+    echo "Build ID     : {$config->buildId}\n";
+    echo "Build root   : {$config->buildRoot}\n";
     echo "Build dir    : {$config->buildDir}\n";
     echo "State file   : {$config->stateFile}\n";
     echo "Compiler     : {$config->compiler}\n";
@@ -301,7 +305,8 @@ function build_config(array $argv): Config
     $config->phpDir = $phpDir;
     $config->projectRoot = $projectRoot;
     $config->xerDir = $projectRoot . DIRECTORY_SEPARATOR . 'xer';
-    $config->buildRoot = $phpDir . DIRECTORY_SEPARATOR . 'build';
+    $config->buildId = detect_default_build_id();
+    $config->buildRoot = $phpDir . DIRECTORY_SEPARATOR . 'build' . DIRECTORY_SEPARATOR . $config->buildId;
     $config->buildDir = $config->buildRoot . DIRECTORY_SEPARATOR . 'header_pair_compile';
     $config->stateFile = $config->buildRoot . DIRECTORY_SEPARATOR . 'header_pair_compile_state.json';
     $config->jobs = detect_default_jobs();
@@ -318,6 +323,13 @@ function build_config(array $argv): Config
         if (str_starts_with($arg, '--incremental=')) {
             $value = substr($arg, strlen('--incremental='));
             $config->incremental = parse_bool_option($value);
+            continue;
+        }
+        if (str_starts_with($arg, '--build-id=')) {
+            $config->buildId = sanitize_build_id(substr($arg, strlen('--build-id=')));
+            $config->buildRoot = $config->phpDir . DIRECTORY_SEPARATOR . 'build' . DIRECTORY_SEPARATOR . $config->buildId;
+            $config->buildDir = $config->buildRoot . DIRECTORY_SEPARATOR . 'header_pair_compile';
+            $config->stateFile = $config->buildRoot . DIRECTORY_SEPARATOR . 'header_pair_compile_state.json';
             continue;
         }
         if (str_starts_with($arg, '--compiler=')) {
@@ -357,6 +369,80 @@ function build_config(array $argv): Config
     }
 
     return $config;
+}
+
+
+function detect_default_build_id(): string
+{
+    $env = getenv('XER_TEST_BUILD_ID');
+    if (is_string($env) && trim($env) !== '') {
+        return sanitize_build_id($env);
+    }
+
+    $parts = [];
+
+    $msystem = getenv('MSYSTEM');
+    if (is_string($msystem) && trim($msystem) !== '') {
+        $parts[] = 'msys2';
+        $parts[] = strtolower(trim($msystem));
+    } else {
+        $parts[] = strtolower(PHP_OS_FAMILY);
+
+        if (PHP_OS_FAMILY === 'Linux') {
+            $linuxId = detect_linux_id();
+            if ($linuxId !== '') {
+                $parts[] = $linuxId;
+            }
+        }
+    }
+
+    $arch = getenv('MSYSTEM_CARCH');
+    if (!is_string($arch) || trim($arch) === '') {
+        $arch = php_uname('m');
+    }
+    if (is_string($arch) && trim($arch) !== '') {
+        $parts[] = strtolower(trim($arch));
+    }
+
+    return sanitize_build_id(implode('-', $parts));
+}
+
+function detect_linux_id(): string
+{
+    $path = '/etc/os-release';
+    if (!is_file($path)) {
+        return '';
+    }
+
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($lines === false) {
+        return '';
+    }
+
+    foreach ($lines as $line) {
+        if (!str_starts_with($line, 'ID=')) {
+            continue;
+        }
+
+        $value = substr($line, 3);
+        $value = trim($value, " \t\r\n\"'");
+        return strtolower($value);
+    }
+
+    return '';
+}
+
+function sanitize_build_id(string $value): string
+{
+    $value = strtolower(trim($value));
+    $value = preg_replace('/[^a-z0-9._-]+/', '-', $value);
+    $value = trim($value ?? '', '.-_');
+
+    if ($value === '') {
+        throw new InvalidArgumentException('build id must not be empty');
+    }
+
+    return $value;
 }
 
 function parse_bool_option(string $value): bool

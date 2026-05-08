@@ -21,6 +21,9 @@ declare(strict_types=1);
  *   php run_tests.php tests examples
  *   php run_tests.php --jobs=8
  *   php run_tests.php --jobs=8 tests examples
+ *   php run_tests.php --build-id=msys2-ucrt64
+ *   php run_tests.php tests/test_string.cpp
+ *   php run_tests.php test_string.cpp
  *   php run_tests.php --tcltk-cflags="-I/usr/include/tcl"
  *   php run_tests.php --tcltk-libs="-ltk -ltcl"
  *
@@ -263,6 +266,150 @@ function detect_cpu_count(): int
 /**
  * @return int
  */
+
+function detect_default_build_id(): string
+{
+    $env = getenv('XER_TEST_BUILD_ID');
+    if (is_string($env) && trim($env) !== '') {
+        return sanitize_build_id($env);
+    }
+
+    $parts = [];
+
+    $msystem = getenv('MSYSTEM');
+    if (is_string($msystem) && trim($msystem) !== '') {
+        $parts[] = 'msys2';
+        $parts[] = strtolower(trim($msystem));
+    } else {
+        $parts[] = strtolower(PHP_OS_FAMILY);
+
+        if (PHP_OS_FAMILY === 'Linux') {
+            $linuxId = detect_linux_id();
+            if ($linuxId !== '') {
+                $parts[] = $linuxId;
+            }
+        }
+    }
+
+    $arch = getenv('MSYSTEM_CARCH');
+    if (!is_string($arch) || trim($arch) === '') {
+        $arch = php_uname('m');
+    }
+    if (is_string($arch) && trim($arch) !== '') {
+        $parts[] = strtolower(trim($arch));
+    }
+
+    return sanitize_build_id(implode('-', $parts));
+}
+
+function detect_linux_id(): string
+{
+    $path = '/etc/os-release';
+    if (!is_file($path)) {
+        return '';
+    }
+
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($lines === false) {
+        return '';
+    }
+
+    foreach ($lines as $line) {
+        if (!str_starts_with($line, 'ID=')) {
+            continue;
+        }
+
+        $value = substr($line, 3);
+        $value = trim($value, " \t\r\n\"'");
+        return strtolower($value);
+    }
+
+    return '';
+}
+
+function sanitize_build_id(string $value): string
+{
+    $value = strtolower(trim($value));
+    $value = preg_replace('/[^a-z0-9._-]+/', '-', $value);
+    $value = trim($value ?? '', '.-_');
+
+    if ($value === '') {
+        fail('Build ID must not be empty.');
+    }
+
+    return $value;
+}
+
+function looks_like_cpp_source_selector(string $value): bool
+{
+    return str_ends_with(strtolower(normalize_path($value)), '.cpp');
+}
+
+/**
+ * @param list<string> $selectors
+ * @return list<string>
+ */
+function normalize_source_selectors(array $selectors): array
+{
+    $normalized = [];
+
+    foreach ($selectors as $selector) {
+        $value = trim(normalize_path($selector));
+        if ($value === '') {
+            continue;
+        }
+
+        $value = preg_replace('#^\./#', '', $value);
+        if ($value === null || $value === '') {
+            continue;
+        }
+
+        $normalized[] = $value;
+    }
+
+    $normalized = array_values(array_unique($normalized, SORT_STRING));
+    sort($normalized, SORT_STRING);
+    return $normalized;
+}
+
+/**
+ * @param list<string> $sourceFiles
+ * @param list<string> $selectors
+ * @return list<string>
+ */
+function filter_source_files_by_selectors(array $sourceFiles, string $target, string $projectRoot, array $selectors): array
+{
+    if ($selectors === []) {
+        return $sourceFiles;
+    }
+
+    $result = [];
+
+    foreach ($sourceFiles as $sourceFile) {
+        $absolute = normalize_path($sourceFile);
+        $relative = normalize_path(substr($absolute, strlen(normalize_path($projectRoot)) + 1));
+        $targetRelative = normalize_path($target . '/' . basename($sourceFile));
+        $baseName = basename($sourceFile);
+
+        foreach ($selectors as $selector) {
+            $normalizedSelector = normalize_path($selector);
+            $trimmedSelector = ltrim(preg_replace('#^(\.\./)+#', '', $normalizedSelector) ?? $normalizedSelector, '/');
+
+            if (
+                $normalizedSelector === $absolute ||
+                $trimmedSelector === $relative ||
+                $trimmedSelector === $targetRelative ||
+                $trimmedSelector === $baseName
+            ) {
+                $result[] = $sourceFile;
+                break;
+            }
+        }
+    }
+
+    return array_values(array_unique($result, SORT_STRING));
+}
+
 function parse_jobs_option(string $value): int
 {
     if (!preg_match('/^[1-9][0-9]*$/', $value)) {
@@ -305,9 +452,11 @@ function split_command_fragment(string $value): array
  *   cxxflags:list<string>,
  *   ldflags:list<string>,
  *   jobs:int,
+ *   build_id:string,
  *   tcltk_cflags:list<string>,
  *   tcltk_libs:list<string>,
- *   targets:list<string>
+ *   targets:list<string>,
+ *   source_selectors:list<string>
  * }
  */
 function parse_arguments(array $argv): array
@@ -322,7 +471,9 @@ function parse_arguments(array $argv): array
     $tcltkCflags = split_command_fragment(getenv('XER_TEST_TCLTK_CFLAGS') ?: '');
     $tcltkLibs = split_command_fragment(getenv('XER_TEST_TCLTK_LIBS') ?: '');
     $jobs = detect_default_jobs();
+    $buildId = detect_default_build_id();
     $targets = [];
+    $sourceSelectors = [];
 
     foreach (array_slice($argv, 1) as $arg) {
         if (str_starts_with($arg, '--cxx=')) {
@@ -348,6 +499,11 @@ function parse_arguments(array $argv): array
             continue;
         }
 
+        if (str_starts_with($arg, '--build-id=')) {
+            $buildId = sanitize_build_id(substr($arg, strlen('--build-id=')));
+            continue;
+        }
+
         if (str_starts_with($arg, '--tcltk-cflags=')) {
             $tcltkCflags = split_command_fragment(substr($arg, strlen('--tcltk-cflags=')));
             continue;
@@ -355,6 +511,11 @@ function parse_arguments(array $argv): array
 
         if (str_starts_with($arg, '--tcltk-libs=')) {
             $tcltkLibs = split_command_fragment(substr($arg, strlen('--tcltk-libs=')));
+            continue;
+        }
+
+        if (looks_like_cpp_source_selector($arg)) {
+            $sourceSelectors[] = $arg;
             continue;
         }
 
@@ -366,9 +527,11 @@ function parse_arguments(array $argv): array
         'cxxflags' => $cxxflags,
         'ldflags' => $ldflags,
         'jobs' => $jobs,
+        'build_id' => $buildId,
         'tcltk_cflags' => $tcltkCflags,
         'tcltk_libs' => $tcltkLibs,
         'targets' => normalize_targets($targets),
+        'source_selectors' => normalize_source_selectors($sourceSelectors),
     ];
 }
 
@@ -662,9 +825,9 @@ function tcltk_option_candidates(array $options): array
  * @param array{cflags:list<string>, libs:list<string>, source:string} $candidate
  * @return array{available:bool, output:string, command_line:string}
  */
-function probe_tcltk_candidate(array $options, array $candidate, string $scriptDir): array
+function probe_tcltk_candidate(array $options, array $candidate, string $scriptDir, string $buildRoot): array
 {
-    $probeDir = normalize_path($scriptDir . '/build/probe');
+    $probeDir = normalize_path($buildRoot . '/probe');
     ensure_directory($probeDir);
 
     $sourceFile = normalize_path($probeDir . '/tcltk_probe.cpp');
@@ -700,7 +863,7 @@ function probe_tcltk_candidate(array $options, array $candidate, string $scriptD
  * @param array<string, mixed> $options
  * @return array<string, array<string, mixed>>
  */
-function detect_feature_options(array $options, string $scriptDir): array
+function detect_feature_options(array $options, string $scriptDir, string $buildRoot): array
 {
     $features = [
         'socket' => [
@@ -722,7 +885,7 @@ function detect_feature_options(array $options, string $scriptDir): array
     $lastOutput = '';
     $lastCommandLine = '';
     foreach (tcltk_option_candidates($options) as $candidate) {
-        $probe = probe_tcltk_candidate($options, $candidate, $scriptDir);
+        $probe = probe_tcltk_candidate($options, $candidate, $scriptDir, $buildRoot);
         $lastOutput = $probe['output'];
         $lastCommandLine = $probe['command_line'];
 
@@ -855,7 +1018,7 @@ function start_run_process(array $task): array
  *   target_totals:array<string, int>
  * }
  */
-function build_tasks(array $targets, string $scriptDir, string $projectRoot, array $featureOptions): array
+function build_tasks(array $targets, string $buildRoot, string $projectRoot, array $featureOptions, array $sourceSelectors): array
 {
     $tasks = [];
     $targetTotals = [];
@@ -868,11 +1031,15 @@ function build_tasks(array $targets, string $scriptDir, string $projectRoot, arr
         }
 
         $sourceFiles = find_cpp_sources($sourceDir);
+        $sourceFiles = filter_source_files_by_selectors($sourceFiles, $target, $projectRoot, $sourceSelectors);
         if ($sourceFiles === []) {
-            fail('No C++ source files were found in: ' . $sourceDir);
+            $message = $sourceSelectors === []
+                ? 'No C++ source files were found in: ' . $sourceDir
+                : 'No selected C++ source files were found for target: ' . $target;
+            fail($message);
         }
 
-        $buildDir = normalize_path($scriptDir . '/build/' . $target);
+        $buildDir = normalize_path($buildRoot . '/' . $target);
         $exeDir = normalize_path($buildDir . '/bin');
         $logDir = normalize_path($buildDir . '/log');
         $workBaseDir = normalize_path($buildDir . '/work');
@@ -905,9 +1072,9 @@ function build_tasks(array $targets, string $scriptDir, string $projectRoot, arr
                 'compile_log' => $compileLog,
                 'run_log' => $runLog,
                 'work_dir' => $workDir,
-                'relative_compile_log' => normalize_path('./build/' . $target . '/log/' . $baseName . '.compile.log'),
-                'relative_run_log' => normalize_path('./build/' . $target . '/log/' . $baseName . '.run.log'),
-                'relative_work_dir' => normalize_path('./build/' . $target . '/work/' . $baseName),
+                'relative_compile_log' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/log/' . $baseName . '.compile.log'),
+                'relative_run_log' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/log/' . $baseName . '.run.log'),
+                'relative_work_dir' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/work/' . $baseName),
                 'features' => $features,
                 'feature_cflags' => collect_feature_cflags($features, $featureOptions),
                 'feature_libs' => collect_feature_libs($features, $featureOptions),
@@ -1279,6 +1446,9 @@ if (!function_exists('proc_open')) {
 }
 
 $parsed = parse_arguments($argv);
+$buildId = $parsed['build_id'];
+$buildRoot = normalize_path($scriptDir . '/build/' . $buildId);
+ensure_directory($buildRoot);
 $options = [
     'cxx' => $parsed['cxx'],
     'cxxflags' => $parsed['cxxflags'],
@@ -1288,6 +1458,7 @@ $options = [
 ];
 $jobs = $parsed['jobs'];
 $targets = $parsed['targets'];
+$sourceSelectors = $parsed['source_selectors'];
 
 if (find_executable($options['cxx']) === null) {
     fail($options['cxx'] . ' was not found in PATH.');
@@ -1299,8 +1470,8 @@ foreach ($targets as $target) {
     }
 }
 
-$featureOptions = detect_feature_options($options, $scriptDir);
-$taskBundle = build_tasks($targets, $scriptDir, $projectRoot, $featureOptions);
+$featureOptions = detect_feature_options($options, $scriptDir, $buildRoot);
+$taskBundle = build_tasks($targets, $buildRoot, $projectRoot, $featureOptions, $sourceSelectors);
 $tasks = $taskBundle['tasks'];
 $targetTotals = $taskBundle['target_totals'];
 
@@ -1312,7 +1483,12 @@ echo '############################################################' . PHP_EOL;
 echo 'Parallel test runner' . PHP_EOL;
 echo '############################################################' . PHP_EOL;
 echo 'Compiler        : ' . $options['cxx'] . PHP_EOL;
+echo 'Build ID        : ' . $buildId . PHP_EOL;
+echo 'Build root      : ' . $buildRoot . PHP_EOL;
 echo 'Targets         : ' . implode(', ', $targets) . PHP_EOL;
+if ($sourceSelectors !== []) {
+    echo 'Source filters  : ' . implode(', ', $sourceSelectors) . PHP_EOL;
+}
 echo 'Jobs            : ' . $jobs . PHP_EOL;
 echo 'Total programs  : ' . count($tasks) . PHP_EOL;
 echo PHP_EOL;
