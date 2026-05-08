@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.3.0a1**
+Target version: **v0.3.0a2**
 
 ---
 
@@ -1951,7 +1951,7 @@ When a fullwidth Kana character with dakuten or handakuten would require multipl
 
 ---
 
-﻿# `<xer/stdlib.h>`
+# `<xer/stdlib.h>`
 
 ## Purpose
 
@@ -2254,8 +2254,7 @@ If the name is not present, it fails with `error_t::not_found`.
 
 ### Platform Encoding Policy
 
-On Windows, `get_environs` primarily reads `__wenvp` so that environment strings are obtained as UTF-16 and converted to UTF-8.
-If `__wenvp` is `nullptr`, it falls back to `__envp` and assumes that those byte strings are UTF-8.
+On Windows, `get_environs` uses `GetEnvironmentStringsW` so that environment strings are obtained as UTF-16 and converted to UTF-8.
 
 On Linux, `get_environs` reads the process environment array and requires each name and value to be valid UTF-8.
 
@@ -4590,7 +4589,7 @@ The save helper combines encoding with UTF-8 file writing and returns `xer::resu
 
 ---
 
-# `<xer/stdio.h>`
+﻿# `<xer/stdio.h>`
 
 ## Purpose
 
@@ -5934,6 +5933,11 @@ rename
 mkdir
 rmdir
 copy
+touch
+
+fileatime
+filemtime
+filectime
 
 chdir
 getcwd
@@ -5962,6 +5966,31 @@ Some functions in this group are simple predicates, while others perform actual 
 Predicate functions such as `file_exists`, `is_file`, `is_dir`, `is_readable`, and `is_writable` return `bool`.
 
 Operations that can fail normally return `xer::result`.
+
+### File Time Helpers
+
+`fileatime`, `filemtime`, and `filectime` return file time fields as seconds since the POSIX epoch. They use the platform's ordinary path status operation and may follow symbolic links when the platform's normal stat-like operation does so.
+
+`filectime` returns the same ctime field as `xer::stat::ctime`. The platform-specific meaning of that field is documented on `xer::stat`.
+
+```cpp
+auto fileatime(const path& filename) -> xer::result<time_t>;
+auto filemtime(const path& filename) -> xer::result<time_t>;
+auto filectime(const path& filename) -> xer::result<time_t>;
+```
+
+### `touch`
+
+```cpp
+auto touch(
+    const path& filename,
+    time_t mtime = -1,
+    time_t atime = -1) -> xer::result<void>;
+```
+
+`touch` changes the target's modification and access times. If the target does not exist, it creates an empty regular file.
+
+A negative `mtime` means that the current time is used. A negative `atime` means that the resolved `mtime` is also used as the access time. Non-finite time values are rejected as invalid arguments.
 
 ---
 
