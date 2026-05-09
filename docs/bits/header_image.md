@@ -4,7 +4,7 @@
 
 `<xer/image.h>` provides lightweight image and framebuffer facilities.
 
-The initial purpose of this header is not full photo editing or complete image-file handling. It is a small framebuffer-oriented layer for fixed-size canvases, VRAM-style emulation, simple drawing, and later integration with Tcl/Tk photo images.
+The initial purpose of this header is not full photo editing or complete image-file handling. It is a small framebuffer-oriented layer for fixed-size canvases, VRAM-style emulation, simple drawing, image processing, and later integration with Tcl/Tk photo images.
 
 Pure image processing and drawing belong in `<xer/image.h>`. Tcl/Tk photo integration belongs in `<xer/tk.h>`.
 
@@ -14,7 +14,7 @@ Pure image processing and drawing belong in `<xer/image.h>`. Tcl/Tk photo integr
 
 Image-related types and functions are placed in the `xer::image` namespace.
 
-The previous top-level image type has been renamed to `xer::image::canvas` so that `xer::image` can be used as the namespace for image storage, drawing, and image processing.
+The primary framebuffer owner type is `xer::image::canvas` so that `xer::image` can serve as the namespace for image storage, drawing, and image processing.
 
 ---
 
@@ -56,7 +56,7 @@ auto draw_hline(canvas<Width, Height, Policy>& img,
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_hline(canvas<Width, Height, Policy>& img,
-                point p,
+                const point& p,
                 int length,
                 pixel color) noexcept -> void;
 
@@ -69,7 +69,7 @@ auto draw_vline(canvas<Width, Height, Policy>& img,
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_vline(canvas<Width, Height, Policy>& img,
-                point p,
+                const point& p,
                 int length,
                 pixel color) noexcept -> void;
 
@@ -83,8 +83,8 @@ auto draw_line(canvas<Width, Height, Policy>& img,
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_line(canvas<Width, Height, Policy>& img,
-               point p0,
-               point p1,
+               const point& p0,
+               const point& p1,
                pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -106,14 +106,14 @@ auto draw_line_aa(canvas<Width, Height, Policy>& img,
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_line_aa(canvas<Width, Height, Policy>& img,
-                  pointf p0,
-                  pointf p1,
+                  const pointf& p0,
+                  const pointf& p1,
                   pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_line_aa(canvas<Width, Height, Policy>& img,
-                  pointf p0,
-                  pointf p1,
+                  const pointf& p0,
+                  const pointf& p1,
                   float width,
                   pixel color) noexcept -> void;
 
@@ -127,13 +127,13 @@ auto draw_rect(canvas<Width, Height, Policy>& img,
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_rect(canvas<Width, Height, Policy>& img,
-               point origin,
-               size extent,
+               const point& origin,
+               const size& extent,
                pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_rect(canvas<Width, Height, Policy>& img,
-               rect area,
+               const rect& area,
                pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -146,14 +146,26 @@ auto fill_rect(canvas<Width, Height, Policy>& img,
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto fill_rect(canvas<Width, Height, Policy>& img,
-               point origin,
-               size extent,
+               const point& origin,
+               const size& extent,
                pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto fill_rect(canvas<Width, Height, Policy>& img,
-               rect area,
+               const rect& area,
                pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto mosaic(canvas<Width, Height, Policy>& img,
+                          const rect& area,
+                          const size& block_size) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto box_blur(canvas<Width, Height, Policy>& img,
+                            const rect& area,
+                            const size& box_size)
+    -> xer::result<void>;
 
 }
 ```
@@ -162,27 +174,39 @@ auto fill_rect(canvas<Width, Height, Policy>& img,
 
 ## Geometry Types
 
-The geometry helper types are simple aggregate types used for future drawing and image-processing APIs.
+The geometry helper types are simple value types used by drawing and image-processing APIs.
 
 ```cpp
 struct point {
     int x;
     int y;
+
+    constexpr point() noexcept = default;
+    constexpr point(int x, int y) noexcept;
 };
 
 struct pointf {
     float x;
     float y;
+
+    constexpr pointf() noexcept = default;
+    constexpr pointf(float x, float y) noexcept;
 };
 
 struct size {
     int width;
     int height;
+
+    constexpr size() noexcept = default;
+    constexpr size(int width, int height) noexcept;
 };
 
 struct sizef {
     float width;
     float height;
+
+    constexpr sizef() noexcept = default;
+    constexpr sizef(float width, float height) noexcept;
 };
 
 struct rect {
@@ -190,6 +214,10 @@ struct rect {
     int y;
     int width;
     int height;
+
+    constexpr rect() noexcept = default;
+    constexpr rect(int x, int y, int width, int height) noexcept;
+    constexpr rect(const point& origin, const size& extent) noexcept;
 };
 
 struct rectf {
@@ -197,10 +225,34 @@ struct rectf {
     float y;
     float width;
     float height;
+
+    constexpr rectf() noexcept = default;
+    constexpr rectf(float x, float y, float width, float height) noexcept;
+    constexpr rectf(const pointf& origin, const sizef& extent) noexcept;
 };
 ```
 
-Integer geometry types are intended for pixel-grid operations and clipping. Floating-point geometry types are intended for subpixel drawing, antialiasing, and future transformations. Drawing functions provide overloads for these helper types so that callers can pass `point`, `size`, `rect`, and `pointf` values directly instead of spelling out every coordinate component.
+Integer geometry types are intended for pixel-grid operations and clipping. Floating-point geometry types are intended for subpixel drawing, antialiasing, and future transformations.
+
+`rect` and `rectf` can be constructed either from four scalar values or from an origin point plus an extent size:
+
+```cpp
+const auto area = xer::image::rect(
+    xer::image::point(10, 20),
+    xer::image::size(320, 240));
+```
+
+Geometry-type function parameters are passed by `const&` in public drawing and image-processing APIs. Scalar coordinates and `pixel` values remain ordinary value parameters.
+
+When `<xer/iostream.h>` is included, the geometry types use compact diagnostic stream forms:
+
+```text
+point  -> (x, y)
+size   -> {width, height}
+rect   -> (x, y) {width, height}
+```
+
+The floating-point variants use the same spelling.
 
 ---
 
@@ -335,8 +387,11 @@ The public pixel API uses logical pixels:
 
 ```cpp
 auto get_pixel(std::size_t x, std::size_t y) const noexcept -> pixel;
+auto get_pixel(const point& p) const noexcept -> pixel;
 auto set_pixel(int x, int y, pixel value) noexcept -> void;
+auto set_pixel(const point& p, pixel value) noexcept -> void;
 auto set_pixel(int x, int y, pixel value, float coverage) noexcept -> void;
+auto set_pixel(const point& p, pixel value, float coverage) noexcept -> void;
 auto set_pixel_unchecked(std::size_t x,
                          std::size_t y,
                          pixel value) noexcept -> void;
@@ -370,10 +425,7 @@ auto height() const noexcept -> std::size_t;
 auto size() const noexcept -> std::size_t;
 auto empty() const noexcept -> bool;
 auto contains(int x, int y) const noexcept -> bool;
-auto contains(point p) const noexcept -> bool;
-auto get_pixel(point p) const noexcept -> pixel;
-auto set_pixel(point p, pixel value) noexcept -> void;
-auto set_pixel(point p, pixel value, float coverage) noexcept -> void;
+auto contains(const point& p) const noexcept -> bool;
 auto fill(pixel value) noexcept -> void;
 auto clear() noexcept -> void;
 ```
@@ -409,6 +461,36 @@ The `draw_rect` and `fill_rect` overloads accept either `point` plus `size`, or 
 
 ---
 
+## Image Processing Functions
+
+`mosaic` and `box_blur` are in-place image-processing operations.
+
+```cpp
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto mosaic(canvas<Width, Height, Policy>& img,
+                          const rect& area,
+                          const size& block_size) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto box_blur(canvas<Width, Height, Policy>& img,
+                            const rect& area,
+                            const size& box_size)
+    -> xer::result<void>;
+```
+
+Both functions clip `area` to the canvas boundary. Empty areas and fully clipped areas are successful no-ops.
+
+`mosaic` divides the clipped area into blocks of `block_size`. Each block is replaced with the average logical ARGB color of the pixels in that block. Blocks at the right and bottom edges use their actual clipped size.
+
+`box_blur` treats `box_size` as the averaging kernel size. For example, `size(3, 3)` applies a 3x3 average around each destination pixel. Source samples are taken from a copy of the original pixels in the clipped target area, so pixels outside the requested area do not affect the result. Kernel portions outside the clipped area are ignored.
+
+Even kernel dimensions are supported. In that case, the extra sample is placed on the left or top side of the current pixel.
+
+Both functions return `error_t::invalid_argument` when either size dimension is not positive.
+
+---
+
 ## Relationship to Tcl/Tk
 
 `<xer/image.h>` does not depend on Tcl/Tk.
@@ -419,10 +501,8 @@ Tk photo bridge functions should live in `<xer/tk.h>`. They may convert between 
 
 ## Deferred Items
 
-The following items are deferred from the first implementation:
+The following items are deferred from the current implementation:
 
-- blur
-- mosaic
 - affine transformation
 - raster scroll
 - grayscale conversion
@@ -461,10 +541,15 @@ auto main() -> int
 }
 ```
 
+Additional examples:
+
+- `examples/example_image_basic.cpp`
+- `examples/example_image_geometry_io.cpp`
+- `examples/example_image_effects.cpp`
+
 ---
 
 ## See Also
 
+- `header_iostream.md`
 - `policy_image.md`
-- `header_tk.md`
-- `header_color.md`

@@ -305,21 +305,23 @@ Drawing functions belong to `xer/image.h`, not `xer/tk.h`.
 At minimum, the following kinds of drawing functions are candidates:
 
 ```cpp
-auto draw_line(canvas& img, point p0, point p1, pixel color) -> void;
-auto draw_line_aa(canvas& img, pointf p0, pointf p1, pixel color) -> void;
-auto draw_line_aa(canvas& img, pointf p0, pointf p1, float width, pixel color) -> void;
-auto draw_rect(canvas& img, point origin, size extent, pixel color) -> void;
-auto draw_rect(canvas& img, rect area, pixel color) -> void;
-auto fill_rect(canvas& img, point origin, size extent, pixel color) -> void;
-auto fill_rect(canvas& img, rect area, pixel color) -> void;
-auto draw_circle(canvas& img, point center, int radius, pixel color) -> void;
-auto fill_circle(canvas& img, point center, int radius, pixel color) -> void;
+auto draw_line(canvas& img, const point& p0, const point& p1, pixel color) -> void;
+auto draw_line_aa(canvas& img, const pointf& p0, const pointf& p1, pixel color) -> void;
+auto draw_line_aa(canvas& img, const pointf& p0, const pointf& p1, float width, pixel color) -> void;
+auto draw_rect(canvas& img, const point& origin, const size& extent, pixel color) -> void;
+auto draw_rect(canvas& img, const rect& area, pixel color) -> void;
+auto fill_rect(canvas& img, const point& origin, const size& extent, pixel color) -> void;
+auto fill_rect(canvas& img, const rect& area, pixel color) -> void;
+auto draw_circle(canvas& img, const point& center, int radius, pixel color) -> void;
+auto fill_circle(canvas& img, const point& center, int radius, pixel color) -> void;
 ```
 
 Coordinate-oriented drawing functions should use signed integer coordinates.
 This allows negative coordinates and makes clipping more natural.
 
 Scalar-coordinate overloads may remain available for low-level or hot-path code, but higher-level call sites should be able to use `point`, `size`, `rect`, and `pointf` directly. Rectangle APIs should prefer a single `rect` when the caller already has a region object, and `point` plus `size` when origin and extent are naturally separate.
+
+Geometry helper parameters should be passed by `const&` in public drawing and image-processing APIs. Scalar values and small logical color values such as `pixel` may remain ordinary value parameters.
 
 Out-of-range drawing should be clipped rather than treated as an error.
 If a shape lies completely outside the canvas, the function should do nothing.
@@ -354,6 +356,28 @@ When an operation needs to create a new canvas, the result should preserve the d
 
 Operations that can fail because of invalid arguments, such as a zero mosaic block size, should return `xer::result`.
 Operations with no ordinary failure condition may return directly or mutate in place.
+
+Current in-place effects include:
+
+```cpp
+template <std::size_t W, std::size_t H, class Policy>
+auto mosaic(canvas<W, H, Policy>& img,
+            const rect& area,
+            const size& block_size) noexcept -> xer::result<void>;
+
+template <std::size_t W, std::size_t H, class Policy>
+auto box_blur(canvas<W, H, Policy>& img,
+              const rect& area,
+              const size& box_size) -> xer::result<void>;
+```
+
+Both operations require a rectangular target area. The area is clipped to the canvas boundary. Empty areas and fully clipped areas are successful no-ops.
+
+`mosaic` divides the clipped area into `block_size` blocks and replaces each block with the average logical ARGB color of the pixels in that block. Partial blocks at the right and bottom edges are averaged over their actual size.
+
+`box_blur` treats `box_size` as the averaging kernel size. Source samples are taken from the original pixels in the clipped target area, not from pixels already modified during the blur pass. Pixels outside the requested area do not contribute to the blur result. Kernel portions outside the clipped area are ignored. Even kernel dimensions are allowed; the extra sample is placed on the left or top side of the current pixel.
+
+Both functions return `error_t::invalid_argument` if either size dimension is not positive.
 
 ---
 
@@ -410,9 +434,9 @@ For the first implementation, the recommended scope is:
 5. `dynamic_canvas<Policy>` alias
 6. `get_pixel` / `set_pixel`
 7. simple drawing functions such as horizontal line, vertical line, rectangle, and filled rectangle
-8. simple image operations such as invert, grayscale, and flip
+8. simple image operations such as mosaic and box blur
 
-Tk photo integration, blur, mosaic, raster scroll, affine transformation, and more advanced drawing can be added after the core model is stable.
+Tk photo integration, raster scroll, affine transformation, and more advanced drawing can be added after the core model is stable.
 
 ---
 

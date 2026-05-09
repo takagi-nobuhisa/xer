@@ -23,6 +23,12 @@ xer::cyclic<T>
 xer::interval<T, Min, Max>
 xer::quantity<T, Dim>
 xer::matrix<T, Rows, Cols>
+xer::image::point
+xer::image::pointf
+xer::image::size
+xer::image::sizef
+xer::image::rect
+xer::image::rectf
 xer::basic_rgb<T>
 xer::basic_gray<T>
 xer::basic_cmy<T>
@@ -40,6 +46,12 @@ xer::path
 xer::cyclic<T>
 xer::interval<T, Min, Max>
 xer::quantity<T, Dim>
+xer::image::point
+xer::image::pointf
+xer::image::size
+xer::image::sizef
+xer::image::rect
+xer::image::rectf
 ```
 
 Formatted extraction for matrices and color values is intentionally deferred because their insertion format is meant for diagnostics rather than as a stable serialized grammar.
@@ -165,6 +177,39 @@ Example output for a 2x2 matrix:
 There is no extraction operator for matrices at this stage. Parsing a matrix would require committing the diagnostic output form to a stable input grammar, which is intentionally avoided for now.
 
 ---
+## Image Geometry Types
+
+`operator<<` and `operator>>` are provided for the image geometry helper types in `xer::image`.
+
+The stream forms are intentionally compact:
+
+```text
+point  -> (x, y)
+size   -> {width, height}
+rect   -> (x, y) {width, height}
+```
+
+The floating-point variants use the same spelling:
+
+```text
+pointf -> (x, y)
+sizef  -> {width, height}
+rectf  -> (x, y) {width, height}
+```
+
+Extraction accepts the same forms and allows ordinary formatted-input whitespace around punctuation and values. For example, all of the following are valid when reading a `rect`:
+
+```text
+(10,20){30,40}
+(10, 20) {30, 40}
+( 10, 20 ) { 30, 40 }
+```
+
+The extraction grammar is intentionally strict about punctuation. A point uses parentheses, a size uses braces, and a rectangle is a point followed by a size. Forms such as `point(10, 20)`, `size(30, 40)`, and `rect(10, 20, 30, 40)` are not accepted by these operators.
+
+These operators also make image geometry values usable through generic `%@` formatting and scanning paths that rely on stream insertion or extraction.
+
+---
 
 ## Color Types
 
@@ -211,6 +256,7 @@ These types either need additional formatting policy or are not ordinary value t
 - `<xer/interval.h>`
 - `<xer/quantity.h>`
 - `<xer/matrix.h>`
+- `<xer/image.h>`
 - `<xer/color.h>`
 - `<xer/stdio.h>`
 
@@ -230,6 +276,7 @@ The rough boundary is:
 
 #include <xer/color.h>
 #include <xer/cyclic.h>
+#include <xer/image.h>
 #include <xer/interval.h>
 #include <xer/iostream.h>
 #include <xer/matrix.h>
@@ -245,6 +292,9 @@ auto main() -> int
     const auto gain = xer::interval<double>(1.25);
     const auto distance = 1.5 * km;
     const auto transform = xer::matrix<double, 2, 2>(1.0, 2.0, 3.0, 4.0);
+    const auto area = xer::image::rect(
+        xer::image::point(10, 20),
+        xer::image::size(30, 40));
     const auto color = xer::rgb(1.0f, 0.5f, 0.0f);
 
     std::cout << path << '\n';
@@ -276,5 +326,6 @@ auto main() -> int
 - `header_interval.md`
 - `header_quantity.md`
 - `header_matrix.md`
+- `header_image.md`
 - `header_color.md`
 - `header_stdio.md`
