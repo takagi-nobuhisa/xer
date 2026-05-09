@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -351,6 +352,66 @@ template<std::size_t Width, std::size_t Height>
 inline constexpr bool valid_image_extent =
     (Width == 0 && Height == 0) || (Width > 0 && Height > 0);
 
+
+[[nodiscard]] constexpr auto clamp_coverage(float coverage) noexcept -> float
+{
+    if (!(coverage > 0.0f)) {
+        return 0.0f;
+    }
+    if (coverage >= 1.0f) {
+        return 1.0f;
+    }
+    return coverage;
+}
+
+[[nodiscard]] constexpr auto round_to_u8(float value) noexcept -> std::uint8_t
+{
+    if (!(value > 0.0f)) {
+        return 0u;
+    }
+    if (value >= 255.0f) {
+        return 255u;
+    }
+    return static_cast<std::uint8_t>(value + 0.5f);
+}
+
+[[nodiscard]] constexpr auto blend_pixel(
+    pixel dst,
+    pixel src,
+    float coverage) noexcept -> pixel
+{
+    const auto src_alpha =
+        (static_cast<float>(src.alpha()) / 255.0f) * clamp_coverage(coverage);
+    if (!(src_alpha > 0.0f)) {
+        return dst;
+    }
+    if (src_alpha >= 1.0f) {
+        return pixel(0xffu, src.red(), src.green(), src.blue());
+    }
+
+    const auto dst_alpha = static_cast<float>(dst.alpha()) / 255.0f;
+    const auto inv_src_alpha = 1.0f - src_alpha;
+    const auto out_alpha = src_alpha + dst_alpha * inv_src_alpha;
+    if (!(out_alpha > 0.0f)) {
+        return pixel(0u, 0u, 0u, 0u);
+    }
+
+    const auto blend_component = [=](
+        std::uint8_t src_component,
+        std::uint8_t dst_component) noexcept -> std::uint8_t {
+        const auto src_value = static_cast<float>(src_component) * src_alpha;
+        const auto dst_value =
+            static_cast<float>(dst_component) * dst_alpha * inv_src_alpha;
+        return round_to_u8((src_value + dst_value) / out_alpha);
+    };
+
+    return pixel(
+        round_to_u8(out_alpha * 255.0f),
+        blend_component(src.red(), dst.red()),
+        blend_component(src.green(), dst.green()),
+        blend_component(src.blue(), dst.blue()));
+}
+
 } // namespace detail
 
 /**
@@ -462,6 +523,25 @@ public:
     }
 
     /**
+     * @brief Blends a logical pixel when the coordinates are inside the image.
+     *
+     * `coverage` is clamped to the range `[0.0f, 1.0f]`. A coverage value of
+     * `0.0f` leaves the destination unchanged. A coverage value of `1.0f`
+     * applies the source pixel alpha normally.
+     */
+    auto set_pixel(int x, int y, pixel value, float coverage) noexcept -> void
+    {
+        if (!contains(x, y)) {
+            return;
+        }
+        set_pixel_unchecked(
+            static_cast<std::size_t>(x),
+            static_cast<std::size_t>(y),
+            value,
+            coverage);
+    }
+
+    /**
      * @brief Sets a logical pixel without checking the image boundary.
      *
      * The caller must guarantee `x < width()` and `y < height()`. This
@@ -474,6 +554,29 @@ public:
         pixel value) noexcept -> void
     {
         storage_.data()[offset(x, y)] = policy_type::encode(value);
+    }
+
+    /**
+     * @brief Blends a logical pixel without checking the image boundary.
+     *
+     * The caller must guarantee `x < width()` and `y < height()`.
+     */
+    auto set_pixel_unchecked(
+        std::size_t x,
+        std::size_t y,
+        pixel value,
+        float coverage) noexcept -> void
+    {
+        if (!(coverage > 0.0f)) {
+            return;
+        }
+        if (coverage >= 1.0f && value.alpha() == 0xffu) {
+            set_pixel_unchecked(x, y, value);
+            return;
+        }
+        const auto current = get_pixel(x, y);
+        const auto blended = detail::blend_pixel(current, value, coverage);
+        storage_.data()[offset(x, y)] = policy_type::encode(blended);
     }
 
     /**
@@ -670,6 +773,96 @@ auto draw_line(
             y0 += sy;
         }
     }
+}
+
+/**
+ * @brief Draws a clipped antialiased line.
+ *
+ * The coordinates are expressed in pixel-center coordinates. For example,
+ * `(0.0f, 0.0f)` is the center of the top-left pixel. The rendered stroke is
+ * a capsule around the center line; the endpoints use round caps.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_line_aa(
+    image<Width, Height, Policy>& img,
+    float x0,
+    float y0,
+    float x1,
+    float y1,
+    float width,
+    pixel color) noexcept -> void
+{
+    if (img.empty() || !(width > 0.0f)) {
+        return;
+    }
+    if (!std::isfinite(x0) || !std::isfinite(y0) ||
+        !std::isfinite(x1) || !std::isfinite(y1) ||
+        !std::isfinite(width)) {
+        return;
+    }
+
+    const auto dx = x1 - x0;
+    const auto dy = y1 - y0;
+    const auto length_sq = dx * dx + dy * dy;
+    const auto radius = width * 0.5f;
+    const auto aa_extent = radius + 0.5f;
+
+    auto min_x = static_cast<int>(std::floor(std::min(x0, x1) - aa_extent));
+    auto max_x = static_cast<int>(std::ceil(std::max(x0, x1) + aa_extent));
+    auto min_y = static_cast<int>(std::floor(std::min(y0, y1) - aa_extent));
+    auto max_y = static_cast<int>(std::ceil(std::max(y0, y1) + aa_extent));
+
+    min_x = std::max(min_x, 0);
+    min_y = std::max(min_y, 0);
+    max_x = std::min(max_x, static_cast<int>(img.width()) - 1);
+    max_y = std::min(max_y, static_cast<int>(img.height()) - 1);
+
+    if (min_x > max_x || min_y > max_y) {
+        return;
+    }
+
+    for (auto y = min_y; y <= max_y; ++y) {
+        for (auto x = min_x; x <= max_x; ++x) {
+            const auto px = static_cast<float>(x);
+            const auto py = static_cast<float>(y);
+            float nearest_x = x0;
+            float nearest_y = y0;
+
+            if (length_sq > 0.0f) {
+                auto t = ((px - x0) * dx + (py - y0) * dy) / length_sq;
+                t = std::clamp(t, 0.0f, 1.0f);
+                nearest_x = x0 + dx * t;
+                nearest_y = y0 + dy * t;
+            }
+
+            const auto ddx = px - nearest_x;
+            const auto ddy = py - nearest_y;
+            const auto distance = std::sqrt(ddx * ddx + ddy * ddy);
+            const auto coverage = radius + 0.5f - distance;
+            if (coverage > 0.0f) {
+                img.set_pixel_unchecked(
+                    static_cast<std::size_t>(x),
+                    static_cast<std::size_t>(y),
+                    color,
+                    coverage);
+            }
+        }
+    }
+}
+
+/**
+ * @brief Draws a clipped antialiased line with a width of one pixel.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_line_aa(
+    image<Width, Height, Policy>& img,
+    float x0,
+    float y0,
+    float x1,
+    float y1,
+    pixel color) noexcept -> void
+{
+    draw_line_aa(img, x0, y0, x1, y1, 1.0f, color);
 }
 
 /**

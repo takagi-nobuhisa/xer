@@ -117,6 +117,26 @@ auto test_set_pixel_checked_and_unchecked() -> bool
     return img.get_pixel(1, 1).argb == 0xff00ff00u;
 }
 
+
+auto test_set_pixel_coverage() -> bool
+{
+    xer::image<2, 2> img;
+    img.clear();
+
+    img.set_pixel(0, 0, xer::pixel(0xffu, 0u, 0u), 0.5f);
+    if (img.get_pixel(0, 0).argb != 0xff800000u) {
+        return false;
+    }
+
+    img.set_pixel(1, 0, xer::pixel(0u, 0xffu, 0u), 0.0f);
+    if (img.get_pixel(1, 0).argb != 0xff000000u) {
+        return false;
+    }
+
+    img.set_pixel_unchecked(1, 1, xer::pixel(0u, 0u, 0xffu), 2.0f);
+    return img.get_pixel(1, 1).argb == 0xff0000ffu;
+}
+
 auto test_clear_and_fill() -> bool
 {
     xer::image<2, 2> img;
@@ -196,6 +216,41 @@ auto test_draw_line() -> bool
            img.get_pixel(3, 0).argb == 0xff000000u;
 }
 
+
+auto test_draw_line_aa_thin() -> bool
+{
+    xer::image<5, 5> img;
+    img.clear();
+
+    xer::draw_line_aa(img, 1.0f, 1.0f, 3.0f, 3.0f, xer::pixel(0u, 0u, 0xffu));
+
+    const auto center = img.get_pixel(2, 2);
+    const auto edge = img.get_pixel(1, 2);
+
+    return img.get_pixel(1, 1).argb == 0xff0000ffu &&
+           center.argb == 0xff0000ffu &&
+           img.get_pixel(3, 3).argb == 0xff0000ffu &&
+           edge.blue() > 0u &&
+           edge.blue() < 0xffu &&
+           img.get_pixel(4, 0).argb == 0xff000000u;
+}
+
+
+auto test_draw_line_aa_width() -> bool
+{
+    xer::image<5, 4> img;
+    img.clear();
+
+    xer::draw_line_aa(img, 1.0f, 1.0f, 3.0f, 1.0f, 2.0f, xer::pixel(0xffu, 0u, 0u));
+
+    return img.get_pixel(1, 1).argb == 0xffff0000u &&
+           img.get_pixel(2, 1).argb == 0xffff0000u &&
+           img.get_pixel(3, 1).argb == 0xffff0000u &&
+           img.get_pixel(2, 0).argb == 0xff800000u &&
+           img.get_pixel(2, 2).argb == 0xff800000u &&
+           img.get_pixel(2, 3).argb == 0xff000000u;
+}
+
 auto test_draw_rect() -> bool
 {
     xer::image<5, 5> img;
@@ -265,6 +320,9 @@ auto main() -> int
     if (!test_set_pixel_checked_and_unchecked()) {
         return 1;
     }
+    if (!test_set_pixel_coverage()) {
+        return 1;
+    }
     if (!test_clear_and_fill()) {
         return 1;
     }
@@ -278,6 +336,12 @@ auto main() -> int
         return 1;
     }
     if (!test_draw_line()) {
+        return 1;
+    }
+    if (!test_draw_line_aa_thin()) {
+        return 1;
+    }
+    if (!test_draw_line_aa_width()) {
         return 1;
     }
     if (!test_draw_rect()) {
