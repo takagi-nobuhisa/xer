@@ -1327,6 +1327,113 @@ template<std::size_t Width, std::size_t Height, class Policy>
     return {};
 }
 
+/**
+ * @brief Applies a box blur to a clipped rectangular area.
+ *
+ * The target area is clipped to the canvas boundary. `box_size` specifies the
+ * averaging kernel size in pixels. Source samples are taken from the original
+ * pixels in the clipped target area, so pixels outside the requested area do
+ * not affect the blur result. Kernel portions outside the clipped area are
+ * ignored.
+ *
+ * Even kernel dimensions are supported. In that case, the extra sample is
+ * placed on the left or top side of the current pixel.
+ *
+ * @return `error_t::invalid_argument` if either box dimension is not positive.
+ * Otherwise returns success, including empty or fully clipped areas.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto box_blur(
+    canvas<Width, Height, Policy>& img,
+    const rect& area,
+    const size& box_size) -> xer::result<void>
+{
+    if (box_size.width <= 0 || box_size.height <= 0) {
+        return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+    }
+    if (img.empty() || area.width <= 0 || area.height <= 0) {
+        return {};
+    }
+
+    auto x0 = static_cast<long long>(area.x);
+    auto y0 = static_cast<long long>(area.y);
+    auto x1 = x0 + static_cast<long long>(area.width);
+    auto y1 = y0 + static_cast<long long>(area.height);
+
+    if (x1 <= 0 || y1 <= 0 ||
+        x0 >= static_cast<long long>(img.width()) ||
+        y0 >= static_cast<long long>(img.height())) {
+        return {};
+    }
+
+    x0 = std::max(x0, 0LL);
+    y0 = std::max(y0, 0LL);
+    x1 = std::min(x1, static_cast<long long>(img.width()));
+    y1 = std::min(y1, static_cast<long long>(img.height()));
+
+    const auto clipped_width = static_cast<std::size_t>(x1 - x0);
+    const auto clipped_height = static_cast<std::size_t>(y1 - y0);
+    std::vector<pixel> source(clipped_width * clipped_height);
+
+    for (std::size_t yy = 0; yy < clipped_height; ++yy) {
+        for (std::size_t xx = 0; xx < clipped_width; ++xx) {
+            source[yy * clipped_width + xx] = img.get_pixel(
+                static_cast<std::size_t>(x0) + xx,
+                static_cast<std::size_t>(y0) + yy);
+        }
+    }
+
+    const auto left = static_cast<long long>(box_size.width / 2);
+    const auto right = static_cast<long long>(box_size.width - 1) - left;
+    const auto top = static_cast<long long>(box_size.height / 2);
+    const auto bottom = static_cast<long long>(box_size.height - 1) - top;
+    const auto max_source_x = static_cast<long long>(clipped_width) - 1;
+    const auto max_source_y = static_cast<long long>(clipped_height) - 1;
+
+    for (std::size_t yy = 0; yy < clipped_height; ++yy) {
+        for (std::size_t xx = 0; xx < clipped_width; ++xx) {
+            const auto center_x = static_cast<long long>(xx);
+            const auto center_y = static_cast<long long>(yy);
+            const auto sx0 = std::max(center_x - left, 0LL);
+            const auto sx1 = std::min(center_x + right, max_source_x);
+            const auto sy0 = std::max(center_y - top, 0LL);
+            const auto sy1 = std::min(center_y + bottom, max_source_y);
+
+            std::uint64_t alpha = 0;
+            std::uint64_t red = 0;
+            std::uint64_t green = 0;
+            std::uint64_t blue = 0;
+            std::uint64_t count = 0;
+
+            for (auto sy = sy0; sy <= sy1; ++sy) {
+                for (auto sx = sx0; sx <= sx1; ++sx) {
+                    const auto value = source[
+                        static_cast<std::size_t>(sy) * clipped_width +
+                        static_cast<std::size_t>(sx)];
+                    alpha += value.alpha();
+                    red += value.red();
+                    green += value.green();
+                    blue += value.blue();
+                    ++count;
+                }
+            }
+
+            const auto half = count / 2;
+            img.set_pixel_unchecked(
+                static_cast<std::size_t>(x0) + xx,
+                static_cast<std::size_t>(y0) + yy,
+                pixel(
+                    static_cast<std::uint8_t>((alpha + half) / count),
+                    static_cast<std::uint8_t>((red + half) / count),
+                    static_cast<std::uint8_t>((green + half) / count),
+                    static_cast<std::uint8_t>((blue + half) / count)));
+        }
+    }
+
+    return {};
+}
+
+
 } // namespace xer::image
 
 #endif /* XER_BITS_IMAGE_H_INCLUDED_ */

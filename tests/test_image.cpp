@@ -388,6 +388,72 @@ auto test_mosaic_invalid_block_size() -> bool
            result.error().code == xer::error_t::invalid_argument;
 }
 
+
+auto test_box_blur() -> bool
+{
+    xer::image::canvas<3, 3> img;
+    img.clear();
+    img.set_pixel_unchecked(1, 1, xer::image::pixel(0xffu, 0xffu, 0xffu));
+
+    const auto result = xer::image::box_blur(
+        img,
+        xer::image::rect{0, 0, 3, 3},
+        xer::image::size{3, 3});
+    if (!result.has_value()) {
+        return false;
+    }
+
+    for (std::size_t y = 0; y < 3; ++y) {
+        for (std::size_t x = 0; x < 3; ++x) {
+            const auto corner = (x == 0 || x == 2) && (y == 0 || y == 2);
+            const auto edge = x == 0 || x == 2 || y == 0 || y == 2;
+            const auto expected = corner ? 0xff404040u :
+                (edge ? 0xff2b2b2bu : 0xff1c1c1cu);
+            if (img.get_pixel(x, y).argb != expected) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+auto test_box_blur_area_isolated() -> bool
+{
+    xer::image::canvas<5, 1> img;
+    img.fill(xer::image::pixel(0xffu, 0u, 0u));
+    img.set_pixel_unchecked(1, 0, xer::image::pixel(0u, 0u, 0u));
+    img.set_pixel_unchecked(2, 0, xer::image::pixel(0x00u, 0x00u, 0xffu));
+    img.set_pixel_unchecked(3, 0, xer::image::pixel(0u, 0u, 0u));
+
+    const auto result = xer::image::box_blur(
+        img,
+        xer::image::rect{1, 0, 3, 1},
+        xer::image::size{3, 1});
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(0, 0).argb == 0xffff0000u &&
+           img.get_pixel(1, 0).argb == 0xff000080u &&
+           img.get_pixel(2, 0).argb == 0xff000055u &&
+           img.get_pixel(3, 0).argb == 0xff000080u &&
+           img.get_pixel(4, 0).argb == 0xffff0000u;
+}
+
+auto test_box_blur_invalid_box_size() -> bool
+{
+    xer::image::canvas<2, 2> img;
+
+    const auto result = xer::image::box_blur(
+        img,
+        xer::image::rect{0, 0, 2, 2},
+        xer::image::size{3, 0});
+
+    return !result.has_value() &&
+           result.error().code == xer::error_t::invalid_argument;
+}
+
 auto test_point_pixel_methods() -> bool
 {
     xer::image::canvas<3, 3> img;
@@ -534,6 +600,15 @@ auto main() -> int
         return 1;
     }
     if (!test_mosaic_invalid_block_size()) {
+        return 1;
+    }
+    if (!test_box_blur()) {
+        return 1;
+    }
+    if (!test_box_blur_area_isolated()) {
+        return 1;
+    }
+    if (!test_box_blur_invalid_box_size()) {
         return 1;
     }
     if (!test_draw_geometry_overloads()) {
