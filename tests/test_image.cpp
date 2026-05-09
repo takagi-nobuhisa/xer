@@ -4,12 +4,30 @@
 
 namespace {
 
+auto test_geometry_types() -> bool
+{
+    constexpr xer::image::point p{1, 2};
+    constexpr xer::image::pointf pf{1.5f, 2.5f};
+    constexpr xer::image::size s{3, 4};
+    constexpr xer::image::sizef sf{3.5f, 4.5f};
+    constexpr xer::image::rect r{1, 2, 3, 4};
+    constexpr xer::image::rectf rf{1.5f, 2.5f, 3.5f, 4.5f};
+
+    return p.x == 1 && p.y == 2 &&
+           pf.x == 1.5f && pf.y == 2.5f &&
+           s.width == 3 && s.height == 4 &&
+           sf.width == 3.5f && sf.height == 4.5f &&
+           r.x == 1 && r.y == 2 && r.width == 3 && r.height == 4 &&
+           rf.x == 1.5f && rf.y == 2.5f &&
+           rf.width == 3.5f && rf.height == 4.5f;
+}
+
 auto test_pixel_construction() -> bool
 {
-    constexpr xer::pixel default_pixel;
-    constexpr xer::pixel raw(0x12345678u);
-    constexpr xer::pixel rgb(0x11u, 0x22u, 0x33u);
-    constexpr xer::pixel argb(0x44u, 0x11u, 0x22u, 0x33u);
+    constexpr xer::image::pixel default_pixel;
+    constexpr xer::image::pixel raw(0x12345678u);
+    constexpr xer::image::pixel rgb(0x11u, 0x22u, 0x33u);
+    constexpr xer::image::pixel argb(0x44u, 0x11u, 0x22u, 0x33u);
 
     return default_pixel.argb == 0xff000000u &&
            raw.alpha() == 0x12u &&
@@ -22,7 +40,7 @@ auto test_pixel_construction() -> bool
 
 auto test_pixel_setters() -> bool
 {
-    auto value = xer::pixel{};
+    auto value = xer::image::pixel{};
     value.alpha(0x12u);
     value.red(0x34u);
     value.green(0x56u);
@@ -33,31 +51,31 @@ auto test_pixel_setters() -> bool
 
 auto test_argb32_policy() -> bool
 {
-    xer::argb32_policy::storage_type storage = 0;
-    xer::argb32_policy::set(storage, xer::pixel(0x12u, 0x34u, 0x56u, 0x78u));
-    const auto value = xer::argb32_policy::get(storage);
+    xer::image::argb32_policy::storage_type storage = 0;
+    xer::image::argb32_policy::set(storage, xer::image::pixel(0x12u, 0x34u, 0x56u, 0x78u));
+    const auto value = xer::image::argb32_policy::get(storage);
 
     return storage == 0x12345678u &&
            value.argb == 0x12345678u &&
-           xer::argb32_policy::encode(value) == 0x12345678u;
+           xer::image::argb32_policy::encode(value) == 0x12345678u;
 }
 
 auto test_rgba32_policy() -> bool
 {
-    xer::rgba32_policy::storage_type storage = 0;
-    xer::rgba32_policy::set(storage, xer::pixel(0x12u, 0x34u, 0x56u, 0x78u));
-    const auto value = xer::rgba32_policy::get(storage);
+    xer::image::rgba32_policy::storage_type storage = 0;
+    xer::image::rgba32_policy::set(storage, xer::image::pixel(0x12u, 0x34u, 0x56u, 0x78u));
+    const auto value = xer::image::rgba32_policy::get(storage);
 
     return storage == 0x34567812u &&
            value.argb == 0x12345678u &&
-           xer::rgba32_policy::encode(value) == 0x34567812u;
+           xer::image::rgba32_policy::encode(value) == 0x34567812u;
 }
 
 auto test_rgb24_policy() -> bool
 {
-    xer::rgb24_policy::storage_type storage{};
-    xer::rgb24_policy::set(storage, xer::pixel(0x12u, 0x34u, 0x56u, 0x78u));
-    const auto value = xer::rgb24_policy::get(storage);
+    xer::image::rgb24_policy::storage_type storage{};
+    xer::image::rgb24_policy::set(storage, xer::image::pixel(0x12u, 0x34u, 0x56u, 0x78u));
+    const auto value = xer::image::rgb24_policy::get(storage);
 
     return storage[0] == 0x34u &&
            storage[1] == 0x56u &&
@@ -67,9 +85,9 @@ auto test_rgb24_policy() -> bool
 
 auto test_bgr24_policy() -> bool
 {
-    xer::bgr24_policy::storage_type storage{};
-    xer::bgr24_policy::set(storage, xer::pixel(0x12u, 0x34u, 0x56u, 0x78u));
-    const auto value = xer::bgr24_policy::get(storage);
+    xer::image::bgr24_policy::storage_type storage{};
+    xer::image::bgr24_policy::set(storage, xer::image::pixel(0x12u, 0x34u, 0x56u, 0x78u));
+    const auto value = xer::image::bgr24_policy::get(storage);
 
     return storage[0] == 0x78u &&
            storage[1] == 0x56u &&
@@ -79,69 +97,69 @@ auto test_bgr24_policy() -> bool
 
 auto test_fixed_image_basic() -> bool
 {
-    xer::image<4, 3> img;
+    xer::image::canvas<4, 3> img;
 
     if (img.width() != 4 || img.height() != 3 || img.size() != 12 || img.empty()) {
         return false;
     }
 
-    img.set_pixel(2, 1, xer::pixel(0x11u, 0x22u, 0x33u));
+    img.set_pixel(2, 1, xer::image::pixel(0x11u, 0x22u, 0x33u));
     return img.get_pixel(2, 1).argb == 0xff112233u;
 }
 
-auto test_dynamic_image_basic() -> bool
+auto test_dynamic_canvas_basic() -> bool
 {
-    xer::dynamic_image<xer::rgba32_policy> img(3, 2);
+    xer::image::dynamic_canvas<xer::image::rgba32_policy> img(3, 2);
 
     if (img.width() != 3 || img.height() != 2 || img.size() != 6 || img.empty()) {
         return false;
     }
 
-    img.set_pixel(1, 1, xer::pixel(0x80u, 0x10u, 0x20u, 0x30u));
+    img.set_pixel(1, 1, xer::image::pixel(0x80u, 0x10u, 0x20u, 0x30u));
     return img.get_pixel(1, 1).argb == 0x80102030u;
 }
 
 auto test_set_pixel_checked_and_unchecked() -> bool
 {
-    xer::image<2, 2> img;
+    xer::image::canvas<2, 2> img;
     img.clear();
 
-    img.set_pixel(-1, 0, xer::pixel(0xffu, 0u, 0u));
-    img.set_pixel(2, 0, xer::pixel(0xffu, 0u, 0u));
+    img.set_pixel(-1, 0, xer::image::pixel(0xffu, 0u, 0u));
+    img.set_pixel(2, 0, xer::image::pixel(0xffu, 0u, 0u));
     if (img.get_pixel(0, 0).argb != 0xff000000u ||
         img.get_pixel(1, 0).argb != 0xff000000u) {
         return false;
     }
 
-    img.set_pixel_unchecked(1, 1, xer::pixel(0u, 0xffu, 0u));
+    img.set_pixel_unchecked(1, 1, xer::image::pixel(0u, 0xffu, 0u));
     return img.get_pixel(1, 1).argb == 0xff00ff00u;
 }
 
 
 auto test_set_pixel_coverage() -> bool
 {
-    xer::image<2, 2> img;
+    xer::image::canvas<2, 2> img;
     img.clear();
 
-    img.set_pixel(0, 0, xer::pixel(0xffu, 0u, 0u), 0.5f);
+    img.set_pixel(0, 0, xer::image::pixel(0xffu, 0u, 0u), 0.5f);
     if (img.get_pixel(0, 0).argb != 0xff800000u) {
         return false;
     }
 
-    img.set_pixel(1, 0, xer::pixel(0u, 0xffu, 0u), 0.0f);
+    img.set_pixel(1, 0, xer::image::pixel(0u, 0xffu, 0u), 0.0f);
     if (img.get_pixel(1, 0).argb != 0xff000000u) {
         return false;
     }
 
-    img.set_pixel_unchecked(1, 1, xer::pixel(0u, 0u, 0xffu), 2.0f);
+    img.set_pixel_unchecked(1, 1, xer::image::pixel(0u, 0u, 0xffu), 2.0f);
     return img.get_pixel(1, 1).argb == 0xff0000ffu;
 }
 
 auto test_clear_and_fill() -> bool
 {
-    xer::image<2, 2> img;
+    xer::image::canvas<2, 2> img;
 
-    img.fill(xer::pixel(0x01u, 0x02u, 0x03u));
+    img.fill(xer::image::pixel(0x01u, 0x02u, 0x03u));
     for (std::size_t y = 0; y < img.height(); ++y) {
         for (std::size_t x = 0; x < img.width(); ++x) {
             if (img.get_pixel(x, y).argb != 0xff010203u) {
@@ -164,7 +182,7 @@ auto test_clear_and_fill() -> bool
 
 auto test_contains() -> bool
 {
-    const xer::image<3, 2> img;
+    const xer::image::canvas<3, 2> img;
 
     return img.contains(0, 0) &&
            img.contains(2, 1) &&
@@ -176,10 +194,10 @@ auto test_contains() -> bool
 
 auto test_draw_hline_clipped() -> bool
 {
-    xer::image<4, 2> img;
+    xer::image::canvas<4, 2> img;
     img.clear();
 
-    xer::draw_hline(img, -1, 0, 4, xer::pixel(0xffu, 0u, 0u));
+    xer::image::draw_hline(img, -1, 0, 4, xer::image::pixel(0xffu, 0u, 0u));
 
     return img.get_pixel(0, 0).argb == 0xffff0000u &&
            img.get_pixel(1, 0).argb == 0xffff0000u &&
@@ -190,10 +208,10 @@ auto test_draw_hline_clipped() -> bool
 
 auto test_draw_vline_clipped() -> bool
 {
-    xer::image<2, 4> img;
+    xer::image::canvas<2, 4> img;
     img.clear();
 
-    xer::draw_vline(img, 1, -1, 4, xer::pixel(0u, 0xffu, 0u));
+    xer::image::draw_vline(img, 1, -1, 4, xer::image::pixel(0u, 0xffu, 0u));
 
     return img.get_pixel(1, 0).argb == 0xff00ff00u &&
            img.get_pixel(1, 1).argb == 0xff00ff00u &&
@@ -204,10 +222,10 @@ auto test_draw_vline_clipped() -> bool
 
 auto test_draw_line() -> bool
 {
-    xer::image<4, 4> img;
+    xer::image::canvas<4, 4> img;
     img.clear();
 
-    xer::draw_line(img, 0, 0, 3, 3, xer::pixel(0u, 0u, 0xffu));
+    xer::image::draw_line(img, 0, 0, 3, 3, xer::image::pixel(0u, 0u, 0xffu));
 
     return img.get_pixel(0, 0).argb == 0xff0000ffu &&
            img.get_pixel(1, 1).argb == 0xff0000ffu &&
@@ -219,10 +237,10 @@ auto test_draw_line() -> bool
 
 auto test_draw_line_aa_thin() -> bool
 {
-    xer::image<5, 5> img;
+    xer::image::canvas<5, 5> img;
     img.clear();
 
-    xer::draw_line_aa(img, 1.0f, 1.0f, 3.0f, 3.0f, xer::pixel(0u, 0u, 0xffu));
+    xer::image::draw_line_aa(img, 1.0f, 1.0f, 3.0f, 3.0f, xer::image::pixel(0u, 0u, 0xffu));
 
     const auto center = img.get_pixel(2, 2);
     const auto edge = img.get_pixel(1, 2);
@@ -238,10 +256,10 @@ auto test_draw_line_aa_thin() -> bool
 
 auto test_draw_line_aa_width() -> bool
 {
-    xer::image<5, 4> img;
+    xer::image::canvas<5, 4> img;
     img.clear();
 
-    xer::draw_line_aa(img, 1.0f, 1.0f, 3.0f, 1.0f, 2.0f, xer::pixel(0xffu, 0u, 0u));
+    xer::image::draw_line_aa(img, 1.0f, 1.0f, 3.0f, 1.0f, 2.0f, xer::image::pixel(0xffu, 0u, 0u));
 
     return img.get_pixel(1, 1).argb == 0xffff0000u &&
            img.get_pixel(2, 1).argb == 0xffff0000u &&
@@ -253,10 +271,10 @@ auto test_draw_line_aa_width() -> bool
 
 auto test_draw_rect() -> bool
 {
-    xer::image<5, 5> img;
+    xer::image::canvas<5, 5> img;
     img.clear();
 
-    xer::draw_rect(img, 1, 1, 3, 3, xer::pixel(0xffu, 0xffu, 0u));
+    xer::image::draw_rect(img, 1, 1, 3, 3, xer::image::pixel(0xffu, 0xffu, 0u));
 
     return img.get_pixel(1, 1).argb == 0xffffff00u &&
            img.get_pixel(2, 1).argb == 0xffffff00u &&
@@ -268,10 +286,10 @@ auto test_draw_rect() -> bool
 
 auto test_fill_rect_clipped() -> bool
 {
-    xer::image<4, 4> img;
+    xer::image::canvas<4, 4> img;
     img.clear();
 
-    xer::fill_rect(img, -1, 1, 3, 2, xer::pixel(0xffu, 0u, 0xffu));
+    xer::image::fill_rect(img, -1, 1, 3, 2, xer::image::pixel(0xffu, 0u, 0xffu));
 
     return img.get_pixel(0, 1).argb == 0xffff00ffu &&
            img.get_pixel(1, 1).argb == 0xffff00ffu &&
@@ -283,8 +301,8 @@ auto test_fill_rect_clipped() -> bool
 
 auto test_type_properties() -> bool
 {
-    static_assert(std::is_default_constructible_v<xer::image<1, 1>>);
-    static_assert(std::is_default_constructible_v<xer::dynamic_image<>>);
+    static_assert(std::is_default_constructible_v<xer::image::canvas<1, 1>>);
+    static_assert(std::is_default_constructible_v<xer::image::dynamic_canvas<>>);
 
     return true;
 }
@@ -293,6 +311,9 @@ auto test_type_properties() -> bool
 
 auto main() -> int
 {
+    if (!test_geometry_types()) {
+        return 1;
+    }
     if (!test_pixel_construction()) {
         return 1;
     }
@@ -314,7 +335,7 @@ auto main() -> int
     if (!test_fixed_image_basic()) {
         return 1;
     }
-    if (!test_dynamic_image_basic()) {
+    if (!test_dynamic_canvas_basic()) {
         return 1;
     }
     if (!test_set_pixel_checked_and_unchecked()) {

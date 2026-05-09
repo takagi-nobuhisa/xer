@@ -1,4 +1,4 @@
-﻿# Policy for Image and Framebuffer Handling
+# Policy for Image and Framebuffer Handling
 
 ## Overview
 
@@ -11,8 +11,8 @@ The image facility should therefore keep the following priorities:
 - represent logical colors clearly
 - allow framebuffer storage formats to vary
 - keep image processing independent of Tcl/Tk
-- make fixed-size images the primary model
-- allow dynamic-size images only where needed
+- make fixed-size canvases the primary model
+- allow dynamic-size canvases only where needed
 - avoid exposing physical framebuffer layout unnecessarily
 
 ---
@@ -109,6 +109,27 @@ The public image operations should not assume that the framebuffer storage itsel
 
 ---
 
+## Namespace
+
+Image-related types and functions belong to the `xer::image` namespace.
+
+The framebuffer owner type is named `xer::image::canvas` so that `xer::image` can serve as the namespace for image storage, drawing, and image processing.
+
+The basic geometry helper types are also placed in this namespace:
+
+```cpp
+struct point;
+struct pointf;
+struct size;
+struct sizef;
+struct rect;
+struct rectf;
+```
+
+Integer helper types are for pixel-grid operations. Floating-point helper types are for subpixel drawing, antialiasing, and future transforms.
+
+---
+
 ## Pixel Storage Policy
 
 The framebuffer storage format is expressed as a template policy.
@@ -144,14 +165,14 @@ This design avoids runtime `switch` dispatch during per-pixel processing and all
 
 ### Basic Shape
 
-The primary image type is a fixed-size image:
+The primary canvas type is a fixed-size canvas:
 
 ```cpp
 template <
     std::size_t Width,
     std::size_t Height,
     class Policy = argb32_policy>
-class image;
+class canvas;
 ```
 
 The main intended use case is framebuffer-like storage, including VRAM emulation.
@@ -160,23 +181,23 @@ For that purpose, fixed dimensions are usually sufficient and often preferable.
 Example:
 
 ```cpp
-using screen = xer::image<256, 192>;
-using sprite = xer::image<16, 16, xer::argb32_policy>;
+using screen = xer::image::canvas<256, 192>;
+using sprite = xer::image::canvas<16, 16, xer::image::argb32_policy>;
 ```
 
-### Dynamic-Size Image
+### Dynamic-Size Canvas
 
-A dynamic-size image is represented by the same template with both dimensions set to zero:
+A dynamic-size canvas is represented by the same template with both dimensions set to zero:
 
 ```cpp
-using dynamic_image = image<0, 0, Policy>;
+using dynamic_canvas = canvas<0, 0, Policy>;
 ```
 
 A convenience alias should be provided:
 
 ```cpp
 template <class Policy = argb32_policy>
-using dynamic_image = image<0, 0, Policy>;
+using dynamic_canvas = canvas<0, 0, Policy>;
 ```
 
 This keeps the image API unified while still allowing runtime-sized images where needed, such as when reading a Tk photo image or loading an image file.
@@ -203,7 +224,7 @@ A static assertion should reject partial dynamic dimensions.
 
 ## Storage Separation
 
-The difference between fixed-size and dynamic-size images should be isolated in a storage class.
+The difference between fixed-size and dynamic-size canvases should be isolated in a storage class.
 
 Conceptually:
 
@@ -212,13 +233,13 @@ template <std::size_t Width, std::size_t Height, class Policy>
 class image_storage;
 ```
 
-For fixed-size images, `image_storage` owns:
+For fixed-size canvases, `image_storage` owns:
 
 ```cpp
 std::array<storage_type, Width * Height>
 ```
 
-For dynamic-size images, `image_storage<0, 0, Policy>` owns:
+For dynamic-size canvases, `image_storage<0, 0, Policy>` owns:
 
 ```cpp
 std::vector<storage_type>
@@ -226,13 +247,13 @@ std::vector<storage_type>
 
 and stores runtime width and height.
 
-The main `image` class should share most member functions between fixed-size and dynamic-size images by delegating memory ownership details to `image_storage`.
+The main `canvas` class should share most member functions between fixed-size and dynamic-size canvases by delegating memory ownership details to `image_storage`.
 
 ---
 
 ## Public Pixel Access
 
-The public image API should expose logical pixel access rather than raw framebuffer element access.
+The public canvas API should expose logical pixel access rather than raw framebuffer element access.
 
 The ordinary accessors are:
 
@@ -245,11 +266,11 @@ auto set_pixel_unchecked(
     pixel value) noexcept -> void;
 ```
 
-`image::at()` returning a physical storage reference should not be provided as an ordinary public API.
+`canvas::at()` returning a physical storage reference should not be provided as an ordinary public API.
 
 The reason is that returning a reference to the physical framebuffer element would expose and depend on the storage format. If the framebuffer format is not ARGB, modifying such a reference as if it were a logical pixel would be incorrect.
 
-`set_pixel` should be safe for ordinary use and may ignore coordinates outside the image boundary. `set_pixel_unchecked` is a low-level member for code that has already performed boundary checks or clipping. Its caller must guarantee that the coordinates are inside the framebuffer.
+`set_pixel` should be safe for ordinary use and may ignore coordinates outside the canvas boundary. `set_pixel_unchecked` is a low-level member for code that has already performed boundary checks or clipping. Its caller must guarantee that the coordinates are inside the framebuffer.
 
 `pixel` is logical.
 `Policy::storage_type` is physical.
@@ -259,12 +280,12 @@ The public API should preserve this distinction.
 
 ## Width, Height, and Stride
 
-For the initial owning `image` type, the display width and the memory width are the same.
+For the initial owning `canvas` type, the display width and the memory width are the same.
 
 This is acceptable because ordinary users are not expected to manipulate framebuffer array elements directly.
 All normal access goes through logical operations such as `get_pixel`, `set_pixel`, drawing functions, and image-processing functions.
 
-If stride-aware external memory access becomes necessary, it should be introduced through a separate view type or low-level helper rather than complicating the primary owning `image` type.
+If stride-aware external memory access becomes necessary, it should be introduced through a separate view type or low-level helper rather than complicating the primary owning `canvas` type.
 
 Possible future types include:
 
@@ -284,18 +305,18 @@ Drawing functions belong to `xer/image.h`, not `xer/tk.h`.
 At minimum, the following kinds of drawing functions are candidates:
 
 ```cpp
-auto draw_line(image& img, point p0, point p1, pixel color) -> void;
-auto draw_rect(image& img, rect area, pixel color) -> void;
-auto fill_rect(image& img, rect area, pixel color) -> void;
-auto draw_circle(image& img, point center, int radius, pixel color) -> void;
-auto fill_circle(image& img, point center, int radius, pixel color) -> void;
+auto draw_line(canvas& img, point p0, point p1, pixel color) -> void;
+auto draw_rect(canvas& img, rect area, pixel color) -> void;
+auto fill_rect(canvas& img, rect area, pixel color) -> void;
+auto draw_circle(canvas& img, point center, int radius, pixel color) -> void;
+auto fill_circle(canvas& img, point center, int radius, pixel color) -> void;
 ```
 
 Coordinate-oriented drawing functions should use signed integer coordinates.
 This allows negative coordinates and makes clipping more natural.
 
 Out-of-range drawing should be clipped rather than treated as an error.
-If a shape lies completely outside the image, the function should do nothing.
+If a shape lies completely outside the canvas, the function should do nothing.
 
 Horizontal and vertical line drawing may use more direct internal storage access for efficiency, but such access should remain implementation detail and should still respect the framebuffer policy.
 
@@ -320,10 +341,10 @@ The image-processing functions should be templates over image dimensions and pol
 
 ```cpp
 template <std::size_t W, std::size_t H, class Policy>
-auto invert(image<W, H, Policy>& img) noexcept -> void;
+auto invert(canvas<W, H, Policy>& img) noexcept -> void;
 ```
 
-When an operation needs to create a new image, the result should preserve the dimensions and policy unless there is a clear reason not to.
+When an operation needs to create a new canvas, the result should preserve the dimensions and policy unless there is a clear reason not to.
 
 Operations that can fail because of invalid arguments, such as a zero mosaic block size, should return `xer::result`.
 Operations with no ordinary failure condition may return directly or mutate in place.
@@ -351,13 +372,13 @@ namespace xer::tk {
     auto photo_to_image(
         interpreter& interp,
         std::u8string_view photo_name)
-        -> xer::result<xer::dynamic_image<>, error_detail>;
+        -> xer::result<xer::image::dynamic_canvas<>, error_detail>;
 
     template <std::size_t W, std::size_t H, class Policy>
-    auto image_to_photo(
+    auto canvas_to_photo(
         interpreter& interp,
         std::u8string_view photo_name,
-        const xer::image<W, H, Policy>& img)
+        const xer::image::canvas<W, H, Policy>& img)
         -> xer::result<void, error_detail>;
 
 }
@@ -379,8 +400,8 @@ For the first implementation, the recommended scope is:
 1. `pixel`
 2. basic framebuffer policies such as `argb32_policy` and `rgba32_policy`
 3. `image_storage`
-4. `image<Width, Height, Policy>`
-5. `dynamic_image<Policy>` alias
+4. `canvas<Width, Height, Policy>`
+5. `dynamic_canvas<Policy>` alias
 6. `get_pixel` / `set_pixel`
 7. simple drawing functions such as horizontal line, vertical line, rectangle, and filled rectangle
 8. simple image operations such as invert, grayscale, and flip
@@ -393,9 +414,9 @@ Tk photo integration, blur, mosaic, raster scroll, affine transformation, and mo
 
 - `pixel` is a logical ARGB color represented as `0xAARRGGBB`.
 - The framebuffer storage format is controlled by a template policy.
-- `image<Width, Height, Policy>` is the primary fixed-size image type.
-- `image<0, 0, Policy>` is the dynamic-size specialization.
-- `dynamic_image<Policy>` is an alias for `image<0, 0, Policy>`.
+- `canvas<Width, Height, Policy>` is the primary fixed-size canvas type.
+- `canvas<0, 0, Policy>` is the dynamic-size specialization.
+- `dynamic_canvas<Policy>` is an alias for `canvas<0, 0, Policy>`.
 - Only both dimensions zero means dynamic size; partial dynamic dimensions are invalid.
 - Fixed and dynamic memory ownership should be isolated in `image_storage`.
 - Public pixel access uses `get_pixel` and `set_pixel`, not `at()` returning physical storage.

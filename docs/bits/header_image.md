@@ -1,12 +1,20 @@
-﻿# `<xer/image.h>`
+# `<xer/image.h>`
 
 ## Purpose
 
 `<xer/image.h>` provides lightweight image and framebuffer facilities.
 
-The initial purpose of this header is not full photo editing or complete image-file handling. It is a small framebuffer-oriented layer for fixed-size images, VRAM-style emulation, simple drawing, and later integration with Tcl/Tk photo images.
+The initial purpose of this header is not full photo editing or complete image-file handling. It is a small framebuffer-oriented layer for fixed-size canvases, VRAM-style emulation, simple drawing, and later integration with Tcl/Tk photo images.
 
 Pure image processing and drawing belong in `<xer/image.h>`. Tcl/Tk photo integration belongs in `<xer/tk.h>`.
+
+---
+
+## Namespace
+
+Image-related types and functions are placed in the `xer::image` namespace.
+
+The previous top-level image type has been renamed to `xer::image::canvas` so that `xer::image` can be used as the namespace for image storage, drawing, and image processing.
 
 ---
 
@@ -15,7 +23,14 @@ Pure image processing and drawing belong in `<xer/image.h>`. Tcl/Tk photo integr
 At minimum, `<xer/image.h>` provides the following entities:
 
 ```cpp
-namespace xer {
+namespace xer::image {
+
+struct point;
+struct pointf;
+struct size;
+struct sizef;
+struct rect;
+struct rectf;
 
 struct pixel;
 
@@ -27,27 +42,27 @@ struct bgr24_policy;
 template <std::size_t Width,
           std::size_t Height,
           class Policy = argb32_policy>
-class image;
+class canvas;
 
 template <class Policy = argb32_policy>
-using dynamic_image = image<0, 0, Policy>;
+using dynamic_canvas = canvas<0, 0, Policy>;
 
 template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_hline(image<Width, Height, Policy>& img,
+auto draw_hline(canvas<Width, Height, Policy>& img,
                 int x,
                 int y,
                 int length,
                 pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_vline(image<Width, Height, Policy>& img,
+auto draw_vline(canvas<Width, Height, Policy>& img,
                 int x,
                 int y,
                 int length,
                 pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_line(image<Width, Height, Policy>& img,
+auto draw_line(canvas<Width, Height, Policy>& img,
                int x0,
                int y0,
                int x1,
@@ -55,7 +70,24 @@ auto draw_line(image<Width, Height, Policy>& img,
                pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_rect(image<Width, Height, Policy>& img,
+auto draw_line_aa(canvas<Width, Height, Policy>& img,
+                  float x0,
+                  float y0,
+                  float x1,
+                  float y1,
+                  pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_line_aa(canvas<Width, Height, Policy>& img,
+                  float x0,
+                  float y0,
+                  float x1,
+                  float y1,
+                  float width,
+                  pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_rect(canvas<Width, Height, Policy>& img,
                int x,
                int y,
                int width,
@@ -63,7 +95,7 @@ auto draw_rect(image<Width, Height, Policy>& img,
                pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_rect(image<Width, Height, Policy>& img,
+auto fill_rect(canvas<Width, Height, Policy>& img,
                int x,
                int y,
                int width,
@@ -75,11 +107,55 @@ auto fill_rect(image<Width, Height, Policy>& img,
 
 ---
 
+## Geometry Types
+
+The geometry helper types are simple aggregate types used for future drawing and image-processing APIs.
+
+```cpp
+struct point {
+    int x;
+    int y;
+};
+
+struct pointf {
+    float x;
+    float y;
+};
+
+struct size {
+    int width;
+    int height;
+};
+
+struct sizef {
+    float width;
+    float height;
+};
+
+struct rect {
+    int x;
+    int y;
+    int width;
+    int height;
+};
+
+struct rectf {
+    float x;
+    float y;
+    float width;
+    float height;
+};
+```
+
+Integer geometry types are intended for pixel-grid operations and clipping. Floating-point geometry types are intended for subpixel drawing, antialiasing, and future transformations.
+
+---
+
 ## Logical Pixel
 
-`xer::pixel` represents a logical color value.
+`xer::image::pixel` represents a logical color value.
 
-It is not the same thing as the physical framebuffer storage element. The physical storage format is controlled by the image policy.
+It is not the same thing as the physical framebuffer storage element. The physical storage format is controlled by the canvas policy.
 
 The logical representation is ARGB in a 32-bit integer:
 
@@ -126,7 +202,7 @@ alpha, red, green, blue
 
 ## Framebuffer Storage Policies
 
-An image policy controls the physical framebuffer storage format.
+A canvas policy controls the physical framebuffer storage format.
 
 A policy provides:
 
@@ -155,38 +231,38 @@ bgr24_policy
 
 ---
 
-## `image`
+## `canvas`
 
-The primary image type is:
+The primary canvas type is:
 
 ```cpp
 template <std::size_t Width,
           std::size_t Height,
           class Policy = argb32_policy>
-class image;
+class canvas;
 ```
 
-Fixed-size images are the main model because the initial use case is framebuffer-style handling such as VRAM emulation.
+Fixed-size canvases are the main model because the initial use case is framebuffer-style handling such as VRAM emulation.
 
 Examples:
 
 ```cpp
-using screen = xer::image<256, 192>;
-using sprite = xer::image<16, 16>;
-using rgba_screen = xer::image<256, 192, xer::rgba32_policy>;
+using screen = xer::image::canvas<256, 192>;
+using sprite = xer::image::canvas<16, 16>;
+using rgba_screen = xer::image::canvas<256, 192, xer::image::rgba32_policy>;
 ```
 
-A dynamic-size image is represented as:
+A dynamic-size canvas is represented as:
 
 ```cpp
-image<0, 0, Policy>
+canvas<0, 0, Policy>
 ```
 
 The convenience alias is:
 
 ```cpp
 template <class Policy = argb32_policy>
-using dynamic_image = image<0, 0, Policy>;
+using dynamic_canvas = canvas<0, 0, Policy>;
 ```
 
 Only these dimension forms are valid:
@@ -196,7 +272,7 @@ Width > 0 && Height > 0
 Width == 0 && Height == 0
 ```
 
-Partial dynamic dimensions such as `image<0, 192>` and `image<256, 0>` are invalid.
+Partial dynamic dimensions such as `canvas<0, 192>` and `canvas<256, 0>` are invalid.
 
 ---
 
@@ -207,18 +283,25 @@ The public pixel API uses logical pixels:
 ```cpp
 auto get_pixel(std::size_t x, std::size_t y) const noexcept -> pixel;
 auto set_pixel(int x, int y, pixel value) noexcept -> void;
+auto set_pixel(int x, int y, pixel value, float coverage) noexcept -> void;
 auto set_pixel_unchecked(std::size_t x,
                          std::size_t y,
                          pixel value) noexcept -> void;
+auto set_pixel_unchecked(std::size_t x,
+                         std::size_t y,
+                         pixel value,
+                         float coverage) noexcept -> void;
 ```
 
-`image::at()` is intentionally not provided.
+`canvas::at()` is intentionally not provided.
 
 Returning a reference to the physical storage element would expose the framebuffer layout and would be incorrect when the storage policy is not ARGB. `pixel` is logical. `Policy::storage_type` is physical.
 
-`get_pixel` expects coordinates that are inside the image.
+`get_pixel` expects coordinates that are inside the canvas.
 
-`set_pixel` accepts signed coordinates and does nothing when the coordinates are outside the image boundary.
+`set_pixel` accepts signed coordinates and does nothing when the coordinates are outside the canvas boundary.
+
+The coverage overloads blend the source pixel over the destination. Coverage is clamped to `[0.0f, 1.0f]`. A coverage value of `0.0f` leaves the destination unchanged. A coverage value of `1.0f` applies the source pixel alpha normally.
 
 `set_pixel_unchecked` does not perform boundary checks. The caller must guarantee that `x < width()` and `y < height()`. It is intended for code that has already performed clipping or bounds checks outside the inner drawing loop.
 
@@ -226,7 +309,7 @@ Returning a reference to the physical storage element would expose the framebuff
 
 ## Basic Member Functions
 
-`image` provides basic size and utility operations:
+`canvas` provides basic size and utility operations:
 
 ```cpp
 auto width() const noexcept -> std::size_t;
@@ -238,7 +321,7 @@ auto fill(pixel value) noexcept -> void;
 auto clear() noexcept -> void;
 ```
 
-`clear()` fills the image with opaque black.
+`clear()` fills the canvas with opaque black.
 
 ---
 
@@ -250,17 +333,20 @@ The initial drawing functions are simple framebuffer helpers:
 draw_hline
 draw_vline
 draw_line
+draw_line_aa
 draw_rect
 fill_rect
 ```
 
-Drawing coordinates use `int` rather than `std::size_t` because drawing often benefits from clipping negative coordinates.
+Integer drawing coordinates use `int` rather than `std::size_t` because drawing often benefits from clipping negative coordinates.
 
-Drawing operations clip to the image bounds. If the target area is fully outside the image, nothing is drawn.
+Drawing operations clip to the canvas bounds. If the target area is fully outside the canvas, nothing is drawn.
 
 After clipping, `draw_hline`, `draw_vline`, and `fill_rect` write directly to framebuffer storage. They do not call `set_pixel` for every pixel. This keeps inner loops based on simple pointer or stride increments instead of repeated coordinate-to-offset calculation.
 
-`draw_line` uses a simple Bresenham-style integer line algorithm. It still checks each generated point against the image boundary, but writes through `set_pixel_unchecked` after that check.
+`draw_line` uses a simple Bresenham-style integer line algorithm. It still checks each generated point against the canvas boundary, but writes through `set_pixel_unchecked` after that check.
+
+`draw_line_aa` uses floating-point pixel-center coordinates and draws an antialiased capsule-shaped stroke. The overload without a width argument draws a one-pixel-wide antialiased line. The width overload takes the width before the color argument.
 
 ---
 
@@ -268,7 +354,7 @@ After clipping, `draw_hline`, `draw_vline`, and `fill_rect` write directly to fr
 
 `<xer/image.h>` does not depend on Tcl/Tk.
 
-Tk photo bridge functions should live in `<xer/tk.h>`. They may convert between Tk photo image blocks and `xer::image` or `xer::dynamic_image` later, but pure image storage, drawing, and image processing remain in `<xer/image.h>`.
+Tk photo bridge functions should live in `<xer/tk.h>`. They may convert between Tk photo image blocks and `xer::image::canvas` or `xer::image::dynamic_canvas` later, but pure image storage, drawing, and image processing remain in `<xer/image.h>`.
 
 ---
 
@@ -298,13 +384,18 @@ These can be added once the basic framebuffer type is stable.
 
 auto main() -> int
 {
-    xer::image<4, 4> img;
+    xer::image::canvas<4, 4> img;
 
     img.clear();
 
-    // This line intentionally starts outside the image.
+    // This line intentionally starts outside the canvas.
     // XER clips it to the framebuffer boundary.
-    xer::draw_hline(img, -2, 1, 4, xer::pixel(0xffu, 0x00u, 0x00u));
+    xer::image::draw_hline(
+        img,
+        -2,
+        1,
+        4,
+        xer::image::pixel(0xffu, 0x00u, 0x00u));
 
     const auto value = img.get_pixel(0, 1);
     return value.argb == 0xffff0000u ? 0 : 1;

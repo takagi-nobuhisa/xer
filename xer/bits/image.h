@@ -1,6 +1,6 @@
 ﻿/**
  * @file xer/bits/image.h
- * @brief Image and framebuffer implementation.
+ * @brief Image namespace and framebuffer implementation.
  */
 
 #pragma once
@@ -16,13 +16,89 @@
 #include <type_traits>
 #include <vector>
 
-namespace xer {
+namespace xer::image {
+
+/**
+ * @brief Integer pixel coordinate.
+ */
+struct point {
+    int x = 0;
+    int y = 0;
+
+    [[nodiscard]] friend constexpr auto operator==(
+        point lhs,
+        point rhs) noexcept -> bool = default;
+};
+
+/**
+ * @brief Floating-point pixel coordinate.
+ */
+struct pointf {
+    float x = 0.0f;
+    float y = 0.0f;
+
+    [[nodiscard]] friend constexpr auto operator==(
+        pointf lhs,
+        pointf rhs) noexcept -> bool = default;
+};
+
+/**
+ * @brief Integer pixel extent.
+ */
+struct size {
+    int width = 0;
+    int height = 0;
+
+    [[nodiscard]] friend constexpr auto operator==(
+        size lhs,
+        size rhs) noexcept -> bool = default;
+};
+
+/**
+ * @brief Floating-point pixel extent.
+ */
+struct sizef {
+    float width = 0.0f;
+    float height = 0.0f;
+
+    [[nodiscard]] friend constexpr auto operator==(
+        sizef lhs,
+        sizef rhs) noexcept -> bool = default;
+};
+
+/**
+ * @brief Integer pixel rectangle.
+ */
+struct rect {
+    int x = 0;
+    int y = 0;
+    int width = 0;
+    int height = 0;
+
+    [[nodiscard]] friend constexpr auto operator==(
+        rect lhs,
+        rect rhs) noexcept -> bool = default;
+};
+
+/**
+ * @brief Floating-point pixel rectangle.
+ */
+struct rectf {
+    float x = 0.0f;
+    float y = 0.0f;
+    float width = 0.0f;
+    float height = 0.0f;
+
+    [[nodiscard]] friend constexpr auto operator==(
+        rectf lhs,
+        rectf rhs) noexcept -> bool = default;
+};
 
 /**
  * @brief Logical ARGB pixel value.
  *
  * `pixel` is a logical color value. It is not necessarily identical to the
- * physical framebuffer storage element used by `image`.
+ * physical framebuffer storage element used by `canvas`.
  */
 struct pixel {
     /**
@@ -415,22 +491,22 @@ inline constexpr bool valid_image_extent =
 } // namespace detail
 
 /**
- * @brief Fixed-size or dynamic-size framebuffer image.
+ * @brief Fixed-size or dynamic-size drawing canvas.
  *
- * `image<Width, Height, Policy>` stores physical framebuffer elements whose
+ * `canvas<Width, Height, Policy>` stores physical framebuffer elements whose
  * format is controlled by `Policy`. Public pixel operations use the logical
  * `pixel` type.
  *
- * `image<0, 0, Policy>` is the dynamic-size specialization.
+ * `canvas<0, 0, Policy>` is the dynamic-size specialization.
  */
 template<
     std::size_t Width,
     std::size_t Height,
     class Policy = argb32_policy>
-class image {
+class canvas {
     static_assert(
         detail::valid_image_extent<Width, Height>,
-        "image dimensions must both be fixed or both be zero");
+        "canvas dimensions must both be fixed or both be zero");
 
 public:
     using policy_type = Policy;
@@ -438,21 +514,21 @@ public:
     using pixel_type = pixel;
 
     /**
-     * @brief Constructs a fixed-size image, or an empty dynamic-size image.
+     * @brief Constructs a fixed-size canvas, or an empty dynamic-size canvas.
      */
-    image() = default;
+    canvas() = default;
 
     /**
-     * @brief Constructs a dynamic-size image.
+     * @brief Constructs a dynamic-size canvas.
      */
-    image(std::size_t width, std::size_t height)
+    canvas(std::size_t width, std::size_t height)
         requires(Width == 0 && Height == 0)
         : storage_(width, height)
     {
     }
 
     /**
-     * @brief Returns the image width in pixels.
+     * @brief Returns the canvas width in pixels.
      */
     [[nodiscard]] auto width() const noexcept -> std::size_t
     {
@@ -460,7 +536,7 @@ public:
     }
 
     /**
-     * @brief Returns the image height in pixels.
+     * @brief Returns the canvas height in pixels.
      */
     [[nodiscard]] auto height() const noexcept -> std::size_t
     {
@@ -476,7 +552,7 @@ public:
     }
 
     /**
-     * @brief Returns whether this image has no drawable area.
+     * @brief Returns whether this canvas has no drawable area.
      */
     [[nodiscard]] auto empty() const noexcept -> bool
     {
@@ -484,7 +560,7 @@ public:
     }
 
     /**
-     * @brief Returns whether signed coordinates are inside the image.
+     * @brief Returns whether signed coordinates are inside the canvas.
      */
     [[nodiscard]] auto contains(int x, int y) const noexcept -> bool
     {
@@ -591,7 +667,7 @@ public:
     }
 
     /**
-     * @brief Clears the image to opaque black.
+     * @brief Clears the canvas to opaque black.
      */
     auto clear() noexcept -> void
     {
@@ -610,35 +686,35 @@ private:
 };
 
 /**
- * @brief Dynamic-size image alias.
+ * @brief Dynamic-size canvas alias.
  */
 template<class Policy = argb32_policy>
-using dynamic_image = image<0, 0, Policy>;
+using dynamic_canvas = canvas<0, 0, Policy>;
 
 namespace detail {
 
 struct image_access {
     template<std::size_t Width, std::size_t Height, class Policy>
-    [[nodiscard]] static auto data(image<Width, Height, Policy>& img) noexcept
-        -> typename image<Width, Height, Policy>::storage_type*
+    [[nodiscard]] static auto data(canvas<Width, Height, Policy>& img) noexcept
+        -> typename canvas<Width, Height, Policy>::storage_type*
     {
         return img.storage_.data();
     }
 
     template<std::size_t Width, std::size_t Height, class Policy>
     [[nodiscard]] static auto data(
-        const image<Width, Height, Policy>& img) noexcept
-        -> const typename image<Width, Height, Policy>::storage_type*
+        const canvas<Width, Height, Policy>& img) noexcept
+        -> const typename canvas<Width, Height, Policy>::storage_type*
     {
         return img.storage_.data();
     }
 
     template<std::size_t Width, std::size_t Height, class Policy>
     [[nodiscard]] static auto ptr(
-        image<Width, Height, Policy>& img,
+        canvas<Width, Height, Policy>& img,
         std::size_t x,
         std::size_t y) noexcept
-        -> typename image<Width, Height, Policy>::storage_type*
+        -> typename canvas<Width, Height, Policy>::storage_type*
     {
         return data(img) + y * img.width() + x;
     }
@@ -655,7 +731,7 @@ struct image_access {
  */
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_hline(
-    image<Width, Height, Policy>& img,
+    canvas<Width, Height, Policy>& img,
     int x,
     int y,
     int length,
@@ -698,7 +774,7 @@ auto draw_hline(
  */
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_vline(
-    image<Width, Height, Policy>& img,
+    canvas<Width, Height, Policy>& img,
     int x,
     int y,
     int length,
@@ -738,7 +814,7 @@ auto draw_vline(
  */
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_line(
-    image<Width, Height, Policy>& img,
+    canvas<Width, Height, Policy>& img,
     int x0,
     int y0,
     int x1,
@@ -784,7 +860,7 @@ auto draw_line(
  */
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_line_aa(
-    image<Width, Height, Policy>& img,
+    canvas<Width, Height, Policy>& img,
     float x0,
     float y0,
     float x1,
@@ -855,7 +931,7 @@ auto draw_line_aa(
  */
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_line_aa(
-    image<Width, Height, Policy>& img,
+    canvas<Width, Height, Policy>& img,
     float x0,
     float y0,
     float x1,
@@ -870,7 +946,7 @@ auto draw_line_aa(
  */
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_rect(
-    image<Width, Height, Policy>& img,
+    canvas<Width, Height, Policy>& img,
     int x,
     int y,
     int width,
@@ -898,7 +974,7 @@ auto draw_rect(
  */
 template<std::size_t Width, std::size_t Height, class Policy>
 auto fill_rect(
-    image<Width, Height, Policy>& img,
+    canvas<Width, Height, Policy>& img,
     int x,
     int y,
     int width,
@@ -939,6 +1015,6 @@ auto fill_rect(
     }
 }
 
-} // namespace xer
+} // namespace xer::image
 
 #endif /* XER_BITS_IMAGE_H_INCLUDED_ */

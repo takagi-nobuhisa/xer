@@ -14,7 +14,7 @@
 
 namespace {
 
-auto print_pixel(std::u8string_view name, xer::pixel value) -> bool
+auto print_pixel(std::u8string_view name, xer::image::pixel value) -> bool
 {
     return xer::printf(
                u8"%@ = %08x\n",
@@ -27,14 +27,14 @@ auto print_pixel(std::u8string_view name, xer::pixel value) -> bool
 
 auto main() -> int
 {
-    xer::image<4, 4> img;
+    xer::image::canvas<4, 4> img;
 
     img.clear();
 
     // Drawing functions clip their requested area to the framebuffer boundary.
-    xer::draw_hline(img, -2, 0, 4, xer::pixel(0xffu, 0x00u, 0x00u));
-    xer::draw_vline(img, 2, -1, 4, xer::pixel(0x00u, 0xffu, 0x00u));
-    xer::fill_rect(img, 3, 2, 4, 4, xer::pixel(0x00u, 0x00u, 0xffu));
+    xer::image::draw_hline(img, -2, 0, 4, xer::image::pixel(0xffu, 0x00u, 0x00u));
+    xer::image::draw_vline(img, 2, -1, 4, xer::image::pixel(0x00u, 0xffu, 0x00u));
+    xer::image::fill_rect(img, 3, 2, 4, 4, xer::image::pixel(0x00u, 0x00u, 0xffu));
 
     if (!print_pixel(u8"p00", img.get_pixel(0, 0))) {
         return 1;
