@@ -11975,6 +11975,8 @@ struct sizef;
 struct rect;
 struct rectf;
 
+struct filter_pixels_error_detail;
+
 struct pixel;
 
 struct argb32_policy;
@@ -12110,6 +12112,17 @@ template <std::size_t Width, std::size_t Height, class Policy>
                             const size& box_size)
     -> xer::result<void>;
 
+struct filter_pixels_error_detail {
+    point first_error_position;
+    std::size_t error_count;
+};
+
+template <std::size_t Width, std::size_t Height, class Policy, class F>
+[[nodiscard]] auto filter_pixels(canvas<Width, Height, Policy>& img,
+                                 const rect& area,
+                                 F&& filter)
+    -> xer::result<void, filter_pixels_error_detail>;
+
 }
 ```
 
@@ -12196,6 +12209,23 @@ rect   -> (x, y) {width, height}
 ```
 
 The floating-point variants use the same spelling.
+
+---
+
+## Filter Error Detail
+
+`filter_pixels_error_detail` reports partial failures from `filter_pixels`.
+
+```cpp
+struct filter_pixels_error_detail {
+    point first_error_position{};
+    std::size_t error_count = 0;
+};
+```
+
+`first_error_position` is the first pixel where the user-supplied filter threw an exception, expressed in canvas coordinates. `error_count` is the total number of pixels whose filter call failed.
+
+Only the first failing position is stored. This avoids allocating a potentially large list of failed pixels while still giving the caller a useful diagnostic location.
 
 ---
 
@@ -12406,7 +12436,7 @@ The `draw_rect` and `fill_rect` overloads accept either `point` plus `size`, or 
 
 ## Image Processing Functions
 
-`mosaic` and `box_blur` are in-place image-processing operations.
+`mosaic`, `box_blur`, and `filter_pixels` are in-place image-processing operations.
 
 ```cpp
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -12420,9 +12450,15 @@ template <std::size_t Width, std::size_t Height, class Policy>
                             const rect& area,
                             const size& box_size)
     -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy, class F>
+[[nodiscard]] auto filter_pixels(canvas<Width, Height, Policy>& img,
+                                 const rect& area,
+                                 F&& filter)
+    -> xer::result<void, filter_pixels_error_detail>;
 ```
 
-Both functions clip `area` to the canvas boundary. Empty areas and fully clipped areas are successful no-ops.
+All three functions clip `area` to the canvas boundary. Empty areas and fully clipped areas are successful no-ops.
 
 `mosaic` divides the clipped area into blocks of `block_size`. Each block is replaced with the average logical ARGB color of the pixels in that block. Blocks at the right and bottom edges use their actual clipped size.
 
@@ -12430,7 +12466,27 @@ Both functions clip `area` to the canvas boundary. Empty areas and fully clipped
 
 Even kernel dimensions are supported. In that case, the extra sample is placed on the left or top side of the current pixel.
 
-Both functions return `error_t::invalid_argument` when either size dimension is not positive.
+`mosaic` and `box_blur` return `error_t::invalid_argument` when either size dimension is not positive.
+
+`filter_pixels` applies a user-supplied per-pixel filter to the clipped area. For each pixel, the filter receives the current logical `pixel` value and returns the replacement logical `pixel` value. This supports grayscale conversion, thresholding, channel adjustment, inversion, and similar operations without adding a dedicated function for each effect.
+
+The operation is in-place and does not allocate a full temporary image. If the filter throws an exception for a pixel, that pixel is left unchanged and processing continues with the next pixel. If one or more pixels fail, the function returns `error_t::user_error` with `filter_pixels_error_detail`. Successfully filtered pixels remain updated.
+
+Example grayscale-style use:
+
+```cpp
+auto result = xer::image::filter_pixels(
+    img,
+    xer::image::rect(xer::image::point(0, 0), xer::image::size(16, 16)),
+    [](xer::image::pixel p) -> xer::image::pixel {
+        const auto gray = static_cast<std::uint8_t>(
+            (static_cast<unsigned>(p.red()) +
+             static_cast<unsigned>(p.green()) +
+             static_cast<unsigned>(p.blue())) / 3u);
+
+        return xer::image::pixel(p.alpha(), gray, gray, gray);
+    });
+```
 
 ---
 
@@ -12489,6 +12545,7 @@ Additional examples:
 - `examples/example_image_basic.cpp`
 - `examples/example_image_geometry_io.cpp`
 - `examples/example_image_effects.cpp`
+- `examples/example_image_filter_pixels.cpp`
 
 ---
 

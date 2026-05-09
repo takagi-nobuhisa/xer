@@ -165,6 +165,18 @@ struct rectf {
 };
 
 /**
+ * @brief Error detail returned by filter_pixels when one or more pixels fail.
+ *
+ * `first_error_position` is the first pixel where the user-supplied filter
+ * threw an exception, expressed in canvas coordinates. `error_count` is the
+ * total number of pixels whose filter call failed.
+ */
+struct filter_pixels_error_detail {
+    point first_error_position{};
+    std::size_t error_count = 0;
+};
+
+/**
  * @brief Logical ARGB pixel value.
  *
  * `pixel` is a logical color value. It is not necessarily identical to the
@@ -1428,6 +1440,81 @@ template<std::size_t Width, std::size_t Height, class Policy>
                     static_cast<std::uint8_t>((green + half) / count),
                     static_cast<std::uint8_t>((blue + half) / count)));
         }
+    }
+
+    return {};
+}
+
+
+/**
+ * @brief Applies a per-pixel filter to a clipped rectangular area.
+ *
+ * The target area is clipped to the canvas boundary. For each pixel in the
+ * clipped area, `filter` receives the current logical pixel value and must
+ * return the replacement logical pixel value.
+ *
+ * If `filter` throws an exception for a pixel, that pixel is left unchanged and
+ * processing continues with the next pixel. If any pixel fails, the function
+ * returns `error_t::user_error` with `filter_pixels_error_detail`. The detail
+ * records the first failing pixel position and the total number of failures.
+ *
+ * @return Success when all pixels are filtered successfully, or
+ * `error_t::user_error` with detail when one or more filter calls fail.
+ */
+template<std::size_t Width, std::size_t Height, class Policy, class F>
+[[nodiscard]] auto filter_pixels(
+    canvas<Width, Height, Policy>& img,
+    const rect& area,
+    F&& filter) -> xer::result<void, filter_pixels_error_detail>
+{
+    if (img.empty() || area.width <= 0 || area.height <= 0) {
+        return {};
+    }
+
+    auto x0 = static_cast<long long>(area.x);
+    auto y0 = static_cast<long long>(area.y);
+    auto x1 = x0 + static_cast<long long>(area.width);
+    auto y1 = y0 + static_cast<long long>(area.height);
+
+    if (x1 <= 0 || y1 <= 0 ||
+        x0 >= static_cast<long long>(img.width()) ||
+        y0 >= static_cast<long long>(img.height())) {
+        return {};
+    }
+
+    x0 = std::max(x0, 0LL);
+    y0 = std::max(y0, 0LL);
+    x1 = std::min(x1, static_cast<long long>(img.width()));
+    y1 = std::min(y1, static_cast<long long>(img.height()));
+
+    filter_pixels_error_detail error_detail{};
+    bool has_error = false;
+
+    for (auto yy = y0; yy < y1; ++yy) {
+        for (auto xx = x0; xx < x1; ++xx) {
+            const auto x = static_cast<std::size_t>(xx);
+            const auto y = static_cast<std::size_t>(yy);
+            const auto old_value = img.get_pixel(x, y);
+
+            try {
+                const pixel new_value = filter(old_value);
+                img.set_pixel_unchecked(x, y, new_value);
+            } catch (...) {
+                if (!has_error) {
+                    error_detail.first_error_position = point(
+                        static_cast<int>(xx),
+                        static_cast<int>(yy));
+                    has_error = true;
+                }
+                ++error_detail.error_count;
+            }
+        }
+    }
+
+    if (has_error) {
+        return std::unexpected(xer::make_error<filter_pixels_error_detail>(
+            xer::error_t::user_error,
+            error_detail));
     }
 
     return {};

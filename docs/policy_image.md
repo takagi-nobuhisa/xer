@@ -338,6 +338,7 @@ Candidate operations include:
 
 - inversion
 - grayscale conversion
+- per-pixel filtering
 - horizontal flip
 - vertical flip
 - raster scroll
@@ -357,6 +358,8 @@ When an operation needs to create a new canvas, the result should preserve the d
 Operations that can fail because of invalid arguments, such as a zero mosaic block size, should return `xer::result`.
 Operations with no ordinary failure condition may return directly or mutate in place.
 
+Per-pixel operations that call user-supplied code should avoid large temporary buffers unless the operation specifically needs all-or-nothing semantics. For the default filtering operation, a failure in the user callback should leave only that pixel unchanged, continue processing later pixels, and return a detail object that records at least the first failing position and the total number of failures.
+
 Current in-place effects include:
 
 ```cpp
@@ -369,15 +372,30 @@ template <std::size_t W, std::size_t H, class Policy>
 auto box_blur(canvas<W, H, Policy>& img,
               const rect& area,
               const size& box_size) -> xer::result<void>;
+
+struct filter_pixels_error_detail {
+    point first_error_position;
+    std::size_t error_count;
+};
+
+template <std::size_t W, std::size_t H, class Policy, class F>
+auto filter_pixels(canvas<W, H, Policy>& img,
+                   const rect& area,
+                   F&& filter)
+    -> xer::result<void, filter_pixels_error_detail>;
 ```
 
-Both operations require a rectangular target area. The area is clipped to the canvas boundary. Empty areas and fully clipped areas are successful no-ops.
+These operations require a rectangular target area. The area is clipped to the canvas boundary. Empty areas and fully clipped areas are successful no-ops.
 
 `mosaic` divides the clipped area into `block_size` blocks and replaces each block with the average logical ARGB color of the pixels in that block. Partial blocks at the right and bottom edges are averaged over their actual size.
 
 `box_blur` treats `box_size` as the averaging kernel size. Source samples are taken from the original pixels in the clipped target area, not from pixels already modified during the blur pass. Pixels outside the requested area do not contribute to the blur result. Kernel portions outside the clipped area are ignored. Even kernel dimensions are allowed; the extra sample is placed on the left or top side of the current pixel.
 
-Both functions return `error_t::invalid_argument` if either size dimension is not positive.
+`mosaic` and `box_blur` return `error_t::invalid_argument` if either size dimension is not positive.
+
+`filter_pixels` is the general per-pixel transformation hook. It should accept a callable that maps a logical `pixel` to a replacement logical `pixel`. This keeps grayscale conversion, thresholding, color inversion, and simple channel edits expressible without adding a separate top-level function for every effect.
+
+If the filter callable throws for a pixel, that pixel remains unchanged. The operation continues with the following pixels. If any filter call fails, `filter_pixels` returns `error_t::user_error` with `filter_pixels_error_detail`. The detail records the first failed canvas coordinate and the total number of failures. It intentionally does not store all failed coordinates, because that list could become large for wide regions.
 
 ---
 
@@ -434,7 +452,7 @@ For the first implementation, the recommended scope is:
 5. `dynamic_canvas<Policy>` alias
 6. `get_pixel` / `set_pixel`
 7. simple drawing functions such as horizontal line, vertical line, rectangle, and filled rectangle
-8. simple image operations such as mosaic and box blur
+8. simple image operations such as mosaic, box blur, and per-pixel filtering
 
 Tk photo integration, raster scroll, affine transformation, and more advanced drawing can be added after the core model is stable.
 
@@ -451,4 +469,5 @@ Tk photo integration, raster scroll, affine transformation, and more advanced dr
 - Fixed and dynamic memory ownership should be isolated in `image_storage`.
 - Public pixel access uses `get_pixel` and `set_pixel`, not `at()` returning physical storage.
 - Drawing and image processing are independent of Tcl/Tk.
+- General per-pixel effects should be expressed through `filter_pixels` before adding dedicated functions.
 - Tcl/Tk photo integration belongs only in `xer/tk.h` as a boundary layer.

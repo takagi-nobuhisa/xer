@@ -1,4 +1,5 @@
-﻿#include <type_traits>
+﻿#include <stdexcept>
+#include <type_traits>
 
 #include <xer/image.h>
 
@@ -454,6 +455,122 @@ auto test_box_blur_invalid_box_size() -> bool
            result.error().code == xer::error_t::invalid_argument;
 }
 
+auto test_filter_pixels_success() -> bool
+{
+    xer::image::canvas<3, 2> img;
+    img.fill(xer::image::pixel(0x10u, 0x20u, 0x30u));
+
+    const auto result = xer::image::filter_pixels(
+        img,
+        xer::image::rect{0, 0, 3, 2},
+        [](xer::image::pixel value) -> xer::image::pixel {
+            return xer::image::pixel(
+                value.alpha(),
+                static_cast<std::uint8_t>(value.red() + 1u),
+                static_cast<std::uint8_t>(value.green() + 2u),
+                static_cast<std::uint8_t>(value.blue() + 3u));
+        });
+
+    if (!result.has_value()) {
+        return false;
+    }
+
+    for (std::size_t y = 0; y < img.height(); ++y) {
+        for (std::size_t x = 0; x < img.width(); ++x) {
+            if (img.get_pixel(x, y).argb != 0xff112233u) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+auto test_filter_pixels_clipped_area() -> bool
+{
+    xer::image::canvas<3, 1> img;
+    img.set_pixel_unchecked(0, 0, xer::image::pixel(0x10u, 0x00u, 0x00u));
+    img.set_pixel_unchecked(1, 0, xer::image::pixel(0x20u, 0x00u, 0x00u));
+    img.set_pixel_unchecked(2, 0, xer::image::pixel(0x30u, 0x00u, 0x00u));
+
+    const auto result = xer::image::filter_pixels(
+        img,
+        xer::image::rect{-1, 0, 3, 1},
+        [](xer::image::pixel) -> xer::image::pixel {
+            return xer::image::pixel(0xffu, 0xffu, 0xffu);
+        });
+
+    return result.has_value() &&
+           img.get_pixel(0, 0).argb == 0xffffffffu &&
+           img.get_pixel(1, 0).argb == 0xffffffffu &&
+           img.get_pixel(2, 0).argb == 0xff300000u;
+}
+
+auto test_filter_pixels_exception_detail() -> bool
+{
+    xer::image::canvas<4, 2> img;
+
+    for (std::size_t y = 0; y < img.height(); ++y) {
+        for (std::size_t x = 0; x < img.width(); ++x) {
+            img.set_pixel_unchecked(
+                x,
+                y,
+                xer::image::pixel(static_cast<std::uint8_t>(x + y * img.width()), 0u, 0u));
+        }
+    }
+
+    const auto result = xer::image::filter_pixels(
+        img,
+        xer::image::rect{0, 0, 4, 2},
+        [](xer::image::pixel value) -> xer::image::pixel {
+            if (value.red() == 1u || value.red() == 5u) {
+                throw std::runtime_error("filter failed");
+            }
+            return xer::image::pixel(0u, value.red(), 0u);
+        });
+
+    if (result.has_value()) {
+        return false;
+    }
+
+    const auto& error = result.error();
+    if (error.code != xer::error_t::user_error ||
+        error.first_error_position.x != 1 ||
+        error.first_error_position.y != 0 ||
+        error.error_count != 2) {
+        return false;
+    }
+
+    return img.get_pixel(0, 0).argb == 0xff000000u &&
+           img.get_pixel(1, 0).argb == 0xff010000u &&
+           img.get_pixel(2, 0).argb == 0xff000200u &&
+           img.get_pixel(3, 0).argb == 0xff000300u &&
+           img.get_pixel(0, 1).argb == 0xff000400u &&
+           img.get_pixel(1, 1).argb == 0xff050000u &&
+           img.get_pixel(2, 1).argb == 0xff000600u &&
+           img.get_pixel(3, 1).argb == 0xff000700u;
+}
+
+auto test_filter_pixels_empty_area() -> bool
+{
+    xer::image::canvas<2, 2> img;
+    img.fill(xer::image::pixel(0x12u, 0x34u, 0x56u));
+
+    bool called = false;
+    const auto result = xer::image::filter_pixels(
+        img,
+        xer::image::rect{0, 0, 0, 2},
+        [&called](xer::image::pixel) -> xer::image::pixel {
+            called = true;
+            return xer::image::pixel(0xffu, 0xffu, 0xffu);
+        });
+
+    return result.has_value() &&
+           !called &&
+           img.get_pixel(0, 0).argb == 0xff123456u &&
+           img.get_pixel(1, 1).argb == 0xff123456u;
+}
+
 auto test_point_pixel_methods() -> bool
 {
     xer::image::canvas<3, 3> img;
@@ -609,6 +726,18 @@ auto main() -> int
         return 1;
     }
     if (!test_box_blur_invalid_box_size()) {
+        return 1;
+    }
+    if (!test_filter_pixels_success()) {
+        return 1;
+    }
+    if (!test_filter_pixels_clipped_area()) {
+        return 1;
+    }
+    if (!test_filter_pixels_exception_detail()) {
+        return 1;
+    }
+    if (!test_filter_pixels_empty_area()) {
         return 1;
     }
     if (!test_draw_geometry_overloads()) {
