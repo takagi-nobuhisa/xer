@@ -97,6 +97,22 @@ As for whether each public header can be included by itself, ordinary execution 
 
 However, it is assumed that each public header is included by itself in at least one ordinary test.
 
+### Incremental Public Header Pair Tests
+
+`php/test_public_header_pairs.php` supports incremental execution by default.
+
+The incremental state is stored under the build-specific directory selected by `--build-id`.
+This prevents test state from being shared accidentally between environments such as MSYS2 UCRT64 and Ubuntu when the same source tree is used.
+
+The state records a content fingerprint for each public header.
+The fingerprint includes the file modification time, file size, and SHA-1 hash, but change detection is based on the SHA-1 hash rather than timestamp comparison.
+This avoids missing updates when files are edited, copied, extracted, or synchronized in a way that does not produce a reliable timestamp ordering.
+
+If a public header's content differs from the previous successful run, all ordered pairs that include that header are compiled again.
+If the public header set itself changes, the script falls back to testing all ordered pairs.
+
+The `--all` option disables incremental filtering and tests every ordered pair regardless of the saved state.
+
 ---
 
 ## Assertion Macros

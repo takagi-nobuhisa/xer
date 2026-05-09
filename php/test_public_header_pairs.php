@@ -17,8 +17,9 @@ declare(strict_types=1);
  *   php test_public_header_pairs.php --tcltk-cflags="-I/usr/include/tcl -I/usr/include/tk"
  *   php test_public_header_pairs.php --skip-unavailable-features=0
  *
- * By default, this script runs only pairs that include public headers modified
- * after the last successful run. Use --all to run every ordered pair.
+ * By default, this script runs only pairs that include public headers whose
+ * content fingerprint differs from the last successful run. Use --all to run
+ * every ordered pair.
  */
 
 final class Config
@@ -69,27 +70,33 @@ function main(array $argv): int
 
     clear_directory($config->buildDir);
 
-    $lastSuccessfulRunAt = $config->incremental
-        ? read_last_successful_run_at($config->stateFile)
+    $currentState = make_header_pair_state(
+        headers: $headers,
+        projectRoot: $config->projectRoot,
+        timestamp: $runStartedAt
+    );
+
+    $previousState = $config->incremental
+        ? read_header_pair_state($config->stateFile)
         : null;
 
     $changedHeaders = [];
-    if ($config->incremental && $lastSuccessfulRunAt !== null) {
-        $changedHeaders = find_headers_modified_after(
-            $headers,
-            $config->projectRoot,
-            $lastSuccessfulRunAt
-        );
+    $changeReason = '';
+    if ($config->incremental) {
+        if ($previousState === null) {
+            $changedHeaders = $headers;
+            $changeReason = 'all headers, because no previous compatible successful run was recorded';
+        } else {
+            $changeSet = find_changed_headers_by_state($headers, $currentState, $previousState);
+            $changedHeaders = $changeSet['headers'];
+            $changeReason = $changeSet['reason'];
+        }
     }
 
     $allPairs = build_ordered_pairs($headers);
     $pairs = $config->incremental
         ? filter_pairs_by_headers($allPairs, $changedHeaders)
         : $allPairs;
-
-    if ($config->incremental && $lastSuccessfulRunAt === null) {
-        $pairs = $allPairs;
-    }
 
     $total = count($pairs);
 
@@ -111,15 +118,20 @@ function main(array $argv): int
         echo "Tcl/Tk detect: {$features->tcltkDetectionNote}\n";
     }
     if ($config->incremental) {
-        if ($lastSuccessfulRunAt === null) {
-            echo "Last success : none\n";
-            echo "Changed hdrs : all headers, because no previous successful run was recorded\n";
+        if ($previousState === null) {
+            echo "Last success : none or incompatible state
+";
         } else {
-            echo "Last success : " . format_timestamp($lastSuccessfulRunAt) . "\n";
-            echo "Changed hdrs : " . count($changedHeaders) . "\n";
-            foreach ($changedHeaders as $header) {
-                echo "  - {$header}\n";
-            }
+            echo "Last success : " . $previousState['last_successful_run_at_text'] . "
+";
+        }
+        echo "Change check : {$changeReason}
+";
+        echo "Changed hdrs : " . count($changedHeaders) . "
+";
+        foreach ($changedHeaders as $header) {
+            echo "  - {$header}
+";
         }
     }
     echo "Pair tests   : {$total}\n";
@@ -127,7 +139,7 @@ function main(array $argv): int
 
     if ($total === 0) {
         echo "No public headers were modified after the last successful run.\n";
-        write_last_successful_run_at($config->stateFile, $runStartedAt);
+        write_header_pair_state($config->stateFile, $currentState);
         return 0;
     }
 
@@ -281,7 +293,7 @@ function main(array $argv): int
         return 1;
     }
 
-    write_last_successful_run_at($config->stateFile, $runStartedAt);
+    write_header_pair_state($config->stateFile, $currentState);
     return 0;
 }
 
@@ -785,28 +797,6 @@ function build_ordered_pairs(array $headers): array
     return $pairs;
 }
 
-/**
- * @param array<int, string> $headers
- * @return array<int, string>
- */
-function find_headers_modified_after(array $headers, string $projectRoot, int $timestamp): array
-{
-    $changed = [];
-
-    foreach ($headers as $header) {
-        $path = $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $header);
-        $mtime = filemtime($path);
-        if ($mtime === false) {
-            throw new RuntimeException("failed to read file modification time: {$path}");
-        }
-
-        if ($mtime > $timestamp) {
-            $changed[] = $header;
-        }
-    }
-
-    return $changed;
-}
 
 /**
  * @param array<int, array{0:string, 1:string}> $pairs
@@ -831,7 +821,68 @@ function filter_pairs_by_headers(array $pairs, array $headers): array
     return $filtered;
 }
 
-function read_last_successful_run_at(string $stateFile): ?int
+/**
+ * @param array<int, string> $headers
+ * @return array{
+ *   version:int,
+ *   last_successful_run_at:int,
+ *   last_successful_run_at_text:string,
+ *   headers:array<string, array{mtime:int, size:int, sha1:string}>
+ * }
+ */
+function make_header_pair_state(array $headers, string $projectRoot, int $timestamp): array
+{
+    $fingerprints = [];
+
+    foreach ($headers as $header) {
+        $path = header_to_path($projectRoot, $header);
+
+        $mtime = filemtime($path);
+        if ($mtime === false) {
+            throw new RuntimeException("failed to read file modification time: {$path}");
+        }
+
+        $size = filesize($path);
+        if ($size === false) {
+            throw new RuntimeException("failed to read file size: {$path}");
+        }
+
+        $sha1 = sha1_file($path);
+        if ($sha1 === false) {
+            throw new RuntimeException("failed to hash file: {$path}");
+        }
+
+        $fingerprints[$header] = [
+            'mtime' => $mtime,
+            'size' => $size,
+            'sha1' => $sha1,
+        ];
+    }
+
+    ksort($fingerprints, SORT_STRING);
+
+    return [
+        'version' => 2,
+        'last_successful_run_at' => $timestamp,
+        'last_successful_run_at_text' => format_timestamp($timestamp),
+        'headers' => $fingerprints,
+    ];
+}
+
+function header_to_path(string $projectRoot, string $header): string
+{
+    return $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $header);
+}
+
+/**
+ * @return ?array{
+ *   version:int,
+ *   last_successful_run_at:int,
+ *   last_successful_run_at_text:string,
+ *   headers:array<string, array{mtime:int, size:int, sha1:string}>
+ * }
+ */
+function read_header_pair_state(string $stateFile): ?array
 {
     if (!is_file($stateFile)) {
         return null;
@@ -847,25 +898,136 @@ function read_last_successful_run_at(string $stateFile): ?int
         return null;
     }
 
-    $value = $data['last_successful_run_at'] ?? null;
-    if (!is_int($value)) {
+    if (($data['version'] ?? null) !== 2) {
         return null;
     }
 
-    return $value >= 0 ? $value : null;
+    $timestamp = $data['last_successful_run_at'] ?? null;
+    $timestampText = $data['last_successful_run_at_text'] ?? null;
+    $headers = $data['headers'] ?? null;
+
+    if (!is_int($timestamp) || $timestamp < 0) {
+        return null;
+    }
+    if (!is_string($timestampText) || $timestampText === '') {
+        return null;
+    }
+    if (!is_array($headers)) {
+        return null;
+    }
+
+    $normalizedHeaders = [];
+    foreach ($headers as $header => $fingerprint) {
+        if (!is_string($header) || !is_array($fingerprint)) {
+            return null;
+        }
+
+        $mtime = $fingerprint['mtime'] ?? null;
+        $size = $fingerprint['size'] ?? null;
+        $sha1 = $fingerprint['sha1'] ?? null;
+
+        if (!is_int($mtime) || $mtime < 0) {
+            return null;
+        }
+        if (!is_int($size) || $size < 0) {
+            return null;
+        }
+        if (!is_string($sha1) || !preg_match('/^[0-9a-f]{40}$/', $sha1)) {
+            return null;
+        }
+
+        $normalizedHeaders[$header] = [
+            'mtime' => $mtime,
+            'size' => $size,
+            'sha1' => $sha1,
+        ];
+    }
+
+    ksort($normalizedHeaders, SORT_STRING);
+
+    return [
+        'version' => 2,
+        'last_successful_run_at' => $timestamp,
+        'last_successful_run_at_text' => $timestampText,
+        'headers' => $normalizedHeaders,
+    ];
 }
 
-function write_last_successful_run_at(string $stateFile, int $timestamp): void
+/**
+ * @param array<int, string> $headers
+ * @param array{
+ *   version:int,
+ *   last_successful_run_at:int,
+ *   last_successful_run_at_text:string,
+ *   headers:array<string, array{mtime:int, size:int, sha1:string}>
+ * } $currentState
+ * @param array{
+ *   version:int,
+ *   last_successful_run_at:int,
+ *   last_successful_run_at_text:string,
+ *   headers:array<string, array{mtime:int, size:int, sha1:string}>
+ * } $previousState
+ * @return array{headers:array<int, string>, reason:string}
+ */
+function find_changed_headers_by_state(array $headers, array $currentState, array $previousState): array
+{
+    $currentFingerprints = $currentState['headers'];
+    $previousFingerprints = $previousState['headers'];
+
+    $deletedHeaders = array_values(array_diff(
+        array_keys($previousFingerprints),
+        array_keys($currentFingerprints)
+    ));
+
+    if (count($deletedHeaders) > 0) {
+        return [
+            'headers' => $headers,
+            'reason' => 'all headers, because public header set changed',
+        ];
+    }
+
+    $changed = [];
+    foreach ($headers as $header) {
+        if (!isset($previousFingerprints[$header])) {
+            $changed[] = $header;
+            continue;
+        }
+
+        $current = $currentFingerprints[$header];
+        $previous = $previousFingerprints[$header];
+
+        if ($current['sha1'] !== $previous['sha1']) {
+            $changed[] = $header;
+        }
+    }
+
+    if (count($changed) === 0) {
+        return [
+            'headers' => [],
+            'reason' => 'no public header content changed',
+        ];
+    }
+
+    return [
+        'headers' => $changed,
+        'reason' => 'public header content changed',
+    ];
+}
+
+/**
+ * @param array{
+ *   version:int,
+ *   last_successful_run_at:int,
+ *   last_successful_run_at_text:string,
+ *   headers:array<string, array{mtime:int, size:int, sha1:string}>
+ * } $state
+ */
+function write_header_pair_state(string $stateFile, array $state): void
 {
     $directory = dirname($stateFile);
     ensure_directory($directory);
 
-    $data = [
-        'last_successful_run_at' => $timestamp,
-        'last_successful_run_at_text' => format_timestamp($timestamp),
-    ];
-
-    $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    $json = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     if ($json === false) {
         throw new RuntimeException('failed to encode state file JSON');
     }
