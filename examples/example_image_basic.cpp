@@ -32,9 +32,20 @@ auto main() -> int
     img.clear();
 
     // Drawing functions clip their requested area to the framebuffer boundary.
-    xer::image::draw_hline(img, -2, 0, 4, xer::image::pixel(0xffu, 0x00u, 0x00u));
-    xer::image::draw_vline(img, 2, -1, 4, xer::image::pixel(0x00u, 0xffu, 0x00u));
-    xer::image::fill_rect(img, 3, 2, 4, 4, xer::image::pixel(0x00u, 0x00u, 0xffu));
+    xer::image::draw_hline(
+        img,
+        xer::image::point{-2, 0},
+        4,
+        xer::image::pixel(0xffu, 0x00u, 0x00u));
+    xer::image::draw_vline(
+        img,
+        xer::image::point{2, -1},
+        4,
+        xer::image::pixel(0x00u, 0xffu, 0x00u));
+    xer::image::fill_rect(
+        img,
+        xer::image::rect{3, 2, 4, 4},
+        xer::image::pixel(0x00u, 0x00u, 0xffu));
 
     if (!print_pixel(u8"p00", img.get_pixel(0, 0))) {
         return 1;

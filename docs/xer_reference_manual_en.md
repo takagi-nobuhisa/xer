@@ -11947,9 +11947,21 @@ auto draw_hline(canvas<Width, Height, Policy>& img,
                 pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_hline(canvas<Width, Height, Policy>& img,
+                point p,
+                int length,
+                pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_vline(canvas<Width, Height, Policy>& img,
                 int x,
                 int y,
+                int length,
+                pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_vline(canvas<Width, Height, Policy>& img,
+                point p,
                 int length,
                 pixel color) noexcept -> void;
 
@@ -11959,6 +11971,12 @@ auto draw_line(canvas<Width, Height, Policy>& img,
                int y0,
                int x1,
                int y1,
+               pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_line(canvas<Width, Height, Policy>& img,
+               point p0,
+               point p1,
                pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -11979,6 +11997,19 @@ auto draw_line_aa(canvas<Width, Height, Policy>& img,
                   pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_line_aa(canvas<Width, Height, Policy>& img,
+                  pointf p0,
+                  pointf p1,
+                  pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_line_aa(canvas<Width, Height, Policy>& img,
+                  pointf p0,
+                  pointf p1,
+                  float width,
+                  pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_rect(canvas<Width, Height, Policy>& img,
                int x,
                int y,
@@ -11987,11 +12018,33 @@ auto draw_rect(canvas<Width, Height, Policy>& img,
                pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_rect(canvas<Width, Height, Policy>& img,
+               point origin,
+               size extent,
+               pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_rect(canvas<Width, Height, Policy>& img,
+               rect area,
+               pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
 auto fill_rect(canvas<Width, Height, Policy>& img,
                int x,
                int y,
                int width,
                int height,
+               pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_rect(canvas<Width, Height, Policy>& img,
+               point origin,
+               size extent,
+               pixel color) noexcept -> void;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_rect(canvas<Width, Height, Policy>& img,
+               rect area,
                pixel color) noexcept -> void;
 
 }
@@ -12039,7 +12092,7 @@ struct rectf {
 };
 ```
 
-Integer geometry types are intended for pixel-grid operations and clipping. Floating-point geometry types are intended for subpixel drawing, antialiasing, and future transformations.
+Integer geometry types are intended for pixel-grid operations and clipping. Floating-point geometry types are intended for subpixel drawing, antialiasing, and future transformations. Drawing functions provide overloads for these helper types so that callers can pass `point`, `size`, `rect`, and `pointf` values directly instead of spelling out every coordinate component.
 
 ---
 
@@ -12209,6 +12262,10 @@ auto height() const noexcept -> std::size_t;
 auto size() const noexcept -> std::size_t;
 auto empty() const noexcept -> bool;
 auto contains(int x, int y) const noexcept -> bool;
+auto contains(point p) const noexcept -> bool;
+auto get_pixel(point p) const noexcept -> pixel;
+auto set_pixel(point p, pixel value) noexcept -> void;
+auto set_pixel(point p, pixel value, float coverage) noexcept -> void;
 auto fill(pixel value) noexcept -> void;
 auto clear() noexcept -> void;
 ```
@@ -12238,7 +12295,9 @@ After clipping, `draw_hline`, `draw_vline`, and `fill_rect` write directly to fr
 
 `draw_line` uses a simple Bresenham-style integer line algorithm. It still checks each generated point against the canvas boundary, but writes through `set_pixel_unchecked` after that check.
 
-`draw_line_aa` uses floating-point pixel-center coordinates and draws an antialiased capsule-shaped stroke. The overload without a width argument draws a one-pixel-wide antialiased line. The width overload takes the width before the color argument.
+`draw_line_aa` uses floating-point pixel-center coordinates and draws an antialiased capsule-shaped stroke. The overload without a width argument draws a one-pixel-wide antialiased line. The width overload takes the width before the color argument. The `pointf` overloads are equivalent to the scalar-coordinate overloads.
+
+The `draw_rect` and `fill_rect` overloads accept either `point` plus `size`, or a single `rect`. The scalar-coordinate overloads remain available for callers that already have separate coordinate values.
 
 ---
 

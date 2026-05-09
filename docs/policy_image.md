@@ -126,7 +126,7 @@ struct rect;
 struct rectf;
 ```
 
-Integer helper types are for pixel-grid operations. Floating-point helper types are for subpixel drawing, antialiasing, and future transforms.
+Integer helper types are for pixel-grid operations. Floating-point helper types are for subpixel drawing, antialiasing, and future transforms. Public drawing APIs should provide geometry-type overloads when that makes call sites clearer.
 
 ---
 
@@ -306,7 +306,11 @@ At minimum, the following kinds of drawing functions are candidates:
 
 ```cpp
 auto draw_line(canvas& img, point p0, point p1, pixel color) -> void;
+auto draw_line_aa(canvas& img, pointf p0, pointf p1, pixel color) -> void;
+auto draw_line_aa(canvas& img, pointf p0, pointf p1, float width, pixel color) -> void;
+auto draw_rect(canvas& img, point origin, size extent, pixel color) -> void;
 auto draw_rect(canvas& img, rect area, pixel color) -> void;
+auto fill_rect(canvas& img, point origin, size extent, pixel color) -> void;
 auto fill_rect(canvas& img, rect area, pixel color) -> void;
 auto draw_circle(canvas& img, point center, int radius, pixel color) -> void;
 auto fill_circle(canvas& img, point center, int radius, pixel color) -> void;
@@ -314,6 +318,8 @@ auto fill_circle(canvas& img, point center, int radius, pixel color) -> void;
 
 Coordinate-oriented drawing functions should use signed integer coordinates.
 This allows negative coordinates and makes clipping more natural.
+
+Scalar-coordinate overloads may remain available for low-level or hot-path code, but higher-level call sites should be able to use `point`, `size`, `rect`, and `pointf` directly. Rectangle APIs should prefer a single `rect` when the caller already has a region object, and `point` plus `size` when origin and extent are naturally separate.
 
 Out-of-range drawing should be clipped rather than treated as an error.
 If a shape lies completely outside the canvas, the function should do nothing.

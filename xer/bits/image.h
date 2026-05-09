@@ -570,6 +570,14 @@ public:
     }
 
     /**
+     * @brief Returns whether a point is inside the canvas.
+     */
+    [[nodiscard]] auto contains(point p) const noexcept -> bool
+    {
+        return contains(p.x, p.y);
+    }
+
+    /**
      * @brief Returns the logical pixel at the given coordinates.
      *
      * The coordinates must be inside the image.
@@ -578,6 +586,18 @@ public:
         -> pixel
     {
         return policy_type::get(storage_.data()[offset(x, y)]);
+    }
+
+    /**
+     * @brief Returns the logical pixel at the given point.
+     *
+     * The point must be inside the image.
+     */
+    [[nodiscard]] auto get_pixel(point p) const noexcept -> pixel
+    {
+        return get_pixel(
+            static_cast<std::size_t>(p.x),
+            static_cast<std::size_t>(p.y));
     }
 
     /**
@@ -599,6 +619,14 @@ public:
     }
 
     /**
+     * @brief Sets a logical pixel when the point is inside the image.
+     */
+    auto set_pixel(point p, pixel value) noexcept -> void
+    {
+        set_pixel(p.x, p.y, value);
+    }
+
+    /**
      * @brief Blends a logical pixel when the coordinates are inside the image.
      *
      * `coverage` is clamped to the range `[0.0f, 1.0f]`. A coverage value of
@@ -615,6 +643,14 @@ public:
             static_cast<std::size_t>(y),
             value,
             coverage);
+    }
+
+    /**
+     * @brief Blends a logical pixel when the point is inside the image.
+     */
+    auto set_pixel(point p, pixel value, float coverage) noexcept -> void
+    {
+        set_pixel(p.x, p.y, value, coverage);
     }
 
     /**
@@ -766,6 +802,19 @@ auto draw_hline(
 }
 
 /**
+ * @brief Draws a clipped horizontal line from a point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_hline(
+    canvas<Width, Height, Policy>& img,
+    point p,
+    int length,
+    pixel color) noexcept -> void
+{
+    draw_hline(img, p.x, p.y, length, color);
+}
+
+/**
  * @brief Draws a clipped vertical line.
  *
  * The requested line is clipped to the image boundary. After clipping, this
@@ -810,6 +859,19 @@ auto draw_vline(
 }
 
 /**
+ * @brief Draws a clipped vertical line from a point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_vline(
+    canvas<Width, Height, Policy>& img,
+    point p,
+    int length,
+    pixel color) noexcept -> void
+{
+    draw_vline(img, p.x, p.y, length, color);
+}
+
+/**
  * @brief Draws a clipped Bresenham line.
  */
 template<std::size_t Width, std::size_t Height, class Policy>
@@ -849,6 +911,19 @@ auto draw_line(
             y0 += sy;
         }
     }
+}
+
+/**
+ * @brief Draws a clipped Bresenham line between two points.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_line(
+    canvas<Width, Height, Policy>& img,
+    point p0,
+    point p1,
+    pixel color) noexcept -> void
+{
+    draw_line(img, p0.x, p0.y, p1.x, p1.y, color);
 }
 
 /**
@@ -942,6 +1017,33 @@ auto draw_line_aa(
 }
 
 /**
+ * @brief Draws a clipped antialiased line between two points.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_line_aa(
+    canvas<Width, Height, Policy>& img,
+    pointf p0,
+    pointf p1,
+    float width,
+    pixel color) noexcept -> void
+{
+    draw_line_aa(img, p0.x, p0.y, p1.x, p1.y, width, color);
+}
+
+/**
+ * @brief Draws a clipped antialiased line between two points with a width of one pixel.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_line_aa(
+    canvas<Width, Height, Policy>& img,
+    pointf p0,
+    pointf p1,
+    pixel color) noexcept -> void
+{
+    draw_line_aa(img, p0, p1, 1.0f, color);
+}
+
+/**
  * @brief Draws a clipped rectangle outline.
  */
 template<std::size_t Width, std::size_t Height, class Policy>
@@ -967,6 +1069,31 @@ auto draw_rect(
             draw_vline(img, x + width - 1, y + 1, height - 2, color);
         }
     }
+}
+
+/**
+ * @brief Draws a clipped rectangle outline from an origin and extent.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_rect(
+    canvas<Width, Height, Policy>& img,
+    point origin,
+    size extent,
+    pixel color) noexcept -> void
+{
+    draw_rect(img, origin.x, origin.y, extent.width, extent.height, color);
+}
+
+/**
+ * @brief Draws a clipped rectangle outline from a rectangle.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_rect(
+    canvas<Width, Height, Policy>& img,
+    rect area,
+    pixel color) noexcept -> void
+{
+    draw_rect(img, area.x, area.y, area.width, area.height, color);
 }
 
 /**
@@ -1013,6 +1140,31 @@ auto fill_rect(
             *p = encoded;
         }
     }
+}
+
+/**
+ * @brief Fills a clipped rectangle from an origin and extent.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_rect(
+    canvas<Width, Height, Policy>& img,
+    point origin,
+    size extent,
+    pixel color) noexcept -> void
+{
+    fill_rect(img, origin.x, origin.y, extent.width, extent.height, color);
+}
+
+/**
+ * @brief Fills a clipped rectangle from a rectangle.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_rect(
+    canvas<Width, Height, Policy>& img,
+    rect area,
+    pixel color) noexcept -> void
+{
+    fill_rect(img, area.x, area.y, area.width, area.height, color);
 }
 
 } // namespace xer::image

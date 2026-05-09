@@ -299,6 +299,70 @@ auto test_fill_rect_clipped() -> bool
            img.get_pixel(0, 0).argb == 0xff000000u;
 }
 
+auto test_point_pixel_methods() -> bool
+{
+    xer::image::canvas<3, 3> img;
+    img.clear();
+
+    constexpr xer::image::point p{1, 2};
+    img.set_pixel(p, xer::image::pixel(0x12u, 0x34u, 0x56u));
+
+    if (!img.contains(p) || img.contains(xer::image::point{-1, 0})) {
+        return false;
+    }
+    if (img.get_pixel(p).argb != 0xff123456u) {
+        return false;
+    }
+
+    img.set_pixel(p, xer::image::pixel(0x80u, 0xffu, 0u, 0u), 0.5f);
+
+    return img.get_pixel(p).alpha() == 0xffu &&
+           img.get_pixel(p).red() > 0x12u;
+}
+
+auto test_draw_geometry_overloads() -> bool
+{
+    xer::image::canvas<6, 6> img;
+    img.clear();
+
+    const auto red = xer::image::pixel(0xffu, 0u, 0u);
+    const auto green = xer::image::pixel(0u, 0xffu, 0u);
+    const auto blue = xer::image::pixel(0u, 0u, 0xffu);
+    const auto yellow = xer::image::pixel(0xffu, 0xffu, 0u);
+    const auto magenta = xer::image::pixel(0xffu, 0u, 0xffu);
+    const auto cyan = xer::image::pixel(0u, 0xffu, 0xffu);
+
+    xer::image::draw_hline(img, xer::image::point{1, 0}, 3, red);
+    xer::image::draw_vline(img, xer::image::point{0, 1}, 3, green);
+    xer::image::draw_line(img, xer::image::point{2, 2}, xer::image::point{4, 4}, blue);
+    xer::image::draw_rect(img, xer::image::point{1, 1}, xer::image::size{3, 3}, yellow);
+    xer::image::fill_rect(img, xer::image::rect{4, 0, 2, 2}, magenta);
+    xer::image::draw_line_aa(
+        img,
+        xer::image::pointf{0.0f, 5.0f},
+        xer::image::pointf{2.0f, 5.0f},
+        cyan);
+
+    if (img.get_pixel(1, 0).argb != 0xffff0000u) {
+        return false;
+    }
+    if (img.get_pixel(0, 1).argb != 0xff00ff00u) {
+        return false;
+    }
+    if (img.get_pixel(4, 4).argb != 0xff0000ffu) {
+        return false;
+    }
+    if (img.get_pixel(2, 1).argb != 0xffffff00u) {
+        return false;
+    }
+    if (img.get_pixel(4, 1).argb != 0xffff00ffu) {
+        return false;
+    }
+
+    return img.get_pixel(1, 5).argb == 0xff00ffffu;
+}
+
+
 auto test_type_properties() -> bool
 {
     static_assert(std::is_default_constructible_v<xer::image::canvas<1, 1>>);
@@ -350,6 +414,9 @@ auto main() -> int
     if (!test_contains()) {
         return 1;
     }
+    if (!test_point_pixel_methods()) {
+        return 1;
+    }
     if (!test_draw_hline_clipped()) {
         return 1;
     }
@@ -369,6 +436,9 @@ auto main() -> int
         return 1;
     }
     if (!test_fill_rect_clipped()) {
+        return 1;
+    }
+    if (!test_draw_geometry_overloads()) {
         return 1;
     }
     if (!test_type_properties()) {
