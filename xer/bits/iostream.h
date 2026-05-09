@@ -20,6 +20,7 @@
 #include <xer/cyclic.h>
 #include <xer/error.h>
 #include <xer/color.h>
+#include <xer/image.h>
 #include <xer/interval.h>
 #include <xer/matrix.h>
 #include <xer/path.h>
@@ -153,6 +154,32 @@ inline auto write_u8_to_ostream(
 #undef XER_DETAIL_PARSE_ERROR_NAME
 
     return false;
+}
+
+
+/**
+ * @brief Reads one expected punctuation character after skipping whitespace.
+ *
+ * @param stream Input stream.
+ * @param expected Expected character.
+ * @return true if the character was read.
+ */
+inline auto read_expected_char(std::istream& stream, char expected)
+    -> bool
+{
+    stream >> std::ws;
+
+    char ch{};
+    if (!stream.get(ch)) {
+        return false;
+    }
+
+    if (ch != expected) {
+        stream.setstate(std::ios::failbit);
+        return false;
+    }
+
+    return true;
 }
 
 } // namespace xer::detail
@@ -406,6 +433,161 @@ inline auto operator<<(
     stream << ']';
     return stream;
 }
+
+
+namespace image {
+
+/**
+ * @brief Writes an integer point as `(x, y)`.
+ */
+inline auto operator<<(std::ostream& stream, point value) -> std::ostream&
+{
+    return stream << '(' << value.x << ", " << value.y << ')';
+}
+
+/**
+ * @brief Writes a floating-point point as `(x, y)`.
+ */
+inline auto operator<<(std::ostream& stream, pointf value) -> std::ostream&
+{
+    return stream << '(' << value.x << ", " << value.y << ')';
+}
+
+/**
+ * @brief Writes an integer size as `{width, height}`.
+ */
+inline auto operator<<(std::ostream& stream, size value) -> std::ostream&
+{
+    return stream << '{' << value.width << ", " << value.height << '}';
+}
+
+/**
+ * @brief Writes a floating-point size as `{width, height}`.
+ */
+inline auto operator<<(std::ostream& stream, sizef value) -> std::ostream&
+{
+    return stream << '{' << value.width << ", " << value.height << '}';
+}
+
+/**
+ * @brief Writes an integer rectangle as `(x, y) {width, height}`.
+ */
+inline auto operator<<(std::ostream& stream, rect value) -> std::ostream&
+{
+    return stream << point(value.x, value.y) << ' '
+                  << size(value.width, value.height);
+}
+
+/**
+ * @brief Writes a floating-point rectangle as `(x, y) {width, height}`.
+ */
+inline auto operator<<(std::ostream& stream, rectf value) -> std::ostream&
+{
+    return stream << pointf(value.x, value.y) << ' '
+                  << sizef(value.width, value.height);
+}
+
+/**
+ * @brief Reads an integer point in the form `(x, y)`.
+ */
+inline auto operator>>(std::istream& stream, point& value) -> std::istream&
+{
+    point parsed;
+
+    if (!::xer::detail::read_expected_char(stream, '(') || !(stream >> parsed.x) ||
+        !::xer::detail::read_expected_char(stream, ',') || !(stream >> parsed.y) ||
+        !::xer::detail::read_expected_char(stream, ')')) {
+        return stream;
+    }
+
+    value = parsed;
+    return stream;
+}
+
+/**
+ * @brief Reads a floating-point point in the form `(x, y)`.
+ */
+inline auto operator>>(std::istream& stream, pointf& value) -> std::istream&
+{
+    pointf parsed;
+
+    if (!::xer::detail::read_expected_char(stream, '(') || !(stream >> parsed.x) ||
+        !::xer::detail::read_expected_char(stream, ',') || !(stream >> parsed.y) ||
+        !::xer::detail::read_expected_char(stream, ')')) {
+        return stream;
+    }
+
+    value = parsed;
+    return stream;
+}
+
+/**
+ * @brief Reads an integer size in the form `{width, height}`.
+ */
+inline auto operator>>(std::istream& stream, size& value) -> std::istream&
+{
+    size parsed;
+
+    if (!::xer::detail::read_expected_char(stream, '{') || !(stream >> parsed.width) ||
+        !::xer::detail::read_expected_char(stream, ',') || !(stream >> parsed.height) ||
+        !::xer::detail::read_expected_char(stream, '}')) {
+        return stream;
+    }
+
+    value = parsed;
+    return stream;
+}
+
+/**
+ * @brief Reads a floating-point size in the form `{width, height}`.
+ */
+inline auto operator>>(std::istream& stream, sizef& value) -> std::istream&
+{
+    sizef parsed;
+
+    if (!::xer::detail::read_expected_char(stream, '{') || !(stream >> parsed.width) ||
+        !::xer::detail::read_expected_char(stream, ',') || !(stream >> parsed.height) ||
+        !::xer::detail::read_expected_char(stream, '}')) {
+        return stream;
+    }
+
+    value = parsed;
+    return stream;
+}
+
+/**
+ * @brief Reads an integer rectangle in the form `(x, y) {width, height}`.
+ */
+inline auto operator>>(std::istream& stream, rect& value) -> std::istream&
+{
+    point origin;
+    size extent;
+
+    if (!(stream >> origin) || !(stream >> extent)) {
+        return stream;
+    }
+
+    value = rect(origin, extent);
+    return stream;
+}
+
+/**
+ * @brief Reads a floating-point rectangle in the form `(x, y) {width, height}`.
+ */
+inline auto operator>>(std::istream& stream, rectf& value) -> std::istream&
+{
+    pointf origin;
+    sizef extent;
+
+    if (!(stream >> origin) || !(stream >> extent)) {
+        return stream;
+    }
+
+    value = rectf(origin, extent);
+    return stream;
+}
+
+} // namespace image
 
 /**
  * @brief Writes an RGB color.

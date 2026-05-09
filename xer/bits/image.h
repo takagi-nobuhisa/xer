@@ -25,6 +25,14 @@ struct point {
     int x = 0;
     int y = 0;
 
+    constexpr point() noexcept = default;
+
+    constexpr point(int x_, int y_) noexcept
+        : x(x_),
+          y(y_)
+    {
+    }
+
     [[nodiscard]] friend constexpr auto operator==(
         point lhs,
         point rhs) noexcept -> bool = default;
@@ -36,6 +44,14 @@ struct point {
 struct pointf {
     float x = 0.0f;
     float y = 0.0f;
+
+    constexpr pointf() noexcept = default;
+
+    constexpr pointf(float x_, float y_) noexcept
+        : x(x_),
+          y(y_)
+    {
+    }
 
     [[nodiscard]] friend constexpr auto operator==(
         pointf lhs,
@@ -49,6 +65,14 @@ struct size {
     int width = 0;
     int height = 0;
 
+    constexpr size() noexcept = default;
+
+    constexpr size(int width_, int height_) noexcept
+        : width(width_),
+          height(height_)
+    {
+    }
+
     [[nodiscard]] friend constexpr auto operator==(
         size lhs,
         size rhs) noexcept -> bool = default;
@@ -60,6 +84,14 @@ struct size {
 struct sizef {
     float width = 0.0f;
     float height = 0.0f;
+
+    constexpr sizef() noexcept = default;
+
+    constexpr sizef(float width_, float height_) noexcept
+        : width(width_),
+          height(height_)
+    {
+    }
 
     [[nodiscard]] friend constexpr auto operator==(
         sizef lhs,
@@ -75,6 +107,24 @@ struct rect {
     int width = 0;
     int height = 0;
 
+    constexpr rect() noexcept = default;
+
+    constexpr rect(int x_, int y_, int width_, int height_) noexcept
+        : x(x_),
+          y(y_),
+          width(width_),
+          height(height_)
+    {
+    }
+
+    constexpr rect(point origin, size extent) noexcept
+        : x(origin.x),
+          y(origin.y),
+          width(extent.width),
+          height(extent.height)
+    {
+    }
+
     [[nodiscard]] friend constexpr auto operator==(
         rect lhs,
         rect rhs) noexcept -> bool = default;
@@ -88,6 +138,24 @@ struct rectf {
     float y = 0.0f;
     float width = 0.0f;
     float height = 0.0f;
+
+    constexpr rectf() noexcept = default;
+
+    constexpr rectf(float x_, float y_, float width_, float height_) noexcept
+        : x(x_),
+          y(y_),
+          width(width_),
+          height(height_)
+    {
+    }
+
+    constexpr rectf(pointf origin, sizef extent) noexcept
+        : x(origin.x),
+          y(origin.y),
+          width(extent.width),
+          height(extent.height)
+    {
+    }
 
     [[nodiscard]] friend constexpr auto operator==(
         rectf lhs,

@@ -5,6 +5,7 @@
 #include <xer/color.h>
 #include <xer/cyclic.h>
 #include <xer/error.h>
+#include <xer/image.h>
 #include <xer/interval.h>
 #include <xer/iostream.h>
 #include <xer/matrix.h>
@@ -150,6 +151,109 @@ void test_matrix_output()
     xer_assert_eq(out.str(), "[[1, 2, 3], [4, 5, 6]]");
 }
 
+
+void test_image_point_output()
+{
+    std::ostringstream out;
+    out << xer::image::point(10, 20);
+    xer_assert_eq(out.str(), "(10, 20)");
+}
+
+void test_image_size_output()
+{
+    std::ostringstream out;
+    out << xer::image::size(320, 240);
+    xer_assert_eq(out.str(), "{320, 240}");
+}
+
+void test_image_rect_output()
+{
+    std::ostringstream out;
+    out << xer::image::rect(
+        xer::image::point(10, 20),
+        xer::image::size(320, 240));
+    xer_assert_eq(out.str(), "(10, 20) {320, 240}");
+}
+
+void test_image_point_input()
+{
+    std::istringstream in("(10, 20)");
+    xer::image::point value;
+
+    in >> value;
+
+    xer_assert(in);
+    xer_assert(value == xer::image::point(10, 20));
+}
+
+void test_image_size_input()
+{
+    std::istringstream in("{320, 240}");
+    xer::image::size value;
+
+    in >> value;
+
+    xer_assert(in);
+    xer_assert(value == xer::image::size(320, 240));
+}
+
+void test_image_rect_input()
+{
+    std::istringstream in("(10, 20) {320, 240}");
+    xer::image::rect value;
+
+    in >> value;
+
+    xer_assert(in);
+    xer_assert(value == xer::image::rect(
+                            xer::image::point(10, 20),
+                            xer::image::size(320, 240)));
+}
+
+void test_image_rect_input_compact_spacing()
+{
+    std::istringstream in("(10,20){320,240}");
+    xer::image::rect value;
+
+    in >> value;
+
+    xer_assert(in);
+    xer_assert(value == xer::image::rect(10, 20, 320, 240));
+}
+
+void test_image_rectf_output()
+{
+    std::ostringstream out;
+    out << xer::image::rectf(
+        xer::image::pointf(1.5f, 2.5f),
+        xer::image::sizef(3.5f, 4.5f));
+    xer_assert_eq(out.str(), "(1.5, 2.5) {3.5, 4.5}");
+}
+
+void test_image_rectf_input()
+{
+    std::istringstream in("(1.5, 2.5) {3.5, 4.5}");
+    xer::image::rectf value;
+
+    in >> value;
+
+    xer_assert(in);
+    xer_assert(value == xer::image::rectf(
+                            xer::image::pointf(1.5f, 2.5f),
+                            xer::image::sizef(3.5f, 4.5f)));
+}
+
+void test_image_point_input_rejects_braces()
+{
+    std::istringstream in("{10, 20}");
+    auto value = xer::image::point(1, 2);
+
+    in >> value;
+
+    xer_assert_not(in);
+    xer_assert(value == xer::image::point(1, 2));
+}
+
 void test_rgb_output()
 {
     std::ostringstream out;
@@ -218,6 +322,16 @@ auto main() -> int
     test_quantity_output();
     test_quantity_input();
     test_matrix_output();
+    test_image_point_output();
+    test_image_size_output();
+    test_image_rect_output();
+    test_image_point_input();
+    test_image_size_input();
+    test_image_rect_input();
+    test_image_rect_input_compact_spacing();
+    test_image_rectf_output();
+    test_image_rectf_input();
+    test_image_point_input_rejects_braces();
     test_rgb_output();
     test_gray_output();
     test_cmy_output();
