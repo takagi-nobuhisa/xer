@@ -11,15 +11,20 @@ auto test_geometry_types() -> bool
     constexpr xer::image::size s{3, 4};
     constexpr xer::image::sizef sf{3.5f, 4.5f};
     constexpr xer::image::rect r{1, 2, 3, 4};
+    constexpr xer::image::rect r2{p, s};
     constexpr xer::image::rectf rf{1.5f, 2.5f, 3.5f, 4.5f};
+    constexpr xer::image::rectf rf2{pf, sf};
 
     return p.x == 1 && p.y == 2 &&
            pf.x == 1.5f && pf.y == 2.5f &&
            s.width == 3 && s.height == 4 &&
            sf.width == 3.5f && sf.height == 4.5f &&
            r.x == 1 && r.y == 2 && r.width == 3 && r.height == 4 &&
+           r2.x == 1 && r2.y == 2 && r2.width == 3 && r2.height == 4 &&
            rf.x == 1.5f && rf.y == 2.5f &&
-           rf.width == 3.5f && rf.height == 4.5f;
+           rf.width == 3.5f && rf.height == 4.5f &&
+           rf2.x == 1.5f && rf2.y == 2.5f &&
+           rf2.width == 3.5f && rf2.height == 4.5f;
 }
 
 auto test_pixel_construction() -> bool
@@ -299,6 +304,90 @@ auto test_fill_rect_clipped() -> bool
            img.get_pixel(0, 0).argb == 0xff000000u;
 }
 
+auto test_mosaic() -> bool
+{
+    xer::image::canvas<4, 3> img;
+
+    img.set_pixel_unchecked(0, 0, xer::image::pixel(0xffu, 0u, 0u));
+    img.set_pixel_unchecked(1, 0, xer::image::pixel(0u, 0xffu, 0u));
+    img.set_pixel_unchecked(0, 1, xer::image::pixel(0u, 0u, 0xffu));
+    img.set_pixel_unchecked(1, 1, xer::image::pixel(0xffu, 0xffu, 0xffu));
+
+    img.set_pixel_unchecked(2, 0, xer::image::pixel(0x10u, 0x20u, 0x30u));
+    img.set_pixel_unchecked(3, 0, xer::image::pixel(0x30u, 0x40u, 0x50u));
+    img.set_pixel_unchecked(2, 1, xer::image::pixel(0x50u, 0x60u, 0x70u));
+    img.set_pixel_unchecked(3, 1, xer::image::pixel(0x70u, 0x80u, 0x90u));
+
+    for (std::size_t x = 0; x < 4; ++x) {
+        img.set_pixel_unchecked(x, 2, xer::image::pixel(0x11u, 0x22u, 0x33u));
+    }
+
+    const auto result = xer::image::mosaic(
+        img,
+        xer::image::rect{0, 0, 4, 2},
+        xer::image::size{2, 2});
+    if (!result.has_value()) {
+        return false;
+    }
+
+    for (std::size_t y = 0; y < 2; ++y) {
+        for (std::size_t x = 0; x < 2; ++x) {
+            if (img.get_pixel(x, y).argb != 0xff808080u) {
+                return false;
+            }
+        }
+    }
+    for (std::size_t y = 0; y < 2; ++y) {
+        for (std::size_t x = 2; x < 4; ++x) {
+            if (img.get_pixel(x, y).argb != 0xff405060u) {
+                return false;
+            }
+        }
+    }
+
+    return img.get_pixel(0, 2).argb == 0xff112233u;
+}
+
+auto test_mosaic_clipped_edge_block() -> bool
+{
+    xer::image::canvas<3, 2> img;
+
+    img.set_pixel_unchecked(0, 0, xer::image::pixel(0x00u, 0x00u, 0x00u));
+    img.set_pixel_unchecked(1, 0, xer::image::pixel(0x00u, 0x00u, 0xffu));
+    img.set_pixel_unchecked(2, 0, xer::image::pixel(0xffu, 0x00u, 0x00u));
+    img.set_pixel_unchecked(0, 1, xer::image::pixel(0xffu, 0x00u, 0x00u));
+    img.set_pixel_unchecked(1, 1, xer::image::pixel(0x00u, 0xffu, 0x00u));
+    img.set_pixel_unchecked(2, 1, xer::image::pixel(0x00u, 0x00u, 0xffu));
+
+    const auto result = xer::image::mosaic(
+        img,
+        xer::image::rect{-1, 0, 4, 2},
+        xer::image::size{2, 2});
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(0, 0).argb == 0xff404040u &&
+           img.get_pixel(1, 0).argb == 0xff404040u &&
+           img.get_pixel(0, 1).argb == 0xff404040u &&
+           img.get_pixel(1, 1).argb == 0xff404040u &&
+           img.get_pixel(2, 0).argb == 0xff800080u &&
+           img.get_pixel(2, 1).argb == 0xff800080u;
+}
+
+auto test_mosaic_invalid_block_size() -> bool
+{
+    xer::image::canvas<2, 2> img;
+
+    const auto result = xer::image::mosaic(
+        img,
+        xer::image::rect{0, 0, 2, 2},
+        xer::image::size{0, 2});
+
+    return !result.has_value() &&
+           result.error().code == xer::error_t::invalid_argument;
+}
+
 auto test_point_pixel_methods() -> bool
 {
     xer::image::canvas<3, 3> img;
@@ -436,6 +525,15 @@ auto main() -> int
         return 1;
     }
     if (!test_fill_rect_clipped()) {
+        return 1;
+    }
+    if (!test_mosaic()) {
+        return 1;
+    }
+    if (!test_mosaic_clipped_edge_block()) {
+        return 1;
+    }
+    if (!test_mosaic_invalid_block_size()) {
         return 1;
     }
     if (!test_draw_geometry_overloads()) {

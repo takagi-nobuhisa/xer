@@ -16,6 +16,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <xer/bits/error.h>
+
 namespace xer::image {
 
 /**
@@ -117,7 +119,7 @@ struct rect {
     {
     }
 
-    constexpr rect(point origin, size extent) noexcept
+    constexpr rect(const point& origin, const size& extent) noexcept
         : x(origin.x),
           y(origin.y),
           width(extent.width),
@@ -149,7 +151,7 @@ struct rectf {
     {
     }
 
-    constexpr rectf(pointf origin, sizef extent) noexcept
+    constexpr rectf(const pointf& origin, const sizef& extent) noexcept
         : x(origin.x),
           y(origin.y),
           width(extent.width),
@@ -640,7 +642,7 @@ public:
     /**
      * @brief Returns whether a point is inside the canvas.
      */
-    [[nodiscard]] auto contains(point p) const noexcept -> bool
+    [[nodiscard]] auto contains(const point& p) const noexcept -> bool
     {
         return contains(p.x, p.y);
     }
@@ -661,7 +663,7 @@ public:
      *
      * The point must be inside the image.
      */
-    [[nodiscard]] auto get_pixel(point p) const noexcept -> pixel
+    [[nodiscard]] auto get_pixel(const point& p) const noexcept -> pixel
     {
         return get_pixel(
             static_cast<std::size_t>(p.x),
@@ -689,7 +691,7 @@ public:
     /**
      * @brief Sets a logical pixel when the point is inside the image.
      */
-    auto set_pixel(point p, pixel value) noexcept -> void
+    auto set_pixel(const point& p, pixel value) noexcept -> void
     {
         set_pixel(p.x, p.y, value);
     }
@@ -716,7 +718,7 @@ public:
     /**
      * @brief Blends a logical pixel when the point is inside the image.
      */
-    auto set_pixel(point p, pixel value, float coverage) noexcept -> void
+    auto set_pixel(const point& p, pixel value, float coverage) noexcept -> void
     {
         set_pixel(p.x, p.y, value, coverage);
     }
@@ -875,7 +877,7 @@ auto draw_hline(
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_hline(
     canvas<Width, Height, Policy>& img,
-    point p,
+    const point& p,
     int length,
     pixel color) noexcept -> void
 {
@@ -932,7 +934,7 @@ auto draw_vline(
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_vline(
     canvas<Width, Height, Policy>& img,
-    point p,
+    const point& p,
     int length,
     pixel color) noexcept -> void
 {
@@ -987,8 +989,8 @@ auto draw_line(
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_line(
     canvas<Width, Height, Policy>& img,
-    point p0,
-    point p1,
+    const point& p0,
+    const point& p1,
     pixel color) noexcept -> void
 {
     draw_line(img, p0.x, p0.y, p1.x, p1.y, color);
@@ -1090,8 +1092,8 @@ auto draw_line_aa(
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_line_aa(
     canvas<Width, Height, Policy>& img,
-    pointf p0,
-    pointf p1,
+    const pointf& p0,
+    const pointf& p1,
     float width,
     pixel color) noexcept -> void
 {
@@ -1104,8 +1106,8 @@ auto draw_line_aa(
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_line_aa(
     canvas<Width, Height, Policy>& img,
-    pointf p0,
-    pointf p1,
+    const pointf& p0,
+    const pointf& p1,
     pixel color) noexcept -> void
 {
     draw_line_aa(img, p0, p1, 1.0f, color);
@@ -1145,8 +1147,8 @@ auto draw_rect(
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_rect(
     canvas<Width, Height, Policy>& img,
-    point origin,
-    size extent,
+    const point& origin,
+    const size& extent,
     pixel color) noexcept -> void
 {
     draw_rect(img, origin.x, origin.y, extent.width, extent.height, color);
@@ -1158,7 +1160,7 @@ auto draw_rect(
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_rect(
     canvas<Width, Height, Policy>& img,
-    rect area,
+    const rect& area,
     pixel color) noexcept -> void
 {
     draw_rect(img, area.x, area.y, area.width, area.height, color);
@@ -1216,8 +1218,8 @@ auto fill_rect(
 template<std::size_t Width, std::size_t Height, class Policy>
 auto fill_rect(
     canvas<Width, Height, Policy>& img,
-    point origin,
-    size extent,
+    const point& origin,
+    const size& extent,
     pixel color) noexcept -> void
 {
     fill_rect(img, origin.x, origin.y, extent.width, extent.height, color);
@@ -1229,10 +1231,100 @@ auto fill_rect(
 template<std::size_t Width, std::size_t Height, class Policy>
 auto fill_rect(
     canvas<Width, Height, Policy>& img,
-    rect area,
+    const rect& area,
     pixel color) noexcept -> void
 {
     fill_rect(img, area.x, area.y, area.width, area.height, color);
+}
+
+/**
+ * @brief Applies a mosaic effect to a clipped rectangular area.
+ *
+ * The target area is clipped to the canvas boundary. Each block is replaced
+ * with the average logical ARGB color of the pixels in that block. Blocks at
+ * the right and bottom edges use their actual clipped size.
+ *
+ * @return `error_t::invalid_argument` if either block dimension is not
+ * positive. Otherwise returns success, including empty or fully clipped areas.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto mosaic(
+    canvas<Width, Height, Policy>& img,
+    const rect& area,
+    const size& block_size) noexcept -> xer::result<void>
+{
+    if (block_size.width <= 0 || block_size.height <= 0) {
+        return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+    }
+    if (img.empty() || area.width <= 0 || area.height <= 0) {
+        return {};
+    }
+
+    auto x0 = static_cast<long long>(area.x);
+    auto y0 = static_cast<long long>(area.y);
+    auto x1 = x0 + static_cast<long long>(area.width);
+    auto y1 = y0 + static_cast<long long>(area.height);
+
+    if (x1 <= 0 || y1 <= 0 ||
+        x0 >= static_cast<long long>(img.width()) ||
+        y0 >= static_cast<long long>(img.height())) {
+        return {};
+    }
+
+    x0 = std::max(x0, 0LL);
+    y0 = std::max(y0, 0LL);
+    x1 = std::min(x1, static_cast<long long>(img.width()));
+    y1 = std::min(y1, static_cast<long long>(img.height()));
+
+    const auto step_x = static_cast<long long>(block_size.width);
+    const auto step_y = static_cast<long long>(block_size.height);
+
+    for (auto by = y0; by < y1; by += step_y) {
+        const auto ey = std::min(by + step_y, y1);
+        for (auto bx = x0; bx < x1; bx += step_x) {
+            const auto ex = std::min(bx + step_x, x1);
+
+            std::uint64_t alpha = 0;
+            std::uint64_t red = 0;
+            std::uint64_t green = 0;
+            std::uint64_t blue = 0;
+            std::uint64_t count = 0;
+
+            for (auto yy = by; yy < ey; ++yy) {
+                for (auto xx = bx; xx < ex; ++xx) {
+                    const auto value = img.get_pixel(
+                        static_cast<std::size_t>(xx),
+                        static_cast<std::size_t>(yy));
+                    alpha += value.alpha();
+                    red += value.red();
+                    green += value.green();
+                    blue += value.blue();
+                    ++count;
+                }
+            }
+
+            const auto half = count / 2;
+            const auto averaged = pixel(
+                static_cast<std::uint8_t>((alpha + half) / count),
+                static_cast<std::uint8_t>((red + half) / count),
+                static_cast<std::uint8_t>((green + half) / count),
+                static_cast<std::uint8_t>((blue + half) / count));
+            const auto encoded = Policy::encode(averaged);
+
+            for (auto yy = by; yy < ey; ++yy) {
+                auto* first = detail::image_access::ptr(
+                    img,
+                    static_cast<std::size_t>(bx),
+                    static_cast<std::size_t>(yy));
+                auto* const last = first + (ex - bx);
+                for (auto* p = first; p != last; ++p) {
+                    *p = encoded;
+                }
+            }
+        }
+    }
+
+    return {};
 }
 
 } // namespace xer::image
