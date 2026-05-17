@@ -1,5 +1,7 @@
 # `<xer/image.h>`
 
+Target version: v0.3.0a7
+
 ## Purpose
 
 `<xer/image.h>` provides lightweight image and framebuffer facilities.
@@ -103,7 +105,7 @@ auto draw_line_aa(canvas<Width, Height, Policy>& img,
                   float y0,
                   float x1,
                   float y1,
-                  pixel color) noexcept -> void;
+                  pixel color) noexcept -> xer::result<void>;
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_line_aa(canvas<Width, Height, Policy>& img,
@@ -112,20 +114,20 @@ auto draw_line_aa(canvas<Width, Height, Policy>& img,
                   float x1,
                   float y1,
                   float width,
-                  pixel color) noexcept -> void;
+                  pixel color) noexcept -> xer::result<void>;
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_line_aa(canvas<Width, Height, Policy>& img,
                   const pointf& p0,
                   const pointf& p1,
-                  pixel color) noexcept -> void;
+                  pixel color) noexcept -> xer::result<void>;
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_line_aa(canvas<Width, Height, Policy>& img,
                   const pointf& p0,
                   const pointf& p1,
                   float width,
-                  pixel color) noexcept -> void;
+                  pixel color) noexcept -> xer::result<void>;
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_rect(canvas<Width, Height, Policy>& img,
@@ -193,6 +195,264 @@ auto fill_circle(canvas<Width, Height, Policy>& img,
                  const point& center,
                  int radius,
                  pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(canvas<Width, Height, Policy>& img,
+                    float cx,
+                    float cy,
+                    float radius,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(canvas<Width, Height, Policy>& img,
+                    float cx,
+                    float cy,
+                    float radius,
+                    float width,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(canvas<Width, Height, Policy>& img,
+                    const pointf& center,
+                    float radius,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(canvas<Width, Height, Policy>& img,
+                    const pointf& center,
+                    float radius,
+                    float width,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle_aa(canvas<Width, Height, Policy>& img,
+                    float cx,
+                    float cy,
+                    float radius,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle_aa(canvas<Width, Height, Policy>& img,
+                    const pointf& center,
+                    float radius,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse(canvas<Width, Height, Policy>& img,
+                  int cx,
+                  int cy,
+                  int radius_x,
+                  int radius_y,
+                  pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse(canvas<Width, Height, Policy>& img,
+                  const point& center,
+                  int radius_x,
+                  int radius_y,
+                  pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse(canvas<Width, Height, Policy>& img,
+                  int cx,
+                  int cy,
+                  int radius_x,
+                  int radius_y,
+                  pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse(canvas<Width, Height, Policy>& img,
+                  const point& center,
+                  int radius_x,
+                  int radius_y,
+                  pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     float cx,
+                     float cy,
+                     float radius_x,
+                     float radius_y,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     float cx,
+                     float cy,
+                     float radius_x,
+                     float radius_y,
+                     float width,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     const pointf& center,
+                     float radius_x,
+                     float radius_y,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     const pointf& center,
+                     float radius_x,
+                     float radius_y,
+                     float width,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     float cx,
+                     float cy,
+                     float radius_x,
+                     float radius_y,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     const pointf& center,
+                     float radius_x,
+                     float radius_y,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc(canvas<Width, Height, Policy>& img,
+              int cx,
+              int cy,
+              int radius,
+              float start_angle,
+              float sweep_angle,
+              pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc(canvas<Width, Height, Policy>& img,
+              const point& center,
+              int radius,
+              float start_angle,
+              float sweep_angle,
+              pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(canvas<Width, Height, Policy>& img,
+                 float cx,
+                 float cy,
+                 float radius,
+                 float start_angle,
+                 float sweep_angle,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(canvas<Width, Height, Policy>& img,
+                 float cx,
+                 float cy,
+                 float radius,
+                 float start_angle,
+                 float sweep_angle,
+                 float width,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(canvas<Width, Height, Policy>& img,
+                 const pointf& center,
+                 float radius,
+                 float start_angle,
+                 float sweep_angle,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(canvas<Width, Height, Policy>& img,
+                 const pointf& center,
+                 float radius,
+                 float start_angle,
+                 float sweep_angle,
+                 float width,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc(canvas<Width, Height, Policy>& img,
+                      int cx,
+                      int cy,
+                      int radius_x,
+                      int radius_y,
+                      float start_angle,
+                      float sweep_angle,
+                      pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc(canvas<Width, Height, Policy>& img,
+                      const point& center,
+                      int radius_x,
+                      int radius_y,
+                      float start_angle,
+                      float sweep_angle,
+                      pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
+                         float cx,
+                         float cy,
+                         float radius_x,
+                         float radius_y,
+                         float start_angle,
+                         float sweep_angle,
+                         pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
+                         float cx,
+                         float cy,
+                         float radius_x,
+                         float radius_y,
+                         float start_angle,
+                         float sweep_angle,
+                         float width,
+                         pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
+                         const pointf& center,
+                         float radius_x,
+                         float radius_y,
+                         float start_angle,
+                         float sweep_angle,
+                         pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
+                         const pointf& center,
+                         float radius_x,
+                         float radius_y,
+                         float start_angle,
+                         float sweep_angle,
+                         float width,
+                         pixel color) noexcept
     -> xer::result<void>;
 
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -632,6 +892,8 @@ After clipping, `draw_hline`, `draw_vline`, and `fill_rect` write directly to fr
 
 `draw_line_aa` uses floating-point pixel-center coordinates and draws an antialiased capsule-shaped stroke. The overload without a width argument draws a one-pixel-wide antialiased line. The width overload takes the width before the color argument. The `pointf` overloads are equivalent to the scalar-coordinate overloads.
 
+`draw_line_aa` returns `xer::result<void>`. It returns `error_t::invalid_argument` when any coordinate is not finite, or when `width` is not finite or is less than or equal to zero. A line that lies completely outside the canvas is a successful no-op.
+
 The `draw_rect` and `fill_rect` overloads accept either `point` plus `size`, or a single `rect`. The scalar-coordinate overloads remain available for callers that already have separate coordinate values.
 
 ---
@@ -689,7 +951,16 @@ An empty canvas or empty text is a successful no-op.
 
 ---
 
-## Circle Drawing
+## Circle, Ellipse, and Arc Drawing
+
+The curved-shape APIs are divided into integer one-pixel drawing and floating-point antialiased drawing.
+
+- integer APIs use `point` or scalar `int` center coordinates
+- antialiased APIs use `pointf` or scalar `float` center coordinates
+- antialiased outline APIs accept an optional `width`
+- every curved-shape function returns `xer::result<void>` without `[[nodiscard]]`
+
+### Circle Drawing
 
 ```cpp
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -721,28 +992,342 @@ auto fill_circle(canvas<Width, Height, Policy>& img,
                  int radius,
                  pixel color) noexcept
     -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(canvas<Width, Height, Policy>& img,
+                    float cx,
+                    float cy,
+                    float radius,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(canvas<Width, Height, Policy>& img,
+                    float cx,
+                    float cy,
+                    float radius,
+                    float width,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(canvas<Width, Height, Policy>& img,
+                    const pointf& center,
+                    float radius,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(canvas<Width, Height, Policy>& img,
+                    const pointf& center,
+                    float radius,
+                    float width,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle_aa(canvas<Width, Height, Policy>& img,
+                    float cx,
+                    float cy,
+                    float radius,
+                    pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle_aa(canvas<Width, Height, Policy>& img,
+                    const pointf& center,
+                    float radius,
+                    pixel color) noexcept
+    -> xer::result<void>;
 ```
 
-`draw_circle` draws a clipped one-pixel circle outline.
-`fill_circle` fills the clipped circle interior and includes the boundary.
+`draw_circle` draws a clipped one-pixel circle outline. `fill_circle` fills the clipped circle interior and includes the boundary.
 
-Both functions accept either explicit center coordinates or a `point` center.
+`draw_circle_aa` draws an antialiased outline. The overload without a width argument uses `1.0f`; the width overload supports thick circular outlines. `fill_circle_aa` fills the circle while antialiasing the outer boundary.
 
-### Radius Handling
+Radius handling is:
 
-- `radius < 0` returns `error_t::invalid_argument`
-- `radius == 0` writes only the center pixel, if it is visible
-- `radius > 0` draws or fills the requested circle
+- a negative radius returns `error_t::invalid_argument`
+- a zero integer radius writes only the center pixel, if visible
+- a zero antialiased outline radius draws a round point whose diameter follows `width`
+- a zero antialiased filled radius draws a point at the center
 
-The return value is not marked `[[nodiscard]]`, because callers may intentionally ignore drawing failures in non-critical rendering paths.
+For antialiased circle drawing, center coordinates, radius, and width must be finite. `width` must be greater than zero.
 
-### Clipping and Pixels
+### Ellipse Drawing
 
-Circle drawing is clipped to the canvas boundary.
-A circle that lies completely outside the canvas is a successful no-op.
+```cpp
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse(canvas<Width, Height, Policy>& img,
+                  int cx,
+                  int cy,
+                  int radius_x,
+                  int radius_y,
+                  pixel color) noexcept
+    -> xer::result<void>;
 
-The supplied logical `pixel` value is written directly.
-No alpha blending is performed by these integer-circle functions.
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse(canvas<Width, Height, Policy>& img,
+                  const point& center,
+                  int radius_x,
+                  int radius_y,
+                  pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse(canvas<Width, Height, Policy>& img,
+                  int cx,
+                  int cy,
+                  int radius_x,
+                  int radius_y,
+                  pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse(canvas<Width, Height, Policy>& img,
+                  const point& center,
+                  int radius_x,
+                  int radius_y,
+                  pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     float cx,
+                     float cy,
+                     float radius_x,
+                     float radius_y,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     float cx,
+                     float cy,
+                     float radius_x,
+                     float radius_y,
+                     float width,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     const pointf& center,
+                     float radius_x,
+                     float radius_y,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     const pointf& center,
+                     float radius_x,
+                     float radius_y,
+                     float width,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     float cx,
+                     float cy,
+                     float radius_x,
+                     float radius_y,
+                     pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse_aa(canvas<Width, Height, Policy>& img,
+                     const pointf& center,
+                     float radius_x,
+                     float radius_y,
+                     pixel color) noexcept
+    -> xer::result<void>;
+```
+
+Ellipse APIs use independent x and y radii. `draw_ellipse` draws a one-pixel outline, `fill_ellipse` fills the interior, `draw_ellipse_aa` supports antialiased and thick outlines, and `fill_ellipse_aa` antialiases the outer boundary of the filled shape.
+
+Degenerate ellipses are defined rather than rejected:
+
+- both radii zero: a point
+- `radius_x == 0`: a vertical line segment
+- `radius_y == 0`: a horizontal line segment
+
+The same policy applies to antialiased ellipses. Antialiased outline degeneration keeps the requested width; antialiased filled degeneration draws the corresponding one-pixel-equivalent antialiased point or line.
+
+A negative radius returns `error_t::invalid_argument`. Antialiased ellipse drawing also rejects non-finite center coordinates, radii, and width, and rejects `width <= 0.0f`.
+
+### Circular Arc Drawing
+
+```cpp
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc(canvas<Width, Height, Policy>& img,
+              int cx,
+              int cy,
+              int radius,
+              float start_angle,
+              float sweep_angle,
+              pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc(canvas<Width, Height, Policy>& img,
+              const point& center,
+              int radius,
+              float start_angle,
+              float sweep_angle,
+              pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(canvas<Width, Height, Policy>& img,
+                 float cx,
+                 float cy,
+                 float radius,
+                 float start_angle,
+                 float sweep_angle,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(canvas<Width, Height, Policy>& img,
+                 float cx,
+                 float cy,
+                 float radius,
+                 float start_angle,
+                 float sweep_angle,
+                 float width,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(canvas<Width, Height, Policy>& img,
+                 const pointf& center,
+                 float radius,
+                 float start_angle,
+                 float sweep_angle,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(canvas<Width, Height, Policy>& img,
+                 const pointf& center,
+                 float radius,
+                 float start_angle,
+                 float sweep_angle,
+                 float width,
+                 pixel color) noexcept
+    -> xer::result<void>;
+```
+
+Arc angles are expressed in radians. `0` points right. Positive sweep angles move counterclockwise in the mathematical sense; because image y coordinates grow downward, the point formula is:
+
+```text
+x = cx + radius * cos(angle)
+y = cy - radius * sin(angle)
+```
+
+A negative `sweep_angle` draws clockwise. When `abs(sweep_angle)` is at least one full turn, arc drawing is treated as full circle drawing. Multiple turns are not accumulated.
+
+Circular arc degeneration is:
+
+- `radius == 0`: the center point
+- `sweep_angle == 0`: the start point on the circle
+- `abs(sweep_angle) >= 2π`: a full circle
+
+Antialiased arc endpoints use round caps. A zero-radius or zero-sweep antialiased arc therefore appears as a round point with the requested outline width.
+
+Arc drawing rejects negative radii and non-finite angles. Antialiased arc drawing also rejects non-finite center coordinates, radius, and width, and rejects `width <= 0.0f`.
+
+### Elliptical Arc Drawing
+
+```cpp
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc(canvas<Width, Height, Policy>& img,
+                      int cx,
+                      int cy,
+                      int radius_x,
+                      int radius_y,
+                      float start_angle,
+                      float sweep_angle,
+                      pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc(canvas<Width, Height, Policy>& img,
+                      const point& center,
+                      int radius_x,
+                      int radius_y,
+                      float start_angle,
+                      float sweep_angle,
+                      pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
+                         float cx,
+                         float cy,
+                         float radius_x,
+                         float radius_y,
+                         float start_angle,
+                         float sweep_angle,
+                         pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
+                         float cx,
+                         float cy,
+                         float radius_x,
+                         float radius_y,
+                         float start_angle,
+                         float sweep_angle,
+                         float width,
+                         pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
+                         const pointf& center,
+                         float radius_x,
+                         float radius_y,
+                         float start_angle,
+                         float sweep_angle,
+                         pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
+                         const pointf& center,
+                         float radius_x,
+                         float radius_y,
+                         float start_angle,
+                         float sweep_angle,
+                         float width,
+                         pixel color) noexcept
+    -> xer::result<void>;
+```
+
+Elliptical arc angles follow the same convention as circular arcs:
+
+```text
+x = cx + radius_x * cos(angle)
+y = cy - radius_y * sin(angle)
+```
+
+A sweep of at least one full turn is treated as a full ellipse. A zero sweep draws the start point. If both radii are zero, the result is the center point. If exactly one radius is zero, the arc degenerates onto the corresponding vertical or horizontal line while preserving the angle-based parameterization.
+
+Antialiased elliptical arcs use round caps and support thick strokes through `width`.
+
+Elliptical arc drawing rejects negative radii and non-finite angles. Antialiased elliptical arc drawing also rejects non-finite center coordinates, radii, and width, and rejects `width <= 0.0f`.
+
+### Clipping, Pixels, and Return Values
+
+All curved-shape drawing clips to the canvas boundary. A shape that lies completely outside the canvas is a successful no-op.
+
+Integer circle and ellipse drawing write the supplied logical `pixel` directly. Antialiased drawing uses coverage blending through the canvas pixel API.
+
+These drawing functions return `xer::result<void>`, but the return values are intentionally not marked `[[nodiscard]]`. This keeps drawing calls lightweight in rendering code while still allowing invalid arguments to be handled where needed.
 
 ---
 
@@ -907,6 +1492,7 @@ Additional examples:
 - `examples/example_image_bitmap_text.cpp`
 - `examples/example_image_flood_fill.cpp`
 - `examples/example_image_circle.cpp`
+- `examples/example_image_curves.cpp`
 
 ---
 

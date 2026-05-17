@@ -1321,6 +1321,245 @@ struct image_access {
     }
 };
 
+inline constexpr auto image_pi = 3.14159265358979323846f;
+inline constexpr auto image_tau = image_pi * 2.0f;
+
+[[nodiscard]] inline auto invalid_draw_argument() noexcept -> xer::result<void>
+{
+    return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+}
+
+[[nodiscard]] inline auto finite(float value) noexcept -> bool
+{
+    return std::isfinite(value);
+}
+
+[[nodiscard]] inline auto normalize_angle(float angle) noexcept -> float
+{
+    auto normalized = std::fmod(angle, image_tau);
+    if (normalized < 0.0f) {
+        normalized += image_tau;
+    }
+    return normalized;
+}
+
+[[nodiscard]] inline auto angle_in_sweep(
+    float angle,
+    float start_angle,
+    float sweep_angle) noexcept -> bool
+{
+    if (std::abs(sweep_angle) >= image_tau) {
+        return true;
+    }
+
+    const auto normalized_angle = normalize_angle(angle);
+    const auto normalized_start = normalize_angle(start_angle);
+    constexpr auto epsilon = 0.000001f;
+
+    if (sweep_angle >= 0.0f) {
+        const auto delta = normalize_angle(normalized_angle - normalized_start);
+        return delta <= sweep_angle + epsilon;
+    }
+
+    const auto delta = normalize_angle(normalized_start - normalized_angle);
+    return delta <= -sweep_angle + epsilon;
+}
+
+template<std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto make_pixel_bounds(
+    const canvas<Width, Height, Policy>& img,
+    float min_x,
+    float min_y,
+    float max_x,
+    float max_y,
+    int& first_x,
+    int& first_y,
+    int& last_x,
+    int& last_y) noexcept -> bool
+{
+    if (img.empty()) {
+        return false;
+    }
+
+    const auto max_canvas_x = img.width() - 1;
+    const auto max_canvas_y = img.height() - 1;
+    const auto canvas_last_x = max_canvas_x > static_cast<std::size_t>(std::numeric_limits<int>::max())
+        ? std::numeric_limits<int>::max()
+        : static_cast<int>(max_canvas_x);
+    const auto canvas_last_y = max_canvas_y > static_cast<std::size_t>(std::numeric_limits<int>::max())
+        ? std::numeric_limits<int>::max()
+        : static_cast<int>(max_canvas_y);
+
+    if (max_x < 0.0f || max_y < 0.0f ||
+        min_x > static_cast<float>(canvas_last_x) ||
+        min_y > static_cast<float>(canvas_last_y)) {
+        return false;
+    }
+
+    const auto clipped_min_x = std::max(min_x, 0.0f);
+    const auto clipped_min_y = std::max(min_y, 0.0f);
+    const auto clipped_max_x = std::min(max_x, static_cast<float>(canvas_last_x));
+    const auto clipped_max_y = std::min(max_y, static_cast<float>(canvas_last_y));
+
+    first_x = static_cast<int>(std::floor(clipped_min_x));
+    first_y = static_cast<int>(std::floor(clipped_min_y));
+    last_x = static_cast<int>(std::ceil(clipped_max_x));
+    last_y = static_cast<int>(std::ceil(clipped_max_y));
+    return first_x <= last_x && first_y <= last_y;
+}
+
+template<std::size_t Width, std::size_t Height, class Policy>
+auto plot_clipped(
+    canvas<Width, Height, Policy>& img,
+    long long x,
+    long long y,
+    pixel color) noexcept -> void
+{
+    if (x < 0 || y < 0) {
+        return;
+    }
+
+    const auto pixel_x = static_cast<std::size_t>(x);
+    const auto pixel_y = static_cast<std::size_t>(y);
+    if (pixel_x >= img.width() || pixel_y >= img.height()) {
+        return;
+    }
+
+    img.set_pixel_unchecked(pixel_x, pixel_y, color);
+}
+
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_span_clipped(
+    canvas<Width, Height, Policy>& img,
+    long long x0,
+    long long x1,
+    long long y,
+    pixel color) noexcept -> void
+{
+    if (y < 0 || static_cast<std::size_t>(y) >= img.height()) {
+        return;
+    }
+
+    if (x1 < x0) {
+        std::swap(x0, x1);
+    }
+    if (x1 < 0 || x0 >= static_cast<long long>(img.width())) {
+        return;
+    }
+
+    x0 = std::max(x0, 0LL);
+    x1 = std::min(x1, static_cast<long long>(img.width()) - 1LL);
+    if (x0 > x1) {
+        return;
+    }
+
+    const auto encoded = Policy::encode(color);
+    auto* first = image_access::ptr(
+        img,
+        static_cast<std::size_t>(x0),
+        static_cast<std::size_t>(y));
+    auto* const last = first + (x1 - x0 + 1LL);
+    for (auto* p = first; p != last; ++p) {
+        *p = encoded;
+    }
+}
+
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_aa_disc(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius,
+    pixel color) noexcept -> void
+{
+    int first_x = 0;
+    int first_y = 0;
+    int last_x = -1;
+    int last_y = -1;
+    const auto aa_extent = radius + 0.5f;
+    if (!make_pixel_bounds(
+            img,
+            cx - aa_extent,
+            cy - aa_extent,
+            cx + aa_extent,
+            cy + aa_extent,
+            first_x,
+            first_y,
+            last_x,
+            last_y)) {
+        return;
+    }
+
+    for (auto y = first_y; y <= last_y; ++y) {
+        for (auto x = first_x; x <= last_x; ++x) {
+            const auto dx = static_cast<float>(x) - cx;
+            const auto dy = static_cast<float>(y) - cy;
+            const auto distance = std::sqrt(dx * dx + dy * dy);
+            const auto coverage = radius + 0.5f - distance;
+            if (coverage > 0.0f) {
+                img.set_pixel_unchecked(
+                    static_cast<std::size_t>(x),
+                    static_cast<std::size_t>(y),
+                    color,
+                    coverage);
+            }
+        }
+    }
+}
+
+[[nodiscard]] inline auto ellipse_distance_estimate(
+    float dx,
+    float dy,
+    float radius_x,
+    float radius_y) noexcept -> float
+{
+    const auto rx_sq = radius_x * radius_x;
+    const auto ry_sq = radius_y * radius_y;
+    const auto normalized_x = dx / radius_x;
+    const auto normalized_y = dy / radius_y;
+    const auto f = normalized_x * normalized_x + normalized_y * normalized_y - 1.0f;
+    const auto gradient_x = 2.0f * dx / rx_sq;
+    const auto gradient_y = 2.0f * dy / ry_sq;
+    const auto gradient_length = std::sqrt(
+        gradient_x * gradient_x + gradient_y * gradient_y);
+
+    if (!(gradient_length > 0.0f)) {
+        return std::min(radius_x, radius_y);
+    }
+    return std::abs(f) / gradient_length;
+}
+
+[[nodiscard]] inline auto ellipse_signed_distance_estimate(
+    float dx,
+    float dy,
+    float radius_x,
+    float radius_y) noexcept -> float
+{
+    const auto rx_sq = radius_x * radius_x;
+    const auto ry_sq = radius_y * radius_y;
+    const auto normalized_x = dx / radius_x;
+    const auto normalized_y = dy / radius_y;
+    const auto f = normalized_x * normalized_x + normalized_y * normalized_y - 1.0f;
+    const auto gradient_x = 2.0f * dx / rx_sq;
+    const auto gradient_y = 2.0f * dy / ry_sq;
+    const auto gradient_length = std::sqrt(
+        gradient_x * gradient_x + gradient_y * gradient_y);
+
+    if (!(gradient_length > 0.0f)) {
+        return -std::min(radius_x, radius_y);
+    }
+    return f / gradient_length;
+}
+
+[[nodiscard]] inline auto ellipse_parameter_angle(
+    float dx,
+    float dy,
+    float radius_x,
+    float radius_y) noexcept -> float
+{
+    return std::atan2(-dy / radius_y, dx / radius_x);
+}
+
 } // namespace detail
 
 /**
@@ -1497,6 +1736,10 @@ auto draw_line(
  * The coordinates are expressed in pixel-center coordinates. For example,
  * `(0.0f, 0.0f)` is the center of the top-left pixel. The rendered stroke is
  * a capsule around the center line; the endpoints use round caps.
+ *
+ * @return `error_t::invalid_argument` if a coordinate is not finite, or if
+ * `width` is not finite or is less than or equal to zero. Otherwise returns
+ * success, including lines that are fully outside the canvas.
  */
 template<std::size_t Width, std::size_t Height, class Policy>
 auto draw_line_aa(
@@ -1506,15 +1749,15 @@ auto draw_line_aa(
     float x1,
     float y1,
     float width,
-    pixel color) noexcept -> void
+    pixel color) noexcept -> xer::result<void>
 {
-    if (img.empty() || !(width > 0.0f)) {
-        return;
+    if (!detail::finite(x0) || !detail::finite(y0) ||
+        !detail::finite(x1) || !detail::finite(y1) ||
+        !detail::finite(width) || !(width > 0.0f)) {
+        return detail::invalid_draw_argument();
     }
-    if (!std::isfinite(x0) || !std::isfinite(y0) ||
-        !std::isfinite(x1) || !std::isfinite(y1) ||
-        !std::isfinite(width)) {
-        return;
+    if (img.empty()) {
+        return {};
     }
 
     const auto dx = x1 - x0;
@@ -1523,18 +1766,21 @@ auto draw_line_aa(
     const auto radius = width * 0.5f;
     const auto aa_extent = radius + 0.5f;
 
-    auto min_x = static_cast<int>(std::floor(std::min(x0, x1) - aa_extent));
-    auto max_x = static_cast<int>(std::ceil(std::max(x0, x1) + aa_extent));
-    auto min_y = static_cast<int>(std::floor(std::min(y0, y1) - aa_extent));
-    auto max_y = static_cast<int>(std::ceil(std::max(y0, y1) + aa_extent));
-
-    min_x = std::max(min_x, 0);
-    min_y = std::max(min_y, 0);
-    max_x = std::min(max_x, static_cast<int>(img.width()) - 1);
-    max_y = std::min(max_y, static_cast<int>(img.height()) - 1);
-
-    if (min_x > max_x || min_y > max_y) {
-        return;
+    int min_x = 0;
+    int min_y = 0;
+    int max_x = -1;
+    int max_y = -1;
+    if (!detail::make_pixel_bounds(
+            img,
+            std::min(x0, x1) - aa_extent,
+            std::min(y0, y1) - aa_extent,
+            std::max(x0, x1) + aa_extent,
+            std::max(y0, y1) + aa_extent,
+            min_x,
+            min_y,
+            max_x,
+            max_y)) {
+        return {};
     }
 
     for (auto y = min_y; y <= max_y; ++y) {
@@ -1564,6 +1810,8 @@ auto draw_line_aa(
             }
         }
     }
+
+    return {};
 }
 
 /**
@@ -1576,9 +1824,9 @@ auto draw_line_aa(
     float y0,
     float x1,
     float y1,
-    pixel color) noexcept -> void
+    pixel color) noexcept -> xer::result<void>
 {
-    draw_line_aa(img, x0, y0, x1, y1, 1.0f, color);
+    return draw_line_aa(img, x0, y0, x1, y1, 1.0f, color);
 }
 
 /**
@@ -1590,9 +1838,9 @@ auto draw_line_aa(
     const pointf& p0,
     const pointf& p1,
     float width,
-    pixel color) noexcept -> void
+    pixel color) noexcept -> xer::result<void>
 {
-    draw_line_aa(img, p0.x, p0.y, p1.x, p1.y, width, color);
+    return draw_line_aa(img, p0.x, p0.y, p1.x, p1.y, width, color);
 }
 
 /**
@@ -1603,9 +1851,9 @@ auto draw_line_aa(
     canvas<Width, Height, Policy>& img,
     const pointf& p0,
     const pointf& p1,
-    pixel color) noexcept -> void
+    pixel color) noexcept -> xer::result<void>
 {
-    draw_line_aa(img, p0, p1, 1.0f, color);
+    return draw_line_aa(img, p0, p1, 1.0f, color);
 }
 
 /**
@@ -1908,6 +2156,1089 @@ auto fill_circle(
     pixel color) noexcept -> xer::result<void>
 {
     return fill_circle(img, center.x, center.y, radius, color);
+}
+
+/**
+ * @brief Draws a clipped one-pixel ellipse outline.
+ *
+ * @return `error_t::invalid_argument` if either radius is negative.
+ * Otherwise returns success, including ellipses that are fully outside the
+ * canvas.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse(
+    canvas<Width, Height, Policy>& img,
+    int cx,
+    int cy,
+    int radius_x,
+    int radius_y,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (radius_x < 0 || radius_y < 0) {
+        return detail::invalid_draw_argument();
+    }
+
+    const auto center_x = static_cast<long long>(cx);
+    const auto center_y = static_cast<long long>(cy);
+    const auto rx = static_cast<long long>(radius_x);
+    const auto ry = static_cast<long long>(radius_y);
+
+    if (rx == 0 && ry == 0) {
+        detail::plot_clipped(img, center_x, center_y, color);
+        return {};
+    }
+    if (rx == 0) {
+        for (auto y = -ry; y <= ry; ++y) {
+            detail::plot_clipped(img, center_x, center_y + y, color);
+        }
+        return {};
+    }
+    if (ry == 0) {
+        for (auto x = -rx; x <= rx; ++x) {
+            detail::plot_clipped(img, center_x + x, center_y, color);
+        }
+        return {};
+    }
+
+    const auto plot_symmetric = [&img, center_x, center_y, color](
+                                    long long x,
+                                    long long y) noexcept -> void {
+        detail::plot_clipped(img, center_x + x, center_y + y, color);
+        detail::plot_clipped(img, center_x - x, center_y + y, color);
+        detail::plot_clipped(img, center_x - x, center_y - y, color);
+        detail::plot_clipped(img, center_x + x, center_y - y, color);
+    };
+
+    const auto rx_ld = static_cast<long double>(rx);
+    const auto ry_ld = static_cast<long double>(ry);
+    const auto rx_sq = rx_ld * rx_ld;
+    const auto ry_sq = ry_ld * ry_ld;
+
+    auto x = 0LL;
+    auto y = ry;
+    auto dx = 0.0L;
+    auto dy = 2.0L * rx_sq * static_cast<long double>(y);
+    auto decision = ry_sq - rx_sq * ry_ld + 0.25L * rx_sq;
+
+    while (dx < dy) {
+        plot_symmetric(x, y);
+        ++x;
+        dx += 2.0L * ry_sq;
+        if (decision < 0.0L) {
+            decision += dx + ry_sq;
+        } else {
+            --y;
+            dy -= 2.0L * rx_sq;
+            decision += dx - dy + ry_sq;
+        }
+    }
+
+    const auto x_half = static_cast<long double>(x) + 0.5L;
+    const auto y_minus_one = static_cast<long double>(y) - 1.0L;
+    decision = ry_sq * x_half * x_half +
+               rx_sq * y_minus_one * y_minus_one -
+               rx_sq * ry_sq;
+
+    while (y >= 0) {
+        plot_symmetric(x, y);
+        --y;
+        dy -= 2.0L * rx_sq;
+        if (decision > 0.0L) {
+            decision += rx_sq - dy;
+        } else {
+            ++x;
+            dx += 2.0L * ry_sq;
+            decision += dx - dy + rx_sq;
+        }
+    }
+
+    return {};
+}
+
+/**
+ * @brief Draws a clipped one-pixel ellipse outline from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse(
+    canvas<Width, Height, Policy>& img,
+    const point& center,
+    int radius_x,
+    int radius_y,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_ellipse(img, center.x, center.y, radius_x, radius_y, color);
+}
+
+/**
+ * @brief Fills a clipped ellipse.
+ *
+ * @return `error_t::invalid_argument` if either radius is negative.
+ * Otherwise returns success, including ellipses that are fully outside the
+ * canvas.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse(
+    canvas<Width, Height, Policy>& img,
+    int cx,
+    int cy,
+    int radius_x,
+    int radius_y,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (radius_x < 0 || radius_y < 0) {
+        return detail::invalid_draw_argument();
+    }
+
+    const auto center_x = static_cast<long long>(cx);
+    const auto center_y = static_cast<long long>(cy);
+    const auto rx = static_cast<long long>(radius_x);
+    const auto ry = static_cast<long long>(radius_y);
+
+    if (rx == 0 && ry == 0) {
+        detail::plot_clipped(img, center_x, center_y, color);
+        return {};
+    }
+    if (rx == 0) {
+        for (auto y = -ry; y <= ry; ++y) {
+            detail::plot_clipped(img, center_x, center_y + y, color);
+        }
+        return {};
+    }
+    if (ry == 0) {
+        detail::fill_span_clipped(img, center_x - rx, center_x + rx, center_y, color);
+        return {};
+    }
+
+    const auto rx_ld = static_cast<long double>(rx);
+    const auto ry_ld = static_cast<long double>(ry);
+    const auto ry_sq = ry_ld * ry_ld;
+
+    for (auto y = -ry; y <= ry; ++y) {
+        const auto y_ld = static_cast<long double>(y);
+        const auto normalized = 1.0L - y_ld * y_ld / ry_sq;
+        const auto x_extent = normalized <= 0.0L
+            ? 0LL
+            : static_cast<long long>(std::floor(rx_ld * std::sqrt(normalized)));
+        detail::fill_span_clipped(
+            img,
+            center_x - x_extent,
+            center_x + x_extent,
+            center_y + y,
+            color);
+    }
+
+    return {};
+}
+
+/**
+ * @brief Fills a clipped ellipse from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse(
+    canvas<Width, Height, Policy>& img,
+    const point& center,
+    int radius_x,
+    int radius_y,
+    pixel color) noexcept -> xer::result<void>
+{
+    return fill_ellipse(img, center.x, center.y, radius_x, radius_y, color);
+}
+
+/**
+ * @brief Draws a clipped antialiased circle outline.
+ *
+ * @return `error_t::invalid_argument` if a center coordinate, radius, or
+ * width is not finite; if `radius` is negative; or if `width` is less than or
+ * equal to zero. Otherwise returns success.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius,
+    float width,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (!detail::finite(cx) || !detail::finite(cy) ||
+        !detail::finite(radius) || !detail::finite(width) ||
+        radius < 0.0f || !(width > 0.0f)) {
+        return detail::invalid_draw_argument();
+    }
+
+    if (radius == 0.0f) {
+        detail::draw_aa_disc(img, cx, cy, width * 0.5f, color);
+        return {};
+    }
+
+    const auto half_width = width * 0.5f;
+    const auto extent = radius + half_width + 0.5f;
+    int first_x = 0;
+    int first_y = 0;
+    int last_x = -1;
+    int last_y = -1;
+    if (!detail::make_pixel_bounds(
+            img,
+            cx - extent,
+            cy - extent,
+            cx + extent,
+            cy + extent,
+            first_x,
+            first_y,
+            last_x,
+            last_y)) {
+        return {};
+    }
+
+    for (auto y = first_y; y <= last_y; ++y) {
+        for (auto x = first_x; x <= last_x; ++x) {
+            const auto dx = static_cast<float>(x) - cx;
+            const auto dy = static_cast<float>(y) - cy;
+            const auto distance = std::sqrt(dx * dx + dy * dy);
+            const auto coverage = half_width + 0.5f - std::abs(distance - radius);
+            if (coverage > 0.0f) {
+                img.set_pixel_unchecked(
+                    static_cast<std::size_t>(x),
+                    static_cast<std::size_t>(y),
+                    color,
+                    coverage);
+            }
+        }
+    }
+
+    return {};
+}
+
+/**
+ * @brief Draws a clipped antialiased circle outline with a width of one pixel.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_circle_aa(img, cx, cy, radius, 1.0f, color);
+}
+
+/**
+ * @brief Draws a clipped antialiased circle outline from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(
+    canvas<Width, Height, Policy>& img,
+    const pointf& center,
+    float radius,
+    float width,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_circle_aa(img, center.x, center.y, radius, width, color);
+}
+
+/**
+ * @brief Draws a clipped antialiased circle outline with a width of one pixel.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle_aa(
+    canvas<Width, Height, Policy>& img,
+    const pointf& center,
+    float radius,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_circle_aa(img, center, radius, 1.0f, color);
+}
+
+/**
+ * @brief Fills a clipped antialiased circle.
+ *
+ * @return `error_t::invalid_argument` if a center coordinate or radius is not
+ * finite, or if `radius` is negative. Otherwise returns success.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle_aa(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (!detail::finite(cx) || !detail::finite(cy) ||
+        !detail::finite(radius) || radius < 0.0f) {
+        return detail::invalid_draw_argument();
+    }
+
+    if (radius == 0.0f) {
+        detail::draw_aa_disc(img, cx, cy, 0.5f, color);
+        return {};
+    }
+
+    const auto extent = radius + 0.5f;
+    int first_x = 0;
+    int first_y = 0;
+    int last_x = -1;
+    int last_y = -1;
+    if (!detail::make_pixel_bounds(
+            img,
+            cx - extent,
+            cy - extent,
+            cx + extent,
+            cy + extent,
+            first_x,
+            first_y,
+            last_x,
+            last_y)) {
+        return {};
+    }
+
+    for (auto y = first_y; y <= last_y; ++y) {
+        for (auto x = first_x; x <= last_x; ++x) {
+            const auto dx = static_cast<float>(x) - cx;
+            const auto dy = static_cast<float>(y) - cy;
+            const auto distance = std::sqrt(dx * dx + dy * dy);
+            const auto coverage = radius + 0.5f - distance;
+            if (coverage > 0.0f) {
+                img.set_pixel_unchecked(
+                    static_cast<std::size_t>(x),
+                    static_cast<std::size_t>(y),
+                    color,
+                    coverage);
+            }
+        }
+    }
+
+    return {};
+}
+
+/**
+ * @brief Fills a clipped antialiased circle from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle_aa(
+    canvas<Width, Height, Policy>& img,
+    const pointf& center,
+    float radius,
+    pixel color) noexcept -> xer::result<void>
+{
+    return fill_circle_aa(img, center.x, center.y, radius, color);
+}
+
+/**
+ * @brief Draws a clipped antialiased ellipse outline.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius_x,
+    float radius_y,
+    float width,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (!detail::finite(cx) || !detail::finite(cy) ||
+        !detail::finite(radius_x) || !detail::finite(radius_y) ||
+        !detail::finite(width) || radius_x < 0.0f || radius_y < 0.0f ||
+        !(width > 0.0f)) {
+        return detail::invalid_draw_argument();
+    }
+
+    if (radius_x == 0.0f && radius_y == 0.0f) {
+        detail::draw_aa_disc(img, cx, cy, width * 0.5f, color);
+        return {};
+    }
+    if (radius_x == 0.0f) {
+        return draw_line_aa(img, cx, cy - radius_y, cx, cy + radius_y, width, color);
+    }
+    if (radius_y == 0.0f) {
+        return draw_line_aa(img, cx - radius_x, cy, cx + radius_x, cy, width, color);
+    }
+
+    const auto half_width = width * 0.5f;
+    const auto extent_x = radius_x + half_width + 0.5f;
+    const auto extent_y = radius_y + half_width + 0.5f;
+    int first_x = 0;
+    int first_y = 0;
+    int last_x = -1;
+    int last_y = -1;
+    if (!detail::make_pixel_bounds(
+            img,
+            cx - extent_x,
+            cy - extent_y,
+            cx + extent_x,
+            cy + extent_y,
+            first_x,
+            first_y,
+            last_x,
+            last_y)) {
+        return {};
+    }
+
+    for (auto y = first_y; y <= last_y; ++y) {
+        for (auto x = first_x; x <= last_x; ++x) {
+            const auto dx = static_cast<float>(x) - cx;
+            const auto dy = static_cast<float>(y) - cy;
+            const auto distance = detail::ellipse_distance_estimate(
+                dx,
+                dy,
+                radius_x,
+                radius_y);
+            const auto coverage = half_width + 0.5f - distance;
+            if (coverage > 0.0f) {
+                img.set_pixel_unchecked(
+                    static_cast<std::size_t>(x),
+                    static_cast<std::size_t>(y),
+                    color,
+                    coverage);
+            }
+        }
+    }
+
+    return {};
+}
+
+/**
+ * @brief Draws a clipped antialiased ellipse outline with a width of one pixel.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius_x,
+    float radius_y,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_ellipse_aa(img, cx, cy, radius_x, radius_y, 1.0f, color);
+}
+
+/**
+ * @brief Draws a clipped antialiased ellipse outline from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(
+    canvas<Width, Height, Policy>& img,
+    const pointf& center,
+    float radius_x,
+    float radius_y,
+    float width,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_ellipse_aa(img, center.x, center.y, radius_x, radius_y, width, color);
+}
+
+/**
+ * @brief Draws a clipped antialiased ellipse outline with a width of one pixel.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_aa(
+    canvas<Width, Height, Policy>& img,
+    const pointf& center,
+    float radius_x,
+    float radius_y,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_ellipse_aa(img, center, radius_x, radius_y, 1.0f, color);
+}
+
+/**
+ * @brief Fills a clipped antialiased ellipse.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse_aa(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius_x,
+    float radius_y,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (!detail::finite(cx) || !detail::finite(cy) ||
+        !detail::finite(radius_x) || !detail::finite(radius_y) ||
+        radius_x < 0.0f || radius_y < 0.0f) {
+        return detail::invalid_draw_argument();
+    }
+
+    if (radius_x == 0.0f && radius_y == 0.0f) {
+        detail::draw_aa_disc(img, cx, cy, 0.5f, color);
+        return {};
+    }
+    if (radius_x == 0.0f) {
+        return draw_line_aa(img, cx, cy - radius_y, cx, cy + radius_y, 1.0f, color);
+    }
+    if (radius_y == 0.0f) {
+        return draw_line_aa(img, cx - radius_x, cy, cx + radius_x, cy, 1.0f, color);
+    }
+
+    const auto extent_x = radius_x + 0.5f;
+    const auto extent_y = radius_y + 0.5f;
+    int first_x = 0;
+    int first_y = 0;
+    int last_x = -1;
+    int last_y = -1;
+    if (!detail::make_pixel_bounds(
+            img,
+            cx - extent_x,
+            cy - extent_y,
+            cx + extent_x,
+            cy + extent_y,
+            first_x,
+            first_y,
+            last_x,
+            last_y)) {
+        return {};
+    }
+
+    for (auto y = first_y; y <= last_y; ++y) {
+        for (auto x = first_x; x <= last_x; ++x) {
+            const auto dx = static_cast<float>(x) - cx;
+            const auto dy = static_cast<float>(y) - cy;
+            const auto signed_distance = detail::ellipse_signed_distance_estimate(
+                dx,
+                dy,
+                radius_x,
+                radius_y);
+            const auto coverage = 0.5f - signed_distance;
+            if (coverage > 0.0f) {
+                img.set_pixel_unchecked(
+                    static_cast<std::size_t>(x),
+                    static_cast<std::size_t>(y),
+                    color,
+                    coverage);
+            }
+        }
+    }
+
+    return {};
+}
+
+/**
+ * @brief Fills a clipped antialiased ellipse from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_ellipse_aa(
+    canvas<Width, Height, Policy>& img,
+    const pointf& center,
+    float radius_x,
+    float radius_y,
+    pixel color) noexcept -> xer::result<void>
+{
+    return fill_ellipse_aa(img, center.x, center.y, radius_x, radius_y, color);
+}
+
+/**
+ * @brief Draws a clipped one-pixel circular arc.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc(
+    canvas<Width, Height, Policy>& img,
+    int cx,
+    int cy,
+    int radius,
+    float start_angle,
+    float sweep_angle,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (radius < 0 || !detail::finite(start_angle) || !detail::finite(sweep_angle)) {
+        return detail::invalid_draw_argument();
+    }
+    if (radius == 0) {
+        detail::plot_clipped(img, cx, cy, color);
+        return {};
+    }
+    if (std::abs(sweep_angle) >= detail::image_tau) {
+        return draw_circle(img, cx, cy, radius, color);
+    }
+
+    const auto radius_ld = static_cast<long double>(radius);
+    const auto start_ld = static_cast<long double>(start_angle);
+    const auto sweep_ld = static_cast<long double>(sweep_angle);
+    const auto plot_at = [&img, cx, cy, radius_ld, color](long double angle) noexcept -> void {
+        const auto x = static_cast<long long>(std::llround(
+            static_cast<long double>(cx) + radius_ld * std::cos(angle)));
+        const auto y = static_cast<long long>(std::llround(
+            static_cast<long double>(cy) - radius_ld * std::sin(angle)));
+        detail::plot_clipped(img, x, y, color);
+    };
+
+    if (sweep_angle == 0.0f) {
+        plot_at(start_ld);
+        return {};
+    }
+
+    const auto estimated_steps = std::ceil(
+        std::abs(sweep_ld) * std::max(radius_ld, 1.0L) * 2.0L);
+    const auto steps = estimated_steps < 1.0L
+        ? std::size_t{1}
+        : static_cast<std::size_t>(estimated_steps);
+
+    for (std::size_t step = 0; step <= steps; ++step) {
+        const auto t = static_cast<long double>(step) / static_cast<long double>(steps);
+        plot_at(start_ld + sweep_ld * t);
+    }
+
+    return {};
+}
+
+/**
+ * @brief Draws a clipped one-pixel circular arc from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc(
+    canvas<Width, Height, Policy>& img,
+    const point& center,
+    int radius,
+    float start_angle,
+    float sweep_angle,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_arc(img, center.x, center.y, radius, start_angle, sweep_angle, color);
+}
+
+/**
+ * @brief Draws a clipped antialiased circular arc.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius,
+    float start_angle,
+    float sweep_angle,
+    float width,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (!detail::finite(cx) || !detail::finite(cy) ||
+        !detail::finite(radius) || !detail::finite(start_angle) ||
+        !detail::finite(sweep_angle) || !detail::finite(width) ||
+        radius < 0.0f || !(width > 0.0f)) {
+        return detail::invalid_draw_argument();
+    }
+    if (radius == 0.0f) {
+        detail::draw_aa_disc(img, cx, cy, width * 0.5f, color);
+        return {};
+    }
+    if (std::abs(sweep_angle) >= detail::image_tau) {
+        return draw_circle_aa(img, cx, cy, radius, width, color);
+    }
+
+    const auto endpoint = [cx, cy, radius](float angle) noexcept -> pointf {
+        return pointf{
+            cx + radius * std::cos(angle),
+            cy - radius * std::sin(angle),
+        };
+    };
+    const auto first = endpoint(start_angle);
+    if (sweep_angle == 0.0f) {
+        detail::draw_aa_disc(img, first.x, first.y, width * 0.5f, color);
+        return {};
+    }
+    const auto last = endpoint(start_angle + sweep_angle);
+
+    const auto half_width = width * 0.5f;
+    const auto extent = radius + half_width + 0.5f;
+    int first_x = 0;
+    int first_y = 0;
+    int last_x = -1;
+    int last_y = -1;
+    if (!detail::make_pixel_bounds(
+            img,
+            cx - extent,
+            cy - extent,
+            cx + extent,
+            cy + extent,
+            first_x,
+            first_y,
+            last_x,
+            last_y)) {
+        return {};
+    }
+
+    for (auto y = first_y; y <= last_y; ++y) {
+        for (auto x = first_x; x <= last_x; ++x) {
+            const auto px = static_cast<float>(x);
+            const auto py = static_cast<float>(y);
+            const auto dx = px - cx;
+            const auto dy = py - cy;
+            const auto radial_distance = std::sqrt(dx * dx + dy * dy);
+            auto coverage = 0.0f;
+
+            if (radial_distance > 0.0f) {
+                const auto angle = std::atan2(-dy, dx);
+                if (detail::angle_in_sweep(angle, start_angle, sweep_angle)) {
+                    coverage = half_width + 0.5f - std::abs(radial_distance - radius);
+                }
+            } else if (radius <= half_width + 0.5f) {
+                coverage = half_width + 0.5f - radius;
+            }
+
+            const auto first_dx = px - first.x;
+            const auto first_dy = py - first.y;
+            const auto last_dx = px - last.x;
+            const auto last_dy = py - last.y;
+            const auto first_cap = half_width + 0.5f -
+                std::sqrt(first_dx * first_dx + first_dy * first_dy);
+            const auto last_cap = half_width + 0.5f -
+                std::sqrt(last_dx * last_dx + last_dy * last_dy);
+            coverage = std::max(coverage, std::max(first_cap, last_cap));
+
+            if (coverage > 0.0f) {
+                img.set_pixel_unchecked(
+                    static_cast<std::size_t>(x),
+                    static_cast<std::size_t>(y),
+                    color,
+                    coverage);
+            }
+        }
+    }
+
+    return {};
+}
+
+/**
+ * @brief Draws a clipped antialiased circular arc with a width of one pixel.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius,
+    float start_angle,
+    float sweep_angle,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_arc_aa(img, cx, cy, radius, start_angle, sweep_angle, 1.0f, color);
+}
+
+/**
+ * @brief Draws a clipped antialiased circular arc from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(
+    canvas<Width, Height, Policy>& img,
+    const pointf& center,
+    float radius,
+    float start_angle,
+    float sweep_angle,
+    float width,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_arc_aa(
+        img,
+        center.x,
+        center.y,
+        radius,
+        start_angle,
+        sweep_angle,
+        width,
+        color);
+}
+
+/**
+ * @brief Draws a clipped antialiased circular arc with a width of one pixel.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_arc_aa(
+    canvas<Width, Height, Policy>& img,
+    const pointf& center,
+    float radius,
+    float start_angle,
+    float sweep_angle,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_arc_aa(img, center, radius, start_angle, sweep_angle, 1.0f, color);
+}
+
+/**
+ * @brief Draws a clipped one-pixel elliptical arc.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc(
+    canvas<Width, Height, Policy>& img,
+    int cx,
+    int cy,
+    int radius_x,
+    int radius_y,
+    float start_angle,
+    float sweep_angle,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (radius_x < 0 || radius_y < 0 ||
+        !detail::finite(start_angle) || !detail::finite(sweep_angle)) {
+        return detail::invalid_draw_argument();
+    }
+    if (radius_x == 0 && radius_y == 0) {
+        detail::plot_clipped(img, cx, cy, color);
+        return {};
+    }
+    if (std::abs(sweep_angle) >= detail::image_tau) {
+        return draw_ellipse(img, cx, cy, radius_x, radius_y, color);
+    }
+
+    const auto rx_ld = static_cast<long double>(radius_x);
+    const auto ry_ld = static_cast<long double>(radius_y);
+    const auto start_ld = static_cast<long double>(start_angle);
+    const auto sweep_ld = static_cast<long double>(sweep_angle);
+    const auto plot_at = [&img, cx, cy, rx_ld, ry_ld, color](long double angle) noexcept -> void {
+        const auto x = static_cast<long long>(std::llround(
+            static_cast<long double>(cx) + rx_ld * std::cos(angle)));
+        const auto y = static_cast<long long>(std::llround(
+            static_cast<long double>(cy) - ry_ld * std::sin(angle)));
+        detail::plot_clipped(img, x, y, color);
+    };
+
+    if (sweep_angle == 0.0f) {
+        plot_at(start_ld);
+        return {};
+    }
+
+    const auto max_radius = std::max(rx_ld, ry_ld);
+    const auto estimated_steps = std::ceil(
+        std::abs(sweep_ld) * std::max(max_radius, 1.0L) * 2.0L);
+    const auto steps = estimated_steps < 1.0L
+        ? std::size_t{1}
+        : static_cast<std::size_t>(estimated_steps);
+
+    for (std::size_t step = 0; step <= steps; ++step) {
+        const auto t = static_cast<long double>(step) / static_cast<long double>(steps);
+        plot_at(start_ld + sweep_ld * t);
+    }
+
+    return {};
+}
+
+/**
+ * @brief Draws a clipped one-pixel elliptical arc from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc(
+    canvas<Width, Height, Policy>& img,
+    const point& center,
+    int radius_x,
+    int radius_y,
+    float start_angle,
+    float sweep_angle,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_ellipse_arc(
+        img,
+        center.x,
+        center.y,
+        radius_x,
+        radius_y,
+        start_angle,
+        sweep_angle,
+        color);
+}
+
+/**
+ * @brief Draws a clipped antialiased elliptical arc.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius_x,
+    float radius_y,
+    float start_angle,
+    float sweep_angle,
+    float width,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (!detail::finite(cx) || !detail::finite(cy) ||
+        !detail::finite(radius_x) || !detail::finite(radius_y) ||
+        !detail::finite(start_angle) || !detail::finite(sweep_angle) ||
+        !detail::finite(width) || radius_x < 0.0f || radius_y < 0.0f ||
+        !(width > 0.0f)) {
+        return detail::invalid_draw_argument();
+    }
+    if (radius_x == 0.0f && radius_y == 0.0f) {
+        detail::draw_aa_disc(img, cx, cy, width * 0.5f, color);
+        return {};
+    }
+    if (std::abs(sweep_angle) >= detail::image_tau) {
+        return draw_ellipse_aa(img, cx, cy, radius_x, radius_y, width, color);
+    }
+
+    const auto endpoint = [cx, cy, radius_x, radius_y](float angle) noexcept -> pointf {
+        return pointf{
+            cx + radius_x * std::cos(angle),
+            cy - radius_y * std::sin(angle),
+        };
+    };
+    const auto first = endpoint(start_angle);
+    if (sweep_angle == 0.0f) {
+        detail::draw_aa_disc(img, first.x, first.y, width * 0.5f, color);
+        return {};
+    }
+    const auto last = endpoint(start_angle + sweep_angle);
+
+    if (radius_x == 0.0f || radius_y == 0.0f) {
+        const auto max_radius = std::max(radius_x, radius_y);
+        const auto estimated_steps = std::ceil(
+            std::abs(sweep_angle) * std::max(max_radius, 1.0f) * 2.0f);
+        const auto steps = estimated_steps < 1.0f
+            ? std::size_t{1}
+            : static_cast<std::size_t>(estimated_steps);
+        pointf previous = first;
+        for (std::size_t step = 1; step <= steps; ++step) {
+            const auto t = static_cast<float>(step) / static_cast<float>(steps);
+            const auto current = endpoint(start_angle + sweep_angle * t);
+            const auto segment_result = draw_line_aa(
+                img,
+                previous.x,
+                previous.y,
+                current.x,
+                current.y,
+                width,
+                color);
+            if (!segment_result) {
+                return std::unexpected(segment_result.error());
+            }
+            previous = current;
+        }
+        return {};
+    }
+
+    const auto half_width = width * 0.5f;
+    const auto extent_x = radius_x + half_width + 0.5f;
+    const auto extent_y = radius_y + half_width + 0.5f;
+    int first_x = 0;
+    int first_y = 0;
+    int last_x = -1;
+    int last_y = -1;
+    if (!detail::make_pixel_bounds(
+            img,
+            cx - extent_x,
+            cy - extent_y,
+            cx + extent_x,
+            cy + extent_y,
+            first_x,
+            first_y,
+            last_x,
+            last_y)) {
+        return {};
+    }
+
+    for (auto y = first_y; y <= last_y; ++y) {
+        for (auto x = first_x; x <= last_x; ++x) {
+            const auto px = static_cast<float>(x);
+            const auto py = static_cast<float>(y);
+            const auto dx = px - cx;
+            const auto dy = py - cy;
+            auto coverage = 0.0f;
+
+            const auto angle = detail::ellipse_parameter_angle(dx, dy, radius_x, radius_y);
+            if (detail::angle_in_sweep(angle, start_angle, sweep_angle)) {
+                const auto distance = detail::ellipse_distance_estimate(
+                    dx,
+                    dy,
+                    radius_x,
+                    radius_y);
+                coverage = half_width + 0.5f - distance;
+            }
+
+            const auto first_dx = px - first.x;
+            const auto first_dy = py - first.y;
+            const auto last_dx = px - last.x;
+            const auto last_dy = py - last.y;
+            const auto first_cap = half_width + 0.5f -
+                std::sqrt(first_dx * first_dx + first_dy * first_dy);
+            const auto last_cap = half_width + 0.5f -
+                std::sqrt(last_dx * last_dx + last_dy * last_dy);
+            coverage = std::max(coverage, std::max(first_cap, last_cap));
+
+            if (coverage > 0.0f) {
+                img.set_pixel_unchecked(
+                    static_cast<std::size_t>(x),
+                    static_cast<std::size_t>(y),
+                    color,
+                    coverage);
+            }
+        }
+    }
+
+    return {};
+}
+
+/**
+ * @brief Draws a clipped antialiased elliptical arc with a width of one pixel.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(
+    canvas<Width, Height, Policy>& img,
+    float cx,
+    float cy,
+    float radius_x,
+    float radius_y,
+    float start_angle,
+    float sweep_angle,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_ellipse_arc_aa(
+        img,
+        cx,
+        cy,
+        radius_x,
+        radius_y,
+        start_angle,
+        sweep_angle,
+        1.0f,
+        color);
+}
+
+/**
+ * @brief Draws a clipped antialiased elliptical arc from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(
+    canvas<Width, Height, Policy>& img,
+    const pointf& center,
+    float radius_x,
+    float radius_y,
+    float start_angle,
+    float sweep_angle,
+    float width,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_ellipse_arc_aa(
+        img,
+        center.x,
+        center.y,
+        radius_x,
+        radius_y,
+        start_angle,
+        sweep_angle,
+        width,
+        color);
+}
+
+/**
+ * @brief Draws a clipped antialiased elliptical arc with a width of one pixel.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_ellipse_arc_aa(
+    canvas<Width, Height, Policy>& img,
+    const pointf& center,
+    float radius_x,
+    float radius_y,
+    float start_angle,
+    float sweep_angle,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_ellipse_arc_aa(
+        img,
+        center,
+        radius_x,
+        radius_y,
+        start_angle,
+        sweep_angle,
+        1.0f,
+        color);
 }
 
 /**

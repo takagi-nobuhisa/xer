@@ -1,4 +1,5 @@
-﻿#include <stdexcept>
+﻿#include <limits>
+#include <stdexcept>
 #include <type_traits>
 
 #include <xer/image.h>
@@ -735,6 +736,436 @@ auto test_draw_geometry_overloads() -> bool
 }
 
 
+
+auto test_draw_line_aa_invalid_arguments() -> bool
+{
+    xer::image::canvas<5, 5> img;
+    img.clear();
+
+    const auto zero_width = xer::image::draw_line_aa(
+        img,
+        1.0f,
+        1.0f,
+        3.0f,
+        3.0f,
+        0.0f,
+        xer::image::pixel(0xffu, 0u, 0u));
+    if (zero_width.has_value() ||
+        zero_width.error().code != xer::error_t::invalid_argument) {
+        return false;
+    }
+
+    const auto infinite_coordinate = xer::image::draw_line_aa(
+        img,
+        std::numeric_limits<float>::infinity(),
+        1.0f,
+        3.0f,
+        3.0f,
+        xer::image::pixel(0xffu, 0u, 0u));
+    if (infinite_coordinate.has_value() ||
+        infinite_coordinate.error().code != xer::error_t::invalid_argument) {
+        return false;
+    }
+
+    return img.get_pixel(1, 1).argb == 0xff000000u &&
+           img.get_pixel(3, 3).argb == 0xff000000u;
+}
+
+auto test_draw_circle_aa() -> bool
+{
+    xer::image::canvas<11, 11> img;
+    img.clear();
+
+    const auto result = xer::image::draw_circle_aa(
+        img,
+        xer::image::pointf{5.0f, 5.0f},
+        3.0f,
+        xer::image::pixel(0xffu, 0u, 0u));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(8, 5).argb == 0xffff0000u &&
+           img.get_pixel(2, 5).argb == 0xffff0000u &&
+           img.get_pixel(5, 2).argb == 0xffff0000u &&
+           img.get_pixel(5, 8).argb == 0xffff0000u &&
+           img.get_pixel(5, 5).argb == 0xff000000u;
+}
+
+auto test_draw_circle_aa_width_and_degenerate_radius() -> bool
+{
+    xer::image::canvas<11, 11> img;
+    img.clear();
+
+    const auto wide = xer::image::draw_circle_aa(
+        img,
+        5.0f,
+        5.0f,
+        0.0f,
+        3.0f,
+        xer::image::pixel(0u, 0xffu, 0u));
+    if (!wide.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(5, 5).argb == 0xff00ff00u &&
+           img.get_pixel(6, 5).green() > 0u &&
+           img.get_pixel(7, 5).argb == 0xff000000u;
+}
+
+auto test_fill_circle_aa() -> bool
+{
+    xer::image::canvas<11, 11> img;
+    img.clear();
+
+    const auto filled = xer::image::fill_circle_aa(
+        img,
+        5.0f,
+        5.0f,
+        3.0f,
+        xer::image::pixel(0u, 0u, 0xffu));
+    if (!filled.has_value()) {
+        return false;
+    }
+
+    if (img.get_pixel(5, 5).argb != 0xff0000ffu ||
+        img.get_pixel(8, 5).blue() == 0u ||
+        img.get_pixel(9, 5).argb != 0xff000000u) {
+        return false;
+    }
+
+    img.clear();
+    const auto point = xer::image::fill_circle_aa(
+        img,
+        xer::image::pointf{5.0f, 5.0f},
+        0.0f,
+        xer::image::pixel(0xffu, 0xffu, 0u));
+
+    return point.has_value() &&
+           img.get_pixel(5, 5).argb == 0xffffff00u &&
+           img.get_pixel(6, 5).argb == 0xff000000u;
+}
+
+auto test_draw_ellipse() -> bool
+{
+    xer::image::canvas<13, 11> img;
+    img.clear();
+
+    const auto result = xer::image::draw_ellipse(
+        img,
+        xer::image::point{6, 5},
+        4,
+        2,
+        xer::image::pixel(0xffu, 0u, 0xffu));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(10, 5).argb == 0xffff00ffu &&
+           img.get_pixel(2, 5).argb == 0xffff00ffu &&
+           img.get_pixel(6, 3).argb == 0xffff00ffu &&
+           img.get_pixel(6, 7).argb == 0xffff00ffu &&
+           img.get_pixel(6, 5).argb == 0xff000000u;
+}
+
+auto test_fill_ellipse() -> bool
+{
+    xer::image::canvas<13, 11> img;
+    img.clear();
+
+    const auto result = xer::image::fill_ellipse(
+        img,
+        6,
+        5,
+        4,
+        2,
+        xer::image::pixel(0u, 0xffu, 0xffu));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(6, 5).argb == 0xff00ffffu &&
+           img.get_pixel(10, 5).argb == 0xff00ffffu &&
+           img.get_pixel(6, 3).argb == 0xff00ffffu &&
+           img.get_pixel(1, 5).argb == 0xff000000u;
+}
+
+auto test_ellipse_degenerate_radii() -> bool
+{
+    xer::image::canvas<11, 11> img;
+    img.clear();
+
+    const auto point = xer::image::draw_ellipse(
+        img,
+        2,
+        2,
+        0,
+        0,
+        xer::image::pixel(0xffu, 0u, 0u));
+    const auto vertical = xer::image::draw_ellipse(
+        img,
+        5,
+        5,
+        0,
+        2,
+        xer::image::pixel(0u, 0xffu, 0u));
+    const auto horizontal = xer::image::fill_ellipse(
+        img,
+        5,
+        8,
+        2,
+        0,
+        xer::image::pixel(0u, 0u, 0xffu));
+    if (!point.has_value() || !vertical.has_value() || !horizontal.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(2, 2).argb == 0xffff0000u &&
+           img.get_pixel(5, 3).argb == 0xff00ff00u &&
+           img.get_pixel(5, 5).argb == 0xff00ff00u &&
+           img.get_pixel(5, 7).argb == 0xff00ff00u &&
+           img.get_pixel(3, 8).argb == 0xff0000ffu &&
+           img.get_pixel(5, 8).argb == 0xff0000ffu &&
+           img.get_pixel(7, 8).argb == 0xff0000ffu;
+}
+
+auto test_draw_ellipse_aa() -> bool
+{
+    xer::image::canvas<15, 13> img;
+    img.clear();
+
+    const auto result = xer::image::draw_ellipse_aa(
+        img,
+        xer::image::pointf{7.0f, 6.0f},
+        4.0f,
+        2.0f,
+        2.0f,
+        xer::image::pixel(0xffu, 0xffu, 0u));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(11, 6).argb == 0xffffff00u &&
+           img.get_pixel(3, 6).argb == 0xffffff00u &&
+           img.get_pixel(7, 4).argb == 0xffffff00u &&
+           img.get_pixel(7, 8).argb == 0xffffff00u &&
+           img.get_pixel(7, 6).argb == 0xff000000u;
+}
+
+auto test_fill_ellipse_aa() -> bool
+{
+    xer::image::canvas<15, 13> img;
+    img.clear();
+
+    const auto result = xer::image::fill_ellipse_aa(
+        img,
+        7.0f,
+        6.0f,
+        4.0f,
+        2.0f,
+        xer::image::pixel(0xffu, 0u, 0u));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    if (img.get_pixel(7, 6).argb != 0xffff0000u ||
+        img.get_pixel(11, 6).red() == 0u ||
+        img.get_pixel(12, 6).argb != 0xff000000u) {
+        return false;
+    }
+
+    img.clear();
+    const auto vertical = xer::image::fill_ellipse_aa(
+        img,
+        7.0f,
+        6.0f,
+        0.0f,
+        2.0f,
+        xer::image::pixel(0u, 0xffu, 0u));
+    return vertical.has_value() &&
+           img.get_pixel(7, 4).green() > 0u &&
+           img.get_pixel(7, 6).argb == 0xff00ff00u &&
+           img.get_pixel(7, 8).green() > 0u;
+}
+
+auto test_draw_arc() -> bool
+{
+    constexpr auto half_pi = 1.57079632679f;
+    xer::image::canvas<13, 13> img;
+    img.clear();
+
+    const auto result = xer::image::draw_arc(
+        img,
+        xer::image::point{6, 6},
+        4,
+        0.0f,
+        half_pi,
+        xer::image::pixel(0u, 0xffu, 0u));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(10, 6).argb == 0xff00ff00u &&
+           img.get_pixel(6, 2).argb == 0xff00ff00u &&
+           img.get_pixel(2, 6).argb == 0xff000000u;
+}
+
+auto test_draw_arc_degenerate_sweep_and_full_turn() -> bool
+{
+    constexpr auto tau = 6.28318530718f;
+    xer::image::canvas<13, 13> img;
+    img.clear();
+
+    const auto zero_sweep = xer::image::draw_arc(
+        img,
+        6,
+        6,
+        4,
+        0.0f,
+        0.0f,
+        xer::image::pixel(0xffu, 0u, 0u));
+    if (!zero_sweep.has_value()) {
+        return false;
+    }
+    if (img.get_pixel(10, 6).argb != 0xffff0000u ||
+        img.get_pixel(6, 2).argb != 0xff000000u) {
+        return false;
+    }
+
+    img.clear();
+    const auto full_turn = xer::image::draw_arc(
+        img,
+        6,
+        6,
+        4,
+        0.0f,
+        tau,
+        xer::image::pixel(0u, 0u, 0xffu));
+    return full_turn.has_value() &&
+           img.get_pixel(10, 6).argb == 0xff0000ffu &&
+           img.get_pixel(2, 6).argb == 0xff0000ffu &&
+           img.get_pixel(6, 2).argb == 0xff0000ffu &&
+           img.get_pixel(6, 10).argb == 0xff0000ffu;
+}
+
+auto test_draw_arc_aa() -> bool
+{
+    constexpr auto half_pi = 1.57079632679f;
+    xer::image::canvas<13, 13> img;
+    img.clear();
+
+    const auto result = xer::image::draw_arc_aa(
+        img,
+        xer::image::pointf{6.0f, 6.0f},
+        4.0f,
+        0.0f,
+        half_pi,
+        2.0f,
+        xer::image::pixel(0u, 0u, 0xffu));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(10, 6).argb == 0xff0000ffu &&
+           img.get_pixel(6, 2).argb == 0xff0000ffu &&
+           img.get_pixel(2, 6).argb == 0xff000000u;
+}
+
+auto test_draw_ellipse_arc() -> bool
+{
+    constexpr auto half_pi = 1.57079632679f;
+    xer::image::canvas<15, 13> img;
+    img.clear();
+
+    const auto result = xer::image::draw_ellipse_arc(
+        img,
+        xer::image::point{7, 6},
+        5,
+        3,
+        0.0f,
+        half_pi,
+        xer::image::pixel(0xffu, 0xffu, 0u));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(12, 6).argb == 0xffffff00u &&
+           img.get_pixel(7, 3).argb == 0xffffff00u &&
+           img.get_pixel(2, 6).argb == 0xff000000u;
+}
+
+auto test_draw_ellipse_arc_aa() -> bool
+{
+    constexpr auto half_pi = 1.57079632679f;
+    xer::image::canvas<15, 13> img;
+    img.clear();
+
+    const auto result = xer::image::draw_ellipse_arc_aa(
+        img,
+        xer::image::pointf{7.0f, 6.0f},
+        5.0f,
+        3.0f,
+        0.0f,
+        half_pi,
+        2.0f,
+        xer::image::pixel(0xffu, 0u, 0xffu));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(12, 6).argb == 0xffff00ffu &&
+           img.get_pixel(7, 3).argb == 0xffff00ffu &&
+           img.get_pixel(2, 6).argb == 0xff000000u;
+}
+
+auto test_curve_invalid_arguments() -> bool
+{
+    xer::image::canvas<9, 9> img;
+    img.clear();
+
+    const auto circle = xer::image::draw_circle_aa(
+        img,
+        4.0f,
+        4.0f,
+        -1.0f,
+        xer::image::pixel(0xffu, 0u, 0u));
+    const auto ellipse = xer::image::draw_ellipse(
+        img,
+        4,
+        4,
+        -1,
+        2,
+        xer::image::pixel(0u, 0xffu, 0u));
+    const auto arc = xer::image::draw_arc(
+        img,
+        4,
+        4,
+        3,
+        std::numeric_limits<float>::quiet_NaN(),
+        1.0f,
+        xer::image::pixel(0u, 0u, 0xffu));
+    const auto ellipse_arc = xer::image::draw_ellipse_arc_aa(
+        img,
+        4.0f,
+        4.0f,
+        3.0f,
+        2.0f,
+        0.0f,
+        1.0f,
+        std::numeric_limits<float>::infinity(),
+        xer::image::pixel(0xffu, 0xffu, 0u));
+
+    return !circle.has_value() &&
+           circle.error().code == xer::error_t::invalid_argument &&
+           !ellipse.has_value() &&
+           ellipse.error().code == xer::error_t::invalid_argument &&
+           !arc.has_value() &&
+           arc.error().code == xer::error_t::invalid_argument &&
+           !ellipse_arc.has_value() &&
+           ellipse_arc.error().code == xer::error_t::invalid_argument &&
+           img.get_pixel(4, 4).argb == 0xff000000u;
+}
+
 auto test_type_properties() -> bool
 {
     static_assert(std::is_default_constructible_v<xer::image::canvas<1, 1>>);
@@ -853,6 +1284,51 @@ auto main() -> int
         return 1;
     }
     if (!test_draw_geometry_overloads()) {
+        return 1;
+    }
+    if (!test_draw_line_aa_invalid_arguments()) {
+        return 1;
+    }
+    if (!test_draw_circle_aa()) {
+        return 1;
+    }
+    if (!test_draw_circle_aa_width_and_degenerate_radius()) {
+        return 1;
+    }
+    if (!test_fill_circle_aa()) {
+        return 1;
+    }
+    if (!test_draw_ellipse()) {
+        return 1;
+    }
+    if (!test_fill_ellipse()) {
+        return 1;
+    }
+    if (!test_ellipse_degenerate_radii()) {
+        return 1;
+    }
+    if (!test_draw_ellipse_aa()) {
+        return 1;
+    }
+    if (!test_fill_ellipse_aa()) {
+        return 1;
+    }
+    if (!test_draw_arc()) {
+        return 1;
+    }
+    if (!test_draw_arc_degenerate_sweep_and_full_turn()) {
+        return 1;
+    }
+    if (!test_draw_arc_aa()) {
+        return 1;
+    }
+    if (!test_draw_ellipse_arc()) {
+        return 1;
+    }
+    if (!test_draw_ellipse_arc_aa()) {
+        return 1;
+    }
+    if (!test_curve_invalid_arguments()) {
         return 1;
     }
     if (!test_type_properties()) {

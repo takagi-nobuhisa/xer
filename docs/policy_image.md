@@ -302,12 +302,14 @@ These may carry explicit stride information.
 
 Drawing functions belong to `xer/image.h`, not `xer/tk.h`.
 
-At minimum, the following kinds of drawing functions are candidates:
+At minimum, the following kinds of drawing functions are provided or expected:
 
 ```cpp
 auto draw_line(canvas& img, const point& p0, const point& p1, pixel color) -> void;
-auto draw_line_aa(canvas& img, const pointf& p0, const pointf& p1, pixel color) -> void;
-auto draw_line_aa(canvas& img, const pointf& p0, const pointf& p1, float width, pixel color) -> void;
+auto draw_line_aa(canvas& img, const pointf& p0, const pointf& p1, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_line_aa(canvas& img, const pointf& p0, const pointf& p1, float width, pixel color)
+    noexcept -> xer::result<void>;
 auto draw_rect(canvas& img, const point& origin, const size& extent, pixel color) -> void;
 auto draw_rect(canvas& img, const rect& area, pixel color) -> void;
 auto fill_rect(canvas& img, const point& origin, const size& extent, pixel color) -> void;
@@ -316,19 +318,55 @@ auto draw_circle(canvas& img, const point& center, int radius, pixel color)
     noexcept -> xer::result<void>;
 auto fill_circle(canvas& img, const point& center, int radius, pixel color)
     noexcept -> xer::result<void>;
+auto draw_circle_aa(canvas& img, const pointf& center, float radius, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_circle_aa(canvas& img, const pointf& center, float radius, float width, pixel color)
+    noexcept -> xer::result<void>;
+auto fill_circle_aa(canvas& img, const pointf& center, float radius, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_ellipse(canvas& img, const point& center, int radius_x, int radius_y, pixel color)
+    noexcept -> xer::result<void>;
+auto fill_ellipse(canvas& img, const point& center, int radius_x, int radius_y, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_ellipse_aa(canvas& img, const pointf& center, float radius_x, float radius_y, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_ellipse_aa(canvas& img, const pointf& center, float radius_x, float radius_y, float width, pixel color)
+    noexcept -> xer::result<void>;
+auto fill_ellipse_aa(canvas& img, const pointf& center, float radius_x, float radius_y, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_arc(canvas& img, const point& center, int radius, float start_angle, float sweep_angle, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_arc_aa(canvas& img, const pointf& center, float radius, float start_angle, float sweep_angle, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_arc_aa(canvas& img, const pointf& center, float radius, float start_angle, float sweep_angle, float width, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_ellipse_arc(canvas& img, const point& center, int radius_x, int radius_y, float start_angle, float sweep_angle, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_ellipse_arc_aa(canvas& img, const pointf& center, float radius_x, float radius_y, float start_angle, float sweep_angle, pixel color)
+    noexcept -> xer::result<void>;
+auto draw_ellipse_arc_aa(canvas& img, const pointf& center, float radius_x, float radius_y, float start_angle, float sweep_angle, float width, pixel color)
+    noexcept -> xer::result<void>;
 ```
 
-Coordinate-oriented drawing functions should use signed integer coordinates.
-This allows negative coordinates and makes clipping more natural.
+Coordinate-oriented drawing functions should use signed integer coordinates. This allows negative coordinates and makes clipping more natural.
 
 Scalar-coordinate overloads may remain available for low-level or hot-path code, but higher-level call sites should be able to use `point`, `size`, `rect`, and `pointf` directly. Rectangle APIs should prefer a single `rect` when the caller already has a region object, and `point` plus `size` when origin and extent are naturally separate.
 
 Geometry helper parameters should be passed by `const&` in public drawing and image-processing APIs. Scalar values and small logical color values such as `pixel` may remain ordinary value parameters.
 
-Out-of-range drawing should be clipped rather than treated as an error.
-If a shape lies completely outside the canvas, the function should do nothing.
+Out-of-range drawing should be clipped rather than treated as an error. If a shape lies completely outside the canvas, the function should do nothing.
 
-Circle drawing follows the same clipping rule. `draw_circle` draws a one-pixel outline, while `fill_circle` writes the interior and boundary directly from the circle geometry rather than using flood fill. A negative radius is an invalid argument and should return `error_t::invalid_argument`. A zero radius should write only the center pixel when visible.
+Integer curved-shape APIs are pixel-grid operations. Antialiased curved-shape APIs are floating-point operations that may support thick outlines through `width`. Drawing functions returning `xer::result<void>` are intentionally not marked `[[nodiscard]]`.
+
+`draw_line_aa` and all antialiased curved-shape APIs should return `error_t::invalid_argument` for non-finite floating-point arguments. Outline width must be finite and greater than zero.
+
+Circle drawing follows the same clipping rule. `draw_circle` draws a one-pixel outline, while `fill_circle` writes the interior and boundary directly from the circle geometry rather than using flood fill. A negative radius is an invalid argument. A zero radius should write only the center pixel when visible.
+
+Ellipse drawing follows the circle policy with independent radii. A negative radius is invalid. If both radii are zero, the shape degenerates to a point. If exactly one radius is zero, the shape degenerates to a vertical or horizontal line segment.
+
+Arc APIs use `start_angle` plus `sweep_angle`, both in radians. Angle zero points right. Positive sweep is counterclockwise in mathematical coordinates, so raster conversion uses `y = cy - radius * sin(angle)` or its elliptical equivalent. A negative sweep is clockwise. A sweep whose absolute value is at least one full turn is treated as a full circle or ellipse.
+
+A zero sweep arc draws its start point. A zero-radius circular arc draws the center point. Elliptical arcs follow the same radius-degeneration rules as ellipses, including line-like degeneration when exactly one radius is zero. Antialiased arcs use round caps so degenerate arcs remain visible as rounded points where appropriate.
 
 Horizontal and vertical line drawing may use more direct internal storage access for efficiency, but such access should remain implementation detail and should still respect the framebuffer policy.
 
