@@ -12109,6 +12109,36 @@ auto fill_rect(canvas<Width, Height, Policy>& img,
                pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle(canvas<Width, Height, Policy>& img,
+                 int cx,
+                 int cy,
+                 int radius,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle(canvas<Width, Height, Policy>& img,
+                 const point& center,
+                 int radius,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle(canvas<Width, Height, Policy>& img,
+                 int cx,
+                 int cy,
+                 int radius,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle(canvas<Width, Height, Policy>& img,
+                 const point& center,
+                 int radius,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
 [[nodiscard]] auto flood_fill(canvas<Width, Height, Policy>& img,
                               int x,
                               int y,
@@ -12602,6 +12632,63 @@ An empty canvas or empty text is a successful no-op.
 
 ---
 
+## Circle Drawing
+
+```cpp
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle(canvas<Width, Height, Policy>& img,
+                 int cx,
+                 int cy,
+                 int radius,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle(canvas<Width, Height, Policy>& img,
+                 const point& center,
+                 int radius,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle(canvas<Width, Height, Policy>& img,
+                 int cx,
+                 int cy,
+                 int radius,
+                 pixel color) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle(canvas<Width, Height, Policy>& img,
+                 const point& center,
+                 int radius,
+                 pixel color) noexcept
+    -> xer::result<void>;
+```
+
+`draw_circle` draws a clipped one-pixel circle outline.
+`fill_circle` fills the clipped circle interior and includes the boundary.
+
+Both functions accept either explicit center coordinates or a `point` center.
+
+### Radius Handling
+
+- `radius < 0` returns `error_t::invalid_argument`
+- `radius == 0` writes only the center pixel, if it is visible
+- `radius > 0` draws or fills the requested circle
+
+The return value is not marked `[[nodiscard]]`, because callers may intentionally ignore drawing failures in non-critical rendering paths.
+
+### Clipping and Pixels
+
+Circle drawing is clipped to the canvas boundary.
+A circle that lies completely outside the canvas is a successful no-op.
+
+The supplied logical `pixel` value is written directly.
+No alpha blending is performed by these integer-circle functions.
+
+---
+
 ## Flood Fill
 
 ```cpp
@@ -12721,7 +12808,6 @@ The following items are deferred from the current implementation:
 - raster scroll
 - grayscale conversion
 - image flipping
-- circle drawing
 - file format loading and saving
 - direct Tk photo conversion helpers
 
@@ -12763,6 +12849,7 @@ Additional examples:
 - `examples/example_image_filter_pixels.cpp`
 - `examples/example_image_bitmap_text.cpp`
 - `examples/example_image_flood_fill.cpp`
+- `examples/example_image_circle.cpp`
 
 ---
 

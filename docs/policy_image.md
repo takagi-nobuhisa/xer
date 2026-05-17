@@ -312,8 +312,10 @@ auto draw_rect(canvas& img, const point& origin, const size& extent, pixel color
 auto draw_rect(canvas& img, const rect& area, pixel color) -> void;
 auto fill_rect(canvas& img, const point& origin, const size& extent, pixel color) -> void;
 auto fill_rect(canvas& img, const rect& area, pixel color) -> void;
-auto draw_circle(canvas& img, const point& center, int radius, pixel color) -> void;
-auto fill_circle(canvas& img, const point& center, int radius, pixel color) -> void;
+auto draw_circle(canvas& img, const point& center, int radius, pixel color)
+    noexcept -> xer::result<void>;
+auto fill_circle(canvas& img, const point& center, int radius, pixel color)
+    noexcept -> xer::result<void>;
 ```
 
 Coordinate-oriented drawing functions should use signed integer coordinates.
@@ -325,6 +327,8 @@ Geometry helper parameters should be passed by `const&` in public drawing and im
 
 Out-of-range drawing should be clipped rather than treated as an error.
 If a shape lies completely outside the canvas, the function should do nothing.
+
+Circle drawing follows the same clipping rule. `draw_circle` draws a one-pixel outline, while `fill_circle` writes the interior and boundary directly from the circle geometry rather than using flood fill. A negative radius is an invalid argument and should return `error_t::invalid_argument`. A zero radius should write only the center pixel when visible.
 
 Horizontal and vertical line drawing may use more direct internal storage access for efficiency, but such access should remain implementation detail and should still respect the framebuffer policy.
 

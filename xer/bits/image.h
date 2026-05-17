@@ -1733,6 +1733,184 @@ auto fill_rect(
 }
 
 /**
+ * @brief Draws a clipped one-pixel circle outline.
+ *
+ * @return `error_t::invalid_argument` if `radius` is negative.
+ * Otherwise returns success, including circles that are fully outside the
+ * canvas.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle(
+    canvas<Width, Height, Policy>& img,
+    int cx,
+    int cy,
+    int radius,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (radius < 0) {
+        return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+    }
+
+    const auto plot = [&img, color](long long x, long long y) noexcept -> void {
+        if (x < 0 || y < 0) {
+            return;
+        }
+
+        const auto pixel_x = static_cast<std::size_t>(x);
+        const auto pixel_y = static_cast<std::size_t>(y);
+        if (pixel_x >= img.width() || pixel_y >= img.height()) {
+            return;
+        }
+
+        img.set_pixel_unchecked(pixel_x, pixel_y, color);
+    };
+
+    if (radius == 0) {
+        plot(cx, cy);
+        return {};
+    }
+
+    const auto center_x = static_cast<long long>(cx);
+    const auto center_y = static_cast<long long>(cy);
+    auto x = static_cast<long long>(radius);
+    auto y = 0LL;
+    auto decision = 1LL - x;
+
+    while (y <= x) {
+        plot(center_x + x, center_y + y);
+        plot(center_x + y, center_y + x);
+        plot(center_x - y, center_y + x);
+        plot(center_x - x, center_y + y);
+        plot(center_x - x, center_y - y);
+        plot(center_x - y, center_y - x);
+        plot(center_x + y, center_y - x);
+        plot(center_x + x, center_y - y);
+
+        ++y;
+        if (decision <= 0) {
+            decision += 2LL * y + 1LL;
+        } else {
+            --x;
+            decision += 2LL * (y - x) + 1LL;
+        }
+    }
+
+    return {};
+}
+
+/**
+ * @brief Draws a clipped one-pixel circle outline from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto draw_circle(
+    canvas<Width, Height, Policy>& img,
+    const point& center,
+    int radius,
+    pixel color) noexcept -> xer::result<void>
+{
+    return draw_circle(img, center.x, center.y, radius, color);
+}
+
+/**
+ * @brief Fills a clipped circle.
+ *
+ * Pixels whose integer coordinates satisfy the circle interior test are
+ * written with `color`. The boundary is included.
+ *
+ * @return `error_t::invalid_argument` if `radius` is negative.
+ * Otherwise returns success, including circles that are fully outside the
+ * canvas.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle(
+    canvas<Width, Height, Policy>& img,
+    int cx,
+    int cy,
+    int radius,
+    pixel color) noexcept -> xer::result<void>
+{
+    if (radius < 0) {
+        return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+    }
+
+    if (img.empty()) {
+        return {};
+    }
+
+    const auto fill_span = [&img, color](long long x0, long long x1, long long y) noexcept -> void {
+        if (y < 0) {
+            return;
+        }
+
+        const auto pixel_y = static_cast<std::size_t>(y);
+        if (pixel_y >= img.height()) {
+            return;
+        }
+
+        if (x1 < x0) {
+            std::swap(x0, x1);
+        }
+
+        if (x1 < 0) {
+            return;
+        }
+
+        const auto canvas_width = static_cast<long long>(img.width());
+        if (x0 >= canvas_width) {
+            return;
+        }
+
+        x0 = std::max(x0, 0LL);
+        x1 = std::min(x1, canvas_width - 1LL);
+        if (x0 > x1) {
+            return;
+        }
+
+        const auto encoded = Policy::encode(color);
+        auto* first = detail::image_access::ptr(
+            img,
+            static_cast<std::size_t>(x0),
+            pixel_y);
+        auto* const last = first + (x1 - x0 + 1LL);
+        for (auto* p = first; p != last; ++p) {
+            *p = encoded;
+        }
+    };
+
+    const auto center_x = static_cast<long long>(cx);
+    const auto center_y = static_cast<long long>(cy);
+    const auto circle_radius = static_cast<long long>(radius);
+    const auto radius_sq = circle_radius * circle_radius;
+    auto x = circle_radius;
+
+    for (auto y = 0LL; y <= circle_radius; ++y) {
+        while (x > 0 && x * x + y * y > radius_sq) {
+            --x;
+        }
+
+        fill_span(center_x - x, center_x + x, center_y + y);
+        if (y != 0) {
+            fill_span(center_x - x, center_x + x, center_y - y);
+        }
+    }
+
+    return {};
+}
+
+/**
+ * @brief Fills a clipped circle from a center point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+auto fill_circle(
+    canvas<Width, Height, Policy>& img,
+    const point& center,
+    int radius,
+    pixel color) noexcept -> xer::result<void>
+{
+    return fill_circle(img, center.x, center.y, radius, color);
+}
+
+/**
  * @brief Draws UTF-8 text using a loaded bitmap font.
  *
  * Glyph cells are positioned from the specified top-left origin. LF, CR, and
