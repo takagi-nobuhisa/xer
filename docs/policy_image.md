@@ -336,6 +336,7 @@ Image processing functions also belong to `xer/image.h` and should be independen
 
 Candidate operations include:
 
+- flood fill
 - inversion
 - grayscale conversion
 - per-pixel filtering
@@ -364,6 +365,17 @@ Current in-place effects include:
 
 ```cpp
 template <std::size_t W, std::size_t H, class Policy>
+auto flood_fill(canvas<W, H, Policy>& img,
+                int x,
+                int y,
+                pixel color) -> xer::result<void>;
+
+template <std::size_t W, std::size_t H, class Policy>
+auto flood_fill(canvas<W, H, Policy>& img,
+                const point& origin,
+                pixel color) -> xer::result<void>;
+
+template <std::size_t W, std::size_t H, class Policy>
 auto mosaic(canvas<W, H, Policy>& img,
             const rect& area,
             const size& block_size) noexcept -> xer::result<void>;
@@ -385,7 +397,9 @@ auto filter_pixels(canvas<W, H, Policy>& img,
     -> xer::result<void, filter_pixels_error_detail>;
 ```
 
-These operations require a rectangular target area. The area is clipped to the canvas boundary. Empty areas and fully clipped areas are successful no-ops.
+`flood_fill` replaces a four-connected region whose pixels exactly match the starting pixel's logical ARGB value. The starting coordinate may be provided directly or as `point`. If the start position is outside the canvas, or if the replacement color already equals the starting pixel color, the operation succeeds without modifying the canvas. Diagonal contact alone does not connect regions.
+
+`mosaic`, `box_blur`, and `filter_pixels` require a rectangular target area. The area is clipped to the canvas boundary. Empty areas and fully clipped areas are successful no-ops.
 
 `mosaic` divides the clipped area into `block_size` blocks and replaces each block with the average logical ARGB color of the pixels in that block. Partial blocks at the right and bottom edges are averaged over their actual size.
 
@@ -452,7 +466,7 @@ For the first implementation, the recommended scope is:
 5. `dynamic_canvas<Policy>` alias
 6. `get_pixel` / `set_pixel`
 7. simple drawing functions such as horizontal line, vertical line, rectangle, and filled rectangle
-8. simple image operations such as mosaic, box blur, and per-pixel filtering
+8. simple image operations such as flood filling, mosaic, box blur, and per-pixel filtering
 
 Tk photo integration, raster scroll, affine transformation, and more advanced drawing can be added after the core model is stable.
 

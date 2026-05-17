@@ -1885,6 +1885,85 @@ template<std::size_t Width, std::size_t Height, class Policy>
 }
 
 /**
+ * @brief Flood-fills a four-connected region from a starting coordinate.
+ *
+ * The original color is taken from the starting pixel. Every four-connected
+ * pixel whose logical ARGB value exactly matches that original color is
+ * replaced with `color`. Alpha participates in the equality comparison.
+ *
+ * If the starting coordinate is outside the canvas, or if the starting pixel
+ * already has the replacement color, this function does nothing and returns
+ * success.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto flood_fill(
+    canvas<Width, Height, Policy>& img,
+    int x,
+    int y,
+    pixel color) -> xer::result<void>
+{
+    if (!img.contains(x, y)) {
+        return {};
+    }
+
+    const auto start_x = static_cast<std::size_t>(x);
+    const auto start_y = static_cast<std::size_t>(y);
+    const pixel original = img.get_pixel(start_x, start_y);
+    if (original == color) {
+        return {};
+    }
+
+    std::vector<point> pending{};
+    pending.emplace_back(x, y);
+
+    while (!pending.empty()) {
+        const point current = pending.back();
+        pending.pop_back();
+
+        if (!img.contains(current)) {
+            continue;
+        }
+
+        const auto current_x = static_cast<std::size_t>(current.x);
+        const auto current_y = static_cast<std::size_t>(current.y);
+        if (img.get_pixel(current_x, current_y) != original) {
+            continue;
+        }
+
+        img.set_pixel_unchecked(current_x, current_y, color);
+
+        if (current.x > 0) {
+            pending.emplace_back(current.x - 1, current.y);
+        }
+        if (static_cast<std::size_t>(current.x) + 1 < img.width() &&
+            current.x < std::numeric_limits<int>::max()) {
+            pending.emplace_back(current.x + 1, current.y);
+        }
+        if (current.y > 0) {
+            pending.emplace_back(current.x, current.y - 1);
+        }
+        if (static_cast<std::size_t>(current.y) + 1 < img.height() &&
+            current.y < std::numeric_limits<int>::max()) {
+            pending.emplace_back(current.x, current.y + 1);
+        }
+    }
+
+    return {};
+}
+
+/**
+ * @brief Flood-fills a four-connected region from a starting point.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto flood_fill(
+    canvas<Width, Height, Policy>& img,
+    const point& origin,
+    pixel color) -> xer::result<void>
+{
+    return flood_fill(img, origin.x, origin.y, color);
+}
+
+/**
  * @brief Applies a mosaic effect to a clipped rectangular area.
  *
  * The target area is clipped to the canvas boundary. Each block is replaced

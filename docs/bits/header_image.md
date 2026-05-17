@@ -166,6 +166,19 @@ auto fill_rect(canvas<Width, Height, Policy>& img,
                pixel color) noexcept -> void;
 
 template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto flood_fill(canvas<Width, Height, Policy>& img,
+                              int x,
+                              int y,
+                              pixel color)
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto flood_fill(canvas<Width, Height, Policy>& img,
+                              const point& origin,
+                              pixel color)
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
 [[nodiscard]] auto mosaic(canvas<Width, Height, Policy>& img,
                           const rect& area,
                           const size& block_size) noexcept
@@ -646,6 +659,53 @@ An empty canvas or empty text is a successful no-op.
 
 ---
 
+## Flood Fill
+
+```cpp
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto flood_fill(canvas<Width, Height, Policy>& img,
+                              int x,
+                              int y,
+                              pixel color)
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto flood_fill(canvas<Width, Height, Policy>& img,
+                              const point& origin,
+                              pixel color)
+    -> xer::result<void>;
+```
+
+`flood_fill` replaces the four-connected region that contains the start position.
+
+The original logical `pixel` value at the start position is used as the target color. Every reachable pixel whose logical ARGB value exactly matches that original color is replaced with `color`.
+
+### Connectivity
+
+The initial implementation uses four-connected adjacency only:
+
+- left
+- right
+- up
+- down
+
+Diagonal contact alone does not connect two regions.
+
+### No-Op Cases
+
+`flood_fill` is a successful no-op when:
+
+- the start position is outside the canvas
+- the replacement color is equal to the original color at the start position
+
+### Result
+
+`flood_fill` returns `xer::result<void>`.
+
+The operation uses an internal pending-position buffer rather than recursive traversal, so it does not rely on call-stack depth for large filled regions.
+
+---
+
 ## Image Processing Functions
 
 `mosaic`, `box_blur`, and `filter_pixels` are in-place image-processing operations.
@@ -655,25 +715,6 @@ template <std::size_t Width, std::size_t Height, class Policy>
 [[nodiscard]] auto mosaic(canvas<Width, Height, Policy>& img,
                           const rect& area,
                           const size& block_size) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-[[nodiscard]] auto draw_text(canvas<Width, Height, Policy>& img,
-                             int x,
-                             int y,
-                             std::u8string_view text,
-                             const bitmap_font& font,
-                             pixel color,
-                             const text_draw_options& options = {}) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-[[nodiscard]] auto draw_text(canvas<Width, Height, Policy>& img,
-                             const point& origin,
-                             std::u8string_view text,
-                             const bitmap_font& font,
-                             pixel color,
-                             const text_draw_options& options = {}) noexcept
     -> xer::result<void>;
 
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -778,6 +819,7 @@ Additional examples:
 - `examples/example_image_effects.cpp`
 - `examples/example_image_filter_pixels.cpp`
 - `examples/example_image_bitmap_text.cpp`
+- `examples/example_image_flood_fill.cpp`
 
 ---
 

@@ -305,6 +305,106 @@ auto test_fill_rect_clipped() -> bool
            img.get_pixel(0, 0).argb == 0xff000000u;
 }
 
+auto test_flood_fill_enclosed_region() -> bool
+{
+    xer::image::canvas<6, 6> img;
+    img.clear();
+
+    xer::image::draw_rect(img, 1, 1, 4, 4, xer::image::pixel(0xffu, 0u, 0u));
+
+    const auto result = xer::image::flood_fill(
+        img,
+        2,
+        2,
+        xer::image::pixel(0u, 0xffu, 0u));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(2, 2).argb == 0xff00ff00u &&
+           img.get_pixel(3, 2).argb == 0xff00ff00u &&
+           img.get_pixel(2, 3).argb == 0xff00ff00u &&
+           img.get_pixel(3, 3).argb == 0xff00ff00u &&
+           img.get_pixel(1, 1).argb == 0xffff0000u &&
+           img.get_pixel(4, 4).argb == 0xffff0000u &&
+           img.get_pixel(0, 0).argb == 0xff000000u;
+}
+
+auto test_flood_fill_uses_four_neighborhood() -> bool
+{
+    xer::image::canvas<3, 3> img;
+    img.fill(xer::image::pixel(0xffu, 0xffu, 0xffu));
+    img.set_pixel_unchecked(0, 0, xer::image::pixel(0u, 0u, 0u));
+    img.set_pixel_unchecked(1, 1, xer::image::pixel(0u, 0u, 0u));
+    img.set_pixel_unchecked(2, 2, xer::image::pixel(0u, 0u, 0u));
+
+    const auto result = xer::image::flood_fill(
+        img,
+        xer::image::point{0, 0},
+        xer::image::pixel(0xffu, 0u, 0u));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(0, 0).argb == 0xffff0000u &&
+           img.get_pixel(1, 1).argb == 0xff000000u &&
+           img.get_pixel(2, 2).argb == 0xff000000u &&
+           img.get_pixel(1, 0).argb == 0xffffffffu;
+}
+
+auto test_flood_fill_compares_alpha() -> bool
+{
+    xer::image::canvas<3, 1> img;
+    img.set_pixel_unchecked(0, 0, xer::image::pixel(0x80u, 0x10u, 0x20u, 0x30u));
+    img.set_pixel_unchecked(1, 0, xer::image::pixel(0x80u, 0x10u, 0x20u, 0x30u));
+    img.set_pixel_unchecked(2, 0, xer::image::pixel(0xffu, 0x10u, 0x20u, 0x30u));
+
+    const auto result = xer::image::flood_fill(
+        img,
+        0,
+        0,
+        xer::image::pixel(0xffu, 0u, 0xffu));
+    if (!result.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(0, 0).argb == 0xffff00ffu &&
+           img.get_pixel(1, 0).argb == 0xffff00ffu &&
+           img.get_pixel(2, 0).argb == 0xff102030u;
+}
+
+auto test_flood_fill_out_of_bounds_and_same_color() -> bool
+{
+    xer::image::canvas<2, 1> img;
+    img.fill(xer::image::pixel(0u, 0u, 0xffu));
+
+    const auto out_of_bounds = xer::image::flood_fill(
+        img,
+        -1,
+        0,
+        xer::image::pixel(0xffu, 0u, 0u));
+    if (!out_of_bounds.has_value()) {
+        return false;
+    }
+
+    if (img.get_pixel(0, 0).argb != 0xff0000ffu ||
+        img.get_pixel(1, 0).argb != 0xff0000ffu) {
+        return false;
+    }
+
+    const auto same_color = xer::image::flood_fill(
+        img,
+        0,
+        0,
+        xer::image::pixel(0u, 0u, 0xffu));
+    if (!same_color.has_value()) {
+        return false;
+    }
+
+    return img.get_pixel(0, 0).argb == 0xff0000ffu &&
+           img.get_pixel(1, 0).argb == 0xff0000ffu;
+}
+
 auto test_mosaic() -> bool
 {
     xer::image::canvas<4, 3> img;
@@ -708,6 +808,18 @@ auto main() -> int
         return 1;
     }
     if (!test_fill_rect_clipped()) {
+        return 1;
+    }
+    if (!test_flood_fill_enclosed_region()) {
+        return 1;
+    }
+    if (!test_flood_fill_uses_four_neighborhood()) {
+        return 1;
+    }
+    if (!test_flood_fill_compares_alpha()) {
+        return 1;
+    }
+    if (!test_flood_fill_out_of_bounds_and_same_color()) {
         return 1;
     }
     if (!test_mosaic()) {
