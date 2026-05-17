@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.3.0a7**
+Target version: **v0.3.0b1**
 
 ---
 
