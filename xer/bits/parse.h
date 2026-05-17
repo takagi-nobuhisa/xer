@@ -15,13 +15,14 @@
 namespace xer {
 
 /**
- * @brief Fine-grained reason for a text parsing failure.
+ * @brief Fine-grained reason for a structured input parsing failure.
  *
  * This enumeration is used as the structured reason field of
- * @ref parse_error_detail. The value @ref parse_error_reason::none means that
- * no parse-position detail is available. It is mainly used when an API such as
- * a load helper returns @c result<T,parse_error_detail> but fails before
- * parsing begins, for example because file I/O failed.
+ * @ref parse_error_detail. It covers both UTF-8 text formats and binary input
+ * formats that report byte offsets. The value @ref parse_error_reason::none
+ * means that no parse-position detail is available. It is mainly used when an
+ * API such as a load helper returns @c result<T,parse_error_detail> but fails
+ * before parsing begins, for example because file I/O failed.
  */
 enum class parse_error_reason {
     /** No parse detail is available. */
@@ -54,25 +55,39 @@ enum class parse_error_reason {
     invalid_array,
     /** A table or table-like value is malformed. */
     invalid_table,
+    /** A binary or structured-input magic value is invalid. */
+    invalid_magic,
+    /** The input format version is recognized but not supported. */
+    unsupported_version,
+    /** A structured input header is malformed. */
+    invalid_header,
+    /** A structured input range entry or range relation is malformed. */
+    invalid_range,
+    /** A structured input offset is invalid or inconsistent. */
+    invalid_offset,
+    /** The input ends before a required structure is complete. */
+    truncated_input,
 };
 
 /**
- * @brief Common detail payload for text parse errors.
+ * @brief Common detail payload for structured input parse errors.
  *
- * The position members describe a location in the original UTF-8 input.
- * @c offset is a zero-based UTF-8 code-unit offset. @c line and @c column are
- * one-based when @c reason is not @ref parse_error_reason::none.
+ * The position members describe a location in the original input. @c offset is
+ * zero-based. For UTF-8 text formats it is a UTF-8 code-unit offset; for binary
+ * formats it is a byte offset. @c line and @c column are one-based when such
+ * information is available. Formats without line information, such as binary
+ * inputs, set them to zero.
  *
  * When @c reason is @ref parse_error_reason::none, the position members are
  * intentionally zero. This represents a failure that has no parse location,
  * such as an I/O error reported by a load helper before decoding starts.
  */
 struct parse_error_detail {
-    /** Zero-based UTF-8 code-unit offset, or zero when no position is available. */
+    /** Zero-based input offset, or zero when no position is available. */
     std::size_t offset = 0;
-    /** One-based line number, or zero when no position is available. */
+    /** One-based line number, or zero when unavailable. */
     std::size_t line = 0;
-    /** One-based UTF-8 code-unit column, or zero when no position is available. */
+    /** One-based UTF-8 code-unit column, or zero when unavailable. */
     std::size_t column = 0;
     /** Fine-grained parse reason, or @c none when this detail is unused. */
     parse_error_reason reason = parse_error_reason::none;

@@ -13,10 +13,17 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
+#include <limits>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
+#include <xer/bits/advanced_encoding.h>
 #include <xer/bits/error.h>
+#include <xer/bits/file_contents.h>
+#include <xer/parse.h>
+#include <xer/path.h>
 
 namespace xer::image {
 
@@ -174,6 +181,47 @@ struct rectf {
 struct filter_pixels_error_detail {
     point first_error_position{};
     std::size_t error_count = 0;
+};
+
+/**
+ * @brief Width kind of glyph cells in a bitmap font range.
+ */
+enum class bitmap_glyph_width : std::uint8_t {
+    half,
+    full,
+};
+
+/**
+ * @brief Continuous Unicode code point range stored in a bitmap font.
+ */
+struct bitmap_font_range {
+    char32_t first_code_point{};
+    char32_t last_code_point{};
+    bitmap_glyph_width glyph_width = bitmap_glyph_width::half;
+    std::uint64_t bitmap_offset = 0;
+};
+
+/**
+ * @brief Runtime representation of a loaded monospaced bitmap font.
+ */
+struct bitmap_font {
+    int half_width = 0;
+    int full_width = 0;
+    int glyph_height = 0;
+    std::vector<bitmap_font_range> ranges{};
+    std::vector<std::uint8_t> bitmap{};
+};
+
+/**
+ * @brief Per-call spacing options for bitmap text drawing.
+ *
+ * `letter_spacing` is added after each drawn glyph cell. `line_spacing` is
+ * added to the bitmap font glyph height when a line break is processed.
+ * Negative spacing values are permitted and may cause overlapping glyph cells.
+ */
+struct text_draw_options {
+    int letter_spacing = 0;
+    int line_spacing = 0;
 };
 
 /**
@@ -422,6 +470,214 @@ struct bgr24_policy {
 
 namespace detail {
 
+inline constexpr std::size_t xbf_header_size = 36;
+inline constexpr std::size_t xbf_range_entry_size = 24;
+inline constexpr std::uint16_t xbf_format_version = 1;
+inline constexpr std::uint32_t xbf_unicode_max = 0x10ffffu;
+inline constexpr std::uint32_t xbf_surrogate_first = 0xd800u;
+inline constexpr std::uint32_t xbf_surrogate_last = 0xdfffu;
+
+[[nodiscard]] inline auto bitmap_font_parse_error(
+    xer::parse_error_reason reason,
+    std::size_t offset) noexcept -> xer::error<xer::parse_error_detail>
+{
+    return xer::make_error<xer::parse_error_detail>(
+        xer::error_t::invalid_argument,
+        xer::parse_error_detail{
+            .offset = offset,
+            .line = 0,
+            .column = 0,
+            .reason = reason,
+        });
+}
+
+[[nodiscard]] constexpr auto xbf_byte(
+    const std::vector<std::byte>& bytes,
+    std::size_t offset) noexcept -> std::uint8_t
+{
+    return std::to_integer<std::uint8_t>(bytes[offset]);
+}
+
+[[nodiscard]] constexpr auto xbf_read_u16_le(
+    const std::vector<std::byte>& bytes,
+    std::size_t offset) noexcept -> std::uint16_t
+{
+    return static_cast<std::uint16_t>(
+        static_cast<std::uint16_t>(xbf_byte(bytes, offset)) |
+        (static_cast<std::uint16_t>(xbf_byte(bytes, offset + 1)) << 8));
+}
+
+[[nodiscard]] constexpr auto xbf_read_u32_le(
+    const std::vector<std::byte>& bytes,
+    std::size_t offset) noexcept -> std::uint32_t
+{
+    return static_cast<std::uint32_t>(
+        static_cast<std::uint32_t>(xbf_byte(bytes, offset)) |
+        (static_cast<std::uint32_t>(xbf_byte(bytes, offset + 1)) << 8) |
+        (static_cast<std::uint32_t>(xbf_byte(bytes, offset + 2)) << 16) |
+        (static_cast<std::uint32_t>(xbf_byte(bytes, offset + 3)) << 24));
+}
+
+[[nodiscard]] constexpr auto xbf_read_u64_le(
+    const std::vector<std::byte>& bytes,
+    std::size_t offset) noexcept -> std::uint64_t
+{
+    return static_cast<std::uint64_t>(
+        static_cast<std::uint64_t>(xbf_byte(bytes, offset)) |
+        (static_cast<std::uint64_t>(xbf_byte(bytes, offset + 1)) << 8) |
+        (static_cast<std::uint64_t>(xbf_byte(bytes, offset + 2)) << 16) |
+        (static_cast<std::uint64_t>(xbf_byte(bytes, offset + 3)) << 24) |
+        (static_cast<std::uint64_t>(xbf_byte(bytes, offset + 4)) << 32) |
+        (static_cast<std::uint64_t>(xbf_byte(bytes, offset + 5)) << 40) |
+        (static_cast<std::uint64_t>(xbf_byte(bytes, offset + 6)) << 48) |
+        (static_cast<std::uint64_t>(xbf_byte(bytes, offset + 7)) << 56));
+}
+
+[[nodiscard]] constexpr auto xbf_range_intersects_surrogates(
+    std::uint32_t first_code_point,
+    std::uint32_t last_code_point) noexcept -> bool
+{
+    return first_code_point <= xbf_surrogate_last &&
+           last_code_point >= xbf_surrogate_first;
+}
+
+[[nodiscard]] constexpr auto xbf_size_to_offset(
+    std::uint64_t value) noexcept -> std::size_t
+{
+    if (value > static_cast<std::uint64_t>(
+                    std::numeric_limits<std::size_t>::max())) {
+        return std::numeric_limits<std::size_t>::max();
+    }
+
+    return static_cast<std::size_t>(value);
+}
+
+[[nodiscard]] inline auto bitmap_font_decode_utf8_char(
+    std::u8string_view text,
+    std::size_t& offset) noexcept -> xer::result<char32_t>
+{
+    if (offset >= text.size()) {
+        return std::unexpected(xer::make_error(xer::error_t::not_found));
+    }
+
+    const std::uint8_t b1 = static_cast<std::uint8_t>(text[offset]);
+
+    if (b1 <= 0x7fu) {
+        ++offset;
+        return static_cast<char32_t>(b1);
+    }
+
+    if (b1 >= 0xc2u && b1 <= 0xdfu) {
+        if (offset + 1 >= text.size()) {
+            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
+        }
+
+        const std::uint8_t b2 = static_cast<std::uint8_t>(text[offset + 1]);
+        const std::uint32_t packed =
+            static_cast<std::uint32_t>(b1) |
+            (static_cast<std::uint32_t>(b2) << 8);
+
+        const char32_t ch = xer::advanced::packed_utf8_to_utf32(packed);
+        if (ch == xer::advanced::detail::invalid_utf32) {
+            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
+        }
+
+        offset += 2;
+        return ch;
+    }
+
+    if (b1 >= 0xe0u && b1 <= 0xefu) {
+        if (offset + 2 >= text.size()) {
+            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
+        }
+
+        const std::uint8_t b2 = static_cast<std::uint8_t>(text[offset + 1]);
+        const std::uint8_t b3 = static_cast<std::uint8_t>(text[offset + 2]);
+        const std::uint32_t packed =
+            static_cast<std::uint32_t>(b1) |
+            (static_cast<std::uint32_t>(b2) << 8) |
+            (static_cast<std::uint32_t>(b3) << 16);
+
+        const char32_t ch = xer::advanced::packed_utf8_to_utf32(packed);
+        if (ch == xer::advanced::detail::invalid_utf32) {
+            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
+        }
+
+        offset += 3;
+        return ch;
+    }
+
+    if (b1 >= 0xf0u && b1 <= 0xf4u) {
+        if (offset + 3 >= text.size()) {
+            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
+        }
+
+        const std::uint8_t b2 = static_cast<std::uint8_t>(text[offset + 1]);
+        const std::uint8_t b3 = static_cast<std::uint8_t>(text[offset + 2]);
+        const std::uint8_t b4 = static_cast<std::uint8_t>(text[offset + 3]);
+        const std::uint32_t packed =
+            static_cast<std::uint32_t>(b1) |
+            (static_cast<std::uint32_t>(b2) << 8) |
+            (static_cast<std::uint32_t>(b3) << 16) |
+            (static_cast<std::uint32_t>(b4) << 24);
+
+        const char32_t ch = xer::advanced::packed_utf8_to_utf32(packed);
+        if (ch == xer::advanced::detail::invalid_utf32) {
+            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
+        }
+
+        offset += 4;
+        return ch;
+    }
+
+    return std::unexpected(xer::make_error(xer::error_t::encoding_error));
+}
+
+[[nodiscard]] constexpr auto bitmap_font_saturating_add(
+    long long value,
+    long long delta) noexcept -> long long
+{
+    if (delta > 0 && value > std::numeric_limits<long long>::max() - delta) {
+        return std::numeric_limits<long long>::max();
+    }
+    if (delta < 0 && value < std::numeric_limits<long long>::min() - delta) {
+        return std::numeric_limits<long long>::min();
+    }
+    return value + delta;
+}
+
+[[nodiscard]] inline auto bitmap_font_find_range(
+    const bitmap_font& font,
+    char32_t code_point) noexcept -> const bitmap_font_range*
+{
+    const auto it = std::lower_bound(
+        font.ranges.begin(),
+        font.ranges.end(),
+        code_point,
+        [](const bitmap_font_range& range, char32_t value) noexcept {
+            return range.last_code_point < value;
+        });
+
+    if (it == font.ranges.end() || code_point < it->first_code_point) {
+        return nullptr;
+    }
+
+    return &*it;
+}
+
+[[nodiscard]] constexpr auto bitmap_font_width_for_range(
+    const bitmap_font& font,
+    const bitmap_font_range& range) noexcept -> int
+{
+    if (range.glyph_width == bitmap_glyph_width::half) {
+        return font.half_width;
+    }
+    if (range.glyph_width == bitmap_glyph_width::full) {
+        return font.full_width;
+    }
+    return 0;
+}
+
 struct image_access;
 
 template<std::size_t Width, std::size_t Height, class Policy>
@@ -571,6 +827,233 @@ inline constexpr bool valid_image_extent =
 }
 
 } // namespace detail
+
+/**
+ * @brief Loads an XBF bitmap font file.
+ *
+ * This function reads the compact little-endian XBF binary format used by the
+ * bitmap-font facility. File I/O failures preserve the underlying file error
+ * and use an empty @ref parse_error_detail. Malformed XBF input returns
+ * `error_t::invalid_argument` with a populated @ref parse_error_detail whose
+ * `offset` is a byte offset in the binary input.
+ *
+ * @param filename XBF file path to read.
+ * @return Loaded bitmap font on success.
+ */
+[[nodiscard]] inline auto bitmap_font_load(const xer::path& filename)
+    -> xer::result<bitmap_font, xer::parse_error_detail>
+{
+    const auto contents = xer::file_get_contents(filename);
+    if (!contents.has_value()) {
+        return std::unexpected(xer::make_error<xer::parse_error_detail>(
+            contents.error().code,
+            xer::parse_error_detail{}));
+    }
+
+    const auto& bytes = *contents;
+    if (bytes.size() < detail::xbf_header_size) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::truncated_input,
+            bytes.size()));
+    }
+
+    if (detail::xbf_byte(bytes, 0) != static_cast<std::uint8_t>('X') ||
+        detail::xbf_byte(bytes, 1) != static_cast<std::uint8_t>('B') ||
+        detail::xbf_byte(bytes, 2) != static_cast<std::uint8_t>('F') ||
+        detail::xbf_byte(bytes, 3) != static_cast<std::uint8_t>('0')) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::invalid_magic,
+            0));
+    }
+
+    const auto format_version = detail::xbf_read_u16_le(bytes, 4);
+    if (format_version != detail::xbf_format_version) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::unsupported_version,
+            4));
+    }
+
+    const auto header_size = detail::xbf_read_u16_le(bytes, 6);
+    if (header_size < detail::xbf_header_size) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::invalid_header,
+            6));
+    }
+    if (static_cast<std::size_t>(header_size) > bytes.size()) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::truncated_input,
+            bytes.size()));
+    }
+
+    const auto half_width = detail::xbf_read_u16_le(bytes, 8);
+    if (half_width == 0) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::invalid_header,
+            8));
+    }
+
+    const auto full_width = detail::xbf_read_u16_le(bytes, 10);
+    if (full_width == 0) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::invalid_header,
+            10));
+    }
+
+    const auto glyph_height = detail::xbf_read_u16_le(bytes, 12);
+    if (glyph_height == 0) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::invalid_header,
+            12));
+    }
+
+    if (detail::xbf_read_u16_le(bytes, 14) != 0) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::invalid_header,
+            14));
+    }
+
+    const auto range_count = detail::xbf_read_u32_le(bytes, 16);
+    const auto range_table_offset = detail::xbf_read_u64_le(bytes, 20);
+    const auto bitmap_data_offset = detail::xbf_read_u64_le(bytes, 28);
+
+    if (range_table_offset < static_cast<std::uint64_t>(header_size) ||
+        range_table_offset > static_cast<std::uint64_t>(bytes.size())) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::invalid_offset,
+            20));
+    }
+
+    const auto range_table_size =
+        static_cast<std::uint64_t>(range_count) *
+        static_cast<std::uint64_t>(detail::xbf_range_entry_size);
+    if (range_table_offset >
+        std::numeric_limits<std::uint64_t>::max() - range_table_size) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::truncated_input,
+            detail::xbf_size_to_offset(range_table_offset)));
+    }
+
+    const auto range_table_end = range_table_offset + range_table_size;
+    if (range_table_end > static_cast<std::uint64_t>(bytes.size())) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::truncated_input,
+            detail::xbf_size_to_offset(range_table_offset)));
+    }
+
+    if (bitmap_data_offset < range_table_end ||
+        bitmap_data_offset > static_cast<std::uint64_t>(bytes.size())) {
+        return std::unexpected(detail::bitmap_font_parse_error(
+            xer::parse_error_reason::invalid_offset,
+            28));
+    }
+
+    bitmap_font font{};
+    font.half_width = static_cast<int>(half_width);
+    font.full_width = static_cast<int>(full_width);
+    font.glyph_height = static_cast<int>(glyph_height);
+    font.ranges.reserve(static_cast<std::size_t>(range_count));
+
+    const auto bitmap_data_size =
+        static_cast<std::uint64_t>(bytes.size()) - bitmap_data_offset;
+
+    bool have_previous_range = false;
+    std::uint32_t previous_last_code_point = 0;
+
+    for (std::uint32_t index = 0; index < range_count; ++index) {
+        const auto entry_offset =
+            range_table_offset +
+            static_cast<std::uint64_t>(index) *
+                static_cast<std::uint64_t>(detail::xbf_range_entry_size);
+        const auto entry = static_cast<std::size_t>(entry_offset);
+
+        const auto first_code_point = detail::xbf_read_u32_le(bytes, entry);
+        const auto last_code_point = detail::xbf_read_u32_le(bytes, entry + 4);
+        const auto width_kind = detail::xbf_byte(bytes, entry + 8);
+
+        if (first_code_point > last_code_point ||
+            last_code_point > detail::xbf_unicode_max ||
+            detail::xbf_range_intersects_surrogates(
+                first_code_point,
+                last_code_point)) {
+            return std::unexpected(detail::bitmap_font_parse_error(
+                xer::parse_error_reason::invalid_range,
+                entry));
+        }
+
+        if (width_kind != static_cast<std::uint8_t>(bitmap_glyph_width::half) &&
+            width_kind != static_cast<std::uint8_t>(bitmap_glyph_width::full)) {
+            return std::unexpected(detail::bitmap_font_parse_error(
+                xer::parse_error_reason::invalid_range,
+                entry + 8));
+        }
+
+        for (std::size_t reserved_index = 9; reserved_index < 16; ++reserved_index) {
+            if (detail::xbf_byte(bytes, entry + reserved_index) != 0) {
+                return std::unexpected(detail::bitmap_font_parse_error(
+                    xer::parse_error_reason::invalid_range,
+                    entry + reserved_index));
+            }
+        }
+
+        if (have_previous_range &&
+            first_code_point <= previous_last_code_point) {
+            return std::unexpected(detail::bitmap_font_parse_error(
+                xer::parse_error_reason::invalid_range,
+                entry));
+        }
+
+        const auto bitmap_offset = detail::xbf_read_u64_le(bytes, entry + 16);
+        if (bitmap_offset > bitmap_data_size) {
+            return std::unexpected(detail::bitmap_font_parse_error(
+                xer::parse_error_reason::invalid_offset,
+                entry + 16));
+        }
+
+        const auto glyph_width =
+            width_kind == static_cast<std::uint8_t>(bitmap_glyph_width::half)
+                ? static_cast<std::uint64_t>(half_width)
+                : static_cast<std::uint64_t>(full_width);
+        const auto bytes_per_row = (glyph_width + 7u) / 8u;
+        const auto bytes_per_glyph =
+            bytes_per_row * static_cast<std::uint64_t>(glyph_height);
+        const auto glyph_count =
+            static_cast<std::uint64_t>(last_code_point) -
+            static_cast<std::uint64_t>(first_code_point) + 1u;
+
+        if (bytes_per_glyph != 0 &&
+            glyph_count >
+                std::numeric_limits<std::uint64_t>::max() / bytes_per_glyph) {
+            return std::unexpected(detail::bitmap_font_parse_error(
+                xer::parse_error_reason::truncated_input,
+                detail::xbf_size_to_offset(bitmap_data_offset + bitmap_offset)));
+        }
+
+        const auto required_bitmap_size = glyph_count * bytes_per_glyph;
+        if (required_bitmap_size > bitmap_data_size - bitmap_offset) {
+            return std::unexpected(detail::bitmap_font_parse_error(
+                xer::parse_error_reason::truncated_input,
+                detail::xbf_size_to_offset(bitmap_data_offset + bitmap_offset)));
+        }
+
+        font.ranges.push_back(bitmap_font_range{
+            .first_code_point = static_cast<char32_t>(first_code_point),
+            .last_code_point = static_cast<char32_t>(last_code_point),
+            .glyph_width = static_cast<bitmap_glyph_width>(width_kind),
+            .bitmap_offset = bitmap_offset,
+        });
+
+        have_previous_range = true;
+        previous_last_code_point = last_code_point;
+    }
+
+    const auto bitmap_start = static_cast<std::size_t>(bitmap_data_offset);
+    font.bitmap.reserve(bytes.size() - bitmap_start);
+    for (std::size_t index = bitmap_start; index < bytes.size(); ++index) {
+        font.bitmap.push_back(detail::xbf_byte(bytes, index));
+    }
+
+    return font;
+}
 
 /**
  * @brief Fixed-size or dynamic-size drawing canvas.
@@ -1247,6 +1730,158 @@ auto fill_rect(
     pixel color) noexcept -> void
 {
     fill_rect(img, area.x, area.y, area.width, area.height, color);
+}
+
+/**
+ * @brief Draws UTF-8 text using a loaded bitmap font.
+ *
+ * Glyph cells are positioned from the specified top-left origin. LF, CR, and
+ * CRLF line breaks reset the pen to the original x coordinate and advance the
+ * pen by `font.glyph_height + options.line_spacing`. Glyphs that are not
+ * present in the font are skipped without advancing the pen. This avoids
+ * guessing a cell width for unrecorded code points.
+ *
+ * Bitmap pixels outside the canvas are clipped. The function reports
+ * `error_t::encoding_error` for invalid UTF-8 input and
+ * `error_t::invalid_argument` when the supplied bitmap font structure is not
+ * usable for a glyph that must be drawn.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto draw_text(
+    canvas<Width, Height, Policy>& img,
+    int x,
+    int y,
+    std::u8string_view text,
+    const bitmap_font& font,
+    pixel color,
+    const text_draw_options& options = {}) noexcept -> xer::result<void>
+{
+    if (font.half_width <= 0 || font.full_width <= 0 || font.glyph_height <= 0) {
+        return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+    }
+    if (img.empty() || text.empty()) {
+        return {};
+    }
+
+    const auto origin_x = static_cast<long long>(x);
+    auto pen_x = origin_x;
+    auto pen_y = static_cast<long long>(y);
+    const auto line_advance =
+        static_cast<long long>(font.glyph_height) +
+        static_cast<long long>(options.line_spacing);
+
+    std::size_t text_offset = 0;
+    while (text_offset < text.size()) {
+        const auto decoded = detail::bitmap_font_decode_utf8_char(text, text_offset);
+        if (!decoded.has_value()) {
+            return std::unexpected(decoded.error());
+        }
+
+        const char32_t code_point = *decoded;
+        if (code_point == U'\r') {
+            if (text_offset < text.size() && text[text_offset] == u8'\n') {
+                ++text_offset;
+            }
+            pen_x = origin_x;
+            pen_y = detail::bitmap_font_saturating_add(pen_y, line_advance);
+            continue;
+        }
+        if (code_point == U'\n') {
+            pen_x = origin_x;
+            pen_y = detail::bitmap_font_saturating_add(pen_y, line_advance);
+            continue;
+        }
+
+        const auto* const range = detail::bitmap_font_find_range(font, code_point);
+        if (range == nullptr) {
+            continue;
+        }
+
+        const int glyph_width = detail::bitmap_font_width_for_range(font, *range);
+        if (glyph_width <= 0) {
+            return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+        }
+
+        const auto bytes_per_row =
+            (static_cast<std::uint64_t>(glyph_width) + UINT64_C(7)) / UINT64_C(8);
+        const auto bytes_per_glyph =
+            bytes_per_row * static_cast<std::uint64_t>(font.glyph_height);
+        const auto glyph_index =
+            static_cast<std::uint64_t>(code_point - range->first_code_point);
+
+        if (bytes_per_glyph != 0 &&
+            glyph_index > std::numeric_limits<std::uint64_t>::max() / bytes_per_glyph) {
+            return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+        }
+
+        const auto glyph_offset_in_range = glyph_index * bytes_per_glyph;
+        if (range->bitmap_offset >
+            std::numeric_limits<std::uint64_t>::max() - glyph_offset_in_range) {
+            return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+        }
+
+        const auto glyph_offset = range->bitmap_offset + glyph_offset_in_range;
+        const auto bitmap_size = static_cast<std::uint64_t>(font.bitmap.size());
+        if (glyph_offset > bitmap_size || bytes_per_glyph > bitmap_size - glyph_offset) {
+            return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+        }
+
+        const auto glyph_begin = static_cast<std::size_t>(glyph_offset);
+        const auto canvas_width = static_cast<long long>(img.width());
+        const auto canvas_height = static_cast<long long>(img.height());
+
+        for (int row = 0; row < font.glyph_height; ++row) {
+            const auto py = pen_y + static_cast<long long>(row);
+            if (py < 0 || py >= canvas_height) {
+                continue;
+            }
+
+            const auto row_offset =
+                glyph_begin + static_cast<std::size_t>(row) *
+                    static_cast<std::size_t>(bytes_per_row);
+            for (int column = 0; column < glyph_width; ++column) {
+                const auto px = pen_x + static_cast<long long>(column);
+                if (px < 0 || px >= canvas_width) {
+                    continue;
+                }
+
+                const auto byte_index =
+                    row_offset + static_cast<std::size_t>(column / 8);
+                const auto bit_mask = static_cast<std::uint8_t>(
+                    1u << (7 - (column % 8)));
+                if ((font.bitmap[byte_index] & bit_mask) == 0u) {
+                    continue;
+                }
+
+                img.set_pixel_unchecked(
+                    static_cast<std::size_t>(px),
+                    static_cast<std::size_t>(py),
+                    color);
+            }
+        }
+
+        const auto glyph_advance =
+            static_cast<long long>(glyph_width) +
+            static_cast<long long>(options.letter_spacing);
+        pen_x = detail::bitmap_font_saturating_add(pen_x, glyph_advance);
+    }
+
+    return {};
+}
+
+/**
+ * @brief Draws UTF-8 text using a loaded bitmap font from a point origin.
+ */
+template<std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto draw_text(
+    canvas<Width, Height, Policy>& img,
+    const point& origin,
+    std::u8string_view text,
+    const bitmap_font& font,
+    pixel color,
+    const text_draw_options& options = {}) noexcept -> xer::result<void>
+{
+    return draw_text(img, origin.x, origin.y, text, font, color, options);
 }
 
 /**

@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.3.0a5**
+Target version: **v0.3.0a6**
 
 ---
 
@@ -11977,6 +11977,11 @@ struct rectf;
 
 struct filter_pixels_error_detail;
 
+enum class bitmap_glyph_width : std::uint8_t;
+struct bitmap_font_range;
+struct bitmap_font;
+struct text_draw_options;
+
 struct pixel;
 
 struct argb32_policy;
@@ -11991,6 +11996,9 @@ class canvas;
 
 template <class Policy = argb32_policy>
 using dynamic_canvas = canvas<0, 0, Policy>;
+
+[[nodiscard]] auto bitmap_font_load(const xer::path& filename)
+    -> xer::result<bitmap_font, xer::parse_error_detail>;
 
 template <std::size_t Width, std::size_t Height, class Policy>
 auto draw_hline(canvas<Width, Height, Policy>& img,
@@ -12407,6 +12415,100 @@ auto clear() noexcept -> void;
 
 ---
 
+## Bitmap Font Types
+
+`<xer/image.h>` defines a compact runtime representation for monospaced bitmap fonts loaded from XBF files.
+
+```cpp
+enum class bitmap_glyph_width : std::uint8_t {
+    half,
+    full,
+};
+
+struct bitmap_font_range {
+    char32_t first_code_point {};
+    char32_t last_code_point {};
+    bitmap_glyph_width glyph_width = bitmap_glyph_width::half;
+    std::uint64_t bitmap_offset = 0;
+};
+
+struct bitmap_font {
+    int half_width = 0;
+    int full_width = 0;
+    int glyph_height = 0;
+    std::vector<bitmap_font_range> ranges {};
+    std::vector<std::uint8_t> bitmap {};
+};
+
+struct text_draw_options {
+    int letter_spacing = 0;
+    int line_spacing = 0;
+};
+```
+
+`bitmap_font` stores:
+
+- one half-width cell width
+- one full-width cell width
+- one glyph height shared by the whole font
+- sorted non-overlapping Unicode code point ranges
+- packed 1bpp glyph bitmap bytes
+
+Each range selects either the half-width cell or the full-width cell. The width kind is stored in the font data rather than inferred from Unicode code points.
+
+`text_draw_options` is a per-call layout control for `draw_text`.
+
+- `letter_spacing` is added after each drawn glyph cell
+- `line_spacing` is added to `glyph_height` when a line break is processed
+
+Negative spacing values are permitted and may produce overlapping glyph cells.
+
+---
+
+## Bitmap Font Loading
+
+```cpp
+[[nodiscard]] auto bitmap_font_load(const xer::path& filename)
+    -> xer::result<bitmap_font, xer::parse_error_detail>;
+```
+
+`bitmap_font_load` reads an XBF bitmap-font file and returns a validated `bitmap_font`.
+
+XBF is XER's compact binary bitmap-font format. It stores:
+
+- little-endian numeric fields
+- monospaced half-width and full-width glyph cells
+- one common glyph height
+- Unicode code point ranges
+- packed 1bpp bitmap data
+
+The loader validates the XBF header, range table, bitmap spans, reserved fields, code point ranges, and related offsets before returning success.
+
+### Errors
+
+If file I/O fails before XBF parsing begins, `bitmap_font_load` preserves the underlying file-related error code and returns an otherwise empty `parse_error_detail` whose reason is `parse_error_reason::none`.
+
+If XBF bytes are malformed, it returns `error_t::invalid_argument` together with `parse_error_detail`.
+
+For XBF:
+
+- `offset` is a byte offset from the beginning of the binary input
+- `line` is `0`
+- `column` is `0`
+
+The XBF loader may report reasons such as:
+
+- `parse_error_reason::invalid_magic`
+- `parse_error_reason::unsupported_version`
+- `parse_error_reason::invalid_header`
+- `parse_error_reason::invalid_range`
+- `parse_error_reason::invalid_offset`
+- `parse_error_reason::truncated_input`
+
+See `header_parse.md` and `policy_bitmap_font.md` for the shared parse-detail model and the XBF policy.
+
+---
+
 ## Drawing Functions
 
 The initial drawing functions are simple framebuffer helpers:
@@ -12434,6 +12536,59 @@ The `draw_rect` and `fill_rect` overloads accept either `point` plus `size`, or 
 
 ---
 
+## Bitmap Text Drawing
+
+```cpp
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto draw_text(canvas<Width, Height, Policy>& img,
+                             int x,
+                             int y,
+                             std::u8string_view text,
+                             const bitmap_font& font,
+                             pixel color,
+                             const text_draw_options& options = {}) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto draw_text(canvas<Width, Height, Policy>& img,
+                             const point& origin,
+                             std::u8string_view text,
+                             const bitmap_font& font,
+                             pixel color,
+                             const text_draw_options& options = {}) noexcept
+    -> xer::result<void>;
+```
+
+`draw_text` draws UTF-8 text onto a canvas using a loaded `bitmap_font`.
+
+The origin is the top-left position of the first glyph cell. Baseline-oriented placement is intentionally not part of the initial bitmap-font API.
+
+### Layout Rules
+
+- ordinary glyphs are drawn from the loaded bitmap data
+- after a drawn glyph, the pen advances by that glyph cell width plus `letter_spacing`
+- `\n`, `\r`, and `\r\n` start a new line
+- a line break resets the x position to the original line origin
+- a line break advances the y position by `glyph_height + line_spacing`
+- a code point missing from the font is skipped without drawing and without advancing the pen
+
+The missing-glyph rule is deliberately minimal. The initial API does not infer fallback widths or substitute `?` automatically.
+
+### Clipping
+
+Drawing is clipped to the canvas boundary. Glyphs may start outside the canvas, and only visible set pixels are written.
+
+### Errors
+
+`draw_text` returns:
+
+- `error_t::encoding_error` when `text` is not valid UTF-8
+- `error_t::invalid_argument` when the supplied `bitmap_font` is structurally unusable for the requested glyph
+
+An empty canvas or empty text is a successful no-op.
+
+---
+
 ## Image Processing Functions
 
 `mosaic`, `box_blur`, and `filter_pixels` are in-place image-processing operations.
@@ -12443,6 +12598,25 @@ template <std::size_t Width, std::size_t Height, class Policy>
 [[nodiscard]] auto mosaic(canvas<Width, Height, Policy>& img,
                           const rect& area,
                           const size& block_size) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto draw_text(canvas<Width, Height, Policy>& img,
+                             int x,
+                             int y,
+                             std::u8string_view text,
+                             const bitmap_font& font,
+                             pixel color,
+                             const text_draw_options& options = {}) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto draw_text(canvas<Width, Height, Policy>& img,
+                             const point& origin,
+                             std::u8string_view text,
+                             const bitmap_font& font,
+                             pixel color,
+                             const text_draw_options& options = {}) noexcept
     -> xer::result<void>;
 
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -12546,13 +12720,16 @@ Additional examples:
 - `examples/example_image_geometry_io.cpp`
 - `examples/example_image_effects.cpp`
 - `examples/example_image_filter_pixels.cpp`
+- `examples/example_image_bitmap_text.cpp`
 
 ---
 
 ## See Also
 
 - `header_iostream.md`
+- `header_parse.md`
 - `policy_image.md`
+- `policy_bitmap_font.md`
 
 ---
 

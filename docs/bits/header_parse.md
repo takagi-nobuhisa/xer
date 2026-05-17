@@ -2,9 +2,9 @@
 
 ## Purpose
 
-`<xer/parse.h>` provides common structured detail types for text parse errors.
+`<xer/parse.h>` provides common structured detail types for parsed input errors.
 
-The header is intentionally independent from JSON, INI, TOML, and other individual parsers.  A parse failure position and a parse-failure reason are useful across multiple text-oriented APIs, so XER provides a shared vocabulary rather than format-specific detail types.
+The header is intentionally independent from JSON, INI, TOML, XBF bitmap-font data, and other individual parsers or loaders. A parse-failure position and a parse-failure reason are useful across multiple structured-input APIs, so XER provides a shared vocabulary rather than format-specific detail types.
 
 ---
 
@@ -24,7 +24,7 @@ struct xer::parse_error_detail;
 
 ## `parse_error_reason`
 
-`parse_error_reason` is a format-neutral reason code for text parse failures.
+`parse_error_reason` is a format-neutral reason code for structured input failures.
 
 The current reason set includes:
 
@@ -45,10 +45,32 @@ enum class parse_error_reason {
     invalid_date_time,
     invalid_array,
     invalid_table,
+    invalid_magic,
+    unsupported_version,
+    invalid_header,
+    invalid_range,
+    invalid_offset,
+    truncated_input,
 };
 ```
 
-The reason is a more detailed classification than `error_t`.  For example, a parser may use `error_t::invalid_argument` as the common error category while using `parse_error_reason::duplicate_key` or `parse_error_reason::invalid_date_time` as the parse-specific detail.
+The reason is a more detailed classification than `error_t`. For example:
+
+- a text parser may use `error_t::invalid_argument` together with `parse_error_reason::duplicate_key`
+- an XBF bitmap-font loader may use `error_t::invalid_argument` together with `parse_error_reason::invalid_magic`
+
+### Binary-Structure Reasons
+
+The following reasons are intended for binary formats or other structured inputs that have fixed headers, offsets, ranges, or finite byte spans:
+
+- `invalid_magic`
+- `unsupported_version`
+- `invalid_header`
+- `invalid_range`
+- `invalid_offset`
+- `truncated_input`
+
+They are currently used by `xer::image::bitmap_font_load` when validating XBF bitmap-font data.
 
 ---
 
@@ -65,39 +87,50 @@ struct parse_error_detail {
 
 ### Position Meaning
 
-`offset` is the input offset from the beginning of the text.  It is zero-based and counted in UTF-8 code units.
+`offset` is the zero-based position from the beginning of the input.
 
-`line` is the line number.  It is one-based.
+- For UTF-8 text formats, it is counted in UTF-8 code units.
+- For binary formats, it is counted in bytes.
 
-`column` is the column number.  It is one-based and counted in UTF-8 code units, not display cells, Unicode scalar values, or grapheme clusters.
+`line` is the one-based line number when line information is available. It is `0` when line information is not available.
 
-This rule keeps parser diagnostics aligned with XER's `char8_t`-based text model and avoids introducing display-width or locale-dependent behavior into low-level parsers.
+`column` is the one-based column number when column information is available. For UTF-8 text formats, it is counted in UTF-8 code units, not display cells, Unicode scalar values, or grapheme clusters. It is `0` when column information is not available.
+
+This rule keeps parser diagnostics aligned with XER's `char8_t`-based text model while also allowing binary loaders to report exact byte positions without inventing fake line or column values.
 
 ---
 
 ## Intended Use
 
-A parser that can report structured detail may return a result such as:
+A text parser that can report structured detail may return a result such as:
 
 ```cpp
 auto toml_decode(std::u8string_view text)
     -> xer::result<toml_value, parse_error_detail>;
 ```
 
-When parsing fails, callers can inspect both the common error code and the parse-specific detail.
+A binary loader may use the same detail type:
+
+```cpp
+auto bitmap_font_load(const xer::path& filename)
+    -> xer::result<xer::image::bitmap_font, parse_error_detail>;
+```
+
+When parsing or loading fails, callers can inspect both the common error code and the parse-specific detail.
 
 ```cpp
 const auto result = xer::toml_decode(text);
 if (!result.has_value()) {
     const auto& error = result.error();
     // error.code
+    // error.offset
     // error.line
     // error.column
     // error.reason
 }
 ```
 
-Because `error<Detail>` exposes class-type detail naturally, `line`, `column`, and `reason` are directly available on the returned error object.
+Because `error<Detail>` exposes class-type detail naturally, `offset`, `line`, `column`, and `reason` are directly available on the returned error object.
 
 ---
 
@@ -109,22 +142,29 @@ Because `error<Detail>` exposes class-type detail naturally, `line`, `column`, a
 - `<xer/json.h>`
 - `<xer/ini.h>`
 - `<xer/toml.h>`
+- `<xer/image.h>`
 
 The rough boundary is:
 
 - `<xer/error.h>` provides the common result and error model
-- `<xer/parse.h>` provides parser-specific structured detail
+- `<xer/parse.h>` provides shared structured-input error detail
 - data-format headers use that detail where position-aware diagnostics are useful
+- `<xer/image.h>` uses that detail for XBF bitmap-font loading
 
 ---
 
 ## Documentation Notes
 
-`parse_error_detail` is intentionally not named after TOML, JSON, or INI.  It is a common parse detail type and should remain reusable by multiple parsers.
+`parse_error_detail` is intentionally not named after TOML, JSON, INI, or XBF. It is a common structured-input detail type and should remain reusable by multiple parsers and loaders.
 
+### No-detail State
 
-### No-detail state
+`parse_error_reason::none` means that the parse-detail payload is intentionally unused. In that state, `offset`, `line`, and `column` are all zero.
 
-`parse_error_reason::none` means that the parse-detail payload is intentionally unused.  In that state, `offset`, `line`, and `column` are all zero.  This is used by convenience functions such as `json_load`, `ini_load`, and `toml_load` when file I/O fails before parsing begins.
+This is used by convenience functions such as `json_load`, `ini_load`, `toml_load`, and `bitmap_font_load` when file I/O fails before format parsing begins.
 
-When `reason` is not `none`, `line` and `column` are one-based positions and `offset` is a zero-based UTF-8 code-unit offset.
+When `reason` is not `none`:
+
+- `offset` is always a zero-based input position
+- `line` and `column` are one-based only when line information exists
+- binary loaders keep `line` and `column` at `0`
