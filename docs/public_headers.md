@@ -234,6 +234,7 @@ xer/ctype.h
 xer/stdlib.h
 xer/bytes.h
 xer/base64.h
+xer/parse.h
 xer/json.h
 xer/ini.h
 xer/toml.h
@@ -242,6 +243,7 @@ xer/iostream.h
 xer/path.h
 xer/dirent.h
 xer/socket.h
+xer/tk.h
 xer/stdint.h
 xer/stdfloat.h
 xer/arithmetic.h

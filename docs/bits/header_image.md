@@ -1,6 +1,5 @@
 # `<xer/image.h>`
 
-Target version: v0.3.0a7
 
 ## Purpose
 

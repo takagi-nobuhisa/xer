@@ -10,15 +10,21 @@ It keeps the spirit of the C standard library where that style is still practica
 
 xer is under active development.
 
-The current focus is on rebuilding practical parts of the C standard library in a way that fits the design goals of this project, especially:
+The project began by rebuilding practical parts of the C standard library in a way that fits its design goals. It now also covers adjacent areas that benefit from the same approach, including structured data handling, process and socket utilities, Tcl/Tk integration, and a lightweight image/canvas subsystem.
+
+The current library scope includes:
 
 - string and character handling
-- I/O
+- I/O and filesystem-oriented utilities
 - path handling
-- arithmetic helpers
+- arithmetic helpers and numeric utility types
 - time utilities
+- JSON, INI, and TOML handling
+- process and socket utilities
+- Tcl/Tk integration
+- image/canvas drawing, bitmap fonts, and basic pixel processing
 
-This project does **not** aim at full source-level compatibility with the C standard library, even when function names are reused.
+This project does **not** aim at full source-level compatibility with the C standard library, PHP, or platform APIs, even when familiar names are reused.
 
 ## Design goals
 
@@ -62,7 +68,7 @@ xer is intended to be usable by including headers only.
 
 ### 2. Error handling based on `std::expected`
 
-Normal failures are represented with `std::expected`.
+Normal failures are represented with `std::expected` through `xer::result`.
 Internal invariant violations are handled separately through XER's assert mechanism.
 
 ### 3. Clear separation of API layers
@@ -105,13 +111,35 @@ Current public headers:
 
 - `xer/error.h`
 - `xer/assert.h`
+- `xer/typeinfo.h`
+- `xer/diag.h`
+- `xer/scope.h`
 - `xer/string.h`
 - `xer/ctype.h`
 - `xer/stdlib.h`
+- `xer/bytes.h`
+- `xer/base64.h`
+- `xer/parse.h`
+- `xer/json.h`
+- `xer/ini.h`
+- `xer/toml.h`
 - `xer/stdio.h`
+- `xer/iostream.h`
 - `xer/path.h`
+- `xer/dirent.h`
+- `xer/socket.h`
+- `xer/tk.h`
 - `xer/stdint.h`
+- `xer/stdfloat.h`
 - `xer/arithmetic.h`
+- `xer/cyclic.h`
+- `xer/interval.h`
+- `xer/color.h`
+- `xer/quantity.h`
+- `xer/matrix.h`
+- `xer/image.h`
+- `xer/process.h`
+- `xer/cmdline.h`
 - `xer/time.h`
 - `xer/version.h`
 
@@ -124,8 +152,9 @@ xer/
   xer/        public headers
   xer/bits/   internal implementation headers
   tests/      test programs
+  examples/   example programs
   php/        development-time helper scripts
-  doc/        design documents
+  docs/       design documents and reference materials
 ```
 
 ## Example
@@ -177,7 +206,7 @@ Some headers are intentionally not provided as standalone public headers, and so
 
 ## Documentation
 
-Design documents are available under `doc/`.
+Design documents and reference materials are available under `docs/`.
 
 These documents describe the current direction of the project, including:
 
@@ -186,6 +215,8 @@ These documents describe the current direction of the project, including:
 - path handling
 - I/O design
 - arithmetic behavior
+- Tcl/Tk integration policy
+- image/canvas and bitmap-font policy
 - coding conventions
 - test and code-generation policy
 

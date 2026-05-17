@@ -472,13 +472,150 @@ The loader should not accept files whose internal offsets or sizes are inconsist
 
 ---
 
+## Loading API
+
+### Naming Policy
+
+Functions that directly operate on the bitmap-font facility use the `bitmap_font_` prefix.
+
+For example:
+
+```cpp
+bitmap_font_load
+```
+
+Here, `bitmap_font` is treated as an API-family prefix rather than as a grammatical object.
+
+Canvas drawing functions remain part of the image drawing API. For example, text rendering uses `draw_text`, in the same style as other canvas drawing functions.
+
+### `bitmap_font_load`
+
+The XBF runtime loader is exposed as:
+
+```cpp
+namespace xer::image
+{
+    [[nodiscard]] auto bitmap_font_load(const xer::path& filename)
+        -> xer::result<bitmap_font, xer::parse_error_detail>;
+}
+```
+
+`bitmap_font_load` is responsible for:
+
+- reading an XBF file from a path
+- decoding little-endian XBF fields
+- validating the XBF structure
+- constructing a `bitmap_font`
+- reporting malformed XBF input through `parse_error_detail`
+
+File I/O failures preserve the ordinary file-related error code. In that case, parse-detail fields remain unused and `reason` is `parse_error_reason::none`.
+
+Format-validation failures use `error_t::invalid_argument` together with `parse_error_detail`.
+
+---
+
+## Parse Error Policy
+
+### Reusing `parse_error_detail`
+
+XBF loading reuses the existing `parse_error_detail` infrastructure used by other structured-input APIs.
+
+For XBF:
+
+- `offset` is the zero-based byte offset from the beginning of the binary input
+- `line` is `0`
+- `column` is `0`
+
+The shared documentation for `parse_error_detail` therefore treats `offset` as a format-neutral input position:
+
+```text
+offset:
+    The zero-based position in the input.
+    For UTF-8 text formats, this is the UTF-8 code-unit offset.
+    For binary formats, this is the byte offset in the binary input.
+
+line:
+    The one-based line number when available.
+    Zero when line information is not available.
+
+column:
+    The one-based column number when available.
+    Zero when column information is not available.
+```
+
+### Additional `parse_error_reason` Values
+
+XBF loading uses the following structured-input reasons:
+
+```cpp
+invalid_magic,
+unsupported_version,
+invalid_header,
+invalid_range,
+invalid_offset,
+truncated_input,
+```
+
+### Reason Meanings
+
+| Reason | Meaning in XBF loading |
+|---|---|
+| `invalid_magic` | The file magic is not `"XBF0"`. |
+| `unsupported_version` | The file is XBF-like, but the version is not supported. |
+| `invalid_header` | A header field is structurally invalid. |
+| `invalid_range` | A range-table entry or range-table ordering rule is invalid. |
+| `invalid_offset` | An offset field points outside the valid structure or contradicts the file layout. |
+| `truncated_input` | The file ends before a required structure or bitmap span is complete. |
+
+### Representative Error Mapping
+
+| XBF failure | `parse_error_reason` | `offset` |
+|---|---|---:|
+| Header smaller than the minimum XBF v1 header | `truncated_input` | actual input size |
+| Magic value mismatch | `invalid_magic` | `0` |
+| Unsupported format version | `unsupported_version` | `4` |
+| Invalid header size | `invalid_header` | `6` |
+| Zero half-width glyph cell width | `invalid_header` | `8` |
+| Zero full-width glyph cell width | `invalid_header` | `10` |
+| Zero glyph height | `invalid_header` | `12` |
+| Non-zero header reserved field | `invalid_header` | `14` |
+| Invalid range-table offset | `invalid_offset` | `20` |
+| Invalid bitmap-data offset | `invalid_offset` | `28` |
+| Range table does not fit in the file | `truncated_input` | range-table offset |
+| Invalid code-point interval in a range entry | `invalid_range` | range-entry offset |
+| Invalid width-kind value | `invalid_range` | range-entry offset + `8` |
+| Non-zero range-entry reserved bytes | `invalid_range` | range-entry offset + `9` |
+| Unsorted or overlapping ranges | `invalid_range` | offending range-entry offset |
+| Invalid per-range bitmap offset | `invalid_offset` | range-entry offset + `16` |
+| Bitmap span required by a range exceeds the available input | `truncated_input` | beginning of the incomplete bitmap span |
+
+---
+
 ## Conversion Policy
 
 XBF is intended to be generated rather than authored by hand.
 
-The project may provide converter tools under `php/` for sources such as:
+The project provides converter tools under `php/`.
 
-- BDF bitmap fonts
+The current BDF converter is:
+
+```text
+php/convert_bdf_font.php
+```
+
+It converts supported monospaced BDF input to XBF. The converter:
+
+- accepts BDF 2.1 and 2.2 input
+- skips `ENCODING -1` glyphs
+- requires horizontal `DWIDTH <width> 0`
+- infers half-width and full-width cell sizes from `DWIDTH`, unless both are specified explicitly
+- uses `FONTBOUNDINGBOX` and per-glyph `BBX` information to place bitmap rows inside XBF fixed cells
+- rejects glyphs that do not fit in the target cell
+- sorts glyphs by Unicode code point
+- groups contiguous code points only when the width kind matches
+
+Additional converter tools may later support sources such as:
+
 - images containing arranged glyph cells
 - rasterized monospaced PC fonts exported to bitmap images
 
@@ -496,24 +633,54 @@ The public runtime API should not depend on a specific converter implementation.
 
 ## Drawing Policy
 
-Bitmap-font drawing should use the loaded `bitmap_font` representation.
+Bitmap-font drawing uses the loaded `bitmap_font` representation.
 
-The initial text drawing API should place glyph cells from a top-left position.
+The initial text drawing API places glyph cells from a top-left position.
 Baseline-oriented drawing is intentionally omitted.
 
-Spacing decisions should be provided at draw time, not stored in the XBF file.
-
-Conceptually, a text-drawing option type may include:
+Spacing decisions are provided at draw time, not stored in the XBF file.
 
 ```cpp
 struct text_draw_options
 {
-    int letter_spacing {};
-    int line_spacing {};
+    int letter_spacing = 0;
+    int line_spacing = 0;
 };
 ```
 
-The exact public API may be finalized when `draw_text` is designed.
+The public drawing functions are:
+
+```cpp
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto draw_text(canvas<Width, Height, Policy>& img,
+                             int x,
+                             int y,
+                             std::u8string_view text,
+                             const bitmap_font& font,
+                             pixel color,
+                             const text_draw_options& options = {}) noexcept
+    -> xer::result<void>;
+
+template <std::size_t Width, std::size_t Height, class Policy>
+[[nodiscard]] auto draw_text(canvas<Width, Height, Policy>& img,
+                             const point& origin,
+                             std::u8string_view text,
+                             const bitmap_font& font,
+                             pixel color,
+                             const text_draw_options& options = {}) noexcept
+    -> xer::result<void>;
+```
+
+Drawing rules:
+
+- glyphs are interpreted from UTF-8 input text
+- `\n`, `\r`, and `\r\n` start a new line
+- line advance is `glyph_height + line_spacing`
+- glyph advance is the selected cell width plus `letter_spacing`
+- missing glyphs are skipped without drawing and without advancing the pen
+- drawing is clipped to the canvas boundary
+
+`draw_text` reports `error_t::encoding_error` for invalid UTF-8 and `error_t::invalid_argument` for structurally unusable bitmap-font data.
 
 ---
 
@@ -523,10 +690,13 @@ XER bitmap fonts use a deliberately small and predictable model:
 
 - runtime-loaded external binary data
 - XBF format with little-endian fields
+- `bitmap_font_load` as the runtime loading API
+- `parse_error_detail` reuse for malformed XBF input
 - monospaced glyphs with half-width and full-width cells
 - one common glyph height
 - Unicode range tables
 - packed 1bpp bitmap data
+- `draw_text` for top-left bitmap text rendering
 - draw-time control of spacing
 - no baseline, proportional layout, or shaping support in the initial design
 

@@ -357,7 +357,10 @@ Details follow this document:
 
 ---
 
-## 17. Future Functional Areas
+## 17. Additional Functional Areas
+
+The following functional areas are already part of XER's current design scope.
+They are organized as separate policy documents because they form independent groups of functionality rather than being mere extensions of a single header.
 
 ### 17.1 `cyclic`
 
@@ -367,7 +370,25 @@ Details follow this document:
 
 - `policy_cyclic.md`
 
-### 17.2 Physical Quantities and Units
+### 17.2 Bounded Intervals
+
+Values constrained to a compile-time interval are handled by `interval`.
+This facility is intended to support domains such as normalized color components and other range-limited scalar values.
+
+Details follow this document:
+
+- `policy_interval.md`
+
+### 17.3 Color Handling
+
+Color-related functionality is provided as a practical foundation for image processing and drawing APIs.
+It includes basic color representations, color-space conversion utilities, and grayscale-oriented helpers.
+
+Details follow this document:
+
+- `policy_color.md`
+
+### 17.4 Physical Quantities and Units
 
 Physical quantities and units are handled by the quantity system.
 
@@ -375,7 +396,7 @@ Details follow this document:
 
 - `policy_quantity.md`
 
-### 17.3 Time Handling
+### 17.5 Time Handling
 
 Time-related functionality is redesigned as a simple and easy-to-use high-precision `time.h`-style library.
 
@@ -383,13 +404,40 @@ Details follow this document:
 
 - `policy_time.md`
 
-### 17.4 Multibyte Conversion in `stdlib.h`
+### 17.6 Multibyte Conversion in `stdlib.h`
 
 The multibyte conversion facilities in `stdlib.h` follow a separate policy document.
 
 Details follow this document:
 
 - `policy_multibyte.md`
+
+### 17.7 Tcl/Tk Integration
+
+Tcl/Tk integration provides a lightweight GUI path for XER while preserving the library's explicit-error and low-abstraction style.
+The design covers interpreter ownership, command registration, event-loop control, and practical interoperability with Tk objects.
+
+Details follow this document:
+
+- `policy_tk.md`
+
+### 17.8 Image and Canvas Facilities
+
+Image and drawing facilities are organized around a lightweight canvas abstraction.
+They cover pixel access, basic drawing primitives, anti-aliased and thick strokes, simple image filters, and interoperability with other XER facilities where appropriate.
+
+Details follow this document:
+
+- `policy_image.md`
+
+### 17.9 Bitmap Font Handling
+
+Bitmap font handling provides a practical text-rendering path for the image subsystem.
+It covers BDF-derived font data, font loading, and text drawing on image canvases.
+
+Details follow this document:
+
+- `policy_bitmap_font.md`
 
 ---
 
@@ -405,4 +453,5 @@ Details follow this document:
 - It performs validation through common headers and `static_assert`
 - It uses PHP as a development-only tool for code generation and testing
 - It organizes documentation, examples, and development scripts by role
+- It includes additional practical facilities such as process handling, socket support, value-domain utilities, Tcl/Tk integration, image/canvas APIs, and bitmap-font-based text rendering
 - It continues to evolve incrementally, starting from the facilities most needed in practice

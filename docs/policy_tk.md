@@ -1,4 +1,4 @@
-﻿# Policy for Tcl/Tk GUI Support
+# Policy for Tcl/Tk GUI Support
 
 ## Overview
 
@@ -723,7 +723,7 @@ Good initial examples include:
 - registering a simple C++ command and calling it from Tcl
 - showing how to read Tcl result text with `get_result` when an operation fails
 
-Graphical widget examples may be added after the lower-level foundation is stable.
+Graphical widget examples should remain small and should focus on the public `xer::tk` facilities rather than on building a full application framework.
 
 Examples that require an actual display server should be separated from examples that can run in ordinary automated test environments.
 
