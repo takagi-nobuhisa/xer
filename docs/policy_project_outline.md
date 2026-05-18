@@ -7,6 +7,26 @@ XER is designed as a **C++23 library for programmers of the X generation who are
 It values the clarity inherited from C while adopting the type safety and expressive power of C++23.
 It avoids excessive C++-style abstraction and gives priority to being **easy for C programmers to understand and use**.
 
+### 1.1 Practical Quality Target
+
+XER values practical usefulness over theoretical perfection.
+
+For domains where complete correctness is impossible, excessively costly, or dependent on information unavailable to the library, XER should aim for behavior that is:
+
+> **not perfect, but sufficiently good**
+
+This principle applies especially to facilities such as natural-language-oriented Japanese text processing, where readings, word boundaries, and structural interpretation may depend on context, dictionary coverage, or implicit human knowledge.
+
+Such facilities should:
+
+- provide useful and predictable results for ordinary practical use
+- document their limitations honestly
+- avoid pretending to solve problems that cannot be solved reliably without broader context
+- prefer a robust practical baseline over endlessly pursuing exceptional cases
+
+This principle does **not** weaken the expectations for deterministic low-level APIs.
+Where exact behavior is reasonably definable, XER should define it clearly and implement it faithfully.
+
 ---
 
 ## 2. Supported Environment
@@ -56,6 +76,27 @@ Under MSYS2, at least the following environments are supported:
 ### 3.3 Header Extension
 
 - Header files use the **`.h`** extension
+
+### 3.4 External Component Policy
+
+XER avoids being driven by unstable external dependencies.
+
+When XER intentionally integrates an external component, it should prefer components that are:
+
+- mature
+- widely used
+- operationally simple
+- stable in behavior and interface
+- unlikely to impose frequent disruptive changes on XER
+
+The goal is to gain practical capability without being forced to chase fast-moving external ecosystems.
+
+Examples of external components that fit this policy include:
+
+- **Tcl/Tk** for lightweight GUI integration
+- **MeCab** for Japanese morphological analysis
+
+These components are old, well-established, and sufficiently stable that XER can build practical facilities around them without expecting constant breakage from upstream changes.
 
 ---
 
@@ -439,12 +480,22 @@ Details follow this document:
 
 - `policy_bitmap_font.md`
 
+### 17.10 MeCab-Based Japanese Text Processing
+
+MeCab-based Japanese text processing provides a practical foundation for higher-level Japanese-language features.
+It covers UTF-8 child-process integration with MeCab, access to morphological analysis data, bunsetsu-oriented grouping, and the basis for readable spacing, readings, ruby, romanization, braille-oriented conversion, and related counts.
+
+Details follow this document:
+
+- `policy_mecab.md`
+
 ---
 
 ## 18. Summary
 
 - XER is a C++23 library designed for programmers familiar with C
 - It values clarity and practicality over excessive abstraction
+- In domains where perfect correctness is unrealistic or disproportionally costly, it aims for results that are **not perfect, but sufficiently good**
 - It is header-only, with public headers under `xer/` and implementation details under `xer/bits/`
 - It limits its supported encodings to CP932, UTF-8, UTF-16, and UTF-32
 - It uses UTF-8 as the primary string representation
@@ -452,6 +503,7 @@ Details follow this document:
 - It represents normal failure with `xer::result`
 - It performs validation through common headers and `static_assert`
 - It uses PHP as a development-only tool for code generation and testing
+- It avoids unstable external dependencies and prefers mature, stable external components when integration is worthwhile
 - It organizes documentation, examples, and development scripts by role
-- It includes additional practical facilities such as process handling, socket support, value-domain utilities, Tcl/Tk integration, image/canvas APIs, and bitmap-font-based text rendering
+- It includes additional practical facilities such as process handling, socket support, value-domain utilities, Tcl/Tk integration, image/canvas APIs, bitmap-font-based text rendering, and MeCab-based Japanese text processing
 - It continues to evolve incrementally, starting from the facilities most needed in practice

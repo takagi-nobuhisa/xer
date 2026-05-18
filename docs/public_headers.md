@@ -26,6 +26,7 @@
 - `xer/ctype.h`
 - `xer/stdlib.h`
 - `xer/kansuji.h`
+- `xer/mecab.h`
 
 ### Data Encoding and Format Processing
 
@@ -159,6 +160,21 @@ This keeps the responsibility clear:
 
 - `to_kansuji` converts unsigned integer values into Japanese numeric text
 - `from_kansuji` parses practical Japanese numeric text back into `std::uint64_t`
+
+### Why `mecab.h` Is Independent
+
+MeCab-based Japanese text processing is not an ordinary low-level string algorithm.
+It involves invoking an external morphological analyzer, validating UTF-8 process I/O, preserving dictionary-dependent feature data, and serving as the foundation for higher-level Japanese text processing.
+
+For that reason, MeCab integration is not absorbed into `xer/string.h`, `xer/process.h`, or `xer/stdlib.h`, but is provided through the independent public header `xer/mecab.h`.
+
+At the current stage, this keeps the responsibility clear:
+
+- `mecab_parse` invokes MeCab and returns raw morphological token results
+- `mecab_options` controls the MeCab executable path when automatic `PATH` lookup is not sufficient
+- `mecab_token` preserves the surface text and raw MeCab feature text
+
+Future higher-level facilities such as bunsetsu-oriented processing, readable spacing, readings, ruby, romanization, and braille-oriented conversion can build on this foundation.
 
 ### Why `json.h` Is Independent
 
