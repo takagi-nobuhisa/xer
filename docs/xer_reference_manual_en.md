@@ -1497,10 +1497,98 @@ strtoctrans
 
 `strtolower` and `strtoupper` apply character conversion to a string and return a transformed string.
 
-`strtoctrans` applies a `ctrans_id` transformation to each code point of a string.
-It is the string-level counterpart of `toctrans`.
+`strtoctrans` applies a `ctrans_id` transformation to a string.
+For ordinary one-code-point transformations, it acts as the string-level counterpart of `toctrans`.
+For transformations that inherently require multiple code points or context across neighboring characters, `strtoctrans` may provide functionality that `toctrans` cannot provide.
 
-Current transformation support includes ASCII and Latin-1 case conversion as well as fullwidth/halfwidth transformations where implemented by `toctrans`.
+Current transformation support includes:
+
+- ASCII and Latin-1 case conversion
+- fullwidth/halfwidth transformations
+- kana-aware string transformations already implemented through `strtoctrans`
+- kana-to-romaji conversion
+
+---
+
+## Kana-to-Romaji Conversion
+
+`strtoctrans` supports romaji conversion from Hiragana and fullwidth Katakana.
+
+```cpp
+auto standard =
+    xer::strtoctrans(u8"とうきょう", xer::ctrans_id::romaji);
+// tōkyō
+
+auto alternate =
+    xer::strtoctrans(u8"とうきょう", xer::ctrans_id::romaji_alt);
+// toukyou
+```
+
+### Conversion Kinds
+
+| `ctrans_id` | Meaning |
+|---|---|
+| `romaji` | Romanization following the standard long-vowel notation with macrons |
+| `romaji_alt` | Alternate notation that writes long vowels by lining up vowel letters according to modern kana spelling |
+
+The romanization policy follows the 2025 Cabinet Notification **“Romanization Spelling”** adopted for Japanese romanization.
+The ordinary `romaji` form uses macrons for long vowels.
+The `romaji_alt` form provides the separately allowed no-macron spelling style.
+
+### Examples
+
+| Source | `romaji` | `romaji_alt` |
+|---|---|---|
+| `とうきょう` | `tōkyō` | `toukyou` |
+| `おおさか` | `ōsaka` | `oosaka` |
+| `えいが` | `ēga` | `eiga` |
+| `コーヒー` | `kōhī` | `koohii` |
+
+The conversion also handles ordinary romanization details such as:
+
+- yōon combinations such as `きゃ`, `しゃ`, and `ちゃ`
+- sokuon such as `っ`
+- syllabic `ん`, including separator apostrophes before vowels and `y`
+- long sound marks in Katakana text
+
+### Scope
+
+The initial romaji conversion accepts:
+
+- Hiragana
+- fullwidth Katakana
+- the Katakana prolonged sound mark `ー`
+- ordinary halfwidth and fullwidth spaces where they can be preserved as spacing
+
+Inputs containing unsupported characters are reported as:
+
+```cpp
+error_t::invalid_argument
+```
+
+### Relationship to `toctrans`
+
+`ctrans_id::romaji` and `ctrans_id::romaji_alt` are string-level transformations.
+
+They are accepted by:
+
+```cpp
+strtoctrans
+```
+
+They are not meaningful for single-code-point conversion through:
+
+```cpp
+toctrans
+```
+
+and `toctrans` reports:
+
+```cpp
+error_t::invalid_argument
+```
+
+for these identifiers.
 
 ---
 
@@ -1717,13 +1805,28 @@ When an extended category is specified, it may perform non-ASCII conversion as w
 
 ## Extended Conversion Areas
 
-Extended `toctrans` categories may cover at least the following areas:
+Extended conversion categories may cover at least the following areas:
 
 * fullwidth/halfwidth conversion for Japanese use
 * conversion between Hiragana and Katakana
 * uppercase/lowercase conversion for Greek and Cyrillic letters
+* kana-to-romaji conversion at the string level
 
 These are intentionally treated as explicit extended features rather than as behavior automatically implied by the basic ASCII functions.
+
+### String-Only Conversion Categories
+
+Some `ctrans_id` values require multiple input or output code points, or depend on neighboring characters.
+Such transformations are exposed through `strtoctrans`, not through single-code-point `toctrans`.
+
+The romaji categories are the first examples:
+
+```cpp
+ctrans_id::romaji
+ctrans_id::romaji_alt
+```
+
+They are valid for `strtoctrans`, but `toctrans` reports `error_t::invalid_argument` when either is passed.
 
 ---
 
@@ -1842,6 +1945,7 @@ The following kinds of examples are especially suitable for this header:
 * converting a character with `tolower` or `toupper`
 * performing dynamic classification with `isctype`
 * using `toctrans` for Kana or width conversion
+* understanding that romaji identifiers belong to string-level `strtoctrans`, which is documented with `<xer/string.h>`
 
 These are good candidates for executable examples in `examples/`.
 
@@ -1948,6 +2052,35 @@ auto toctrans(char32_t c, ctrans_id id) -> xer::result<char32_t>;
 
 The conversions are single-code-point transformations.
 When a fullwidth Kana character with dakuten or handakuten would require multiple halfwidth code points, the current single-character return model may necessarily lose that mark.
+
+---
+
+## Romaji Conversion Identifiers
+
+`ctrans_id` also includes:
+
+```cpp
+romaji
+romaji_alt
+```
+
+These identifiers are defined alongside other transformation kinds because they describe a conversion class.
+However, romaji conversion is inherently string-oriented:
+
+- yōon may combine two Kana characters
+- sokuon depends on the following syllable
+- long vowels may replace a previously emitted vowel with a macron
+- syllabic `ん` may need an apostrophe depending on the next syllable
+
+For that reason, romaji identifiers are used through:
+
+```cpp
+strtoctrans
+```
+
+from `<xer/string.h>`, not through character-level `toctrans`.
+
+The detailed romanization behavior is documented in `header_string.md`.
 
 ---
 

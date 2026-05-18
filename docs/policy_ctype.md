@@ -84,6 +84,10 @@ Extended categories may cover at least the following kinds of conversion:
 - fullwidth/halfwidth conversion for Japanese use
 - conversion between Hiragana and Katakana
 - uppercase/lowercase conversion for Greek and Cyrillic letters
+- kana-to-romaji conversion at the string level
+
+Some conversion identifiers are meaningful only for string-level conversion.
+A conversion that depends on neighboring characters or produces multi-code-point output should be provided through `strtoctrans`, even if its category is represented by `ctrans_id`.
 
 ## Fullwidth/Halfwidth Conversion
 
@@ -109,6 +113,43 @@ When converting fullwidth Katakana with dakuten or handakuten into halfwidth Kat
 
 Halfwidth Katakana is excluded from Kana conversion.
 
+
+
+## Kana-to-Romaji Conversion
+
+`ctrans_id` includes the following string-level romanization categories:
+
+- `romaji`
+- `romaji_alt`
+
+These identifiers are used with `strtoctrans`.
+
+They are not supported by single-character `toctrans`, because romanization requires string context and may change the number of output code points.
+For these identifiers, `toctrans` reports `error_t::invalid_argument`.
+
+The romanization policy follows the 2025 Cabinet Notification **“Romanization Spelling”**.
+
+- `romaji` uses the ordinary long-vowel notation with macrons
+- `romaji_alt` uses the separately allowed no-macron spelling that writes vowel letters according to modern kana spelling
+
+Examples:
+
+| Source | `romaji` | `romaji_alt` |
+|---|---|---|
+| `とうきょう` | `tōkyō` | `toukyou` |
+| `おおさか` | `ōsaka` | `oosaka` |
+| `えいが` | `ēga` | `eiga` |
+| `コーヒー` | `kōhī` | `koohii` |
+
+The initial implementation supports Hiragana, fullwidth Katakana, and the Katakana prolonged sound mark `ー`.
+Inputs outside the supported conversion domain are reported as `error_t::invalid_argument`.
+
+The conversion should correctly handle at least:
+
+- yōon combinations such as `きゃ`, `しゃ`, and `ちゃ`
+- sokuon
+- syllabic `ん`, including separator apostrophes when needed
+- long vowels expressed through kana spelling or Katakana long sound marks
 
 
 ## Unicode Scalar and BMP Classification

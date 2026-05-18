@@ -200,6 +200,124 @@ void test_strtoctrans_invalid_utf16_is_error() {
     xer_assert(!result.has_value());
 }
 
+
+void test_strtoctrans_romaji_basic_hiragana() {
+    constexpr std::u8string_view source = u8"しちつふじぢずづを";
+
+    const auto result = xer::strtoctrans(source, xer::ctrans_id::romaji);
+
+    xer_assert(result.has_value());
+    xer_assert(*result == std::u8string(u8"shichitsufujijizuzuo"));
+}
+
+void test_strtoctrans_romaji_yoon() {
+    constexpr std::u8string_view source = u8"きゃしゃちゃじゃ";
+
+    const auto result = xer::strtoctrans(source, xer::ctrans_id::romaji);
+
+    xer_assert(result.has_value());
+    xer_assert(*result == std::u8string(u8"kyashachaja"));
+}
+
+void test_strtoctrans_romaji_macron_long_vowels() {
+    const auto tokyo = xer::strtoctrans(u8"とうきょう", xer::ctrans_id::romaji);
+    const auto osaka = xer::strtoctrans(u8"おおさか", xer::ctrans_id::romaji);
+    const auto eiga = xer::strtoctrans(u8"えいが", xer::ctrans_id::romaji);
+
+    xer_assert(tokyo.has_value());
+    xer_assert(osaka.has_value());
+    xer_assert(eiga.has_value());
+    xer_assert(*tokyo == std::u8string(u8"tōkyō"));
+    xer_assert(*osaka == std::u8string(u8"ōsaka"));
+    xer_assert(*eiga == std::u8string(u8"ēga"));
+}
+
+void test_strtoctrans_romaji_alt_preserves_kana_based_long_vowels() {
+    const auto tokyo = xer::strtoctrans(u8"とうきょう", xer::ctrans_id::romaji_alt);
+    const auto osaka = xer::strtoctrans(u8"おおさか", xer::ctrans_id::romaji_alt);
+    const auto eiga = xer::strtoctrans(u8"えいが", xer::ctrans_id::romaji_alt);
+
+    xer_assert(tokyo.has_value());
+    xer_assert(osaka.has_value());
+    xer_assert(eiga.has_value());
+    xer_assert(*tokyo == std::u8string(u8"toukyou"));
+    xer_assert(*osaka == std::u8string(u8"oosaka"));
+    xer_assert(*eiga == std::u8string(u8"eiga"));
+}
+
+void test_strtoctrans_romaji_katakana_and_prolonged_sound_mark() {
+    constexpr std::u8string_view source = u8"コーヒー";
+
+    const auto macron = xer::strtoctrans(source, xer::ctrans_id::romaji);
+    const auto alternate = xer::strtoctrans(source, xer::ctrans_id::romaji_alt);
+
+    xer_assert(macron.has_value());
+    xer_assert(alternate.has_value());
+    xer_assert(*macron == std::u8string(u8"kōhī"));
+    xer_assert(*alternate == std::u8string(u8"koohii"));
+}
+
+void test_strtoctrans_romaji_sokuon() {
+    const auto zasshi = xer::strtoctrans(u8"ざっし", xer::ctrans_id::romaji);
+    const auto nicchoku = xer::strtoctrans(u8"にっちょく", xer::ctrans_id::romaji);
+
+    xer_assert(zasshi.has_value());
+    xer_assert(nicchoku.has_value());
+    xer_assert(*zasshi == std::u8string(u8"zasshi"));
+    xer_assert(*nicchoku == std::u8string(u8"nicchoku"));
+}
+
+void test_strtoctrans_romaji_syllabic_n_separator() {
+    constexpr std::u8string_view source = u8"たんい";
+
+    const auto result = xer::strtoctrans(source, xer::ctrans_id::romaji);
+
+    xer_assert(result.has_value());
+    xer_assert(*result == std::u8string(u8"tan’i"));
+}
+
+void test_strtoctrans_romaji_utf16_and_utf32() {
+    constexpr std::u16string_view source_utf16 = u"とうきょう";
+    constexpr std::u32string_view source_utf32 = U"コーヒー";
+
+    const auto utf16 = xer::strtoctrans(source_utf16, xer::ctrans_id::romaji);
+    const auto utf32 = xer::strtoctrans(source_utf32, xer::ctrans_id::romaji);
+
+    xer_assert(utf16.has_value());
+    xer_assert(utf32.has_value());
+    xer_assert(*utf16 == std::u16string(u"tōkyō"));
+    xer_assert(*utf32 == std::u32string(U"kōhī"));
+}
+
+void test_strtoctrans_romaji_rejects_non_kana_input() {
+    constexpr std::u8string_view source = u8"かなABC";
+
+    const auto result = xer::strtoctrans(source, xer::ctrans_id::romaji);
+
+    xer_assert(!result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+}
+
+void test_strtoctrans_romaji_rejects_invalid_long_mark_position() {
+    const auto leading = xer::strtoctrans(u8"ー", xer::ctrans_id::romaji);
+    const auto after_n = xer::strtoctrans(u8"んー", xer::ctrans_id::romaji);
+
+    xer_assert(!leading.has_value());
+    xer_assert(!after_n.has_value());
+    xer_assert_eq(leading.error().code, xer::error_t::invalid_argument);
+    xer_assert_eq(after_n.error().code, xer::error_t::invalid_argument);
+}
+
+void test_strtoctrans_romaji_rejects_invalid_sokuon_position() {
+    const auto trailing = xer::strtoctrans(u8"あっ", xer::ctrans_id::romaji);
+    const auto before_vowel = xer::strtoctrans(u8"っあ", xer::ctrans_id::romaji);
+
+    xer_assert(!trailing.has_value());
+    xer_assert(!before_vowel.has_value());
+    xer_assert_eq(trailing.error().code, xer::error_t::invalid_argument);
+    xer_assert_eq(before_vowel.error().code, xer::error_t::invalid_argument);
+}
+
 } // namespace
 
 auto main() -> int {
@@ -223,5 +341,16 @@ auto main() -> int {
     test_strtoctrans_pointer_null_with_zero_size_is_empty();
     test_strtoctrans_invalid_utf8_is_error();
     test_strtoctrans_invalid_utf16_is_error();
+    test_strtoctrans_romaji_basic_hiragana();
+    test_strtoctrans_romaji_yoon();
+    test_strtoctrans_romaji_macron_long_vowels();
+    test_strtoctrans_romaji_alt_preserves_kana_based_long_vowels();
+    test_strtoctrans_romaji_katakana_and_prolonged_sound_mark();
+    test_strtoctrans_romaji_sokuon();
+    test_strtoctrans_romaji_syllabic_n_separator();
+    test_strtoctrans_romaji_utf16_and_utf32();
+    test_strtoctrans_romaji_rejects_non_kana_input();
+    test_strtoctrans_romaji_rejects_invalid_long_mark_position();
+    test_strtoctrans_romaji_rejects_invalid_sokuon_position();
     return 0;
 }

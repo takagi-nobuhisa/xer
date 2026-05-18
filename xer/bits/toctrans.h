@@ -45,6 +45,8 @@ enum class ctrans_id {
     halfwidth_print,
     fullwidth,
     halfwidth,
+    romaji,
+    romaji_alt,
 };
 
 namespace detail {
@@ -272,6 +274,9 @@ namespace detail {
             return detail::to_fullwidth(c);
         case ctrans_id::halfwidth:
             return detail::to_halfwidth(c);
+        case ctrans_id::romaji:
+        case ctrans_id::romaji_alt:
+            return std::unexpected(make_error(error_t::invalid_argument));
     }
 
     return std::unexpected(make_error(error_t::invalid_argument));
