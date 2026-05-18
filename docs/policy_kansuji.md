@@ -43,6 +43,12 @@ The generation function should be named:
 xer::to_kansuji(...)
 ```
 
+The parser function should be named:
+
+```cpp
+xer::from_kansuji(...)
+```
+
 The word `kansuji` is used directly rather than expanding it into a longer English phrase such as `kanji_number`.
 
 The format selector should use short, immediately recognizable identifiers.
@@ -55,6 +61,23 @@ xer::k拾
 ```
 
 These selectors are intentionally based on how the number `10` is written in each style.
+
+---
+
+## Public Function Shapes
+
+```cpp
+auto to_kansuji(std::uint64_t value, kansuji_style style)
+    -> std::u8string;
+
+auto from_kansuji(std::u8string_view text)
+    -> xer::result<std::uint64_t>;
+```
+
+`from_kansuji` reports ordinary parse failure through `xer::result`.
+
+- malformed text: `error_t::invalid_argument`
+- values exceeding `std::uint64_t`: `error_t::overflow_error`
 
 ---
 
@@ -173,9 +196,41 @@ This non-omission rule reflects common Daiji usage for clarity and tamper resist
 
 ---
 
+## Zero Output
+
+Zero should be generated according to the selected output style.
+
+| Style | Generated Text |
+|---|---|
+| `xer::k10` | `0` |
+| `xer::k十` | `零` |
+| `xer::k一〇` | `〇` |
+| `xer::k拾` | `零` |
+
+Parsing accepts:
+
+```text
+0
+零
+〇
+```
+
+as whole-value zero forms.
+
+---
+
 ## Large-Unit Structure
 
-Large units such as `万`, `億`, and `兆` divide the number into four-digit groups.
+Large units divide the number into four-digit groups.
+
+The initial implementation supports:
+
+```text
+万
+億
+兆
+京
+```
 
 The notation should naturally support shortened groups.
 
@@ -236,7 +291,7 @@ For `xer::k拾`:
 
 ## Large-Unit Prefix Requirement
 
-Large units such as `万`, `億`, and `兆` must not appear without a preceding numeric group.
+Large units such as `万`, `億`, `兆`, and `京` must not appear without a preceding numeric group.
 
 Examples:
 
@@ -246,6 +301,8 @@ Examples:
 | `万` | no |
 | `一億` | yes |
 | `億` | no |
+| `一京` | yes |
+| `京` | no |
 
 This rule applies consistently during parsing.
 
@@ -323,6 +380,7 @@ The following are deferred:
 The initial Kansuji facility should:
 
 - provide `xer::to_kansuji(...)`
+- provide `xer::from_kansuji(...)`
 - use memorable style selectors:
   - `xer::k10`
   - `xer::k十`

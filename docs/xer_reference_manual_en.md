@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.3.0**
+Target version: **v0.4.0a1**
 
 ---
 
@@ -2399,6 +2399,402 @@ This example shows the general XER style:
 * `policy_multibyte.md`
 * `header_string.md`
 * `header_ctype.md`
+
+---
+
+# `<xer/kansuji.h>`
+
+## Purpose
+
+`<xer/kansuji.h>` provides conversion facilities for practical Japanese integer notation.
+
+It supports:
+
+- generation of Kansuji text from `std::uint64_t`
+- parsing of practical Kansuji text into `std::uint64_t`
+- several explicit output styles
+- a limited practical subset of Daiji variants during parsing
+
+The initial API intentionally targets non-negative integers only.
+Negative numbers and fractional numbers are outside the current scope.
+
+---
+
+## Main Role
+
+The main role of `<xer/kansuji.h>` is to make it possible to:
+
+- write large integers in Japanese large-unit notation
+- choose a readable output style explicitly
+- parse common Japanese numeric text without requiring callers to manually normalize it
+- report malformed text and overflow through XER's ordinary `xer::result` error model
+
+This facility is especially useful for Japanese text generation, parsing of user-facing text, vertical-writing-oriented notation, and practical Daiji-style output.
+
+---
+
+## Main Entities
+
+At minimum, `<xer/kansuji.h>` provides:
+
+```cpp
+enum class kansuji_style : std::uint8_t;
+
+inline constexpr kansuji_style k10;
+inline constexpr kansuji_style k十;
+inline constexpr kansuji_style k一〇;
+inline constexpr kansuji_style k拾;
+
+auto to_kansuji(std::uint64_t value, kansuji_style style)
+    -> std::u8string;
+
+auto from_kansuji(std::u8string_view text)
+    -> xer::result<std::uint64_t>;
+```
+
+---
+
+## `kansuji_style` and Style Selectors
+
+The output format is selected through `kansuji_style`.
+Callers normally use the public selector constants directly.
+
+| Selector | Basic Idea | Example for `123456789012` |
+|---|---|---|
+| `xer::k10` | Arabic digits with Japanese large units | `1234億5678万9012` |
+| `xer::k十` | Ordinary positional Kansuji | `千二百三十四億五千六百七十八万九千十二` |
+| `xer::k一〇` | Per-digit Kansuji | `一二三四億五六七八万九〇一二` |
+| `xer::k拾` | Practical Daiji positional Kansuji | `壱千弐百参拾四億五千六百七拾八万九千壱拾弐` |
+
+The selector names are intentionally based on how the number `10` is written in each style:
+
+```cpp
+xer::k10
+xer::k十
+xer::k一〇
+xer::k拾
+```
+
+---
+
+## `to_kansuji`
+
+```cpp
+auto to_kansuji(std::uint64_t value, kansuji_style style)
+    -> std::u8string;
+```
+
+### Purpose
+
+`to_kansuji` converts an unsigned 64-bit integer into Japanese numeric text.
+
+### Output Styles
+
+#### `xer::k10`
+
+`xer::k10` uses Arabic digits inside Japanese four-digit large-unit groups.
+
+```cpp
+xer::to_kansuji(UINT64_C(123456789012), xer::k10);
+// 1234億5678万9012
+```
+
+#### `xer::k十`
+
+`xer::k十` uses ordinary positional Kansuji.
+
+```cpp
+xer::to_kansuji(UINT64_C(123456789012), xer::k十);
+// 千二百三十四億五千六百七十八万九千十二
+```
+
+For `十`, `百`, and `千`, the generated form omits the leading `一`.
+
+| Value | Output |
+|---:|---|
+| `10` | `十` |
+| `100` | `百` |
+| `1000` | `千` |
+| `110` | `百十` |
+
+#### `xer::k一〇`
+
+`xer::k一〇` writes each decimal digit independently.
+Zero is generated as `〇`.
+
+```cpp
+xer::to_kansuji(UINT64_C(123456789012), xer::k一〇);
+// 一二三四億五六七八万九〇一二
+```
+
+This style is suitable for cases where digits are conventionally read one by one, such as years and some vertical-writing contexts.
+
+| Value | Output |
+|---:|---|
+| `10` | `一〇` |
+| `2026` | `二〇二六` |
+| `9012` | `九〇一二` |
+
+#### `xer::k拾`
+
+`xer::k拾` generates a practical Daiji positional style.
+
+```cpp
+xer::to_kansuji(UINT64_C(110), xer::k拾);
+// 壱百壱拾
+```
+
+The current generation policy uses:
+
+- `壱`
+- `弐`
+- `参`
+- `拾`
+
+Other digits remain in ordinary Kansuji form.
+
+Unlike `xer::k十`, generated Daiji output does **not** omit `壱` before small units.
+
+| Value | Output |
+|---:|---|
+| `10` | `壱拾` |
+| `100` | `壱百` |
+| `110` | `壱百壱拾` |
+| `1000` | `壱千` |
+| `10000` | `壱万` |
+
+---
+
+## Zero Output
+
+`to_kansuji(0, style)` uses the following style-specific outputs.
+
+| Style | Output |
+|---|---|
+| `xer::k10` | `0` |
+| `xer::k十` | `零` |
+| `xer::k一〇` | `〇` |
+| `xer::k拾` | `零` |
+
+---
+
+## Large-Unit Structure
+
+The current implementation supports these Japanese large units:
+
+```text
+万
+億
+兆
+京
+```
+
+Numbers are divided into four-digit groups.
+For example:
+
+```text
+123456789012
+```
+
+is grouped as:
+
+```text
+1234億5678万9012
+```
+
+Groups whose value is zero are omitted from generated output.
+
+---
+
+## `from_kansuji`
+
+```cpp
+auto from_kansuji(std::u8string_view text)
+    -> xer::result<std::uint64_t>;
+```
+
+### Purpose
+
+`from_kansuji` parses practical Japanese integer notation into `std::uint64_t`.
+
+### Accepted Notation Families
+
+The parser accepts the main notation families generated by `to_kansuji`.
+
+Examples:
+
+```cpp
+xer::from_kansuji(u8"12億34万5");
+xer::from_kansuji(u8"一二億三四万五");
+xer::from_kansuji(u8"十二億三十四万五");
+```
+
+All three examples represent:
+
+```text
+12億0034万0005
+```
+
+and parse as:
+
+```text
+1200340005
+```
+
+The parser also accepts the whole-zero forms:
+
+```text
+0
+零
+〇
+```
+
+---
+
+## Accepted Small-Unit Variants
+
+For ordinary positional Kansuji, parsing accepts both omitted and explicit leading `一` before small units.
+
+| Text | Value |
+|---|---:|
+| `十` | `10` |
+| `一十` | `10` |
+| `百` | `100` |
+| `一百` | `100` |
+| `千` | `1000` |
+| `一千` | `1000` |
+
+Generation does not use the unnatural `一十`, `一百`, or `一千` forms for `xer::k十`, but parsing accepts them.
+
+---
+
+## Daiji Parsing
+
+`from_kansuji` accepts a practical subset of Daiji and normalizes it internally.
+
+| Input | Ordinary Form |
+|---|---|
+| `壱` | `一` |
+| `弐` | `二` |
+| `参` | `三` |
+| `拾` | `十` |
+| `佰` | `百` |
+| `阡` | `千` |
+| `萬` | `万` |
+
+Examples:
+
+```text
+拾
+壱拾
+百拾
+壱百壱拾
+阡佰拾
+壱阡壱佰壱拾
+```
+
+These are accepted as practical Daiji variants.
+
+Rare Daiji digit forms such as the following are not accepted in the current implementation:
+
+```text
+肆
+伍
+陸
+漆
+捌
+玖
+```
+
+---
+
+## Invalid Input
+
+The parser reports syntactically invalid text as:
+
+```cpp
+error_t::invalid_argument
+```
+
+This includes at least:
+
+- empty text
+- unsupported characters
+- unsupported rare Daiji digits
+- a large unit without a preceding numeric group
+- large units in an invalid order
+- malformed positional Kansuji
+- explicit zero-padded large-unit groups
+
+Examples of invalid input:
+
+```text
+万
+億
+一億万
+一万億
+一億〇
+十百
+十二三
+1億0001万1
+一億〇〇〇一万一
+```
+
+---
+
+## Overflow
+
+If the parsed value exceeds `std::uint64_t`, the parser reports:
+
+```cpp
+error_t::overflow_error
+```
+
+Example:
+
+```cpp
+xer::from_kansuji(u8"1844京6744兆737億955万1616");
+// overflow_error
+```
+
+---
+
+## Error Model
+
+`from_kansuji` follows XER's ordinary failure model.
+
+```cpp
+const auto parsed = xer::from_kansuji(u8"十二億三十四万五");
+if (!parsed) {
+    // parsed.error().code is available here.
+}
+```
+
+No exception is used for ordinary parse failure.
+
+---
+
+## Deferred Items and Limitations
+
+The following are intentionally outside the initial implementation.
+
+- negative numbers
+- fractional numbers
+- exhaustive Daiji coverage
+- rare Daiji digits such as `肆`, `伍`, `陸`, `漆`, `捌`, and `玖`
+- broader historical orthography
+- free-form natural-language interpretation of Japanese number expressions
+
+---
+
+## Relationship to Other Headers
+
+`<xer/kansuji.h>` is related to:
+
+- `<xer/error.h>`
+- `<xer/string.h>` in the broader sense of Japanese text processing
+- `policy_kansuji.md`
+- `policy_encoding.md`
 
 ---
 

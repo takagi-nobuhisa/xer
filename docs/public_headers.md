@@ -25,6 +25,7 @@
 - `xer/string.h`
 - `xer/ctype.h`
 - `xer/stdlib.h`
+- `xer/kansuji.h`
 
 ### Data Encoding and Format Processing
 
@@ -147,6 +148,18 @@ This keeps the API boundary clear:
 - `base64_encode` converts bytes into UTF-8 text
 - `base64_decode` converts UTF-8 Base64 text back into bytes
 
+### Why `kansuji.h` Is Independent
+
+Kansuji handling is Japanese text processing, but it is not an ordinary low-level string algorithm such as search, trim, or replacement.
+It defines its own notation families, output styles, normalization rules, and parse failure conditions.
+
+For that reason, Kansuji conversion is not absorbed into `xer/string.h` or `xer/stdlib.h`, but is provided through the independent public header `xer/kansuji.h`.
+
+This keeps the responsibility clear:
+
+- `to_kansuji` converts unsigned integer values into Japanese numeric text
+- `from_kansuji` parses practical Japanese numeric text back into `std::uint64_t`
+
 ### Why `json.h` Is Independent
 
 JSON encode/decode is not merely string manipulation.
@@ -218,43 +231,3 @@ They are related to color handling and Tk GUI integration, but their main concep
 
 For that reason, image functionality is not absorbed into `xer/color.h` or `xer/tk.h`, but is provided as the independent public header `xer/image.h`.
 `xer/tk.h` may provide bridge functions for Tk photo images, but pure image storage, drawing, and image processing belong to `xer/image.h`.
-
----
-
-## Final List of Public Headers
-
-```text
-xer/error.h
-xer/assert.h
-xer/typeinfo.h
-xer/diag.h
-xer/scope.h
-xer/string.h
-xer/ctype.h
-xer/stdlib.h
-xer/bytes.h
-xer/base64.h
-xer/parse.h
-xer/json.h
-xer/ini.h
-xer/toml.h
-xer/stdio.h
-xer/iostream.h
-xer/path.h
-xer/dirent.h
-xer/socket.h
-xer/tk.h
-xer/stdint.h
-xer/stdfloat.h
-xer/arithmetic.h
-xer/cyclic.h
-xer/interval.h
-xer/color.h
-xer/quantity.h
-xer/matrix.h
-xer/image.h
-xer/process.h
-xer/cmdline.h
-xer/time.h
-xer/version.h
-```
