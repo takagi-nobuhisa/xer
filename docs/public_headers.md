@@ -27,6 +27,7 @@
 - `xer/stdlib.h`
 - `xer/kansuji.h`
 - `xer/mecab.h`
+- `xer/furigana.h`
 
 ### Data Encoding and Format Processing
 
@@ -175,6 +176,21 @@ At the current stage, this keeps the responsibility clear:
 - `mecab_token` preserves the surface text and raw MeCab feature text
 
 Future higher-level facilities such as bunsetsu-oriented processing, readable spacing, readings, ruby, romanization, and braille-oriented conversion can build on this foundation.
+
+### Why `furigana.h` Is Independent
+
+Furigana formatting is a small but distinct Japanese text presentation facility.
+It does not perform morphological analysis by itself, and it is not merely a generic string operation such as trimming or case conversion.
+
+For that reason, furigana formatting is not absorbed into `xer/string.h` or `xer/mecab.h`, but is provided through the independent public header `xer/furigana.h`.
+
+This keeps the responsibility clear:
+
+- `to_furigana` formats already-known base text and reading pairs
+- `ruby_html` selects HTML ruby markup
+- `ruby_paren` selects a simple parenthesized representation
+
+Future MeCab-based automatic furigana helpers can reuse this formatter without making the low-level formatting API depend on MeCab process execution.
 
 ### Why `json.h` Is Independent
 

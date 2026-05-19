@@ -485,6 +485,9 @@ Details follow this document:
 MeCab-based Japanese text processing provides a practical foundation for higher-level Japanese-language features.
 It covers UTF-8 child-process integration with MeCab, access to morphological analysis data, bunsetsu-oriented grouping, and the basis for readable spacing, readings, ruby, romanization, braille-oriented conversion, and related counts.
 
+Independent formatting helpers that do not require morphological analysis may be provided separately.
+For example, `xer/furigana.h` formats already-known base text and reading pairs as HTML ruby markup or parenthesized furigana text, and can later be reused by MeCab-based automatic furigana facilities.
+
 Details follow this document:
 
 - `policy_mecab.md`
