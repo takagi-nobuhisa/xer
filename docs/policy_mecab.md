@@ -56,9 +56,23 @@ struct mecab_options {
     xer::path program;
 };
 
+struct mecab_features {
+    std::u8string 品詞;
+    std::u8string 品詞細分類1;
+    std::u8string 品詞細分類2;
+    std::u8string 品詞細分類3;
+    std::u8string 活用型;
+    std::u8string 活用形;
+    std::u8string 原形;
+    std::u8string 読み;
+    std::u8string 発音;
+    std::vector<std::u8string> 項目;
+};
+
 struct mecab_token {
     std::u8string surface;
     std::u8string feature;
+    mecab_features features;
 };
 
 [[nodiscard]]
@@ -72,8 +86,10 @@ auto mecab_parse(
 
 - `surface` preserves the token surface text
 - `feature` preserves MeCab's raw `%H` feature text
+- `features` provides split feature fields and common named MeCab/IPADIC-style members
 
-The raw `feature` text is intentionally dictionary-dependent at this layer.
+The raw `feature` text and parsed `features` data are intentionally dictionary-dependent at this layer.
+XER preserves raw feature text and also provides practical parsed access because higher-level Japanese processing needs part-of-speech information, conjugation form, and readings.
 
 ---
 
@@ -137,6 +153,25 @@ error_t::process_error
 
 ---
 
+
+## Feature Field Policy
+
+`mecab_token::feature` remains the authoritative raw feature text emitted by MeCab's `%H` formatter.
+It is preserved because dictionaries may expose additional fields or layouts that XER cannot fully normalize at this layer.
+
+`mecab_token::features` is a practical parsed representation derived from that raw text.
+The named members follow the ordinary MeCab/IPADIC-style field order: `品詞`, `品詞細分類1`, `品詞細分類2`, `品詞細分類3`, `活用型`, `活用形`, `原形`, `読み`, and `発音`.
+All comma-separated fields are also stored in `項目` so that dictionary-specific data remains available.
+
+The `mecab_features` members intentionally use Japanese identifiers.
+These names correspond directly to MeCab feature terminology and avoid unclear English approximations.
+XER already permits non-ASCII identifiers where they improve clarity; user source environments that cannot handle such identifiers are outside the scope of this API decision.
+
+`mecab_features` owns its strings.
+It must not store `std::u8string_view` into `mecab_token::feature`, because `mecab_token` is returned in `std::vector` and must remain safely copyable and movable.
+
+---
+
 ## Intended Feature Set
 
 The MeCab-based Japanese processing facility should support, or provide the foundation for, the following features:
@@ -153,6 +188,7 @@ The MeCab-based Japanese processing facility should support, or provide the foun
 Raw morphological data is important because it lets users build their own higher-level processing on top of XER when the built-in helpers do not match their needs.
 
 The raw-data portion is now implemented through `mecab_parse`.
+It preserves both the raw MeCab feature string and an owned split representation in `mecab_features`.
 
 ---
 
@@ -295,6 +331,7 @@ Both are useful, but they serve different purposes.
 ## Readings and Derived Conversions
 
 Reading-related helpers should be built on top of MeCab-derived readings.
+The low-level `mecab_features::読み` member provides the initial access point for this data when the installed dictionary supplies it.
 
 These helpers may later support:
 
@@ -337,7 +374,7 @@ Underlying process or stream failures may retain their own XER error code when t
 The following items require later API or algorithm design:
 
 - exact public types for bunsetsu results
-- dictionary-dependent feature interpretation strategy for higher-level helpers
+- dictionary-dependent feature interpretation strategy beyond the current IPADIC-style named members for higher-level helpers
 - detailed ruby output format
 - detailed romanization rules
 - detailed braille conversion rules
@@ -351,7 +388,7 @@ The following items require later API or algorithm design:
 XER's MeCab-based Japanese text processing should:
 
 - invoke MeCab as a UTF-8 child process
-- expose raw morphological analysis data through `mecab_parse`
+- expose raw morphological analysis data and split feature fields through `mecab_parse`
 - derive practical bunsetsu segmentation in later layers
 - use bunsetsu, not tokens, as the default unit for human-readable spacing
 - support the future implementation of ruby, hiragana conversion, romanization, braille-oriented conversion, and counts

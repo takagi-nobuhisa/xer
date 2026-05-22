@@ -41,6 +41,65 @@ struct mecab_options {
 };
 
 /**
+ * @brief Split MeCab feature fields.
+ *
+ * MeCab feature fields are dictionary-dependent. XER stores all comma-separated
+ * fields in @ref 項目 and also fills the common IPADIC-style fields when those
+ * positions are present.
+ */
+struct mecab_features {
+    /**
+     * @brief Part of speech.
+     */
+    std::u8string 品詞;
+
+    /**
+     * @brief Part-of-speech subclass 1.
+     */
+    std::u8string 品詞細分類1;
+
+    /**
+     * @brief Part-of-speech subclass 2.
+     */
+    std::u8string 品詞細分類2;
+
+    /**
+     * @brief Part-of-speech subclass 3.
+     */
+    std::u8string 品詞細分類3;
+
+    /**
+     * @brief Conjugation type.
+     */
+    std::u8string 活用型;
+
+    /**
+     * @brief Conjugation form.
+     */
+    std::u8string 活用形;
+
+    /**
+     * @brief Base form.
+     */
+    std::u8string 原形;
+
+    /**
+     * @brief Reading.
+     */
+    std::u8string 読み;
+
+    /**
+     * @brief Pronunciation.
+     */
+    std::u8string 発音;
+
+    /**
+     * @brief All comma-separated feature fields, preserving dictionary-specific data.
+     */
+    std::vector<std::u8string> 項目;
+};
+
+/**
  * @brief One raw MeCab token result.
  */
 struct mecab_token {
@@ -56,6 +115,11 @@ struct mecab_token {
      * MeCab's `%H` formatter.
      */
     std::u8string feature;
+
+    /**
+     * @brief Split feature fields.
+     */
+    mecab_features features;
 };
 
 namespace detail {
@@ -189,6 +253,90 @@ inline constexpr char8_t mecab_path_separator = u8':';
     return value;
 }
 
+[[nodiscard]] inline auto mecab_unescape_feature_field(
+    std::u8string_view value) -> std::u8string
+{
+    const bool quoted = value.size() >= 2
+        && value.front() == u8'"'
+        && value.back() == u8'"';
+
+    const std::size_t begin = quoted ? 1 : 0;
+    const std::size_t end = quoted ? value.size() - 1 : value.size();
+
+    std::u8string result;
+    result.reserve(end - begin);
+
+    for (std::size_t i = begin; i < end; ++i) {
+        const char8_t ch = value[i];
+        if (quoted && ch == u8'"' && i + 1 < end && value[i + 1] == u8'"') {
+            result.push_back(u8'"');
+            ++i;
+        } else {
+            result.push_back(ch);
+        }
+    }
+
+    return result;
+}
+
+[[nodiscard]] inline auto mecab_split_feature_fields(
+    std::u8string_view feature) -> std::vector<std::u8string>
+{
+    std::vector<std::u8string> fields;
+    std::size_t start = 0;
+    bool quoted = false;
+
+    for (std::size_t i = 0; i < feature.size(); ++i) {
+        const char8_t ch = feature[i];
+
+        if (ch == u8'"') {
+            if (quoted && i + 1 < feature.size() && feature[i + 1] == u8'"') {
+                ++i;
+            } else {
+                quoted = !quoted;
+            }
+        } else if (ch == u8',' && !quoted) {
+            fields.push_back(mecab_unescape_feature_field(feature.substr(start, i - start)));
+            start = i + 1;
+        }
+    }
+
+    fields.push_back(mecab_unescape_feature_field(feature.substr(start)));
+    return fields;
+}
+
+[[nodiscard]] inline auto mecab_field_or_empty(
+    const std::vector<std::u8string>& fields,
+    std::size_t index) -> std::u8string
+{
+    if (index < fields.size()) {
+        return fields[index];
+    }
+
+    return {};
+}
+
+[[nodiscard]] inline auto mecab_parse_features(
+    std::u8string_view feature) -> mecab_features
+{
+    auto fields = mecab_split_feature_fields(feature);
+
+    mecab_features features {
+        mecab_field_or_empty(fields, 0),
+        mecab_field_or_empty(fields, 1),
+        mecab_field_or_empty(fields, 2),
+        mecab_field_or_empty(fields, 3),
+        mecab_field_or_empty(fields, 4),
+        mecab_field_or_empty(fields, 5),
+        mecab_field_or_empty(fields, 6),
+        mecab_field_or_empty(fields, 7),
+        mecab_field_or_empty(fields, 8),
+        std::move(fields),
+    };
+
+    return features;
+}
+
 [[nodiscard]] inline auto mecab_parse_output(
     std::u8string_view output) -> result<std::vector<mecab_token>>
 {
@@ -211,9 +359,13 @@ inline constexpr char8_t mecab_path_separator = u8':';
                     return std::unexpected(make_error(error_t::process_error));
                 }
 
+                std::u8string feature(line.substr(tab + 1));
+                auto features = mecab_parse_features(feature);
+
                 tokens.push_back(mecab_token {
                     std::u8string(line.substr(0, tab)),
-                    std::u8string(line.substr(tab + 1)),
+                    std::move(feature),
+                    std::move(features),
                 });
             }
         }
@@ -236,6 +388,11 @@ inline constexpr char8_t mecab_path_separator = u8':';
  * XER invokes MeCab as a child process and uses an explicit output format that
  * yields one token per line as `surface<TAB>feature`. The returned feature text
  * is MeCab's raw `%H` field and remains dictionary-dependent.
+ *
+ * The split feature fields are also stored in @ref mecab_token::features. The
+ * named members of @ref mecab_features follow common IPADIC-style positions;
+ * all fields are preserved in @ref mecab_features::項目 so dictionary-specific
+ * feature layouts can still be handled by the caller.
  *
  * If @p options does not specify a program path, XER searches the `PATH`
  * environment variable for the ordinary MeCab executable name.
