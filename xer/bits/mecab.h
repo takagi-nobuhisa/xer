@@ -20,6 +20,7 @@
 #include <xer/bits/file_entry.h>
 #include <xer/bits/getenv.h>
 #include <xer/bits/stream_contents.h>
+#include <xer/bits/string_case.h>
 #include <xer/bits/text_encoding_common.h>
 #include <xer/error.h>
 #include <xer/path.h>
@@ -190,6 +191,24 @@ struct mecab_kana_options {
      * @brief Use pronunciation-oriented readings for particles は, へ, and を.
      */
     bool particle_reading = true;
+};
+
+/**
+ * @brief Options for MeCab-derived romaji wakachi-gaki conversion.
+ */
+struct mecab_romaji_options {
+    /**
+     * @brief Kana conversion options used before romanization.
+     */
+    mecab_kana_options kana;
+
+    /**
+     * @brief Romanization transformation identifier.
+     *
+     * Use @ref ctrans_id::romaji for macron-based long vowels, or
+     * @ref ctrans_id::romaji_alt for the kana-spelling-based alternate form.
+     */
+    ctrans_id romaji = ctrans_id::romaji;
 };
 
 namespace detail {
@@ -386,6 +405,66 @@ inline constexpr char8_t mecab_path_separator = u8':';
     return {};
 }
 
+[[nodiscard]] constexpr auto mecab_is_kana_reading_code_point(
+    char32_t value) noexcept -> bool
+{
+    return (value >= U'\u3041' && value <= U'\u3096') ||
+           (value >= U'\u30a1' && value <= U'\u30fa') ||
+           value == U'\u30fc' ||
+           value == U'\u309d' ||
+           value == U'\u309e' ||
+           value == U'\u30fd' ||
+           value == U'\u30fe';
+}
+
+[[nodiscard]] inline auto mecab_is_kana_reading_field(
+    std::u8string_view value) -> bool
+{
+    if (value.empty() || value == u8"*") {
+        return false;
+    }
+
+    const auto decoded = decode_string_code_points(value);
+    if (!decoded.has_value() || decoded->empty()) {
+        return false;
+    }
+
+    for (const char32_t code_point : *decoded) {
+        if (!mecab_is_kana_reading_code_point(code_point)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+[[nodiscard]] inline auto mecab_find_kana_reading_field(
+    const std::vector<std::u8string>& fields) -> std::u8string
+{
+    constexpr std::size_t preferred_indexes[] {
+        7, // IPADIC reading
+        8, // IPADIC pronunciation
+        9, // UniDic pronunciation
+        6, // UniDic lemma reading in some dictionaries
+        10,
+        11,
+    };
+
+    for (const std::size_t index : preferred_indexes) {
+        if (index < fields.size() && mecab_is_kana_reading_field(fields[index])) {
+            return fields[index];
+        }
+    }
+
+    for (const auto& field : fields) {
+        if (mecab_is_kana_reading_field(field)) {
+            return field;
+        }
+    }
+
+    return {};
+}
+
 [[nodiscard]] inline auto mecab_parse_features(
     std::u8string_view feature) -> mecab_features
 {
@@ -404,6 +483,17 @@ inline constexpr char8_t mecab_path_separator = u8':';
         std::move(fields),
     };
 
+    const auto inferred_reading = mecab_find_kana_reading_field(features.項目);
+    if (!inferred_reading.empty()) {
+        if (!mecab_is_kana_reading_field(features.読み)) {
+            features.読み = inferred_reading;
+        }
+
+        if (!mecab_is_kana_reading_field(features.発音)) {
+            features.発音 = inferred_reading;
+        }
+    }
+
     return features;
 }
 
@@ -421,10 +511,41 @@ inline constexpr char8_t mecab_path_separator = u8':';
     return value.starts_with(prefix);
 }
 
-[[nodiscard]] inline auto mecab_is_symbol(
-    const mecab_token& token) noexcept -> bool
+[[nodiscard]] inline auto mecab_is_symbol_code_point(
+    char32_t code_point) noexcept -> bool
 {
-    return mecab_feature_is(token.features.品詞, u8"記号");
+    return (code_point >= U'\u2000' && code_point <= U'\u206f') ||
+           (code_point >= U'\u3000' && code_point <= U'\u303f') ||
+           (code_point >= U'\uff00' && code_point <= U'\uff65');
+}
+
+[[nodiscard]] inline auto mecab_is_symbol_surface(
+    std::u8string_view surface) -> bool
+{
+    if (surface.empty()) {
+        return false;
+    }
+
+    const auto decoded = decode_string_code_points(surface);
+    if (!decoded.has_value() || decoded->empty()) {
+        return false;
+    }
+
+    for (const char32_t code_point : *decoded) {
+        if (!mecab_is_symbol_code_point(code_point)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+[[nodiscard]] inline auto mecab_is_symbol(
+    const mecab_token& token) -> bool
+{
+    return mecab_feature_is(token.features.品詞, u8"記号")
+        || mecab_feature_is(token.features.品詞, u8"補助記号")
+        || mecab_is_symbol_surface(token.surface);
 }
 
 [[nodiscard]] inline auto mecab_is_particle_or_auxiliary(
@@ -883,6 +1004,65 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
         const auto begin = tokens.begin() + static_cast<std::ptrdiff_t>(phrase.index);
         const auto end = begin + static_cast<std::ptrdiff_t>(phrase.count);
         result += mecab_to_kana(std::span<const mecab_token>(begin, end), options);
+    }
+
+    return result;
+}
+
+/**
+ * @brief Converts MeCab tokens to romaji wakachi-gaki text.
+ *
+ * The function first calls @ref mecab_split_phrases. Bunsetsu-like ranges are
+ * converted to kana by using @ref mecab_to_kana and then romanized with
+ * @ref strtoctrans. Symbol ranges are not romanized; their original surface
+ * text is preserved and separated as independent ranges.
+ *
+ * Since romanization is delegated to @ref strtoctrans, this function returns
+ * @ref result. A kana sequence that cannot be romanized, or an unsupported
+ * romanization identifier, produces an error.
+ *
+ * @param tokens MeCab token sequence.
+ * @param options Romaji wakachi-gaki conversion options.
+ * @return Romaji wakachi-gaki text on success.
+ */
+[[nodiscard]] inline auto mecab_romaji_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_romaji_options& options = {}) -> result<std::u8string>
+{
+    if (options.romaji != ctrans_id::romaji &&
+        options.romaji != ctrans_id::romaji_alt) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const auto phrases = mecab_split_phrases(tokens);
+
+    std::u8string result;
+    bool first = true;
+
+    for (const auto& phrase : phrases) {
+        if (!first) {
+            result.push_back(u8' ');
+        }
+        first = false;
+
+        const auto begin = tokens.begin() + static_cast<std::ptrdiff_t>(phrase.index);
+        const auto end = begin + static_cast<std::ptrdiff_t>(phrase.count);
+        const std::span<const mecab_token> range(begin, end);
+
+        if (phrase.kind == mecab_phrase_kind::symbol) {
+            for (const auto& token : range) {
+                result += token.surface;
+            }
+            continue;
+        }
+
+        const auto kana = mecab_to_kana(range, options.kana);
+        const auto romanized = strtoctrans(std::u8string_view(kana), options.romaji);
+        if (!romanized.has_value()) {
+            return std::unexpected(romanized.error());
+        }
+
+        result += *romanized;
     }
 
     return result;
