@@ -175,8 +175,10 @@ At the current stage, this keeps the responsibility clear:
 - `mecab_options` controls the MeCab executable path when automatic `PATH` lookup is not sufficient
 - `mecab_token` preserves the surface text, raw MeCab feature text, and split feature fields through `mecab_features`
 - `mecab_split_phrases` derives practical bunsetsu-like ranges and symbol ranges from a token sequence
+- `mecab_to_kana` converts MeCab-derived readings to kana text
+- `mecab_kana_wakati` produces kana wakachi-gaki text using the derived phrase ranges
 
-Future higher-level facilities such as readable spacing, readings, ruby, romanization, and braille-oriented conversion can build on this foundation.
+Future higher-level facilities such as ruby, romanization, and braille-oriented conversion can build on this foundation.
 
 ### Why `furigana.h` Is Independent
 

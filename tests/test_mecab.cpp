@@ -372,6 +372,108 @@ void test_mecab_split_phrases_handles_leading_symbols()
     xer_assert_eq(phrase_surface(tokens, phrases.at(2)), u8"」");
 }
 
+void test_mecab_to_kana_uses_mixed_kana_by_default()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"私\t名詞,代名詞,一般,*,*,*,私,ワタシ,ワタシ\n"
+        u8"は\t助詞,係助詞,*,*,*,*,は,ハ,ワ\n"
+        u8"コンピューター\t名詞,一般,*,*,*,*,コンピューター,コンピューター,コンピューター\n"
+        u8"を\t助詞,格助詞,一般,*,*,*,を,ヲ,ヲ\n"
+        u8"使い\t動詞,自立,*,*,五段・ワ行促音便,連用形,使う,ツカイ,ツカイ\n"
+        u8"ます\t助動詞,*,*,*,特殊・マス,基本形,ます,マス,マス\n"
+        u8"。\t記号,句点,*,*,*,*,。,。,。\n"
+        u8"EOS\n");
+
+    xer_assert_eq(xer::mecab_to_kana(tokens), u8"わたしわコンピューターおつかいます。");
+}
+
+void test_mecab_to_kana_hiragana_mode()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"私\t名詞,代名詞,一般,*,*,*,私,ワタシ,ワタシ\n"
+        u8"は\t助詞,係助詞,*,*,*,*,は,ハ,ワ\n"
+        u8"コンピューター\t名詞,一般,*,*,*,*,コンピューター,コンピューター,コンピューター\n"
+        u8"を\t助詞,格助詞,一般,*,*,*,を,ヲ,ヲ\n"
+        u8"EOS\n");
+
+    const xer::mecab_kana_options options {
+        .kind = xer::mecab_kana_kind::hiragana,
+    };
+
+    xer_assert_eq(xer::mecab_to_kana(tokens, options), u8"わたしわこんぴゅーたーお");
+}
+
+void test_mecab_to_kana_katakana_mode()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"私\t名詞,代名詞,一般,*,*,*,私,ワタシ,ワタシ\n"
+        u8"は\t助詞,係助詞,*,*,*,*,は,ハ,ワ\n"
+        u8"コンピューター\t名詞,一般,*,*,*,*,コンピューター,コンピューター,コンピューター\n"
+        u8"を\t助詞,格助詞,一般,*,*,*,を,ヲ,ヲ\n"
+        u8"EOS\n");
+
+    const xer::mecab_kana_options options {
+        .kind = xer::mecab_kana_kind::katakana,
+    };
+
+    xer_assert_eq(xer::mecab_to_kana(tokens, options), u8"ワタシワコンピューターオ");
+}
+
+void test_mecab_to_kana_can_keep_particle_surface_readings()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"私\t名詞,代名詞,一般,*,*,*,私,ワタシ,ワタシ\n"
+        u8"は\t助詞,係助詞,*,*,*,*,は,ハ,ワ\n"
+        u8"学校\t名詞,一般,*,*,*,*,学校,ガッコウ,ガッコー\n"
+        u8"へ\t助詞,格助詞,一般,*,*,*,へ,ヘ,エ\n"
+        u8"本\t名詞,一般,*,*,*,*,本,ホン,ホン\n"
+        u8"を\t助詞,格助詞,一般,*,*,*,を,ヲ,ヲ\n"
+        u8"EOS\n");
+
+    const xer::mecab_kana_options options {
+        .particle_reading = false,
+    };
+
+    xer_assert_eq(xer::mecab_to_kana(tokens, options), u8"わたしはがっこうへほんを");
+}
+
+void test_mecab_to_kana_does_not_rewrite_non_particle_ha_he()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"は\t名詞,一般,*,*,*,*,は,ハ,ハ\n"
+        u8"へ\t名詞,一般,*,*,*,*,へ,ヘ,ヘ\n"
+        u8"EOS\n");
+
+    xer_assert_eq(xer::mecab_to_kana(tokens), u8"はへ");
+}
+
+void test_mecab_to_kana_falls_back_to_surface()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"ABC\t名詞,一般,*,*,*,*,ABC,*,*\n"
+        u8"未知\t名詞,一般\n"
+        u8"EOS\n");
+
+    xer_assert_eq(xer::mecab_to_kana(tokens), u8"ABC未知");
+}
+
+void test_mecab_kana_wakati_separates_phrases()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"私\t名詞,代名詞,一般,*,*,*,私,ワタシ,ワタシ\n"
+        u8"は\t助詞,係助詞,*,*,*,*,は,ハ,ワ\n"
+        u8"明日\t名詞,副詞可能,*,*,*,*,明日,アシタ,アシタ\n"
+        u8"、\t記号,読点,*,*,*,*,、,、,、\n"
+        u8"学校\t名詞,一般,*,*,*,*,学校,ガッコウ,ガッコー\n"
+        u8"へ\t助詞,格助詞,一般,*,*,*,へ,ヘ,エ\n"
+        u8"行き\t動詞,自立,*,*,五段・カ行促音便,連用形,行く,イキ,イキ\n"
+        u8"ます\t助動詞,*,*,*,特殊・マス,基本形,ます,マス,マス\n"
+        u8"。\t記号,句点,*,*,*,*,。,。,。\n"
+        u8"EOS\n");
+
+    xer_assert_eq(xer::mecab_kana_wakati(tokens), u8"わたしわ あした 、 がっこうえ いきます 。");
+}
+
 void test_mecab_parse_rejects_invalid_utf8()
 {
     const std::u8string invalid {
@@ -404,6 +506,14 @@ auto main() -> int
     test_mecab_split_phrases_keeps_renyou_plus_independent_word();
     test_mecab_split_phrases_keeps_prefix_with_following_word();
     test_mecab_split_phrases_handles_leading_symbols();
+
+    test_mecab_to_kana_uses_mixed_kana_by_default();
+    test_mecab_to_kana_hiragana_mode();
+    test_mecab_to_kana_katakana_mode();
+    test_mecab_to_kana_can_keep_particle_surface_readings();
+    test_mecab_to_kana_does_not_rewrite_non_particle_ha_he();
+    test_mecab_to_kana_falls_back_to_surface();
+    test_mecab_kana_wakati_separates_phrases();
     test_mecab_parse_rejects_invalid_utf8();
 
     return 0;

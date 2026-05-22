@@ -13,8 +13,10 @@ The current implementation focuses on the lowest-level public foundation:
 - preserving raw feature text
 - providing split feature fields for common MeCab/IPADIC-style columns
 - deriving practical bunsetsu-like phrase ranges and symbol ranges
+- converting MeCab-derived readings to kana text
+- producing kana wakachi-gaki text using the phrase ranges
 
-Higher-level Japanese text processing such as human-readable spacing, kana conversion, ruby, romanization, and braille-oriented conversion is planned to build on top of this analysis layer.
+Higher-level Japanese text processing such as ruby, romanization, and braille-oriented conversion is planned to build on top of this analysis layer.
 
 ---
 
@@ -25,6 +27,8 @@ The main role of `<xer/mecab.h>` at the current stage is to expose MeCab's morph
 The raw feature string is preserved, and XER also splits it into `mecab_features` so that common items such as part of speech and reading can be accessed without reparsing the comma-separated feature string in user code.
 
 On top of the token layer, XER provides `mecab_split_phrases` to derive practical bunsetsu-like ranges and separate symbol ranges. MeCab itself does not return bunsetsu boundaries, so this layer is an XER rule-based approximation.
+
+The kana layer uses `mecab_features::読み` where available and provides `mecab_to_kana` and `mecab_kana_wakati` as practical reading-based conversion helpers. These functions are intended for readable kana output and as a foundation for later romanization and braille-oriented conversion.
 
 XER does not link against the MeCab library.
 Instead, it executes the `mecab` command as a child process using XER's process facilities.
@@ -91,10 +95,33 @@ struct mecab_phrase {
     std::size_t count = 0;
 };
 
+enum class mecab_kana_kind {
+    mixed,
+    hiragana,
+    katakana,
+};
+
+struct mecab_kana_options {
+    mecab_kana_kind kind = mecab_kana_kind::mixed;
+    bool particle_reading = true;
+};
+
 [[nodiscard]]
 auto mecab_split_phrases(
     std::span<const mecab_token> tokens)
     -> std::vector<mecab_phrase>;
+
+[[nodiscard]]
+auto mecab_to_kana(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> std::u8string;
+
+[[nodiscard]]
+auto mecab_kana_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> std::u8string;
 
 [[nodiscard]]
 auto mecab_parse(
@@ -311,6 +338,146 @@ The function assumes that `tokens` was produced by `mecab_parse` or otherwise co
 
 ---
 
+## `mecab_kana_kind`
+
+```cpp
+enum class mecab_kana_kind {
+    mixed,
+    hiragana,
+    katakana,
+};
+```
+
+`mecab_kana_kind` controls how MeCab-derived readings are written as kana.
+
+| Value | Meaning |
+|---|---|
+| `mixed` | Use hiragana by default, while preserving katakana-like source tokens as katakana |
+| `hiragana` | Convert readings to hiragana |
+| `katakana` | Convert readings to katakana |
+
+`mixed` is the default because it keeps ordinary Japanese readings readable while preserving common katakana words such as `コンピューター`.
+
+---
+
+## `mecab_kana_options`
+
+```cpp
+struct mecab_kana_options {
+    mecab_kana_kind kind = mecab_kana_kind::mixed;
+    bool particle_reading = true;
+};
+```
+
+`mecab_kana_options` controls reading-based kana conversion.
+
+### `kind`
+
+`kind` selects the kana output style.
+
+The default is `mecab_kana_kind::mixed`.
+
+### `particle_reading`
+
+When `particle_reading` is `true`, XER uses pronunciation-oriented readings for common particles:
+
+| Surface | Condition | Hiragana output | Katakana output |
+|---|---|---|---|
+| `は` | `features.品詞 == u8"助詞"` | `わ` | `ワ` |
+| `へ` | `features.品詞 == u8"助詞"` | `え` | `エ` |
+| `を` | always | `お` | `オ` |
+
+The default is `true` because kana wakachi-gaki, romanization, and braille-oriented processing usually need pronunciation-oriented particle readings.
+
+When `particle_reading` is `false`, the function uses MeCab's reading field, or the token surface when the reading is unavailable.
+
+---
+
+## `mecab_to_kana`
+
+```cpp
+[[nodiscard]]
+auto mecab_to_kana(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> std::u8string;
+```
+
+### Purpose
+
+`mecab_to_kana` converts a MeCab token sequence to kana text.
+
+Each token is converted independently. The function uses `mecab_features::読み` when it is available and not `*`; otherwise, it falls back to `mecab_token::surface`.
+
+This function does not insert spaces between tokens. It is useful when the caller already has the desired token or phrase range.
+
+### Example
+
+For tokens corresponding to:
+
+```text
+私はコンピューターを使います。
+```
+
+The default `mixed` mode is intended to produce kana text close to:
+
+```text
+わたしわコンピューターおつかいます。
+```
+
+Actual readings depend on the installed MeCab dictionary.
+
+---
+
+## `mecab_kana_wakati`
+
+```cpp
+[[nodiscard]]
+auto mecab_kana_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> std::u8string;
+```
+
+### Purpose
+
+`mecab_kana_wakati` converts a MeCab token sequence to kana wakachi-gaki text.
+
+The function first calls `mecab_split_phrases`, then inserts one ASCII space between the returned phrase ranges. Symbols are kept as independent ranges, so punctuation and other symbols are also separated by spaces in this low-level helper.
+
+For example, a token sequence corresponding to:
+
+```text
+私はコンピューターを使います。
+```
+
+is intended to produce output close to:
+
+```text
+わたしわ コンピューターお つかいます 。
+```
+
+With `mecab_kana_kind::hiragana`, katakana-like source words are also converted to hiragana:
+
+```text
+わたしわ こんぴゅーたーお つかいます 。
+```
+
+With `mecab_kana_kind::katakana`, the output is katakana-oriented:
+
+```text
+ワタシワ コンピューターオ ツカイマス 。
+```
+
+### Error Model
+
+`mecab_kana_wakati` does not invoke MeCab and does not return `xer::result`.
+It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
+
+Display-oriented spacing that attaches punctuation to the previous phrase can be layered on top later. The current helper intentionally keeps symbols independent because later romanization and braille-oriented processing often need that separation.
+
+---
+
 ## `mecab_parse`
 
 ```cpp
@@ -438,11 +605,12 @@ Implemented:
 - split feature field preservation
 - common MeCab/IPADIC-style named feature members
 - practical bunsetsu-like phrase and symbol segmentation through `mecab_split_phrases`
+- kana conversion based on MeCab-derived readings through `mecab_to_kana`
+- kana wakachi-gaki through `mecab_kana_wakati`
 
 Not yet implemented in this header:
 
-- bunsetsu-based spacing
-- kana conversion based on readings
+- display-oriented spacing that attaches punctuation naturally
 - ruby-oriented structures
 - romanization
 - braille-oriented conversion

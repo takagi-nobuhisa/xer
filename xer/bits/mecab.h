@@ -157,6 +157,41 @@ struct mecab_phrase {
     std::size_t count = 0;
 };
 
+/**
+ * @brief Kana output style for MeCab-derived readings.
+ */
+enum class mecab_kana_kind {
+    /**
+     * @brief Use hiragana by default, while preserving katakana-like source tokens.
+     */
+    mixed,
+
+    /**
+     * @brief Convert readings to hiragana.
+     */
+    hiragana,
+
+    /**
+     * @brief Convert readings to katakana.
+     */
+    katakana,
+};
+
+/**
+ * @brief Options for MeCab-derived kana conversion.
+ */
+struct mecab_kana_options {
+    /**
+     * @brief Kana output style.
+     */
+    mecab_kana_kind kind = mecab_kana_kind::mixed;
+
+    /**
+     * @brief Use pronunciation-oriented readings for particles は, へ, and を.
+     */
+    bool particle_reading = true;
+};
+
 namespace detail {
 
 #if defined(_WIN32)
@@ -482,6 +517,192 @@ inline constexpr char8_t mecab_path_separator = u8':';
     return false;
 }
 
+[[nodiscard]] inline auto mecab_utf8_next(
+    std::u8string_view text,
+    std::size_t& index) noexcept -> char32_t
+{
+    const auto byte0 = static_cast<unsigned char>(text[index]);
+
+    if (byte0 < 0x80) {
+        ++index;
+        return static_cast<char32_t>(byte0);
+    }
+
+    if ((byte0 & 0xe0) == 0xc0 && index + 1 < text.size()) {
+        const auto byte1 = static_cast<unsigned char>(text[index + 1]);
+        index += 2;
+        return static_cast<char32_t>(((byte0 & 0x1f) << 6) | (byte1 & 0x3f));
+    }
+
+    if ((byte0 & 0xf0) == 0xe0 && index + 2 < text.size()) {
+        const auto byte1 = static_cast<unsigned char>(text[index + 1]);
+        const auto byte2 = static_cast<unsigned char>(text[index + 2]);
+        index += 3;
+        return static_cast<char32_t>(
+            ((byte0 & 0x0f) << 12)
+            | ((byte1 & 0x3f) << 6)
+            | (byte2 & 0x3f));
+    }
+
+    if ((byte0 & 0xf8) == 0xf0 && index + 3 < text.size()) {
+        const auto byte1 = static_cast<unsigned char>(text[index + 1]);
+        const auto byte2 = static_cast<unsigned char>(text[index + 2]);
+        const auto byte3 = static_cast<unsigned char>(text[index + 3]);
+        index += 4;
+        return static_cast<char32_t>(
+            ((byte0 & 0x07) << 18)
+            | ((byte1 & 0x3f) << 12)
+            | ((byte2 & 0x3f) << 6)
+            | (byte3 & 0x3f));
+    }
+
+    ++index;
+    return U'\ufffd';
+}
+
+inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> void
+{
+    if (code_point <= 0x7f) {
+        output.push_back(static_cast<char8_t>(code_point));
+    } else if (code_point <= 0x7ff) {
+        output.push_back(static_cast<char8_t>(0xc0 | ((code_point >> 6) & 0x1f)));
+        output.push_back(static_cast<char8_t>(0x80 | (code_point & 0x3f)));
+    } else if (code_point <= 0xffff) {
+        output.push_back(static_cast<char8_t>(0xe0 | ((code_point >> 12) & 0x0f)));
+        output.push_back(static_cast<char8_t>(0x80 | ((code_point >> 6) & 0x3f)));
+        output.push_back(static_cast<char8_t>(0x80 | (code_point & 0x3f)));
+    } else {
+        output.push_back(static_cast<char8_t>(0xf0 | ((code_point >> 18) & 0x07)));
+        output.push_back(static_cast<char8_t>(0x80 | ((code_point >> 12) & 0x3f)));
+        output.push_back(static_cast<char8_t>(0x80 | ((code_point >> 6) & 0x3f)));
+        output.push_back(static_cast<char8_t>(0x80 | (code_point & 0x3f)));
+    }
+}
+
+[[nodiscard]] inline auto mecab_is_hiragana_code_point(char32_t code_point) noexcept -> bool
+{
+    return code_point >= U'\u3041' && code_point <= U'\u3096';
+}
+
+[[nodiscard]] inline auto mecab_is_katakana_code_point(char32_t code_point) noexcept -> bool
+{
+    return (code_point >= U'\u30a1' && code_point <= U'\u30fa')
+        || (code_point >= U'\u30fd' && code_point <= U'\u30ff');
+}
+
+[[nodiscard]] inline auto mecab_is_katakana_mark(char32_t code_point) noexcept -> bool
+{
+    return code_point == U'\u30fc'
+        || code_point == U'\u30fb'
+        || code_point == U'\u3000';
+}
+
+[[nodiscard]] inline auto mecab_is_katakana_like_surface(
+    std::u8string_view surface) noexcept -> bool
+{
+    bool has_katakana = false;
+    bool has_letter_like_non_katakana = false;
+    std::size_t index = 0;
+
+    while (index < surface.size()) {
+        const char32_t code_point = mecab_utf8_next(surface, index);
+        if (mecab_is_katakana_code_point(code_point)) {
+            has_katakana = true;
+        } else if (mecab_is_katakana_mark(code_point)) {
+            // A mark alone does not make the surface katakana-like.
+        } else {
+            has_letter_like_non_katakana = true;
+        }
+    }
+
+    return has_katakana && !has_letter_like_non_katakana;
+}
+
+[[nodiscard]] inline auto mecab_kana_code_point(
+    char32_t code_point,
+    mecab_kana_kind kind) noexcept -> char32_t
+{
+    if (kind == mecab_kana_kind::hiragana && mecab_is_katakana_code_point(code_point)) {
+        return code_point - 0x60;
+    }
+
+    if (kind == mecab_kana_kind::katakana && mecab_is_hiragana_code_point(code_point)) {
+        return code_point + 0x60;
+    }
+
+    return code_point;
+}
+
+[[nodiscard]] inline auto mecab_convert_kana(
+    std::u8string_view text,
+    mecab_kana_kind kind) -> std::u8string
+{
+    std::u8string result;
+    result.reserve(text.size());
+
+    std::size_t index = 0;
+    while (index < text.size()) {
+        const char32_t code_point = mecab_utf8_next(text, index);
+        mecab_utf8_append(result, mecab_kana_code_point(code_point, kind));
+    }
+
+    return result;
+}
+
+[[nodiscard]] inline auto mecab_token_kana_kind(
+    const mecab_token& token,
+    const mecab_kana_options& options) noexcept -> mecab_kana_kind
+{
+    if (options.kind != mecab_kana_kind::mixed) {
+        return options.kind;
+    }
+
+    if (mecab_is_katakana_like_surface(token.surface)) {
+        return mecab_kana_kind::katakana;
+    }
+
+    return mecab_kana_kind::hiragana;
+}
+
+[[nodiscard]] inline auto mecab_particle_reading(
+    const mecab_token& token,
+    mecab_kana_kind kind) -> std::u8string
+{
+    if (token.surface == u8"は" && mecab_feature_is(token.features.品詞, u8"助詞")) {
+        return kind == mecab_kana_kind::katakana ? std::u8string(u8"ワ") : std::u8string(u8"わ");
+    }
+
+    if (token.surface == u8"へ" && mecab_feature_is(token.features.品詞, u8"助詞")) {
+        return kind == mecab_kana_kind::katakana ? std::u8string(u8"エ") : std::u8string(u8"え");
+    }
+
+    if (token.surface == u8"を") {
+        return kind == mecab_kana_kind::katakana ? std::u8string(u8"オ") : std::u8string(u8"お");
+    }
+
+    return {};
+}
+
+[[nodiscard]] inline auto mecab_token_to_kana(
+    const mecab_token& token,
+    const mecab_kana_options& options) -> std::u8string
+{
+    const mecab_kana_kind kind = mecab_token_kana_kind(token, options);
+
+    if (options.particle_reading) {
+        auto particle = mecab_particle_reading(token, kind);
+        if (!particle.empty()) {
+            return particle;
+        }
+    }
+
+    const std::u8string_view reading = token.features.読み.empty() || token.features.読み == u8"*"
+        ? std::u8string_view(token.surface)
+        : std::u8string_view(token.features.読み);
+
+    return mecab_convert_kana(reading, kind);
+}
+
 [[nodiscard]] inline auto mecab_parse_output(
     std::u8string_view output) -> result<std::vector<mecab_token>>
 {
@@ -600,6 +821,71 @@ inline constexpr char8_t mecab_path_separator = u8':';
 
     push_bunsetsu();
     return phrases;
+}
+
+/**
+ * @brief Converts MeCab tokens to kana text.
+ *
+ * Each token is converted independently. The function uses
+ * @ref mecab_features::読み when it is available and falls back to
+ * @ref mecab_token::surface otherwise.
+ *
+ * In @ref mecab_kana_kind::mixed mode, tokens whose original surface is
+ * katakana-like keep katakana; other tokens are converted to hiragana. When
+ * @ref mecab_kana_options::particle_reading is true, particles は and へ are
+ * converted to their pronunciation-oriented readings, and を is converted to
+ * お or オ.
+ *
+ * @param tokens MeCab token sequence.
+ * @param options Kana conversion options.
+ * @return Kana text without inserting spaces between tokens.
+ */
+[[nodiscard]] inline auto mecab_to_kana(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {}) -> std::u8string
+{
+    std::u8string result;
+
+    for (const auto& token : tokens) {
+        result += detail::mecab_token_to_kana(token, options);
+    }
+
+    return result;
+}
+
+/**
+ * @brief Converts MeCab tokens to kana wakachi-gaki text.
+ *
+ * The function first calls @ref mecab_split_phrases and then inserts one ASCII
+ * space between the returned phrase ranges. Symbols are kept as independent
+ * ranges, so punctuation is also separated by spaces in this low-level helper.
+ * Display-oriented spacing can be layered on top later.
+ *
+ * @param tokens MeCab token sequence.
+ * @param options Kana conversion options.
+ * @return Kana wakachi-gaki text.
+ */
+[[nodiscard]] inline auto mecab_kana_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {}) -> std::u8string
+{
+    const auto phrases = mecab_split_phrases(tokens);
+
+    std::u8string result;
+    bool first = true;
+
+    for (const auto& phrase : phrases) {
+        if (!first) {
+            result.push_back(u8' ');
+        }
+        first = false;
+
+        const auto begin = tokens.begin() + static_cast<std::ptrdiff_t>(phrase.index);
+        const auto end = begin + static_cast<std::ptrdiff_t>(phrase.count);
+        result += mecab_to_kana(std::span<const mecab_token>(begin, end), options);
+    }
+
+    return result;
 }
 
 /**
