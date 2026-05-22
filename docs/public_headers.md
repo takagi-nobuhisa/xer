@@ -24,6 +24,7 @@
 
 - `xer/string.h`
 - `xer/ctype.h`
+- `xer/braille.h`
 - `xer/stdlib.h`
 - `xer/kansuji.h`
 - `xer/mecab.h`
@@ -149,6 +150,18 @@ This keeps the API boundary clear:
 
 - `base64_encode` converts bytes into UTF-8 text
 - `base64_decode` converts UTF-8 Base64 text back into bytes
+
+### Why `braille.h` Is Independent
+
+Braille handling is Japanese and general text processing, but it has its own notation-specific building blocks such as numeric indicators, alphabetic indicators, capital indicators, and information-processing braille indicators.
+
+For that reason, braille-related facilities are not absorbed into `xer/string.h`, `xer/ctype.h`, or `xer/mecab.h`, but are provided through the independent public header `xer/braille.h`.
+
+At the current stage, this keeps the responsibility clear:
+
+- `xer/ctype.h` classifies Unicode braille pattern characters through `isctype(c, ctype_id::braille)`
+- `xer/braille.h` provides reusable braille sign constants as UTF-8 string views
+- future higher-level braille conversion can build on these low-level pieces
 
 ### Why `kansuji.h` Is Independent
 
