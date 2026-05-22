@@ -97,6 +97,11 @@ struct mecab_kana_options {
     bool particle_reading = true;
 };
 
+struct mecab_romaji_options {
+    mecab_kana_options kana;
+    ctrans_id romaji = ctrans_id::romaji;
+};
+
 [[nodiscard]]
 auto mecab_split_phrases(
     std::span<const mecab_token> tokens)
@@ -115,6 +120,12 @@ auto mecab_kana_wakati(
     -> std::u8string;
 
 [[nodiscard]]
+auto mecab_romaji_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_romaji_options& options = {})
+    -> xer::result<std::u8string>;
+
+[[nodiscard]]
 auto mecab_parse(
     std::u8string_view text,
     const mecab_options& options = {})
@@ -130,6 +141,8 @@ auto mecab_parse(
 `mecab_split_phrases` derives practical bunsetsu-like ranges and separate symbol ranges from an existing token sequence. It does not invoke MeCab and does not perform kana conversion by itself.
 
 `mecab_to_kana` converts token readings to kana without inserting spaces. `mecab_kana_wakati` combines reading-based kana conversion with `mecab_split_phrases` and inserts spaces between the derived phrase ranges.
+
+`mecab_romaji_wakati` builds on the same phrase ranges. It converts bunsetsu ranges to kana, romanizes them through `strtoctrans`, and preserves symbol ranges as surface text.
 
 The raw `feature` text and parsed `features` data are intentionally dictionary-dependent at this layer.
 XER preserves raw feature text and also provides practical parsed access because higher-level Japanese processing needs part-of-speech information, conjugation form, and readings.
@@ -237,7 +250,7 @@ The first bunsetsu-oriented primitive is implemented through `mecab_split_phrase
 It returns bunsetsu-like token ranges and symbol ranges, and is the common foundation for kana spacing, romanization, braille-oriented conversion, and bunsetsu counts.
 
 The first reading-based output helpers are implemented through `mecab_to_kana` and `mecab_kana_wakati`.
-They provide practical kana conversion and kana wakachi-gaki based on MeCab-derived readings.
+They provide practical kana conversion and kana wakachi-gaki based on MeCab-derived readings. The first romaji output helper is implemented through `mecab_romaji_wakati`, which combines kana conversion and `strtoctrans`.
 
 ---
 
@@ -451,6 +464,11 @@ struct mecab_kana_options {
     bool particle_reading = true;
 };
 
+struct mecab_romaji_options {
+    mecab_kana_options kana;
+    ctrans_id romaji = ctrans_id::romaji;
+};
+
 [[nodiscard]]
 auto mecab_to_kana(
     std::span<const mecab_token> tokens,
@@ -462,6 +480,12 @@ auto mecab_kana_wakati(
     std::span<const mecab_token> tokens,
     const mecab_kana_options& options = {})
     -> std::u8string;
+
+[[nodiscard]]
+auto mecab_romaji_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_romaji_options& options = {})
+    -> xer::result<std::u8string>;
 ```
 
 `mecab_to_kana` converts a token sequence to kana without adding spaces.
@@ -510,6 +534,54 @@ Display-oriented punctuation spacing is intentionally not handled here. At this 
 
 ---
 
+## Romaji Wakachi-Gaki Policy
+
+Romaji wakachi-gaki is implemented as a helper layer above phrase segmentation and kana conversion.
+
+The current public API is:
+
+```cpp
+struct mecab_romaji_options {
+    mecab_kana_options kana;
+    ctrans_id romaji = ctrans_id::romaji;
+};
+
+[[nodiscard]]
+auto mecab_romaji_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_romaji_options& options = {})
+    -> xer::result<std::u8string>;
+```
+
+The conversion policy is:
+
+1. derive phrase ranges with `mecab_split_phrases`
+2. preserve `symbol` ranges as surface text
+3. convert each `bunsetsu` range to kana using `mecab_to_kana`
+4. romanize the kana range with `strtoctrans`
+5. join all ranges with one ASCII space
+
+Symbols are not passed to `strtoctrans`. This avoids failures for punctuation such as `。`, `、`, and brackets, and preserves the separation needed by later text-processing stages.
+
+`mecab_romaji_options::romaji` currently accepts only:
+
+| Value | Meaning |
+|---|---|
+| `ctrans_id::romaji` | Macron-based long-vowel form |
+| `ctrans_id::romaji_alt` | Kana-spelling-based alternate form |
+
+Other `ctrans_id` values are outside the responsibility of this helper and are rejected with `error_t::invalid_argument`.
+
+Particle reading correction is performed by the kana conversion stage. With the default options, particles are romanized by pronunciation:
+
+- `は` -> `wa`
+- `へ` -> `e`
+- `を` -> `o`
+
+The result remains dictionary-dependent. Different MeCab dictionaries may produce different readings, token boundaries, and feature layouts. XER therefore treats this helper as practical romanization, not as a strict linguistic or publishing standard.
+
+---
+
 ## Counts
 
 XER should distinguish between:
@@ -533,6 +605,7 @@ The current reading-based helpers are:
 
 - `mecab_to_kana`
 - `mecab_kana_wakati`
+- `mecab_romaji_wakati`
 
 Later helpers may build on these for:
 
@@ -576,7 +649,6 @@ The following items require later API or algorithm design:
 - dictionary-dependent feature interpretation strategy beyond the current IPADIC-style named members for higher-level helpers
 - detailed ruby output format
 - display-oriented punctuation spacing rules
-- detailed romanization rules
 - detailed braille conversion rules
 - additional bunsetsu segmentation refinements based on real examples
 - error models for later higher-level transformations where additional failures arise

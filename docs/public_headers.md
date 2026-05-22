@@ -177,8 +177,9 @@ At the current stage, this keeps the responsibility clear:
 - `mecab_split_phrases` derives practical bunsetsu-like ranges and symbol ranges from a token sequence
 - `mecab_to_kana` converts MeCab-derived readings to kana text
 - `mecab_kana_wakati` produces kana wakachi-gaki text using the derived phrase ranges
+- `mecab_romaji_wakati` produces romaji wakachi-gaki text by combining kana conversion and `strtoctrans`
 
-Future higher-level facilities such as ruby, romanization, and braille-oriented conversion can build on this foundation.
+Future higher-level facilities such as ruby and braille-oriented conversion can build on this foundation.
 
 ### Why `furigana.h` Is Independent
 
