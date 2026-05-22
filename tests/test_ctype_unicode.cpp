@@ -124,6 +124,36 @@ void test_unicode_bmp_rejects_values_above_unicode_range() {
         xer::ctype_id::unicode_bmp));
 }
 
+void test_braille_accepts_braille_patterns() {
+    xer_assert(xer::isctype(
+        static_cast<char32_t>(0x2800),
+        xer::ctype_id::braille));
+    xer_assert(xer::isctype(
+        static_cast<char32_t>(0x2801),
+        xer::ctype_id::braille));
+    xer_assert(xer::isctype(
+        static_cast<char32_t>(0x283f),
+        xer::ctype_id::braille));
+    xer_assert(xer::isctype(
+        static_cast<char32_t>(0x28ff),
+        xer::ctype_id::braille));
+}
+
+void test_braille_rejects_non_braille_patterns() {
+    xer_assert_not(xer::isctype(
+        static_cast<char32_t>(0x27ff),
+        xer::ctype_id::braille));
+    xer_assert_not(xer::isctype(
+        static_cast<char32_t>(0x2900),
+        xer::ctype_id::braille));
+    xer_assert_not(xer::isctype(U'A', xer::ctype_id::braille));
+    xer_assert_not(xer::isctype(U'あ', xer::ctype_id::braille));
+    xer_assert_not(xer::isctype(
+        static_cast<char32_t>(0x110000),
+        xer::ctype_id::braille));
+}
+
+
 } // namespace
 
 auto main() -> int {
@@ -139,6 +169,9 @@ auto main() -> int {
     test_unicode_bmp_rejects_surrogates();
     test_unicode_bmp_rejects_non_bmp_scalar_values();
     test_unicode_bmp_rejects_values_above_unicode_range();
+
+    test_braille_accepts_braille_patterns();
+    test_braille_rejects_non_braille_patterns();
 
     return 0;
 }

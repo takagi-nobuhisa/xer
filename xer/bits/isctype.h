@@ -36,6 +36,7 @@ enum class ctype_id {
     ascii,
     unicode,
     unicode_bmp,
+    braille,
     octal,
     binary,
     latin1_alpha,
@@ -388,6 +389,9 @@ namespace detail {
             return detail::is_unicode_scalar_value(c);
         case ctype_id::unicode_bmp:
             return detail::is_unicode_bmp_scalar_value(c);
+        case ctype_id::braille:
+            return c >= static_cast<char32_t>(0x2800) &&
+                   c <= static_cast<char32_t>(0x28ff);
         case ctype_id::octal:
             return isoctal(c);
         case ctype_id::binary:

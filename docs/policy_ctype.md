@@ -167,6 +167,20 @@ These functions are deliberately limited to Unicode code-point validity.
 They do not attempt to determine whether a character is valid for Unicode identifiers or C++ universal character names.
 That area requires table-based rules and is deferred.
 
+
+## Braille Pattern Classification
+
+`ctype_id` includes `braille` for Unicode Braille Patterns classification.
+
+`isctype(c, ctype_id::braille)` returns `true` when `c` is in the Unicode Braille Patterns block, `U+2800..U+28FF`.
+`U+2800 BRAILLE PATTERN BLANK` is included.
+
+This classification is intentionally limited to the Unicode block.
+It does not attempt to validate language-specific braille notation, contractions, word spacing, Japanese kana-based braille rules, or other higher-level braille text rules.
+
+An individual `isbraille` function is not provided at this stage.
+Braille pattern checks should use `isctype` with `ctype_id::braille`.
+
 ## Identifier-Related Functions
 
 As for `iscsym` and `iscsymf`, their adoption and specification should be considered separately, because their relationship to international character names and Unicode identifiers needs to be examined.

@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.4.0a2**
+Target version: **v0.4.0a3**
 
 ---
 
@@ -2010,6 +2010,31 @@ Surrogate code points are rejected.
 `is_unicode_bmp_scalar_value` returns true only for valid Unicode scalar values in the Basic Multilingual Plane.
 
 These functions are code-point validity checks. They are not Unicode identifier checks.
+
+
+---
+
+## Braille Pattern Classification
+
+The dynamic classifier includes a category for Unicode Braille Patterns:
+
+```cpp
+ctype_id::braille
+```
+
+This category returns `true` for code points in the Unicode Braille Patterns block:
+
+```text
+U+2800..U+28FF
+```
+
+`U+2800 BRAILLE PATTERN BLANK` is included.
+
+This is a block-level classification.
+It only checks whether the code point is a Unicode Braille Patterns character; it does not validate Japanese braille notation, English braille notation, contractions, spacing rules, or other higher-level braille text rules.
+
+No individual `isbraille` helper is provided at this stage.
+Call `isctype(c, ctype_id::braille)` when braille pattern classification is needed.
 
 ---
 
