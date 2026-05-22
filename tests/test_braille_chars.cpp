@@ -3,6 +3,7 @@
  * @brief Tests for basic one-character braille conversion helpers.
  */
 
+#include <string>
 #include <string_view>
 
 #include <xer/assert.h>
@@ -23,6 +24,20 @@ void assert_invalid_argument(const xer::result<std::u8string_view>& result)
 {
     xer_assert_not(result.has_value());
     xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+}
+
+void assert_string_invalid_argument(const xer::result<std::u8string>& result)
+{
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+}
+
+void assert_braille_text_eq(
+    const xer::result<std::u8string>& result,
+    std::u8string_view expected)
+{
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, expected);
 }
 
 void test_alpha_to_braille_lowercase()
@@ -197,6 +212,38 @@ void test_kana_to_braille_rejects_unsupported_input()
     assert_invalid_argument(xer::braille::kana_to_braille(U'ヴ'));
 }
 
+void test_kana_text_to_braille_basic_text()
+{
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"かな カナ"),
+        u8"⠡⠅ ⠡⠅");
+}
+
+void test_kana_text_to_braille_combines_yoon()
+{
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"きゃ きゅ きょ"),
+        u8"⠈⠡ ⠈⠩ ⠈⠪");
+
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"しゃ ちゅ にょ りゃ"),
+        u8"⠈⠱ ⠈⠝ ⠈⠎ ⠈⠑");
+}
+
+void test_kana_text_to_braille_combines_voiced_and_semivoiced_yoon()
+{
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"ぎゃ じゅ びょ ぴゅ"),
+        u8"⠘⠡ ⠘⠹ ⠘⠮ ⠨⠭");
+}
+
+void test_kana_text_to_braille_rejects_unsupported_input()
+{
+    assert_string_invalid_argument(xer::braille::kana_text_to_braille(u8"ゃ"));
+    assert_string_invalid_argument(xer::braille::kana_text_to_braille(u8"あゃ"));
+    assert_string_invalid_argument(xer::braille::kana_text_to_braille(u8"abc"));
+}
+
 } // namespace
 
 auto main() -> int
@@ -210,6 +257,10 @@ auto main() -> int
     test_alnum_to_braille_rejects_non_alnum();
     test_punct_to_braille();
     test_punct_to_braille_rejects_unsupported_input();
+    test_kana_text_to_braille_basic_text();
+    test_kana_text_to_braille_combines_yoon();
+    test_kana_text_to_braille_combines_voiced_and_semivoiced_yoon();
+    test_kana_text_to_braille_rejects_unsupported_input();
     test_kana_to_braille_basic_hiragana();
     test_kana_to_braille_basic_katakana();
     test_kana_to_braille_historic_kana_and_marks();

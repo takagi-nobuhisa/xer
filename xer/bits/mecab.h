@@ -22,6 +22,7 @@
 #include <xer/bits/stream_contents.h>
 #include <xer/bits/string_case.h>
 #include <xer/bits/text_encoding_common.h>
+#include <xer/braille.h>
 #include <xer/error.h>
 #include <xer/path.h>
 #include <xer/process.h>
@@ -1007,6 +1008,26 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
     }
 
     return result;
+}
+
+
+/**
+ * @brief Converts MeCab tokens to Japanese braille wakachi-gaki text.
+ *
+ * The function first calls @ref mecab_kana_wakati and then converts the
+ * resulting kana wakachi-gaki text with @ref braille::kana_text_to_braille.
+ * ASCII spaces inserted by the kana wakachi-gaki layer are preserved as spaces.
+ *
+ * @param tokens MeCab token sequence.
+ * @param options Kana conversion options used before braille conversion.
+ * @return Braille wakachi-gaki text on success.
+ */
+[[nodiscard]] inline auto mecab_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {}) -> result<std::u8string>
+{
+    const auto kana = mecab_kana_wakati(tokens, options);
+    return braille::kana_text_to_braille(kana);
 }
 
 /**

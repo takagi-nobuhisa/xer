@@ -27,7 +27,7 @@ Many applications benefit from Japanese text processing such as:
 - converting text to hiragana
 - inserting readable spaces
 - romanizing Japanese text
-- converting Japanese text to braille-oriented representations
+- converting Japanese text to braille-oriented wakachi-gaki representations
 - counting words or bunsetsu
 
 These needs appear frequently, but reliable implementation requires knowledge of Japanese morphology, readings, segmentation, and notation conventions.
@@ -120,6 +120,12 @@ auto mecab_kana_wakati(
     -> std::u8string;
 
 [[nodiscard]]
+auto mecab_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> xer::result<std::u8string>;
+
+[[nodiscard]]
 auto mecab_romaji_wakati(
     std::span<const mecab_token> tokens,
     const mecab_romaji_options& options = {})
@@ -141,6 +147,8 @@ auto mecab_parse(
 `mecab_split_phrases` derives practical bunsetsu-like ranges and separate symbol ranges from an existing token sequence. It does not invoke MeCab and does not perform kana conversion by itself.
 
 `mecab_to_kana` converts token readings to kana without inserting spaces. `mecab_kana_wakati` combines reading-based kana conversion with `mecab_split_phrases` and inserts spaces between the derived phrase ranges.
+
+`mecab_braille_wakati` builds on `mecab_kana_wakati`. It converts the kana wakachi-gaki output to Japanese braille through `<xer/braille.h>` and preserves ASCII spaces inserted between phrase ranges.
 
 `mecab_romaji_wakati` builds on the same phrase ranges. It converts bunsetsu ranges to kana, romanizes them through `strtoctrans`, and preserves symbol ranges as surface text.
 
@@ -236,7 +244,7 @@ The MeCab-based Japanese processing facility should support, or provide the foun
 - hiragana conversion
 - bunsetsu-based spacing
 - romanization
-- braille-oriented conversion
+- braille-oriented wakachi-gaki conversion
 - word counting
 - bunsetsu counting
 - access to raw morphological analysis data
@@ -250,7 +258,7 @@ The first bunsetsu-oriented primitive is implemented through `mecab_split_phrase
 It returns bunsetsu-like token ranges and symbol ranges, and is the common foundation for kana spacing, romanization, braille-oriented conversion, and bunsetsu counts.
 
 The first reading-based output helpers are implemented through `mecab_to_kana` and `mecab_kana_wakati`.
-They provide practical kana conversion and kana wakachi-gaki based on MeCab-derived readings. The first romaji output helper is implemented through `mecab_romaji_wakati`, which combines kana conversion and `strtoctrans`.
+They provide practical kana conversion and kana wakachi-gaki based on MeCab-derived readings. The first braille-oriented output helper is implemented through `mecab_braille_wakati`, which combines kana wakachi-gaki and `<xer/braille.h>`. The first romaji output helper is implemented through `mecab_romaji_wakati`, which combines kana conversion and `strtoctrans`.
 
 ---
 
@@ -263,7 +271,7 @@ XER derives bunsetsu-like groups from MeCab morphological analysis results and u
 At minimum, bunsetsu are needed for:
 
 - readable spacing
-- braille-oriented conversion
+- braille-oriented wakachi-gaki conversion
 - bunsetsu counting
 - downstream Japanese rendering helpers
 
@@ -482,6 +490,12 @@ auto mecab_kana_wakati(
     -> std::u8string;
 
 [[nodiscard]]
+auto mecab_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> xer::result<std::u8string>;
+
+[[nodiscard]]
 auto mecab_romaji_wakati(
     std::span<const mecab_token> tokens,
     const mecab_romaji_options& options = {})
@@ -531,6 +545,35 @@ The helper is intended to be useful for ordinary processing, including:
 - simple reading display
 
 Display-oriented punctuation spacing is intentionally not handled here. At this layer, symbols remain independent phrase ranges and are separated by spaces.
+
+---
+
+## Braille Wakachi-Gaki Policy
+
+Braille wakachi-gaki is implemented as a helper layer above kana wakachi-gaki and `<xer/braille.h>`.
+
+The current public API is:
+
+```cpp
+[[nodiscard]]
+auto mecab_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> xer::result<std::u8string>;
+```
+
+The conversion policy is:
+
+1. derive kana wakachi-gaki with `mecab_kana_wakati`
+2. preserve the ASCII spaces inserted by the kana wakachi-gaki layer
+3. convert the resulting kana sequence to braille with `xer::braille::kana_text_to_braille`
+4. propagate errors from the braille conversion layer
+
+This design intentionally keeps the MeCab-specific braille helper thin. The kana-to-braille logic remains reusable without MeCab, while the MeCab layer remains responsible for readings and phrase spacing.
+
+At the current stage, punctuation handling is still limited by `xer::braille::kana_text_to_braille`. If the kana wakachi-gaki text contains unsupported symbols, `mecab_braille_wakati` reports the corresponding error instead of silently dropping or guessing a braille representation.
+
+The result remains dictionary-dependent. Different MeCab dictionaries may produce different readings, token boundaries, and feature layouts. XER therefore treats this helper as practical braille-oriented wakachi-gaki, not as complete Japanese braille translation.
 
 ---
 
@@ -605,13 +648,14 @@ The current reading-based helpers are:
 
 - `mecab_to_kana`
 - `mecab_kana_wakati`
+- `mecab_braille_wakati`
 - `mecab_romaji_wakati`
 
 Later helpers may build on these for:
 
 - ruby
-- romanization
-- braille-oriented conversion
+- higher-level romanization controls
+- higher-level braille-oriented conversion
 
 The accuracy of these derived outputs is limited by the correctness of the underlying reading selection.
 A word with multiple possible readings may be converted using a reading that is plausible but not intended in the original context.

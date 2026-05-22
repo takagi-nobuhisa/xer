@@ -474,6 +474,24 @@ void test_mecab_kana_wakati_separates_phrases()
     xer_assert_eq(xer::mecab_kana_wakati(tokens), u8"わたしわ あした 、 がっこうえ いきます 。");
 }
 
+
+void test_mecab_braille_wakati_converts_kana_wakati_text()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"私\t名詞,代名詞,一般,*,*,*,私,ワタシ,ワタシ\n"
+        u8"は\t助詞,係助詞,*,*,*,*,は,ハ,ワ\n"
+        u8"会社\t名詞,一般,*,*,*,*,会社,カイシャ,カイシャ\n"
+        u8"へ\t助詞,格助詞,一般,*,*,*,へ,ヘ,エ\n"
+        u8"行き\t動詞,自立,*,*,五段・カ行促音便,連用形,行く,イキ,イキ\n"
+        u8"ます\t助動詞,*,*,*,特殊・マス,基本形,ます,マス\n"
+        u8"EOS\n");
+
+    const auto result = xer::mecab_braille_wakati(tokens);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, u8"⠄⠕⠳⠄ ⠡⠃⠈⠱⠋ ⠃⠣⠵⠹");
+}
+
 void test_mecab_parse_rejects_invalid_utf8()
 {
     const std::u8string invalid {
@@ -514,6 +532,7 @@ auto main() -> int
     test_mecab_to_kana_does_not_rewrite_non_particle_ha_he();
     test_mecab_to_kana_falls_back_to_surface();
     test_mecab_kana_wakati_separates_phrases();
+    test_mecab_braille_wakati_converts_kana_wakati_text();
     test_mecab_parse_rejects_invalid_utf8();
 
     return 0;

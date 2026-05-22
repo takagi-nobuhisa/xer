@@ -16,8 +16,9 @@ The current implementation focuses on the lowest-level public foundation:
 - converting MeCab-derived readings to kana text
 - producing kana wakachi-gaki text using the phrase ranges
 - producing romaji wakachi-gaki text by combining kana conversion and `strtoctrans`
+- producing Japanese braille wakachi-gaki text by combining kana wakachi-gaki and `<xer/braille.h>`
 
-Higher-level Japanese text processing such as ruby and braille-oriented conversion is planned to build on top of this analysis layer.
+Higher-level Japanese text processing such as ruby generation is planned to build on top of this analysis layer. Braille-oriented wakachi-gaki conversion now has an initial helper built on the kana layer.
 
 ---
 
@@ -30,6 +31,8 @@ The raw feature string is preserved, and XER also splits it into `mecab_features
 On top of the token layer, XER provides `mecab_split_phrases` to derive practical bunsetsu-like ranges and separate symbol ranges. MeCab itself does not return bunsetsu boundaries, so this layer is an XER rule-based approximation.
 
 The kana layer uses `mecab_features::読み` where available and provides `mecab_to_kana` and `mecab_kana_wakati` as practical reading-based conversion helpers.
+
+The braille layer builds on the kana layer and `<xer/braille.h>`. It provides `mecab_braille_wakati` as a practical Japanese braille wakachi-gaki helper for MeCab token sequences.
 
 The romaji layer builds on the kana layer and `strtoctrans`. It provides `mecab_romaji_wakati` as a practical romaji wakachi-gaki helper. Particle reading correction is performed before romanization, so particles such as `は`, `へ`, and `を` can become `wa`, `e`, and `o` in the final output.
 
@@ -130,6 +133,12 @@ auto mecab_kana_wakati(
     std::span<const mecab_token> tokens,
     const mecab_kana_options& options = {})
     -> std::u8string;
+
+[[nodiscard]]
+auto mecab_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> xer::result<std::u8string>;
 
 [[nodiscard]]
 auto mecab_romaji_wakati(
@@ -494,6 +503,48 @@ Display-oriented spacing that attaches punctuation to the previous phrase can be
 
 ---
 
+## `mecab_braille_wakati`
+
+```cpp
+[[nodiscard]]
+auto mecab_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> xer::result<std::u8string>;
+```
+
+### Purpose
+
+`mecab_braille_wakati` converts a MeCab token sequence to Japanese braille wakachi-gaki text.
+
+The function first calls `mecab_kana_wakati` with the same kana options. It then passes the resulting kana wakachi-gaki text to `xer::braille::kana_text_to_braille`.
+
+ASCII spaces inserted by `mecab_kana_wakati` are preserved as ASCII spaces in the braille output.
+
+For example, a token sequence corresponding to:
+
+```text
+私は猫です
+```
+
+is intended to produce braille wakachi-gaki close to the braille representation of:
+
+```text
+わたしわ ねこです
+```
+
+The exact reading and phrase boundaries depend on the installed MeCab dictionary.
+
+### Error Model
+
+`mecab_braille_wakati` returns `xer::result<std::u8string>` because the braille conversion layer can fail.
+
+Errors from `xer::braille::kana_text_to_braille` are propagated. For example, if the kana wakachi-gaki text contains punctuation or another unsupported character for the current braille conversion layer, the function returns `error_t::invalid_argument`.
+
+`mecab_braille_wakati` does not invoke MeCab. It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
+
+---
+
 ## `mecab_romaji_options`
 
 ```cpp
@@ -707,13 +758,13 @@ Implemented:
 - practical bunsetsu-like phrase and symbol segmentation through `mecab_split_phrases`
 - kana conversion based on MeCab-derived readings through `mecab_to_kana`
 - kana wakachi-gaki through `mecab_kana_wakati`
+- braille wakachi-gaki through `mecab_braille_wakati`
 - romaji wakachi-gaki through `mecab_romaji_wakati`
 
 Not yet implemented in this header:
 
 - display-oriented spacing that attaches punctuation naturally
 - ruby-oriented structures
-- braille-oriented conversion
 - word or bunsetsu counting helpers
 
 These are planned on top of the raw layer and are described at the policy level in `policy_mecab.md`.
@@ -730,3 +781,4 @@ These are planned on top of the raw layer and are described at the policy level 
 - `policy_mecab.md`
 - `policy_project_outline.md`
 - `<xer/toctrans.h>`
+- `<xer/braille.h>`

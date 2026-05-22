@@ -2119,8 +2119,9 @@ At the current stage, this header provides:
 
 - common braille sign constants as UTF-8 string views
 - simple one-character conversion helpers for English letters, digits, English braille punctuation, and Japanese kana
+- kana-text conversion that handles ordinary kana and basic yoon sequences
 
-It does not yet perform full text-to-braille conversion, full Japanese braille translation, English contraction handling, automatic mode switching, wakachi-gaki, yoon composition, or context-sensitive punctuation analysis.
+It does not yet perform full Japanese braille translation, English contraction handling, automatic mode switching, MeCab-based analysis, full wakachi-gaki from ordinary Japanese text, or context-sensitive punctuation analysis.
 
 This keeps the first braille layer small and stable: callers can combine the provided constants and conversion helpers to build braille strings while higher-level conversion APIs are added later.
 
@@ -2140,6 +2141,7 @@ The current implementation provides:
 - one-character alphanumeric dispatch
 - one-character English braille punctuation conversion
 - one-character Japanese kana conversion
+- kana-text conversion for kana strings and basic yoon sequences
 
 The constants are represented as:
 
@@ -2154,6 +2156,14 @@ xer::result<std::u8string_view>
 ```
 
 This avoids allocation for the returned braille fragments and allows unsupported input characters to be reported explicitly.
+
+The kana-text conversion function returns:
+
+```cpp
+xer::result<std::u8string>
+```
+
+It decodes UTF-8 input, combines supported multi-kana sequences such as yoon, and returns an owned braille string.
 
 ---
 
@@ -2183,6 +2193,9 @@ inline constexpr std::u8string_view double_capital_indicator;
 
 [[nodiscard]] constexpr auto kana_to_braille(char32_t c)
     -> result<std::u8string_view>;
+
+[[nodiscard]] auto kana_text_to_braille(std::u8string_view text)
+    -> result<std::u8string>;
 
 namespace information_processing {
 
@@ -2496,9 +2509,6 @@ text += *xer::braille::alnum_to_braille(U'3');
 ```cpp
 [[nodiscard]] constexpr auto punct_to_braille(char32_t c)
     -> result<std::u8string_view>;
-
-[[nodiscard]] constexpr auto kana_to_braille(char32_t c)
-    -> result<std::u8string_view>;
 ```
 
 `punct_to_braille` converts one English braille punctuation character to a braille cell.
@@ -2581,9 +2591,9 @@ Some kana map to multiple braille cells. For example, voiced kana and semi-voice
 | `が` / `ガ` | `⠐⠡` | voiced kana |
 | `ぱ` / `パ` | `⠠⠥` | semi-voiced kana |
 
-Yoon such as `きゃ`, `しゃ`, and `ちゃ` are intentionally out of scope for this function. They require multiple input characters and should be handled by a later higher-level kana or Japanese braille conversion API.
+Yoon such as `きゃ`, `しゃ`, and `ちゃ` are intentionally out of scope for this function because they require multiple input characters. Use `kana_text_to_braille` when such kana sequences should be combined.
 
-Small kana other than sokuon, such as `ゃ`, `ゅ`, and `ょ`, are also unsupported by this one-character helper.
+Small kana other than sokuon, such as `ゃ`, `ゅ`, and `ょ`, are unsupported by this one-character helper when passed by themselves.
 
 Example:
 
@@ -2597,9 +2607,58 @@ text += *xer::braille::kana_to_braille(U'な');
 
 ---
 
+## `kana_text_to_braille`
+
+```cpp
+[[nodiscard]] auto kana_text_to_braille(std::u8string_view text)
+    -> result<std::u8string>;
+```
+
+`kana_text_to_braille` converts UTF-8 kana text to Japanese braille text.
+
+This function is a small higher-level layer above `kana_to_braille`. It is still a low-level conversion helper: it does not run MeCab, does not derive readings from ordinary Japanese text, and does not perform full Japanese braille translation.
+
+The function currently handles:
+
+- ordinary hiragana and katakana supported by `kana_to_braille`
+- voiced and semi-voiced kana supported by `kana_to_braille`
+- sokuon, prolonged sound mark, and syllabic nasal supported by `kana_to_braille`
+- ASCII space as a wakachi-gaki separator preserved as ASCII space
+- basic yoon sequences such as `きゃ`, `しゅ`, `ちょ`, `ぎゃ`, `じゅ`, `びょ`, and `ぴゅ`
+
+Unlike `kana_to_braille`, this function owns the returned string because it may combine multiple input characters and append multiple braille fragments.
+
+Example:
+
+```cpp
+const auto text = xer::braille::kana_text_to_braille(u8"きゃ じゅ ぴゅ");
+if (!text.has_value()) {
+    return;
+}
+```
+
+### Error Model
+
+`kana_text_to_braille` returns `error_t::encoding_error` when the input is not valid UTF-8.
+
+It returns `error_t::invalid_argument` when the decoded input contains an unsupported character or an unsupported kana sequence.
+
+Examples of unsupported input include:
+
+- kanji
+- ordinary punctuation such as `、` and `。`
+- small yoon kana such as `ゃ` when it is not preceded by a supported base kana
+- unsupported combinations such as a base kana followed by an incompatible small kana
+
+For Japanese text that contains kanji, the intended higher-level path is to obtain readings first, for example through `mecab_parse` and `mecab_braille_wakati`.
+
+---
+
 ## Error Handling
 
-All one-character conversion helpers return `xer::result<std::u8string_view>`.
+The one-character conversion helpers return `xer::result<std::u8string_view>`.
+
+`kana_text_to_braille` returns `xer::result<std::u8string>`.
 
 Unsupported input characters produce:
 
@@ -2611,8 +2670,8 @@ Examples of unsupported input include:
 
 - non-ASCII letters such as `é`
 - kanji
-- unsupported kana such as small `ゃ`, `ゅ`, and `ょ`
-- spaces
+- unsupported standalone kana such as small `ゃ`, `ゅ`, and `ょ`
+- spaces passed to one-character helpers
 - unsupported symbols such as ASCII double quotation mark `"`
 - characters outside the selected helper's category
 
@@ -2638,7 +2697,10 @@ They do not add or manage:
 - word boundaries
 - contraction marks
 - kana word segmentation
-- Japanese braille yoon composition
+- MeCab-based readings
+- full Japanese text analysis
+
+`kana_text_to_braille` adds only the small amount of sequence handling needed for kana text, such as basic yoon composition and preservation of ASCII spaces. It still does not analyze ordinary Japanese text.
 
 This keeps the functions predictable and usable as building blocks for later high-level conversion APIs.
 
@@ -2653,7 +2715,9 @@ They can be appended directly to `std::u8string` without conversion.
 
 The conversion helpers also return `std::u8string_view` through `xer::result`.
 
-Some supported characters map to one braille cell, while kana with dakuten or handakuten map to short fixed braille fragments. Returning a string view instead of a scalar value keeps the API suitable for both cases without allocation.
+Some supported characters map to one braille cell, while kana with dakuten or handakuten map to short fixed braille fragments. Returning a string view instead of a scalar value keeps the one-character APIs suitable for both cases without allocation.
+
+`kana_text_to_braille` returns an owned `std::u8string` because it reads a UTF-8 sequence and may combine multiple input characters into one braille fragment sequence.
 
 ### Relation to `isctype`
 
@@ -3550,8 +3614,9 @@ The current implementation focuses on the lowest-level public foundation:
 - converting MeCab-derived readings to kana text
 - producing kana wakachi-gaki text using the phrase ranges
 - producing romaji wakachi-gaki text by combining kana conversion and `strtoctrans`
+- producing Japanese braille wakachi-gaki text by combining kana wakachi-gaki and `<xer/braille.h>`
 
-Higher-level Japanese text processing such as ruby and braille-oriented conversion is planned to build on top of this analysis layer.
+Higher-level Japanese text processing such as ruby generation is planned to build on top of this analysis layer. Braille-oriented wakachi-gaki conversion now has an initial helper built on the kana layer.
 
 ---
 
@@ -3564,6 +3629,8 @@ The raw feature string is preserved, and XER also splits it into `mecab_features
 On top of the token layer, XER provides `mecab_split_phrases` to derive practical bunsetsu-like ranges and separate symbol ranges. MeCab itself does not return bunsetsu boundaries, so this layer is an XER rule-based approximation.
 
 The kana layer uses `mecab_features::読み` where available and provides `mecab_to_kana` and `mecab_kana_wakati` as practical reading-based conversion helpers.
+
+The braille layer builds on the kana layer and `<xer/braille.h>`. It provides `mecab_braille_wakati` as a practical Japanese braille wakachi-gaki helper for MeCab token sequences.
 
 The romaji layer builds on the kana layer and `strtoctrans`. It provides `mecab_romaji_wakati` as a practical romaji wakachi-gaki helper. Particle reading correction is performed before romanization, so particles such as `は`, `へ`, and `を` can become `wa`, `e`, and `o` in the final output.
 
@@ -3664,6 +3731,12 @@ auto mecab_kana_wakati(
     std::span<const mecab_token> tokens,
     const mecab_kana_options& options = {})
     -> std::u8string;
+
+[[nodiscard]]
+auto mecab_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> xer::result<std::u8string>;
 
 [[nodiscard]]
 auto mecab_romaji_wakati(
@@ -4028,6 +4101,48 @@ Display-oriented spacing that attaches punctuation to the previous phrase can be
 
 ---
 
+## `mecab_braille_wakati`
+
+```cpp
+[[nodiscard]]
+auto mecab_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> xer::result<std::u8string>;
+```
+
+### Purpose
+
+`mecab_braille_wakati` converts a MeCab token sequence to Japanese braille wakachi-gaki text.
+
+The function first calls `mecab_kana_wakati` with the same kana options. It then passes the resulting kana wakachi-gaki text to `xer::braille::kana_text_to_braille`.
+
+ASCII spaces inserted by `mecab_kana_wakati` are preserved as ASCII spaces in the braille output.
+
+For example, a token sequence corresponding to:
+
+```text
+私は猫です
+```
+
+is intended to produce braille wakachi-gaki close to the braille representation of:
+
+```text
+わたしわ ねこです
+```
+
+The exact reading and phrase boundaries depend on the installed MeCab dictionary.
+
+### Error Model
+
+`mecab_braille_wakati` returns `xer::result<std::u8string>` because the braille conversion layer can fail.
+
+Errors from `xer::braille::kana_text_to_braille` are propagated. For example, if the kana wakachi-gaki text contains punctuation or another unsupported character for the current braille conversion layer, the function returns `error_t::invalid_argument`.
+
+`mecab_braille_wakati` does not invoke MeCab. It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
+
+---
+
 ## `mecab_romaji_options`
 
 ```cpp
@@ -4241,13 +4356,13 @@ Implemented:
 - practical bunsetsu-like phrase and symbol segmentation through `mecab_split_phrases`
 - kana conversion based on MeCab-derived readings through `mecab_to_kana`
 - kana wakachi-gaki through `mecab_kana_wakati`
+- braille wakachi-gaki through `mecab_braille_wakati`
 - romaji wakachi-gaki through `mecab_romaji_wakati`
 
 Not yet implemented in this header:
 
 - display-oriented spacing that attaches punctuation naturally
 - ruby-oriented structures
-- braille-oriented conversion
 - word or bunsetsu counting helpers
 
 These are planned on top of the raw layer and are described at the policy level in `policy_mecab.md`.
@@ -4264,6 +4379,7 @@ These are planned on top of the raw layer and are described at the policy level 
 - `policy_mecab.md`
 - `policy_project_outline.md`
 - `<xer/toctrans.h>`
+- `<xer/braille.h>`
 
 ---
 
