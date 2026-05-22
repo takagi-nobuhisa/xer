@@ -75,6 +75,22 @@ struct mecab_token {
     mecab_features features;
 };
 
+enum class mecab_phrase_kind {
+    bunsetsu,
+    symbol,
+};
+
+struct mecab_phrase {
+    mecab_phrase_kind kind = mecab_phrase_kind::bunsetsu;
+    std::size_t index = 0;
+    std::size_t count = 0;
+};
+
+[[nodiscard]]
+auto mecab_split_phrases(
+    std::span<const mecab_token> tokens)
+    -> std::vector<mecab_phrase>;
+
 [[nodiscard]]
 auto mecab_parse(
     std::u8string_view text,
@@ -87,6 +103,8 @@ auto mecab_parse(
 - `surface` preserves the token surface text
 - `feature` preserves MeCab's raw `%H` feature text
 - `features` provides split feature fields and common named MeCab/IPADIC-style members
+
+`mecab_split_phrases` derives practical bunsetsu-like ranges and separate symbol ranges from an existing token sequence. It does not invoke MeCab and does not perform kana conversion or spacing output by itself.
 
 The raw `feature` text and parsed `features` data are intentionally dictionary-dependent at this layer.
 XER preserves raw feature text and also provides practical parsed access because higher-level Japanese processing needs part-of-speech information, conjugation form, and readings.
@@ -187,8 +205,11 @@ The MeCab-based Japanese processing facility should support, or provide the foun
 
 Raw morphological data is important because it lets users build their own higher-level processing on top of XER when the built-in helpers do not match their needs.
 
-The raw-data portion is now implemented through `mecab_parse`.
+The raw-data portion is implemented through `mecab_parse`.
 It preserves both the raw MeCab feature string and an owned split representation in `mecab_features`.
+
+The first bunsetsu-oriented primitive is implemented through `mecab_split_phrases`.
+It returns bunsetsu-like token ranges and symbol ranges, and is intended to become the common foundation for kana spacing, romanization, braille-oriented conversion, and bunsetsu counts.
 
 ---
 
@@ -196,7 +217,7 @@ It preserves both the raw MeCab feature string and an owned split representation
 
 Bunsetsu segmentation is essential, not optional.
 
-XER should derive bunsetsu-like groups from MeCab morphological analysis results and use them as the main unit for human-readable Japanese processing.
+XER derives bunsetsu-like groups from MeCab morphological analysis results and uses them as the main unit for human-readable Japanese processing.
 
 At minimum, bunsetsu are needed for:
 
@@ -219,6 +240,40 @@ However, practical segmentation must also account for compound words and similar
 A simplistic implementation that starts a new bunsetsu at every independent word is not sufficient.
 
 The bunsetsu algorithm should therefore be rule-based and practical rather than purely mechanical.
+
+
+## Current Bunsetsu Segmentation API
+
+The current public bunsetsu-oriented primitive is:
+
+```cpp
+enum class mecab_phrase_kind {
+    bunsetsu,
+    symbol,
+};
+
+struct mecab_phrase {
+    mecab_phrase_kind kind = mecab_phrase_kind::bunsetsu;
+    std::size_t index = 0;
+    std::size_t count = 0;
+};
+
+[[nodiscard]]
+auto mecab_split_phrases(
+    std::span<const mecab_token> tokens)
+    -> std::vector<mecab_phrase>;
+```
+
+The function returns ranges into the original token sequence. It intentionally does not copy token text, readings, or feature data.
+
+The result contains two kinds of ranges:
+
+- `mecab_phrase_kind::bunsetsu` for bunsetsu-like token groups
+- `mecab_phrase_kind::symbol` for symbols and consecutive symbol groups
+
+Symbols are kept separate from bunsetsu because later stages often need to treat punctuation and brackets differently from words. This is especially useful for kana-based spacing, romanization, and braille-oriented conversion.
+
+`mecab_split_phrases` is a pure token-sequence operation. It does not launch MeCab, does not return `xer::result`, and does not attempt notation conversion.
 
 ---
 
@@ -263,6 +318,39 @@ The same principle is useful for forms such as:
 
 This rule is not intended to be a perfect linguistic theorem.
 It is a practical segmentation rule that improves ordinary output quality.
+
+
+## Initial Bunsetsu Rule Set
+
+The initial implementation uses a deliberately simple rule set.
+
+| Condition | Treatment |
+|---|---|
+| `features.品詞 == u8"記号"` | emit as `symbol` |
+| consecutive symbols | merge into one `symbol` range |
+| `助詞` or `助動詞` | attach to preceding `bunsetsu` |
+| suffix-like token or non-independent token | attach to preceding `bunsetsu` |
+| `接頭詞` followed by another token | keep in the same `bunsetsu` as the following token |
+| `名詞 + 名詞` | keep in the same `bunsetsu` as a compound-like sequence |
+| `動詞` or `形容詞` in `連用*` form followed by an independent word | keep in the same `bunsetsu` |
+| other independent word | usually starts a new `bunsetsu` |
+
+Example target grouping:
+
+```text
+私は明日、学校へ行きます。
+```
+
+```text
+bunsetsu: 私 は
+bunsetsu: 明日
+symbol: 、
+bunsetsu: 学校 へ
+bunsetsu: 行き ます
+symbol: 。
+```
+
+This rule set is a starting point for practical processing. It is expected to evolve as kana spacing, romanization, and braille-oriented conversion expose additional edge cases.
 
 ---
 
@@ -373,12 +461,11 @@ Underlying process or stream failures may retain their own XER error code when t
 
 The following items require later API or algorithm design:
 
-- exact public types for bunsetsu results
 - dictionary-dependent feature interpretation strategy beyond the current IPADIC-style named members for higher-level helpers
 - detailed ruby output format
 - detailed romanization rules
 - detailed braille conversion rules
-- concrete bunsetsu segmentation rule table
+- additional bunsetsu segmentation refinements based on real examples
 - error models for later higher-level transformations where additional failures arise
 
 ---
@@ -389,7 +476,7 @@ XER's MeCab-based Japanese text processing should:
 
 - invoke MeCab as a UTF-8 child process
 - expose raw morphological analysis data and split feature fields through `mecab_parse`
-- derive practical bunsetsu segmentation in later layers
+- derive practical bunsetsu-like segmentation through `mecab_split_phrases`
 - use bunsetsu, not tokens, as the default unit for human-readable spacing
 - support the future implementation of ruby, hiragana conversion, romanization, braille-oriented conversion, and counts
 - accept that natural language processing cannot be perfect

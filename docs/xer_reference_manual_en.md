@@ -2945,8 +2945,9 @@ The current implementation focuses on the lowest-level public foundation:
 - returning morphological token results
 - preserving raw feature text
 - providing split feature fields for common MeCab/IPADIC-style columns
+- deriving practical bunsetsu-like phrase ranges and symbol ranges
 
-Higher-level Japanese text processing such as bunsetsu grouping, human-readable spacing, kana conversion, ruby, romanization, and braille-oriented conversion is planned to build on top of this analysis layer.
+Higher-level Japanese text processing such as human-readable spacing, kana conversion, ruby, romanization, and braille-oriented conversion is planned to build on top of this analysis layer.
 
 ---
 
@@ -2955,6 +2956,8 @@ Higher-level Japanese text processing such as bunsetsu grouping, human-readable 
 The main role of `<xer/mecab.h>` at the current stage is to expose MeCab's morphological analysis result in a form that XER users can inspect and reuse directly.
 
 The raw feature string is preserved, and XER also splits it into `mecab_features` so that common items such as part of speech and reading can be accessed without reparsing the comma-separated feature string in user code.
+
+On top of the token layer, XER provides `mecab_split_phrases` to derive practical bunsetsu-like ranges and separate symbol ranges. MeCab itself does not return bunsetsu boundaries, so this layer is an XER rule-based approximation.
 
 XER does not link against the MeCab library.
 Instead, it executes the `mecab` command as a child process using XER's process facilities.
@@ -3009,6 +3012,22 @@ struct mecab_token {
     std::u8string feature;
     mecab_features features;
 };
+
+enum class mecab_phrase_kind {
+    bunsetsu,
+    symbol,
+};
+
+struct mecab_phrase {
+    mecab_phrase_kind kind = mecab_phrase_kind::bunsetsu;
+    std::size_t index = 0;
+    std::size_t count = 0;
+};
+
+[[nodiscard]]
+auto mecab_split_phrases(
+    std::span<const mecab_token> tokens)
+    -> std::vector<mecab_phrase>;
 
 [[nodiscard]]
 auto mecab_parse(
@@ -3123,6 +3142,105 @@ XER preserves it as raw text for debugging and for users that need dictionary-sp
 `features` is the parsed feature data derived from `feature`.
 
 It is intended for common Japanese-processing operations such as inspecting part of speech, obtaining readings, or checking conjugation forms without reparsing the raw feature string.
+
+
+---
+
+## `mecab_phrase_kind`
+
+```cpp
+enum class mecab_phrase_kind {
+    bunsetsu,
+    symbol,
+};
+```
+
+`mecab_phrase_kind` identifies the kind of range returned by `mecab_split_phrases`.
+
+| Value | Meaning |
+|---|---|
+| `bunsetsu` | A bunsetsu-like phrase derived from MeCab tokens |
+| `symbol` | A symbol token or consecutive symbol-token range |
+
+`symbol` is intentionally separated from `bunsetsu`. This makes later processing easier for kana spacing, romanization, and braille-oriented conversion, where punctuation and other symbols often need their own handling.
+
+---
+
+## `mecab_phrase`
+
+```cpp
+struct mecab_phrase {
+    mecab_phrase_kind kind = mecab_phrase_kind::bunsetsu;
+    std::size_t index = 0;
+    std::size_t count = 0;
+};
+```
+
+`mecab_phrase` represents a subrange of the original `mecab_token` sequence.
+
+The range does not own or copy token text. `index` is the first token index in the original token sequence, and `count` is the number of tokens in the range.
+
+This representation is intentionally simple so that callers can reuse the original token objects, inspect their features, and join surfaces or readings in the way required by the next processing step.
+
+---
+
+## `mecab_split_phrases`
+
+```cpp
+[[nodiscard]]
+auto mecab_split_phrases(
+    std::span<const mecab_token> tokens)
+    -> std::vector<mecab_phrase>;
+```
+
+### Purpose
+
+`mecab_split_phrases` splits a MeCab token sequence into practical bunsetsu-like phrase ranges and symbol ranges.
+
+MeCab itself does not provide bunsetsu segmentation. XER therefore derives approximate phrase boundaries from the split feature fields in `mecab_token::features`.
+
+### Basic Rules
+
+The current rule set is practical rather than linguistically complete.
+
+- Tokens whose `features.品詞` is `記号` are emitted as `mecab_phrase_kind::symbol`
+- Consecutive symbols are grouped into one `symbol` range
+- `助詞`, `助動詞`, suffix-like tokens, and non-independent tokens attach to the preceding `bunsetsu`
+- `接頭詞` attaches to the following token by keeping the next token in the same `bunsetsu`
+- Consecutive `名詞` tokens remain in the same `bunsetsu` as a practical compound-word rule
+- A `動詞` or `形容詞` whose `活用形` starts with `連用` remains with the following independent word
+- Other independent words usually begin a new `bunsetsu`
+
+### Example
+
+For a token sequence corresponding to:
+
+```text
+私は明日、学校へ行きます。
+```
+
+`mecab_split_phrases` is intended to produce ranges equivalent to:
+
+```text
+bunsetsu: 私 は
+bunsetsu: 明日
+symbol: 、
+bunsetsu: 学校 へ
+bunsetsu: 行き ます
+symbol: 。
+```
+
+Actual token surfaces and feature values still depend on the installed MeCab dictionary.
+
+### Empty Input
+
+An empty token span returns an empty phrase vector.
+
+### Error Model
+
+`mecab_split_phrases` does not invoke MeCab and does not allocate external resources. It returns a plain `std::vector<mecab_phrase>` instead of `xer::result`.
+
+The function assumes that `tokens` was produced by `mecab_parse` or otherwise contains compatible feature data. If feature data is missing or dictionary-specific, the result may be less natural but still follows the documented rules.
 
 ---
 
@@ -3252,10 +3370,10 @@ Implemented:
 - raw feature text preservation
 - split feature field preservation
 - common MeCab/IPADIC-style named feature members
+- practical bunsetsu-like phrase and symbol segmentation through `mecab_split_phrases`
 
 Not yet implemented in this header:
 
-- bunsetsu grouping
 - bunsetsu-based spacing
 - kana conversion based on readings
 - ruby-oriented structures

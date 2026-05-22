@@ -122,6 +122,41 @@ struct mecab_token {
     mecab_features features;
 };
 
+/**
+ * @brief Kind of a MeCab-derived phrase range.
+ */
+enum class mecab_phrase_kind {
+    /**
+     * @brief A bunsetsu-like phrase.
+     */
+    bunsetsu,
+
+    /**
+     * @brief A symbol or a consecutive symbol range.
+     */
+    symbol,
+};
+
+/**
+ * @brief A subrange of a MeCab token sequence.
+ */
+struct mecab_phrase {
+    /**
+     * @brief Range kind.
+     */
+    mecab_phrase_kind kind = mecab_phrase_kind::bunsetsu;
+
+    /**
+     * @brief First token index in the original token sequence.
+     */
+    std::size_t index = 0;
+
+    /**
+     * @brief Number of tokens in the range.
+     */
+    std::size_t count = 0;
+};
+
 namespace detail {
 
 #if defined(_WIN32)
@@ -337,6 +372,116 @@ inline constexpr char8_t mecab_path_separator = u8':';
     return features;
 }
 
+[[nodiscard]] inline auto mecab_feature_is(
+    std::u8string_view value,
+    std::u8string_view expected) noexcept -> bool
+{
+    return value == expected;
+}
+
+[[nodiscard]] inline auto mecab_feature_starts_with(
+    std::u8string_view value,
+    std::u8string_view prefix) noexcept -> bool
+{
+    return value.starts_with(prefix);
+}
+
+[[nodiscard]] inline auto mecab_is_symbol(
+    const mecab_token& token) noexcept -> bool
+{
+    return mecab_feature_is(token.features.品詞, u8"記号");
+}
+
+[[nodiscard]] inline auto mecab_is_particle_or_auxiliary(
+    const mecab_token& token) noexcept -> bool
+{
+    return mecab_feature_is(token.features.品詞, u8"助詞")
+        || mecab_feature_is(token.features.品詞, u8"助動詞");
+}
+
+[[nodiscard]] inline auto mecab_is_prefix(
+    const mecab_token& token) noexcept -> bool
+{
+    return mecab_feature_is(token.features.品詞, u8"接頭詞");
+}
+
+[[nodiscard]] inline auto mecab_is_suffix(
+    const mecab_token& token) noexcept -> bool
+{
+    return mecab_feature_is(token.features.品詞, u8"接尾詞")
+        || mecab_feature_is(token.features.品詞細分類1, u8"接尾")
+        || mecab_feature_is(token.features.品詞細分類2, u8"接尾")
+        || mecab_feature_is(token.features.品詞細分類3, u8"接尾");
+}
+
+[[nodiscard]] inline auto mecab_is_non_independent(
+    const mecab_token& token) noexcept -> bool
+{
+    return mecab_feature_is(token.features.品詞細分類1, u8"非自立")
+        || mecab_feature_is(token.features.品詞細分類2, u8"非自立")
+        || mecab_feature_is(token.features.品詞細分類3, u8"非自立");
+}
+
+[[nodiscard]] inline auto mecab_is_dependent_word(
+    const mecab_token& token) noexcept -> bool
+{
+    return mecab_is_particle_or_auxiliary(token)
+        || mecab_is_suffix(token)
+        || mecab_is_non_independent(token);
+}
+
+[[nodiscard]] inline auto mecab_is_noun(
+    const mecab_token& token) noexcept -> bool
+{
+    return mecab_feature_is(token.features.品詞, u8"名詞");
+}
+
+[[nodiscard]] inline auto mecab_is_predicate(
+    const mecab_token& token) noexcept -> bool
+{
+    return mecab_feature_is(token.features.品詞, u8"動詞")
+        || mecab_feature_is(token.features.品詞, u8"形容詞");
+}
+
+[[nodiscard]] inline auto mecab_is_renyou_form(
+    const mecab_token& token) noexcept -> bool
+{
+    return mecab_feature_starts_with(token.features.活用形, u8"連用");
+}
+
+[[nodiscard]] inline auto mecab_is_independent_word(
+    const mecab_token& token) noexcept -> bool
+{
+    return !token.features.品詞.empty()
+        && !mecab_is_symbol(token)
+        && !mecab_is_dependent_word(token);
+}
+
+[[nodiscard]] inline auto mecab_phrase_should_continue(
+    const mecab_token& previous,
+    const mecab_token& current) noexcept -> bool
+{
+    if (mecab_is_dependent_word(current)) {
+        return true;
+    }
+
+    if (mecab_is_prefix(previous)) {
+        return true;
+    }
+
+    if (mecab_is_noun(previous) && mecab_is_noun(current)) {
+        return true;
+    }
+
+    if (mecab_is_predicate(previous)
+        && mecab_is_renyou_form(previous)
+        && mecab_is_independent_word(current)) {
+        return true;
+    }
+
+    return false;
+}
+
 [[nodiscard]] inline auto mecab_parse_output(
     std::u8string_view output) -> result<std::vector<mecab_token>>
 {
@@ -381,6 +526,81 @@ inline constexpr char8_t mecab_path_separator = u8':';
 }
 
 } // namespace detail
+
+/**
+ * @brief Splits MeCab tokens into bunsetsu-like phrase ranges and symbol ranges.
+ *
+ * This function is a practical bunsetsu approximation built on top of MeCab
+ * tokens. MeCab itself does not report bunsetsu boundaries. XER therefore uses
+ * simple rules based on the split feature fields: dependent words such as
+ * particles and auxiliary verbs attach to the preceding bunsetsu, consecutive
+ * nouns stay in the same bunsetsu, a continuative predicate followed by an
+ * independent word stays in the same bunsetsu, and symbols are emitted as
+ * separate symbol ranges.
+ *
+ * The returned ranges refer to @p tokens by index and count. They do not own or
+ * copy token text.
+ *
+ * @param tokens MeCab token sequence.
+ * @return Bunsetsu-like phrase ranges and symbol ranges.
+ */
+[[nodiscard]] inline auto mecab_split_phrases(
+    std::span<const mecab_token> tokens) -> std::vector<mecab_phrase>
+{
+    std::vector<mecab_phrase> phrases;
+
+    std::size_t bunsetsu_index = 0;
+    std::size_t bunsetsu_count = 0;
+
+    const auto push_bunsetsu = [&]() {
+        if (bunsetsu_count != 0) {
+            phrases.push_back(mecab_phrase {
+                mecab_phrase_kind::bunsetsu,
+                bunsetsu_index,
+                bunsetsu_count,
+            });
+            bunsetsu_count = 0;
+        }
+    };
+
+    std::size_t i = 0;
+    while (i < tokens.size()) {
+        if (detail::mecab_is_symbol(tokens[i])) {
+            push_bunsetsu();
+
+            const std::size_t symbol_index = i;
+            do {
+                ++i;
+            } while (i < tokens.size() && detail::mecab_is_symbol(tokens[i]));
+
+            phrases.push_back(mecab_phrase {
+                mecab_phrase_kind::symbol,
+                symbol_index,
+                i - symbol_index,
+            });
+            continue;
+        }
+
+        if (bunsetsu_count == 0) {
+            bunsetsu_index = i;
+            bunsetsu_count = 1;
+        } else {
+            const auto& previous = tokens[bunsetsu_index + bunsetsu_count - 1];
+            if (detail::mecab_phrase_should_continue(previous, tokens[i])) {
+                ++bunsetsu_count;
+            } else {
+                push_bunsetsu();
+                bunsetsu_index = i;
+                bunsetsu_count = 1;
+            }
+        }
+
+        ++i;
+    }
+
+    push_bunsetsu();
+    return phrases;
+}
 
 /**
  * @brief Parses UTF-8 Japanese text with MeCab and returns raw token results.
