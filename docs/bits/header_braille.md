@@ -7,9 +7,9 @@
 At the current stage, this header provides:
 
 - common braille sign constants as UTF-8 string views
-- simple one-character conversion helpers for English letters, digits, and English braille punctuation
+- simple one-character conversion helpers for English letters, digits, English braille punctuation, and Japanese kana
 
-It does not yet perform full text-to-braille conversion, Japanese braille translation, English contraction handling, automatic mode switching, wakachi-gaki, or context-sensitive punctuation analysis.
+It does not yet perform full text-to-braille conversion, full Japanese braille translation, English contraction handling, automatic mode switching, wakachi-gaki, yoon composition, or context-sensitive punctuation analysis.
 
 This keeps the first braille layer small and stable: callers can combine the provided constants and conversion helpers to build braille strings while higher-level conversion APIs are added later.
 
@@ -28,6 +28,7 @@ The current implementation provides:
 - one-character digit conversion under an already active numeric mode
 - one-character alphanumeric dispatch
 - one-character English braille punctuation conversion
+- one-character Japanese kana conversion
 
 The constants are represented as:
 
@@ -67,6 +68,9 @@ inline constexpr std::u8string_view double_capital_indicator;
     -> result<std::u8string_view>;
 
 [[nodiscard]] constexpr auto punct_to_braille(char32_t c)
+    -> result<std::u8string_view>;
+
+[[nodiscard]] constexpr auto kana_to_braille(char32_t c)
     -> result<std::u8string_view>;
 
 namespace information_processing {
@@ -381,6 +385,9 @@ text += *xer::braille::alnum_to_braille(U'3');
 ```cpp
 [[nodiscard]] constexpr auto punct_to_braille(char32_t c)
     -> result<std::u8string_view>;
+
+[[nodiscard]] constexpr auto kana_to_braille(char32_t c)
+    -> result<std::u8string_view>;
 ```
 
 `punct_to_braille` converts one English braille punctuation character to a braille cell.
@@ -422,6 +429,63 @@ text += *xer::braille::punct_to_braille(U'.');
 
 ---
 
+## `kana_to_braille`
+
+```cpp
+[[nodiscard]] constexpr auto kana_to_braille(char32_t c)
+    -> result<std::u8string_view>;
+```
+
+`kana_to_braille` converts one hiragana or katakana character to Japanese braille cells.
+
+The function is a low-level one-character converter. It does not perform full Japanese braille translation, word segmentation, wakachi-gaki, particle handling, number handling, alphabet handling, or context-sensitive processing.
+
+The accepted input includes:
+
+- hiragana and katakana basic kana
+- old kana `ゐ` / `ゑ` and `ヰ` / `ヱ`
+- syllabic nasal `ん` / `ン`
+- prolonged sound mark `ー`
+- sokuon `っ` / `ッ`
+- voiced kana such as `が`, `ざ`, `だ`, and `ば`
+- semi-voiced kana such as `ぱ`
+
+Some kana map to multiple braille cells. For example, voiced kana and semi-voiced kana are represented by a prefix cell followed by the base kana cell.
+
+| Input | Output | Note |
+|---|---|---|
+| `あ` / `ア` | `⠁` | basic kana |
+| `か` / `カ` | `⠡` | basic kana |
+| `さ` / `サ` | `⠱` | basic kana |
+| `た` / `タ` | `⠕` | basic kana |
+| `な` / `ナ` | `⠅` | basic kana |
+| `は` / `ハ` | `⠥` | basic kana |
+| `ま` / `マ` | `⠵` | basic kana |
+| `や` / `ヤ` | `⠌` | basic kana |
+| `ら` / `ラ` | `⠑` | basic kana |
+| `わ` / `ワ` | `⠄` | basic kana |
+| `ん` / `ン` | `⠴` | syllabic nasal |
+| `ー` | `⠒` | prolonged sound mark |
+| `っ` / `ッ` | `⠂` | sokuon |
+| `が` / `ガ` | `⠐⠡` | voiced kana |
+| `ぱ` / `パ` | `⠠⠥` | semi-voiced kana |
+
+Yoon such as `きゃ`, `しゃ`, and `ちゃ` are intentionally out of scope for this function. They require multiple input characters and should be handled by a later higher-level kana or Japanese braille conversion API.
+
+Small kana other than sokuon, such as `ゃ`, `ゅ`, and `ょ`, are also unsupported by this one-character helper.
+
+Example:
+
+```cpp
+std::u8string text;
+text += *xer::braille::kana_to_braille(U'か');
+text += *xer::braille::kana_to_braille(U'な');
+text += *xer::braille::kana_to_braille(U'が');
+text += *xer::braille::kana_to_braille(U'な');
+```
+
+---
+
 ## Error Handling
 
 All one-character conversion helpers return `xer::result<std::u8string_view>`.
@@ -435,7 +499,8 @@ error_t::invalid_argument
 Examples of unsupported input include:
 
 - non-ASCII letters such as `é`
-- kana and kanji
+- kanji
+- unsupported kana such as small `ゃ`, `ゅ`, and `ょ`
 - spaces
 - unsupported symbols such as ASCII double quotation mark `"`
 - characters outside the selected helper's category
@@ -452,7 +517,7 @@ Use `digit_to_braille` or `alnum_to_braille` for digits.
 The conversion helpers are intentionally low-level.
 They only map one input character to one braille cell or short braille fragment.
 
-They do not add:
+They do not add or manage:
 
 - numeric indicators
 - alphabetic indicators
@@ -461,6 +526,8 @@ They do not add:
 - spaces
 - word boundaries
 - contraction marks
+- kana word segmentation
+- Japanese braille yoon composition
 
 This keeps the functions predictable and usable as building blocks for later high-level conversion APIs.
 
@@ -475,7 +542,7 @@ They can be appended directly to `std::u8string` without conversion.
 
 The conversion helpers also return `std::u8string_view` through `xer::result`.
 
-At the current stage, each supported character maps to one braille cell. Returning a string view instead of a scalar value leaves room for later helpers that may need short fixed braille fragments without changing the basic style of the API.
+Some supported characters map to one braille cell, while kana with dakuten or handakuten map to short fixed braille fragments. Returning a string view instead of a scalar value keeps the API suitable for both cases without allocation.
 
 ### Relation to `isctype`
 

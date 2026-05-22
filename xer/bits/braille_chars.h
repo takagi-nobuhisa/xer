@@ -165,6 +165,268 @@ inline constexpr std::array<std::u8string_view, 26> alpha_braille_table = {
     }
 }
 
+
+/**
+ * @brief Converts one Japanese kana character to braille cells.
+ *
+ * This function maps one hiragana or katakana character to Japanese braille.
+ * It handles basic kana, voiced kana, semi-voiced kana, the syllabic nasal,
+ * the prolonged sound mark, and the sokuon. It does not combine multiple input
+ * characters, so yoon such as きゃ or しゃ is intentionally out of scope.
+ *
+ * @param c Hiragana or katakana character.
+ * @return Corresponding braille cells, or invalid_argument for unsupported input.
+ */
+[[nodiscard]] constexpr auto kana_to_braille(char32_t c)
+    -> result<std::u8string_view>
+{
+    switch (c) {
+    case U'あ':
+    case U'ア':
+        return u8"⠁";
+    case U'い':
+    case U'イ':
+        return u8"⠃";
+    case U'う':
+    case U'ウ':
+        return u8"⠉";
+    case U'え':
+    case U'エ':
+        return u8"⠋";
+    case U'お':
+    case U'オ':
+        return u8"⠊";
+
+    case U'か':
+    case U'カ':
+        return u8"⠡";
+    case U'き':
+    case U'キ':
+        return u8"⠣";
+    case U'く':
+    case U'ク':
+        return u8"⠩";
+    case U'け':
+    case U'ケ':
+        return u8"⠫";
+    case U'こ':
+    case U'コ':
+        return u8"⠪";
+
+    case U'さ':
+    case U'サ':
+        return u8"⠱";
+    case U'し':
+    case U'シ':
+        return u8"⠳";
+    case U'す':
+    case U'ス':
+        return u8"⠹";
+    case U'せ':
+    case U'セ':
+        return u8"⠻";
+    case U'そ':
+    case U'ソ':
+        return u8"⠺";
+
+    case U'た':
+    case U'タ':
+        return u8"⠕";
+    case U'ち':
+    case U'チ':
+        return u8"⠗";
+    case U'つ':
+    case U'ツ':
+        return u8"⠝";
+    case U'て':
+    case U'テ':
+        return u8"⠟";
+    case U'と':
+    case U'ト':
+        return u8"⠞";
+
+    case U'な':
+    case U'ナ':
+        return u8"⠅";
+    case U'に':
+    case U'ニ':
+        return u8"⠇";
+    case U'ぬ':
+    case U'ヌ':
+        return u8"⠍";
+    case U'ね':
+    case U'ネ':
+        return u8"⠏";
+    case U'の':
+    case U'ノ':
+        return u8"⠎";
+
+    case U'は':
+    case U'ハ':
+        return u8"⠥";
+    case U'ひ':
+    case U'ヒ':
+        return u8"⠧";
+    case U'ふ':
+    case U'フ':
+        return u8"⠭";
+    case U'へ':
+    case U'ヘ':
+        return u8"⠯";
+    case U'ほ':
+    case U'ホ':
+        return u8"⠮";
+
+    case U'ま':
+    case U'マ':
+        return u8"⠵";
+    case U'み':
+    case U'ミ':
+        return u8"⠷";
+    case U'む':
+    case U'ム':
+        return u8"⠽";
+    case U'め':
+    case U'メ':
+        return u8"⠿";
+    case U'も':
+    case U'モ':
+        return u8"⠾";
+
+    case U'や':
+    case U'ヤ':
+        return u8"⠌";
+    case U'ゆ':
+    case U'ユ':
+        return u8"⠬";
+    case U'よ':
+    case U'ヨ':
+        return u8"⠜";
+
+    case U'ら':
+    case U'ラ':
+        return u8"⠑";
+    case U'り':
+    case U'リ':
+        return u8"⠓";
+    case U'る':
+    case U'ル':
+        return u8"⠙";
+    case U'れ':
+    case U'レ':
+        return u8"⠛";
+    case U'ろ':
+    case U'ロ':
+        return u8"⠚";
+
+    case U'わ':
+    case U'ワ':
+        return u8"⠄";
+    case U'ゐ':
+    case U'ヰ':
+        return u8"⠆";
+    case U'ゑ':
+    case U'ヱ':
+        return u8"⠖";
+    case U'を':
+    case U'ヲ':
+        return u8"⠔";
+    case U'ん':
+    case U'ン':
+        return u8"⠴";
+
+    case U'ー':
+        return u8"⠒";
+    case U'っ':
+    case U'ッ':
+        return u8"⠂";
+
+    case U'が':
+    case U'ガ':
+        return u8"⠐⠡";
+    case U'ぎ':
+    case U'ギ':
+        return u8"⠐⠣";
+    case U'ぐ':
+    case U'グ':
+        return u8"⠐⠩";
+    case U'げ':
+    case U'ゲ':
+        return u8"⠐⠫";
+    case U'ご':
+    case U'ゴ':
+        return u8"⠐⠪";
+
+    case U'ざ':
+    case U'ザ':
+        return u8"⠐⠱";
+    case U'じ':
+    case U'ジ':
+        return u8"⠐⠳";
+    case U'ず':
+    case U'ズ':
+        return u8"⠐⠹";
+    case U'ぜ':
+    case U'ゼ':
+        return u8"⠐⠻";
+    case U'ぞ':
+    case U'ゾ':
+        return u8"⠐⠺";
+
+    case U'だ':
+    case U'ダ':
+        return u8"⠐⠕";
+    case U'ぢ':
+    case U'ヂ':
+        return u8"⠐⠗";
+    case U'づ':
+    case U'ヅ':
+        return u8"⠐⠝";
+    case U'で':
+    case U'デ':
+        return u8"⠐⠟";
+    case U'ど':
+    case U'ド':
+        return u8"⠐⠞";
+
+    case U'ば':
+    case U'バ':
+        return u8"⠐⠥";
+    case U'び':
+    case U'ビ':
+        return u8"⠐⠧";
+    case U'ぶ':
+    case U'ブ':
+        return u8"⠐⠭";
+    case U'べ':
+    case U'ベ':
+        return u8"⠐⠯";
+    case U'ぼ':
+    case U'ボ':
+        return u8"⠐⠮";
+
+    case U'ぱ':
+    case U'パ':
+        return u8"⠠⠥";
+    case U'ぴ':
+    case U'ピ':
+        return u8"⠠⠧";
+    case U'ぷ':
+    case U'プ':
+        return u8"⠠⠭";
+    case U'ぺ':
+    case U'ペ':
+        return u8"⠠⠯";
+    case U'ぽ':
+    case U'ポ':
+        return u8"⠠⠮";
+
+    default:
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+}
+
+
 } // namespace xer::braille
 
 #endif /* XER_BITS_BRAILLE_CHARS_H_INCLUDED_ */
