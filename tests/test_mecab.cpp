@@ -602,6 +602,77 @@ void test_mecab_braille_wakati_rejects_unsupported_ascii_punctuation()
     xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
 }
 
+void test_mecab_braille_wakati_converts_mixed_japanese_and_ascii_sentence()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"XER\t名詞,一般,*,*,*,*,XER,*,*\n"
+        u8"は\t助詞,係助詞,*,*,*,*,は,ハ,ワ\n"
+        u8"UTF-8\t名詞,一般,*,*,*,*,UTF-8,*,*\n"
+        u8"を\t助詞,格助詞,一般,*,*,*,を,ヲ,ヲ\n"
+        u8"扱い\t動詞,自立,*,*,五段・ワ行促音便,連用形,扱う,アツカイ,アツカイ\n"
+        u8"ます\t助動詞,*,*,*,特殊・マス,基本形,ます,マス,マス\n"
+        u8"。\t記号,句点,*,*,*,*,。,。,。\n"
+        u8"EOS\n");
+
+    const auto result = xer::mecab_braille_wakati(tokens);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, u8"⠠⠠⠭⠑⠗⠄ ⠠⠠⠥⠞⠋⠤⠼⠓⠊ ⠁⠝⠡⠃⠵⠹⠲");
+}
+
+void test_mecab_braille_wakati_keeps_ascii_inside_japanese_quotes()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"「\t記号,括弧開,*,*,*,*,「,「,「\n"
+        u8"ABC123\t名詞,一般,*,*,*,*,ABC123,*,*\n"
+        u8"」\t記号,括弧閉,*,*,*,*,」,」,」\n"
+        u8"を\t助詞,格助詞,一般,*,*,*,を,ヲ,ヲ\n"
+        u8"確認\t名詞,サ変接続,*,*,*,*,確認,カクニン,カクニン\n"
+        u8"し\t動詞,自立,*,*,サ変・スル,連用形,する,シ,シ\n"
+        u8"ます\t助動詞,*,*,*,特殊・マス,基本形,ます,マス,マス\n"
+        u8"。\t記号,句点,*,*,*,*,。,。,。\n"
+        u8"EOS\n");
+
+    const auto result = xer::mecab_braille_wakati(tokens);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, u8"⠤⠠⠠⠁⠃⠉⠼⠁⠃⠉⠤⠊ ⠡⠩⠇⠴ ⠳⠵⠹⠲");
+}
+
+void test_mecab_ip_braille_wakati_converts_mixed_code_like_sentence()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"x\t名詞,一般,*,*,*,*,x,*,*\n"
+        u8">=\t名詞,一般,*,*,*,*,>=,*,*\n"
+        u8"10\t名詞,数,*,*,*,*,10,*,*\n"
+        u8"&&\t名詞,一般,*,*,*,*,&&,*,*\n"
+        u8"y\t名詞,一般,*,*,*,*,y,*,*\n"
+        u8"!=\t名詞,一般,*,*,*,*,!=,*,*\n"
+        u8"0\t名詞,数,*,*,*,*,0,*,*\n"
+        u8"です\t助動詞,*,*,*,特殊・デス,基本形,です,デス,デス\n"
+        u8"。\t記号,句点,*,*,*,*,。,。,。\n"
+        u8"EOS\n");
+
+    const auto result = xer::mecab_ip_braille_wakati(tokens);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, u8"⠰⠭⠢⠢⠒⠒⠼⠁⠚⠯⠯⠰⠽⠖⠒⠒⠼⠚⠐⠟⠹⠲");
+}
+
+void test_mecab_braille_wakati_rejects_ip_only_mixed_code_like_sentence()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"x\t名詞,一般,*,*,*,*,x,*,*\n"
+        u8">=\t名詞,一般,*,*,*,*,>=,*,*\n"
+        u8"10\t名詞,数,*,*,*,*,10,*,*\n"
+        u8"EOS\n");
+
+    const auto result = xer::mecab_braille_wakati(tokens);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+}
+
 void test_mecab_parse_rejects_invalid_utf8()
 {
     const std::u8string invalid {
@@ -650,6 +721,10 @@ auto main() -> int
     test_mecab_braille_wakati_converts_ascii_fragments_from_surface();
     test_mecab_ip_braille_wakati_converts_ascii_punctuation();
     test_mecab_braille_wakati_rejects_unsupported_ascii_punctuation();
+    test_mecab_braille_wakati_converts_mixed_japanese_and_ascii_sentence();
+    test_mecab_braille_wakati_keeps_ascii_inside_japanese_quotes();
+    test_mecab_ip_braille_wakati_converts_mixed_code_like_sentence();
+    test_mecab_braille_wakati_rejects_ip_only_mixed_code_like_sentence();
     test_mecab_parse_rejects_invalid_utf8();
 
     return 0;
