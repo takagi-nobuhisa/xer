@@ -483,7 +483,7 @@ Details follow this document:
 ### 17.10 MeCab-Based Japanese Text Processing
 
 MeCab-based Japanese text processing provides a practical foundation for higher-level Japanese-language features.
-It covers UTF-8 child-process integration with MeCab, access to morphological analysis data, split feature fields, practical bunsetsu-like phrase grouping, symbol-range separation, reading-based kana conversion, kana wakachi-gaki, romaji wakachi-gaki, and the basis for ruby, braille-oriented conversion, and related counts.
+It covers UTF-8 child-process integration with MeCab, access to morphological analysis data, split feature fields, practical bunsetsu-like phrase grouping, symbol-range separation, reading-based kana conversion, kana wakachi-gaki, romaji wakachi-gaki, braille-oriented wakachi-gaki, direct braille-oriented text conversion, and the basis for ruby and related counts.
 
 Independent formatting helpers that do not require morphological analysis may be provided separately.
 For example, `xer/furigana.h` formats already-known base text and reading pairs as HTML ruby markup or parenthesized furigana text, and can later be reused by MeCab-based automatic furigana facilities.

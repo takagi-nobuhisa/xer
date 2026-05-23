@@ -727,7 +727,7 @@ Later helpers may build on these for:
 
 - ruby
 - higher-level romanization controls
-- higher-level braille-oriented conversion
+- higher-level braille options and accuracy refinements
 
 The accuracy of these derived outputs is limited by the correctness of the underlying reading selection.
 A word with multiple possible readings may be converted using a reading that is plausible but not intended in the original context.

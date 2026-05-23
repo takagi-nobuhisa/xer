@@ -161,7 +161,8 @@ At the current stage, this keeps the responsibility clear:
 
 - `xer/ctype.h` classifies Unicode braille pattern characters through `isctype(c, ctype_id::braille)`
 - `xer/braille.h` provides reusable braille sign constants as UTF-8 string views
-- future higher-level braille conversion can build on these low-level pieces
+- `xer/braille.h` provides low-level kana, punctuation, ASCII-fragment, and information-processing braille conversion helpers
+- MeCab-based higher-level Japanese text conversion builds on these low-level pieces through `xer/mecab.h`
 
 ### Why `kansuji.h` Is Independent
 
@@ -191,8 +192,10 @@ At the current stage, this keeps the responsibility clear:
 - `mecab_to_kana` converts MeCab-derived readings to kana text
 - `mecab_kana_wakati` produces kana wakachi-gaki text using the derived phrase ranges
 - `mecab_romaji_wakati` produces romaji wakachi-gaki text by combining kana conversion and `strtoctrans`
+- `mecab_braille_wakati` and `mecab_ip_braille_wakati` produce practical braille-oriented wakachi-gaki text
+- `mecab_braille_translate` and `mecab_ip_braille_translate` parse source text and directly produce braille-oriented output
 
-Future higher-level facilities such as ruby and braille-oriented conversion can build on this foundation.
+Future higher-level facilities such as ruby formatting, counting helpers, and more precise braille refinements can build on this foundation.
 
 ### Why `furigana.h` Is Independent
 
