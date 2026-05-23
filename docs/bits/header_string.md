@@ -162,13 +162,60 @@ This group provides convenient text-processing helpers inspired in part by PHP.
 
 These functions are intended for cases where ordinary code benefits from a compact utility API rather than from manual loops and range manipulation.
 
+### Trim Functions
+
+The trimming family is provided in two forms:
+
+```cpp
+auto ltrim(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string>;
+
+auto rtrim(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string>;
+
+auto trim(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string>;
+
+auto ltrim_view(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string_view>;
+
+auto rtrim_view(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string_view>;
+
+auto trim_view(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string_view>;
+```
+
+The owning forms return a new `std::u8string`.
+The `*_view` forms return a view into the original storage and do not allocate.
+
+When `characters` is empty, XER uses the PHP-compatible default trim set:
+
+```text
+space, horizontal tab, line feed, carriage return, vertical tab, NUL
+```
+
+When `characters` is not empty, it is interpreted as a byte-oriented character list.
+The list supports PHP-style range notation such as `a..z` and `0..9`.
+
+### Important Notes for UTF-8
+
+The trimming functions operate on UTF-8 code units, not on Unicode scalar values or grapheme clusters.
+They are therefore appropriate for ASCII-oriented boundary trimming and PHP-style byte character lists.
+
+Do not use these functions as a general Unicode whitespace normalizer.
+
 ### `*_view` Variants
 
 The `ltrim_view`, `rtrim_view`, and `trim_view` family are especially important because they provide non-allocating trimming operations around UTF-8-oriented string views.
 
+The returned view refers to the storage of `value`.
+The caller must ensure that the source storage outlives the returned view.
+
 ### Notes
 
 * `trim_view`-style functions are intended to be lightweight and convenient
+* the trimming character list is byte-oriented and supports `..` ranges
 * these helpers are useful both in ordinary code and in executable examples
 * code examples are expected to use these functions naturally with explicit `xer::result` checking where required
 

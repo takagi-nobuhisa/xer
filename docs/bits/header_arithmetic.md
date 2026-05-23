@@ -343,22 +343,58 @@ clamp
 
 ### `in_range`
 
-`in_range<T>(value)` checks whether `value` can be represented as type `T`.
+`in_range<T>(value)` checks whether `value` lies within the representable numeric range of type `T`.
+
+```cpp
+template<typename T, typename U>
+auto in_range(U value) noexcept -> bool;
+
+template<typename T, typename U, typename Detail>
+auto in_range(const xer::result<U, Detail>& value) noexcept -> bool;
+```
 
 Its role is to make explicit range-checking available in ordinary code.
-
 This is especially important before conversion or when generic code works across multiple numeric types.
+
+If `value` is a floating-point NaN, the function returns `false`.
+`bool` is intentionally rejected as the target type `T`.
+When a `xer::result` argument contains an error, the result overload returns `false`.
 
 ### `min` and `max`
 
-`min` and `max` return the smaller or larger of two values according to XER's comparison rules.
+`min` and `max` return the smaller or larger of two arithmetic values according to XER's comparison rules.
+
+```cpp
+template<typename A, typename B>
+auto min(A lhs, B rhs) -> xer::result<result-type>;
+
+template<typename A, typename B>
+auto max(A lhs, B rhs) -> xer::result<result-type>;
+```
 
 They are not intended to be mere clones of the standard library forms.
 Instead, they are designed for mixed-type use under XER's own numeric policy.
 
+For integer operands, the result type follows XER's promoted integer result rules.
+For non-integer arithmetic combinations, the result type is based on `std::common_type_t`.
+If the selected value cannot be represented in the selected result type, the function returns `error_t::out_of_range`.
+
+As part of `<xer/arithmetic.h>`, these helpers also accept `xer::result` operands and propagate existing errors.
+
 ### `clamp`
 
 `clamp(value, lo, hi)` constrains a value to the closed interval `[lo, hi]`.
+
+```cpp
+template<typename T, typename Lo, typename Hi>
+auto clamp(T value, Lo lo, Hi hi) -> xer::result<T>;
+```
+
+The return type is always the type of the first argument `value`.
+If `hi < lo`, the function returns `error_t::invalid_argument`.
+If the selected value or selected bound cannot be represented in the first-argument type, the function returns `error_t::out_of_range`.
+
+As part of `<xer/arithmetic.h>`, this helper also accepts a `xer::result` value argument and propagates existing errors.
 
 Its purpose is to provide an explicit and predictable clamping helper that works consistently with XER's comparison model.
 

@@ -1264,13 +1264,60 @@ This group provides convenient text-processing helpers inspired in part by PHP.
 
 These functions are intended for cases where ordinary code benefits from a compact utility API rather than from manual loops and range manipulation.
 
+### Trim Functions
+
+The trimming family is provided in two forms:
+
+```cpp
+auto ltrim(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string>;
+
+auto rtrim(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string>;
+
+auto trim(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string>;
+
+auto ltrim_view(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string_view>;
+
+auto rtrim_view(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string_view>;
+
+auto trim_view(std::u8string_view value, std::u8string_view characters = {})
+    -> xer::result<std::u8string_view>;
+```
+
+The owning forms return a new `std::u8string`.
+The `*_view` forms return a view into the original storage and do not allocate.
+
+When `characters` is empty, XER uses the PHP-compatible default trim set:
+
+```text
+space, horizontal tab, line feed, carriage return, vertical tab, NUL
+```
+
+When `characters` is not empty, it is interpreted as a byte-oriented character list.
+The list supports PHP-style range notation such as `a..z` and `0..9`.
+
+### Important Notes for UTF-8
+
+The trimming functions operate on UTF-8 code units, not on Unicode scalar values or grapheme clusters.
+They are therefore appropriate for ASCII-oriented boundary trimming and PHP-style byte character lists.
+
+Do not use these functions as a general Unicode whitespace normalizer.
+
 ### `*_view` Variants
 
 The `ltrim_view`, `rtrim_view`, and `trim_view` family are especially important because they provide non-allocating trimming operations around UTF-8-oriented string views.
 
+The returned view refers to the storage of `value`.
+The caller must ensure that the source storage outlives the returned view.
+
 ### Notes
 
 * `trim_view`-style functions are intended to be lightweight and convenient
+* the trimming character list is byte-oriented and supports `..` ranges
 * these helpers are useful both in ordinary code and in executable examples
 * code examples are expected to use these functions naturally with explicit `xer::result` checking where required
 
@@ -11940,22 +11987,58 @@ clamp
 
 ### `in_range`
 
-`in_range<T>(value)` checks whether `value` can be represented as type `T`.
+`in_range<T>(value)` checks whether `value` lies within the representable numeric range of type `T`.
+
+```cpp
+template<typename T, typename U>
+auto in_range(U value) noexcept -> bool;
+
+template<typename T, typename U, typename Detail>
+auto in_range(const xer::result<U, Detail>& value) noexcept -> bool;
+```
 
 Its role is to make explicit range-checking available in ordinary code.
-
 This is especially important before conversion or when generic code works across multiple numeric types.
+
+If `value` is a floating-point NaN, the function returns `false`.
+`bool` is intentionally rejected as the target type `T`.
+When a `xer::result` argument contains an error, the result overload returns `false`.
 
 ### `min` and `max`
 
-`min` and `max` return the smaller or larger of two values according to XER's comparison rules.
+`min` and `max` return the smaller or larger of two arithmetic values according to XER's comparison rules.
+
+```cpp
+template<typename A, typename B>
+auto min(A lhs, B rhs) -> xer::result<result-type>;
+
+template<typename A, typename B>
+auto max(A lhs, B rhs) -> xer::result<result-type>;
+```
 
 They are not intended to be mere clones of the standard library forms.
 Instead, they are designed for mixed-type use under XER's own numeric policy.
 
+For integer operands, the result type follows XER's promoted integer result rules.
+For non-integer arithmetic combinations, the result type is based on `std::common_type_t`.
+If the selected value cannot be represented in the selected result type, the function returns `error_t::out_of_range`.
+
+As part of `<xer/arithmetic.h>`, these helpers also accept `xer::result` operands and propagate existing errors.
+
 ### `clamp`
 
 `clamp(value, lo, hi)` constrains a value to the closed interval `[lo, hi]`.
+
+```cpp
+template<typename T, typename Lo, typename Hi>
+auto clamp(T value, Lo lo, Hi hi) -> xer::result<T>;
+```
+
+The return type is always the type of the first argument `value`.
+If `hi < lo`, the function returns `error_t::invalid_argument`.
+If the selected value or selected bound cannot be represented in the first-argument type, the function returns `error_t::out_of_range`.
+
+As part of `<xer/arithmetic.h>`, this helper also accepts a `xer::result` value argument and propagates existing errors.
 
 Its purpose is to provide an explicit and predictable clamping helper that works consistently with XER's comparison model.
 
