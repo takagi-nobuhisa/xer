@@ -168,7 +168,7 @@ auto mecab_parse(
 
 `mecab_to_kana` converts token readings to kana without inserting spaces. `mecab_kana_wakati` combines reading-based kana conversion with `mecab_split_phrases` and inserts spaces between the derived phrase ranges.
 
-`mecab_braille_wakati` builds on `mecab_split_phrases`, `mecab_to_kana`, and `<xer/braille.h>`. It converts bunsetsu-like ranges to kana and braille, converts supported Japanese punctuation directly, converts ASCII alphanumeric-and-punctuation fragments from their original surface text, and suppresses unnecessary spaces before punctuation.
+`mecab_braille_wakati` builds on a braille-oriented segmentation layer, `mecab_to_kana`, and `<xer/braille.h>`. It converts bunsetsu-like ranges to kana and braille, converts supported Japanese punctuation directly, converts ASCII alphanumeric-and-punctuation fragments from their original surface text, suppresses unnecessary spaces before punctuation, and avoids an unnecessary break between closing quotation/bracket symbols and following particle-like tokens.
 
 `mecab_ip_braille_wakati` applies the same Japanese conversion rules but uses information-processing braille for ASCII fragments.
 
@@ -628,15 +628,17 @@ auto mecab_ip_braille_translate(
 
 The conversion policy is:
 
-1. derive practical bunsetsu-like ranges and symbol ranges with `mecab_split_phrases`
+1. derive practical braille-oriented bunsetsu-like ranges and symbol ranges from the MeCab token sequence
 2. convert Japanese bunsetsu-like ranges to kana with `mecab_to_kana`
 3. convert the kana sequence to braille with `xer::braille::kana_text_to_braille`
 4. convert ASCII alphanumeric-and-punctuation fragments from the original surface text
 5. convert symbol ranges directly with the Japanese punctuation conversion layer
-6. insert ASCII spaces between bunsetsu-like ranges while suppressing unnecessary spaces before punctuation
-7. propagate errors from the braille conversion layer
+6. treat ASCII-symbol-only token ranges as braille symbol ranges so that separately tokenized fragments such as `+`, `=`, or `&&` can still be handled by the ASCII conversion path
+7. insert ASCII spaces between bunsetsu-like ranges while suppressing unnecessary spaces before punctuation
+8. avoid an unnecessary break after closing quotation/bracket symbols when the next token is a particle or auxiliary-like continuation
+9. propagate errors from the braille conversion layer
 
-This design keeps the kana-to-braille logic reusable without MeCab while allowing the MeCab layer to control phrase spacing, punctuation attachment, and ASCII-fragment mode switching.
+This design keeps the kana-to-braille logic reusable without MeCab while allowing the MeCab layer to control phrase spacing, punctuation attachment, ASCII-fragment mode switching, and a small number of braille-specific spacing refinements.
 
 At the current stage, punctuation handling covers the supported Japanese punctuation marks exposed by `<xer/braille.h>`. ASCII fragments are converted either by ordinary braille mode switching or information-processing braille mode switching, depending on the selected helper. Unsupported symbols still produce an error instead of being silently dropped or guessed.
 
@@ -763,7 +765,7 @@ The following items require later API or algorithm design:
 - dictionary-dependent feature interpretation strategy beyond the current IPADIC-style named members for higher-level helpers
 - detailed ruby output format
 - higher-level options for selecting ordinary or information-processing braille behavior
-- higher-accuracy Japanese braille wakachi-gaki refinements
+- higher-accuracy Japanese braille wakachi-gaki refinements beyond the current closing-quotation/bracket continuation rule
 - additional bunsetsu segmentation refinements based on real examples
 - error models for later higher-level transformations where additional failures arise
 

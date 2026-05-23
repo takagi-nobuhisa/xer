@@ -975,6 +975,39 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
     return true;
 }
 
+[[nodiscard]] constexpr auto mecab_braille_is_ascii_punct_code_unit(
+    unsigned char value) noexcept -> bool
+{
+    return (value >= 0x21 && value <= 0x2f)
+        || (value >= 0x3a && value <= 0x40)
+        || (value >= 0x5b && value <= 0x60)
+        || (value >= 0x7b && value <= 0x7e);
+}
+
+[[nodiscard]] inline auto mecab_braille_is_ascii_punct_fragment(
+    std::u8string_view text) noexcept -> bool
+{
+    if (text.empty()) {
+        return false;
+    }
+
+    for (const char8_t ch : text) {
+        const auto value = static_cast<unsigned char>(ch);
+        if (!mecab_braille_is_ascii_punct_code_unit(value)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+[[nodiscard]] inline auto mecab_braille_is_symbol_token(
+    const mecab_token& token) -> bool
+{
+    return mecab_is_symbol(token)
+        || mecab_braille_is_ascii_punct_fragment(token.surface);
+}
+
 [[nodiscard]] inline auto mecab_braille_ascii_text(
     std::u8string_view text,
     bool information_processing) -> result<std::u8string>
@@ -1199,12 +1232,76 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
 
 namespace detail {
 
+[[nodiscard]] inline auto mecab_split_braille_phrases(
+    std::span<const mecab_token> tokens) -> std::vector<mecab_phrase>
+{
+    std::vector<mecab_phrase> phrases;
+
+    std::size_t bunsetsu_index = 0;
+    std::size_t bunsetsu_count = 0;
+
+    const auto push_bunsetsu = [&]() {
+        if (bunsetsu_count != 0) {
+            phrases.push_back(mecab_phrase {
+                mecab_phrase_kind::bunsetsu,
+                bunsetsu_index,
+                bunsetsu_count,
+            });
+            bunsetsu_count = 0;
+        }
+    };
+
+    std::size_t i = 0;
+    while (i < tokens.size()) {
+        if (mecab_braille_is_symbol_token(tokens[i])) {
+            push_bunsetsu();
+
+            const std::size_t symbol_index = i;
+            do {
+                ++i;
+            } while (i < tokens.size() && mecab_braille_is_symbol_token(tokens[i]));
+
+            phrases.push_back(mecab_phrase {
+                mecab_phrase_kind::symbol,
+                symbol_index,
+                i - symbol_index,
+            });
+            continue;
+        }
+
+        if (bunsetsu_count == 0) {
+            bunsetsu_index = i;
+            bunsetsu_count = 1;
+        } else {
+            const auto& previous = tokens[bunsetsu_index + bunsetsu_count - 1];
+            if (mecab_phrase_should_continue(previous, tokens[i])) {
+                ++bunsetsu_count;
+            } else {
+                push_bunsetsu();
+                bunsetsu_index = i;
+                bunsetsu_count = 1;
+            }
+        }
+
+        ++i;
+    }
+
+    push_bunsetsu();
+    return phrases;
+}
+
+[[nodiscard]] inline auto mecab_braille_phrase_starts_with_dependent_word(
+    std::span<const mecab_token> tokens) noexcept -> bool
+{
+    return !tokens.empty() && mecab_is_dependent_word(tokens.front());
+}
+
 [[nodiscard]] inline auto mecab_braille_wakati_impl(
     std::span<const mecab_token> tokens,
     const mecab_kana_options& options,
     bool information_processing) -> result<std::u8string>
 {
-    const auto phrases = mecab_split_phrases(tokens);
+    const auto phrases = mecab_split_braille_phrases(tokens);
 
     std::u8string result;
     bool pending_space = false;
@@ -1248,7 +1345,11 @@ namespace detail {
             continue;
         }
 
-        append_pending_space();
+        if (mecab_braille_phrase_starts_with_dependent_word(range)) {
+            pending_space = false;
+        } else {
+            append_pending_space();
+        }
 
         const auto converted = mecab_braille_range_text(
             range,

@@ -4290,6 +4290,8 @@ Spacing is controlled as follows:
 - ordinary bunsetsu-like ranges are separated by ASCII spaces
 - opening symbols such as `「`, `『`, `（`, and `(` are attached to the following phrase after any required preceding space
 - closing symbols, sentence-ending symbols, pause symbols, and leaders request a following space
+- when a particle or auxiliary-like token follows a closing quotation or closing bracket, it remains attached to the same braille phrase instead of forcing an extra space
+- ASCII-symbol-only token ranges are treated as braille symbol ranges so that tokenized fragments such as `+`, `=`, or `&&` can be handled by the ASCII braille conversion path
 - symbol marks themselves are emitted as braille punctuation, not as surface text
 
 For example, a token sequence corresponding to:
@@ -4305,6 +4307,8 @@ is intended to produce braille wakachi-gaki close to the braille representation 
 ```
 
 without an extra space before the Japanese full stop.
+
+For text such as quoted speech followed by a particle, the braille-oriented spacing layer is intended to avoid an unnecessary break immediately after the closing quotation mark, for example around the surface pattern `」と`.
 
 The exact reading and phrase boundaries depend on the installed MeCab dictionary.
 
