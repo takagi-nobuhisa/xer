@@ -2802,15 +2802,17 @@ The function returns `error_t::encoding_error` for invalid UTF-8 input and `erro
 
 Supported base-plus-small-kana groups include:
 
-- `きゃ` / `きゅ` / `きょ`
+- `きゃ` / `きゅ` / `きょ` / `きぇ`
 - `しゃ` / `しゅ` / `しょ` / `しぇ`
 - `ちゃ` / `ちゅ` / `ちょ` / `ちぇ`
-- `にゃ` / `にゅ` / `にょ`
+- `にゃ` / `にゅ` / `にょ` / `にぇ`
 - `ひゃ` / `ひゅ` / `ひょ` / `ひぇ`
 - `みゃ` / `みゅ` / `みょ`
 - `りゃ` / `りゅ` / `りょ`
 - `ぎゃ` / `ぎゅ` / `ぎょ`
 - `じゃ` / `じゅ` / `じょ` / `じぇ`
+- `すぃ`
+- `ずぃ`
 - `ぢゃ` / `ぢゅ` / `ぢょ`
 - `びゃ` / `びゅ` / `びょ`
 - `ぴゃ` / `ぴゅ` / `ぴょ`
@@ -2826,7 +2828,7 @@ Supported base-plus-small-kana groups include:
 - `ふぁ` / `ふぃ` / `ふぇ` / `ふぉ` / `ふゅ` / `ふょ`
 - `ゔぁ` / `ゔぃ` / `ゔぇ` / `ゔぉ` / `ゔゅ` / `ゔょ`
 
-The same combinations are accepted in katakana form, such as `キャ`, `シェ`, `ティ`, `ファ`, and `ヴォ`.
+The same combinations are accepted in katakana form, such as `キャ`, `キェ`, `シェ`, `スィ`, `ズィ`, `ティ`, `ファ`, and `ヴォ`.
 
 Unsupported small-kana combinations are rejected rather than guessed.
 

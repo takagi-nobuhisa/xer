@@ -292,8 +292,16 @@ void test_kana_text_to_braille_combines_special_sounds()
         u8"⠢⠥ ⠢⠧ ⠢⠯ ⠢⠮");
 
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"ティ ディ チェ シェ ジェ"),
-        u8"⠈⠗ ⠘⠗ ⠈⠟ ⠈⠻ ⠘⠻");
+        xer::braille::kana_text_to_braille(u8"イェ キェ ニェ ヒェ"),
+        u8"⠈⠋ ⠈⠫ ⠈⠏ ⠈⠯");
+
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"スィ ズィ ティ ディ"),
+        u8"⠈⠳ ⠘⠳ ⠈⠗ ⠘⠗");
+
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"チェ シェ ジェ"),
+        u8"⠈⠟ ⠈⠻ ⠘⠻");
 
     assert_braille_text_eq(
         xer::braille::kana_text_to_braille(u8"ウィ ウェ ウォ クァ グァ トゥ ドゥ"),

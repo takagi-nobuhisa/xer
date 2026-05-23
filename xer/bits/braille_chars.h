@@ -573,6 +573,9 @@ namespace detail {
         case U'ゅ':
         case U'ュ':
             return u8"⠈⠩";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠈⠫";
         case U'ょ':
         case U'ョ':
             return u8"⠈⠪";
@@ -596,6 +599,17 @@ namespace detail {
         case U'ぇ':
         case U'ェ':
             return u8"⠈⠻";
+        default:
+            break;
+        }
+        break;
+
+    case U'す':
+    case U'ス':
+        switch (small) {
+        case U'ぃ':
+        case U'ィ':
+            return u8"⠈⠳";
         default:
             break;
         }
@@ -630,6 +644,9 @@ namespace detail {
         case U'ゅ':
         case U'ュ':
             return u8"⠈⠍";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠈⠏";
         case U'ょ':
         case U'ョ':
             return u8"⠈⠎";
@@ -724,6 +741,17 @@ namespace detail {
         case U'ぇ':
         case U'ェ':
             return u8"⠘⠻";
+        default:
+            break;
+        }
+        break;
+
+    case U'ず':
+    case U'ズ':
+        switch (small) {
+        case U'ぃ':
+        case U'ィ':
+            return u8"⠘⠳";
         default:
             break;
         }
