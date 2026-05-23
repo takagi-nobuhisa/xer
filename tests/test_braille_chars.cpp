@@ -126,6 +126,98 @@ void test_punct_to_braille_rejects_unsupported_input()
 }
 
 
+
+void test_ip_alnum_to_braille()
+{
+    assert_braille_result_eq(xer::braille::ip_alpha_to_braille(U'a'), u8"⠁");
+    assert_braille_result_eq(xer::braille::ip_alpha_to_braille(U'Z'), u8"⠵");
+    assert_braille_result_eq(xer::braille::ip_digit_to_braille(U'1'), u8"⠁");
+    assert_braille_result_eq(xer::braille::ip_digit_to_braille(U'0'), u8"⠚");
+    assert_braille_result_eq(xer::braille::ip_alnum_to_braille(U'x'), u8"⠭");
+    assert_braille_result_eq(xer::braille::ip_alnum_to_braille(U'9'), u8"⠊");
+}
+
+void test_ip_alnum_to_braille_rejects_unsupported_input()
+{
+    assert_invalid_argument(xer::braille::ip_alpha_to_braille(U'1'));
+    assert_invalid_argument(xer::braille::ip_digit_to_braille(U'a'));
+    assert_invalid_argument(xer::braille::ip_alnum_to_braille(U'-'));
+}
+
+void test_ip_punct_to_braille()
+{
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'!'), u8"⠖");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'"'), u8"⠶");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'#'), u8"⠩");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'$'), u8"⠹");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'%'), u8"⠻");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'&'), u8"⠯");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'\''), u8"⠄");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'('), u8"⠦");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U')'), u8"⠴");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'*'), u8"⠡");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'+'), u8"⠬");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U','), u8"⠂");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'-'), u8"⠤");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'.'), u8"⠲");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'/'), u8"⠌");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U':'), u8"⠐⠂");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U';'), u8"⠆");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'<'), u8"⠔⠔");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'='), u8"⠒⠒");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'>'), u8"⠢⠢");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'?'), u8"⠐⠦");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'@'), u8"⠪");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'['), u8"⠷");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'\\'), u8"⠫");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U']'), u8"⠾");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'^'), u8"⠘");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'_'), u8"⠐⠤");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'`'), u8"⠐⠑");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'{'), u8"⠣");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'|'), u8"⠳");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'}'), u8"⠜");
+    assert_braille_result_eq(xer::braille::ip_punct_to_braille(U'~'), u8"⠐⠉");
+}
+
+void test_ip_punct_to_braille_rejects_unsupported_input()
+{
+    assert_invalid_argument(xer::braille::ip_punct_to_braille(U'a'));
+    assert_invalid_argument(xer::braille::ip_punct_to_braille(U'1'));
+    assert_invalid_argument(xer::braille::ip_punct_to_braille(U' '));
+    assert_invalid_argument(xer::braille::ip_punct_to_braille(U'。'));
+}
+
+void test_alnum_punct_text_to_braille()
+{
+    assert_braille_text_eq(
+        xer::braille::alnum_punct_text_to_braille(u8"xer 123 X AB aB!"),
+        u8"⠰⠭⠑⠗ ⠼⠁⠃⠉ ⠠⠭ ⠠⠠⠁⠃ ⠰⠁⠠⠃⠖");
+}
+
+void test_alnum_punct_text_to_braille_rejects_unsupported_input()
+{
+    assert_string_invalid_argument(xer::braille::alnum_punct_text_to_braille(u8"あ"));
+    assert_string_invalid_argument(xer::braille::alnum_punct_text_to_braille(u8"\""));
+}
+
+void test_ip_alnum_punct_text_to_braille()
+{
+    assert_braille_text_eq(
+        xer::braille::ip_alnum_punct_text_to_braille(u8"xer 123 X AB a_b!"),
+        u8"⠰⠭⠑⠗ ⠼⠁⠃⠉ ⠠⠭ ⠠⠠⠁⠃ ⠰⠁⠐⠤⠰⠃⠖");
+
+    assert_braille_text_eq(
+        xer::braille::ip_alnum_punct_text_to_braille(u8"x>=10"),
+        u8"⠰⠭⠢⠢⠒⠒⠼⠁⠚");
+}
+
+void test_ip_alnum_punct_text_to_braille_rejects_unsupported_input()
+{
+    assert_string_invalid_argument(xer::braille::ip_alnum_punct_text_to_braille(u8"あ"));
+}
+
+
 void test_japanese_punct_to_braille()
 {
     assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'。'), u8"⠲");
@@ -307,6 +399,14 @@ auto main() -> int
     test_alnum_to_braille_rejects_non_alnum();
     test_punct_to_braille();
     test_punct_to_braille_rejects_unsupported_input();
+    test_ip_alnum_to_braille();
+    test_ip_alnum_to_braille_rejects_unsupported_input();
+    test_ip_punct_to_braille();
+    test_ip_punct_to_braille_rejects_unsupported_input();
+    test_alnum_punct_text_to_braille();
+    test_alnum_punct_text_to_braille_rejects_unsupported_input();
+    test_ip_alnum_punct_text_to_braille();
+    test_ip_alnum_punct_text_to_braille_rejects_unsupported_input();
     test_japanese_punct_to_braille();
     test_japanese_punct_to_braille_rejects_unsupported_input();
     test_kana_text_to_braille_basic_text();

@@ -13,6 +13,7 @@
 #include <string>
 #include <string_view>
 
+#include <xer/bits/braille_symbols.h>
 #include <xer/bits/string_read.h>
 #include <xer/error.h>
 
@@ -165,6 +166,393 @@ inline constexpr std::array<std::u8string_view, 26> alpha_braille_table = {
     default:
         return std::unexpected(make_error(error_t::invalid_argument));
     }
+}
+
+
+/**
+ * @brief Converts one information-processing braille alphabetic character.
+ *
+ * This function maps ASCII letters to the same braille cells as
+ * @ref alpha_to_braille. It does not emit lowercase, uppercase, or other mode
+ * indicators.
+ *
+ * @param c ASCII alphabetic character.
+ * @return Corresponding braille cell, or invalid_argument for unsupported input.
+ */
+[[nodiscard]] constexpr auto ip_alpha_to_braille(char32_t c)
+    -> result<std::u8string_view>
+{
+    return alpha_to_braille(c);
+}
+
+/**
+ * @brief Converts one information-processing braille digit character.
+ *
+ * This function maps ASCII digits to the same braille cells as
+ * @ref digit_to_braille. It does not emit the numeric indicator.
+ *
+ * @param c ASCII digit character.
+ * @return Corresponding braille cell, or invalid_argument for unsupported input.
+ */
+[[nodiscard]] constexpr auto ip_digit_to_braille(char32_t c)
+    -> result<std::u8string_view>
+{
+    return digit_to_braille(c);
+}
+
+/**
+ * @brief Converts one information-processing braille alphanumeric character.
+ *
+ * This function maps ASCII letters and digits to their information-processing
+ * braille cells. It does not emit lowercase, uppercase, numeric, or other mode
+ * indicators.
+ *
+ * @param c ASCII alphanumeric character.
+ * @return Corresponding braille cell, or invalid_argument for unsupported input.
+ */
+[[nodiscard]] constexpr auto ip_alnum_to_braille(char32_t c)
+    -> result<std::u8string_view>
+{
+    return alnum_to_braille(c);
+}
+
+/**
+ * @brief Converts one information-processing braille punctuation character.
+ *
+ * This function maps printable ASCII punctuation characters used in
+ * information-processing braille. Some punctuation marks are represented by
+ * multiple braille cells.
+ *
+ * @param c ASCII punctuation character.
+ * @return Corresponding braille cells, or invalid_argument for unsupported input.
+ */
+[[nodiscard]] constexpr auto ip_punct_to_braille(char32_t c)
+    -> result<std::u8string_view>
+{
+    switch (c) {
+    case U'!':
+        return u8"⠖";
+    case U'"':
+        return u8"⠶";
+    case U'#':
+        return u8"⠩";
+    case U'$':
+        return u8"⠹";
+    case U'%':
+        return u8"⠻";
+    case U'&':
+        return u8"⠯";
+    case U'\'':
+        return u8"⠄";
+    case U'(':
+        return u8"⠦";
+    case U')':
+        return u8"⠴";
+    case U'*':
+        return u8"⠡";
+    case U'+':
+        return u8"⠬";
+    case U',':
+        return u8"⠂";
+    case U'-':
+        return u8"⠤";
+    case U'.':
+        return u8"⠲";
+    case U'/':
+        return u8"⠌";
+    case U':':
+        return u8"⠐⠂";
+    case U';':
+        return u8"⠆";
+    case U'<':
+        return u8"⠔⠔";
+    case U'=':
+        return u8"⠒⠒";
+    case U'>':
+        return u8"⠢⠢";
+    case U'?':
+        return u8"⠐⠦";
+    case U'@':
+        return u8"⠪";
+    case U'[':
+        return u8"⠷";
+    case U'\\':
+        return u8"⠫";
+    case U']':
+        return u8"⠾";
+    case U'^':
+        return u8"⠘";
+    case U'_':
+        return u8"⠐⠤";
+    case U'`':
+        return u8"⠐⠑";
+    case U'{':
+        return u8"⠣";
+    case U'|':
+        return u8"⠳";
+    case U'}':
+        return u8"⠜";
+    case U'~':
+        return u8"⠐⠉";
+    default:
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+}
+
+namespace detail {
+
+enum class braille_ascii_mode {
+    none,
+    alphabetic,
+    numeric,
+    ip_lowercase,
+    ip_uppercase,
+    ip_numeric,
+};
+
+[[nodiscard]] constexpr auto is_ascii_lower(char32_t c) noexcept -> bool
+{
+    return c >= U'a' && c <= U'z';
+}
+
+[[nodiscard]] constexpr auto is_ascii_upper(char32_t c) noexcept -> bool
+{
+    return c >= U'A' && c <= U'Z';
+}
+
+[[nodiscard]] constexpr auto is_ascii_alpha(char32_t c) noexcept -> bool
+{
+    return is_ascii_lower(c) || is_ascii_upper(c);
+}
+
+[[nodiscard]] constexpr auto is_ascii_digit(char32_t c) noexcept -> bool
+{
+    return c >= U'0' && c <= U'9';
+}
+
+[[nodiscard]] constexpr auto is_ascii_alnum(char32_t c) noexcept -> bool
+{
+    return is_ascii_alpha(c) || is_ascii_digit(c);
+}
+
+[[nodiscard]] constexpr auto is_ascii_space_for_braille_text(char32_t c) noexcept -> bool
+{
+    return c == U' ';
+}
+
+[[nodiscard]] constexpr auto ascii_upper_run_length(
+    std::u8string_view text,
+    std::size_t index) -> std::size_t
+{
+    std::size_t count = 0;
+    while (index < text.size()) {
+        const auto ch = static_cast<char32_t>(text[index]);
+        if (!is_ascii_upper(ch)) {
+            break;
+        }
+        ++count;
+        ++index;
+    }
+    return count;
+}
+
+} // namespace detail
+
+/**
+ * @brief Converts an ASCII alphanumeric and punctuation text to braille.
+ *
+ * This function automatically emits alphabetic, capital, double-capital, and
+ * numeric indicators while converting ASCII letters, digits, spaces, and
+ * supported English braille punctuation. It is intended for short low-level
+ * alphanumeric fragments and does not process Japanese kana.
+ *
+ * @param text ASCII text.
+ * @return Braille text, or an error for invalid UTF-8 or unsupported input.
+ */
+[[nodiscard]] inline auto alnum_punct_text_to_braille(std::u8string_view text)
+    -> result<std::u8string>
+{
+    std::u8string output;
+    output.reserve(text.size() * 3);
+
+    auto mode = detail::braille_ascii_mode::none;
+
+    for (std::size_t index = 0; index < text.size();) {
+        const auto decoded = xer::detail::decode_utf8_at(text, index);
+        if (!decoded.has_value()) {
+            return std::unexpected(decoded.error());
+        }
+
+        const char32_t c = decoded->value;
+        index += decoded->size;
+
+        if (detail::is_ascii_space_for_braille_text(c)) {
+            output.push_back(u8' ');
+            mode = detail::braille_ascii_mode::none;
+            continue;
+        }
+
+        if (detail::is_ascii_upper(c)) {
+            const auto upper_run = detail::ascii_upper_run_length(text, index - decoded->size);
+            if (upper_run >= 2) {
+                output += double_capital_indicator;
+                for (std::size_t i = 0; i < upper_run; ++i) {
+                    const auto converted = alpha_to_braille(static_cast<char32_t>(text[index - decoded->size + i]));
+                    if (!converted.has_value()) {
+                        return std::unexpected(converted.error());
+                    }
+                    output += *converted;
+                }
+                index = index - decoded->size + upper_run;
+                mode = detail::braille_ascii_mode::none;
+                continue;
+            }
+
+            const auto converted = alpha_to_braille(c);
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+            output += capital_indicator;
+            output += *converted;
+            mode = detail::braille_ascii_mode::none;
+            continue;
+        }
+
+        if (detail::is_ascii_lower(c)) {
+            if (mode != detail::braille_ascii_mode::alphabetic) {
+                output += alphabetic_indicator;
+                mode = detail::braille_ascii_mode::alphabetic;
+            }
+
+            const auto converted = alpha_to_braille(c);
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+            output += *converted;
+            continue;
+        }
+
+        if (detail::is_ascii_digit(c)) {
+            if (mode != detail::braille_ascii_mode::numeric) {
+                output += numeric_indicator;
+                mode = detail::braille_ascii_mode::numeric;
+            }
+
+            const auto converted = digit_to_braille(c);
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+            output += *converted;
+            continue;
+        }
+
+        const auto converted = punct_to_braille(c);
+        if (!converted.has_value()) {
+            return std::unexpected(converted.error());
+        }
+        output += *converted;
+        mode = detail::braille_ascii_mode::none;
+    }
+
+    return output;
+}
+
+/**
+ * @brief Converts an ASCII text to information-processing braille.
+ *
+ * This function automatically emits lowercase, uppercase, double-uppercase,
+ * and numeric indicators while converting ASCII letters, digits, spaces, and
+ * information-processing punctuation.
+ *
+ * @param text ASCII text.
+ * @return Braille text, or an error for invalid UTF-8 or unsupported input.
+ */
+[[nodiscard]] inline auto ip_alnum_punct_text_to_braille(std::u8string_view text)
+    -> result<std::u8string>
+{
+    std::u8string output;
+    output.reserve(text.size() * 3);
+
+    auto mode = detail::braille_ascii_mode::none;
+
+    for (std::size_t index = 0; index < text.size();) {
+        const auto decoded = xer::detail::decode_utf8_at(text, index);
+        if (!decoded.has_value()) {
+            return std::unexpected(decoded.error());
+        }
+
+        const char32_t c = decoded->value;
+        index += decoded->size;
+
+        if (detail::is_ascii_space_for_braille_text(c)) {
+            output.push_back(u8' ');
+            mode = detail::braille_ascii_mode::none;
+            continue;
+        }
+
+        if (detail::is_ascii_upper(c)) {
+            const auto upper_run = detail::ascii_upper_run_length(text, index - decoded->size);
+            if (upper_run >= 2) {
+                output += ip_double_uppercase_indicator;
+                for (std::size_t i = 0; i < upper_run; ++i) {
+                    const auto converted = ip_alpha_to_braille(static_cast<char32_t>(text[index - decoded->size + i]));
+                    if (!converted.has_value()) {
+                        return std::unexpected(converted.error());
+                    }
+                    output += *converted;
+                }
+                index = index - decoded->size + upper_run;
+                mode = detail::braille_ascii_mode::none;
+                continue;
+            }
+
+            const auto converted = ip_alpha_to_braille(c);
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+            output += ip_single_uppercase_indicator;
+            output += *converted;
+            mode = detail::braille_ascii_mode::none;
+            continue;
+        }
+
+        if (detail::is_ascii_lower(c)) {
+            if (mode != detail::braille_ascii_mode::ip_lowercase) {
+                output += ip_lowercase_indicator;
+                mode = detail::braille_ascii_mode::ip_lowercase;
+            }
+
+            const auto converted = ip_alpha_to_braille(c);
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+            output += *converted;
+            continue;
+        }
+
+        if (detail::is_ascii_digit(c)) {
+            if (mode != detail::braille_ascii_mode::ip_numeric) {
+                output += ip_numeric_indicator;
+                mode = detail::braille_ascii_mode::ip_numeric;
+            }
+
+            const auto converted = ip_digit_to_braille(c);
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+            output += *converted;
+            continue;
+        }
+
+        const auto converted = ip_punct_to_braille(c);
+        if (!converted.has_value()) {
+            return std::unexpected(converted.error());
+        }
+        output += *converted;
+        mode = detail::braille_ascii_mode::none;
+    }
+
+    return output;
 }
 
 
