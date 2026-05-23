@@ -526,6 +526,49 @@ void test_mecab_braille_wakati_keeps_kagi_close_to_inner_text()
     xer_assert_eq(*result, u8"⠤⠥⠃⠤");
 }
 
+
+void test_mecab_braille_wakati_converts_ascii_fragments_from_surface()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"XER\t名詞,一般,*,*,*,*,XER,*,*\n"
+        u8"は\t助詞,係助詞,*,*,*,*,は,ハ,ワ\n"
+        u8"A1\t名詞,一般,*,*,*,*,A1,*,*\n"
+        u8"です\t助動詞,*,*,*,特殊・デス,基本形,です,デス,デス\n"
+        u8"。\t記号,句点,*,*,*,*,。,。,。\n"
+        u8"EOS\n");
+
+    const auto result = xer::mecab_braille_wakati(tokens);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, u8"⠠⠠⠭⠑⠗⠄ ⠠⠁⠼⠁⠐⠟⠹⠲");
+}
+
+void test_mecab_ip_braille_wakati_converts_ascii_punctuation()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"C++23\t名詞,一般,*,*,*,*,C++23,*,*\n"
+        u8"です\t助動詞,*,*,*,特殊・デス,基本形,です,デス,デス\n"
+        u8"。\t記号,句点,*,*,*,*,。,。,。\n"
+        u8"EOS\n");
+
+    const auto result = xer::mecab_ip_braille_wakati(tokens);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, u8"⠠⠉⠬⠬⠼⠃⠉⠐⠟⠹⠲");
+}
+
+void test_mecab_braille_wakati_rejects_unsupported_ascii_punctuation()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"C++23\t名詞,一般,*,*,*,*,C++23,*,*\n"
+        u8"EOS\n");
+
+    const auto result = xer::mecab_braille_wakati(tokens);
+
+    xer_assert_not(result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
+}
+
 void test_mecab_parse_rejects_invalid_utf8()
 {
     const std::u8string invalid {
@@ -569,6 +612,9 @@ auto main() -> int
     test_mecab_braille_wakati_converts_kana_wakati_text();
     test_mecab_braille_wakati_converts_japanese_punctuation_without_extra_leading_spaces();
     test_mecab_braille_wakati_keeps_kagi_close_to_inner_text();
+    test_mecab_braille_wakati_converts_ascii_fragments_from_surface();
+    test_mecab_ip_braille_wakati_converts_ascii_punctuation();
+    test_mecab_braille_wakati_rejects_unsupported_ascii_punctuation();
     test_mecab_parse_rejects_invalid_utf8();
 
     return 0;

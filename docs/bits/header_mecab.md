@@ -16,7 +16,9 @@ The current implementation focuses on the lowest-level public foundation:
 - converting MeCab-derived readings to kana text
 - producing kana wakachi-gaki text using the phrase ranges
 - producing romaji wakachi-gaki text by combining kana conversion and `strtoctrans`
-- producing Japanese braille wakachi-gaki text by combining phrase ranges, MeCab-derived kana readings, Japanese punctuation handling, and `<xer/braille.h>`
+- producing Japanese braille wakachi-gaki text by combining phrase ranges, MeCab-derived kana readings, Japanese punctuation handling, ASCII fragment conversion, and `<xer/braille.h>`
+- producing information-processing braille variants for ASCII fragments
+- parsing source text and converting it directly to braille through convenience wrappers
 
 Higher-level Japanese text processing such as ruby generation is planned to build on top of this analysis layer. Braille-oriented wakachi-gaki conversion now has an initial helper built on the kana layer.
 
@@ -32,7 +34,11 @@ On top of the token layer, XER provides `mecab_split_phrases` to derive practica
 
 The kana layer uses `mecab_features::読み` where available and provides `mecab_to_kana` and `mecab_kana_wakati` as practical reading-based conversion helpers.
 
-The braille layer builds on the token, phrase, kana, and punctuation layers. It provides `mecab_braille_wakati` as a practical Japanese braille wakachi-gaki helper for MeCab token sequences. Unlike `mecab_kana_wakati`, it handles symbol ranges directly so that Japanese punctuation can be attached more naturally in braille output.
+The braille layer builds on the token, phrase, kana, punctuation, and ASCII-fragment conversion layers. It provides `mecab_braille_wakati` as a practical Japanese braille wakachi-gaki helper for MeCab token sequences. Unlike `mecab_kana_wakati`, it handles symbol ranges directly so that Japanese punctuation can be attached more naturally in braille output. It also converts ASCII alphanumeric-and-punctuation fragments from the original surface text rather than from MeCab readings.
+
+The information-processing braille variant is `mecab_ip_braille_wakati`. It uses the same Japanese reading and spacing rules, but converts ASCII fragments through information-processing braille.
+
+For callers that want to pass source text directly, `mecab_braille_translate` and `mecab_ip_braille_translate` combine `mecab_parse` with the corresponding braille wakachi-gaki helper.
 
 The romaji layer builds on the kana layer and `strtoctrans`. It provides `mecab_romaji_wakati` as a practical romaji wakachi-gaki helper. Particle reading correction is performed before romanization, so particles such as `は`, `へ`, and `を` can become `wa`, `e`, and `o` in the final output.
 
@@ -138,6 +144,26 @@ auto mecab_kana_wakati(
 auto mecab_braille_wakati(
     std::span<const mecab_token> tokens,
     const mecab_kana_options& options = {})
+    -> xer::result<std::u8string>;
+
+[[nodiscard]]
+auto mecab_ip_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> xer::result<std::u8string>;
+
+[[nodiscard]]
+auto mecab_braille_translate(
+    std::u8string_view text,
+    const mecab_options& parse_options = {},
+    const mecab_kana_options& kana_options = {})
+    -> xer::result<std::u8string>;
+
+[[nodiscard]]
+auto mecab_ip_braille_translate(
+    std::u8string_view text,
+    const mecab_options& parse_options = {},
+    const mecab_kana_options& kana_options = {})
     -> xer::result<std::u8string>;
 
 [[nodiscard]]
@@ -519,7 +545,9 @@ auto mecab_braille_wakati(
 
 The function uses `mecab_split_phrases` to process bunsetsu-like ranges and symbol ranges separately.
 
-For ordinary bunsetsu-like ranges, it calls `mecab_to_kana` with the same kana options and then converts the resulting kana text through `xer::braille::kana_text_to_braille`.
+For ordinary bunsetsu-like ranges, it normally calls `mecab_to_kana` with the same kana options and then converts the resulting kana text through `xer::braille::kana_text_to_braille`.
+
+When a token surface is an ASCII alphanumeric-and-punctuation fragment, the function converts that fragment from the original surface text through `xer::braille::alnum_punct_text_to_braille` instead of using MeCab readings. This allows fragments such as `ABC123` or `UTF-8` to keep their visible ASCII form in braille output.
 
 For symbol ranges, it converts each symbol directly through the Japanese punctuation conversion layer used by `<xer/braille.h>`. This avoids inserting unnecessary spaces before punctuation such as `。`, `、`, `」`, or `）`.
 
@@ -550,9 +578,37 @@ The exact reading and phrase boundaries depend on the installed MeCab dictionary
 
 `mecab_braille_wakati` returns `xer::result<std::u8string>` because the braille conversion layer can fail.
 
-Errors from `xer::braille::kana_text_to_braille` and the Japanese punctuation conversion layer are propagated. For example, if the token sequence contains a symbol that is not supported as Japanese braille punctuation, the function returns `error_t::invalid_argument`.
+Errors from `xer::braille::kana_text_to_braille`, `xer::braille::alnum_punct_text_to_braille`, and the Japanese punctuation conversion layer are propagated. For example, if the token sequence contains a symbol that is not supported as Japanese braille punctuation, or an ASCII fragment contains punctuation that is not supported by ordinary English braille punctuation conversion, the function returns `error_t::invalid_argument`.
 
 `mecab_braille_wakati` does not invoke MeCab. It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
+
+---
+
+## `mecab_ip_braille_wakati`
+
+```cpp
+[[nodiscard]]
+auto mecab_ip_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {})
+    -> xer::result<std::u8string>;
+```
+
+### Purpose
+
+`mecab_ip_braille_wakati` is the information-processing braille variant of `mecab_braille_wakati`.
+
+Japanese tokens are converted with the same MeCab reading, kana conversion, punctuation, and spacing rules as `mecab_braille_wakati`.
+ASCII alphanumeric-and-punctuation fragments are converted from the original surface text through `xer::braille::ip_alnum_punct_text_to_braille`.
+
+This variant is intended for mixed Japanese text that contains programming-language-like ASCII fragments, such as `C++23`, `UTF-8`, `x>=10`, or similar text where information-processing braille punctuation is more appropriate than ordinary English braille punctuation.
+
+### Error Model
+
+`mecab_ip_braille_wakati` returns `xer::result<std::u8string>`.
+
+Errors from kana conversion, Japanese punctuation conversion, and information-processing ASCII conversion are propagated.
+It does not invoke MeCab and assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
 
 ---
 
@@ -702,6 +758,64 @@ The exact tokenization, feature strings, and split feature fields depend on the 
 
 ---
 
+## `mecab_braille_translate`
+
+```cpp
+[[nodiscard]]
+auto mecab_braille_translate(
+    std::u8string_view text,
+    const mecab_options& parse_options = {},
+    const mecab_kana_options& kana_options = {})
+    -> xer::result<std::u8string>;
+```
+
+### Purpose
+
+`mecab_braille_translate` parses UTF-8 source text with MeCab and converts the resulting token sequence with `mecab_braille_wakati`.
+
+It is a convenience wrapper for callers that do not need to inspect the intermediate token sequence.
+MeCab determines readings for Japanese text. ASCII alphanumeric-and-punctuation fragments are converted from the original surface text by the ordinary braille ASCII-fragment conversion layer.
+
+### Error Model
+
+`mecab_braille_translate` propagates errors from both stages:
+
+- `mecab_parse`
+- `mecab_braille_wakati`
+
+This means the function can report MeCab execution errors, UTF-8 errors, and braille conversion errors.
+
+---
+
+## `mecab_ip_braille_translate`
+
+```cpp
+[[nodiscard]]
+auto mecab_ip_braille_translate(
+    std::u8string_view text,
+    const mecab_options& parse_options = {},
+    const mecab_kana_options& kana_options = {})
+    -> xer::result<std::u8string>;
+```
+
+### Purpose
+
+`mecab_ip_braille_translate` parses UTF-8 source text with MeCab and converts the resulting token sequence with `mecab_ip_braille_wakati`.
+
+Japanese text is handled in the same way as `mecab_braille_translate`.
+ASCII alphanumeric-and-punctuation fragments are converted through the information-processing braille ASCII-fragment conversion layer.
+
+This function is the convenient entry point for Japanese text that may contain code-like or technical ASCII fragments.
+
+### Error Model
+
+`mecab_ip_braille_translate` propagates errors from both stages:
+
+- `mecab_parse`
+- `mecab_ip_braille_wakati`
+
+---
+
 ## Executable Resolution
 
 If `mecab_options::program` is empty, XER:
@@ -769,7 +883,8 @@ Implemented:
 - practical bunsetsu-like phrase and symbol segmentation through `mecab_split_phrases`
 - kana conversion based on MeCab-derived readings through `mecab_to_kana`
 - kana wakachi-gaki through `mecab_kana_wakati`
-- braille wakachi-gaki through `mecab_braille_wakati`
+- braille wakachi-gaki through `mecab_braille_wakati` and `mecab_ip_braille_wakati`
+- direct braille translation through `mecab_braille_translate` and `mecab_ip_braille_translate`
 - romaji wakachi-gaki through `mecab_romaji_wakati`
 
 Not yet implemented in this header:

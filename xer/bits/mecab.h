@@ -957,6 +957,103 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
     return decoded->value;
 }
 
+
+[[nodiscard]] inline auto mecab_braille_is_ascii_fragment(
+    std::u8string_view text) noexcept -> bool
+{
+    if (text.empty()) {
+        return false;
+    }
+
+    for (const char8_t ch : text) {
+        const auto value = static_cast<unsigned char>(ch);
+        if (value < 0x21 || value > 0x7e) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+[[nodiscard]] inline auto mecab_braille_ascii_text(
+    std::u8string_view text,
+    bool information_processing) -> result<std::u8string>
+{
+    return information_processing
+        ? braille::ip_alnum_punct_text_to_braille(text)
+        : braille::alnum_punct_text_to_braille(text);
+}
+
+[[nodiscard]] inline auto mecab_braille_flush_kana(
+    std::u8string& output,
+    std::u8string& kana) -> result<void>
+{
+    if (kana.empty()) {
+        return {};
+    }
+
+    const auto converted = braille::kana_text_to_braille(kana);
+    if (!converted.has_value()) {
+        return std::unexpected(converted.error());
+    }
+
+    output += *converted;
+    kana.clear();
+    return {};
+}
+
+[[nodiscard]] inline auto mecab_braille_range_text(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options,
+    bool information_processing,
+    bool symbol_range) -> result<std::u8string>
+{
+    std::u8string output;
+    std::u8string kana;
+
+    for (const auto& token : tokens) {
+        if (mecab_braille_is_ascii_fragment(token.surface)) {
+            const auto flushed = mecab_braille_flush_kana(output, kana);
+            if (!flushed.has_value()) {
+                return std::unexpected(flushed.error());
+            }
+
+            const auto converted = mecab_braille_ascii_text(
+                token.surface, information_processing);
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+
+            output += *converted;
+            continue;
+        }
+
+        if (symbol_range) {
+            const auto flushed = mecab_braille_flush_kana(output, kana);
+            if (!flushed.has_value()) {
+                return std::unexpected(flushed.error());
+            }
+
+            const auto converted = mecab_braille_symbol_text(token.surface);
+            if (!converted.has_value()) {
+                return std::unexpected(converted.error());
+            }
+
+            output += *converted;
+            continue;
+        }
+
+        kana += mecab_token_to_kana(token, options);
+    }
+
+    const auto flushed = mecab_braille_flush_kana(output, kana);
+    if (!flushed.has_value()) {
+        return std::unexpected(flushed.error());
+    }
+
+    return output;
+}
+
 } // namespace detail
 
 /**
@@ -1100,20 +1197,12 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
 }
 
 
-/**
- * @brief Converts MeCab tokens to Japanese braille wakachi-gaki text.
- *
- * The function first calls @ref mecab_kana_wakati and then converts the
- * resulting kana wakachi-gaki text with @ref braille::kana_text_to_braille.
- * ASCII spaces inserted by the kana wakachi-gaki layer are preserved as spaces.
- *
- * @param tokens MeCab token sequence.
- * @param options Kana conversion options used before braille conversion.
- * @return Braille wakachi-gaki text on success.
- */
-[[nodiscard]] inline auto mecab_braille_wakati(
+namespace detail {
+
+[[nodiscard]] inline auto mecab_braille_wakati_impl(
     std::span<const mecab_token> tokens,
-    const mecab_kana_options& options = {}) -> result<std::u8string>
+    const mecab_kana_options& options,
+    bool information_processing) -> result<std::u8string>
 {
     const auto phrases = mecab_split_phrases(tokens);
 
@@ -1134,31 +1223,38 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
 
         if (phrase.kind == mecab_phrase_kind::symbol) {
             for (const auto& token : range) {
-                const char32_t first = detail::mecab_braille_first_code_point(token.surface);
+                const char32_t first = mecab_braille_first_code_point(token.surface);
 
-                if (detail::mecab_braille_is_opening_symbol(first)) {
+                if (mecab_braille_is_opening_symbol(first)) {
                     append_pending_space();
                 } else {
                     pending_space = false;
                 }
 
-                const auto converted = detail::mecab_braille_symbol_text(token.surface);
+                const auto converted = mecab_braille_range_text(
+                    std::span<const mecab_token>(&token, 1),
+                    options,
+                    information_processing,
+                    true);
                 if (!converted.has_value()) {
                     return std::unexpected(converted.error());
                 }
 
                 result += *converted;
 
-                const char32_t last = detail::mecab_braille_last_code_point(token.surface);
-                pending_space = detail::mecab_braille_symbol_needs_following_space(last);
+                const char32_t last = mecab_braille_last_code_point(token.surface);
+                pending_space = mecab_braille_symbol_needs_following_space(last);
             }
             continue;
         }
 
         append_pending_space();
 
-        const auto kana = mecab_to_kana(range, options);
-        const auto converted = braille::kana_text_to_braille(kana);
+        const auto converted = mecab_braille_range_text(
+            range,
+            options,
+            information_processing,
+            false);
         if (!converted.has_value()) {
             return std::unexpected(converted.error());
         }
@@ -1168,6 +1264,45 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
     }
 
     return result;
+}
+
+} // namespace detail
+
+/**
+ * @brief Converts MeCab tokens to Japanese braille wakachi-gaki text.
+ *
+ * The function uses MeCab readings for Japanese tokens, keeps Japanese
+ * punctuation close to surrounding text, and converts ASCII alphanumeric
+ * fragments with @ref braille::alnum_punct_text_to_braille.
+ *
+ * @param tokens MeCab token sequence.
+ * @param options Kana conversion options used before braille conversion.
+ * @return Braille wakachi-gaki text on success.
+ */
+[[nodiscard]] inline auto mecab_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {}) -> result<std::u8string>
+{
+    return detail::mecab_braille_wakati_impl(tokens, options, false);
+}
+
+/**
+ * @brief Converts MeCab tokens to information-processing braille wakachi-gaki text.
+ *
+ * The function is the information-processing braille variant of
+ * @ref mecab_braille_wakati. Japanese tokens are converted in the same way,
+ * while ASCII alphanumeric and punctuation fragments are converted with
+ * @ref braille::ip_alnum_punct_text_to_braille.
+ *
+ * @param tokens MeCab token sequence.
+ * @param options Kana conversion options used before braille conversion.
+ * @return Braille wakachi-gaki text on success.
+ */
+[[nodiscard]] inline auto mecab_ip_braille_wakati(
+    std::span<const mecab_token> tokens,
+    const mecab_kana_options& options = {}) -> result<std::u8string>
+{
+    return detail::mecab_braille_wakati_impl(tokens, options, true);
 }
 
 /**
@@ -1303,6 +1438,58 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
     }
 
     return detail::mecab_parse_output(*output);
+}
+
+
+/**
+ * @brief Parses Japanese text with MeCab and converts it to braille wakachi-gaki text.
+ *
+ * This is a convenience wrapper for @ref mecab_parse followed by
+ * @ref mecab_braille_wakati. MeCab determines readings for Japanese text; ASCII
+ * alphanumeric fragments are converted from the original surface text.
+ *
+ * @param text UTF-8 source text.
+ * @param parse_options MeCab invocation options.
+ * @param kana_options Kana conversion options used before braille conversion.
+ * @return Braille wakachi-gaki text on success.
+ */
+[[nodiscard]] inline auto mecab_braille_translate(
+    std::u8string_view text,
+    const mecab_options& parse_options = {},
+    const mecab_kana_options& kana_options = {}) -> result<std::u8string>
+{
+    const auto tokens = mecab_parse(text, parse_options);
+    if (!tokens.has_value()) {
+        return std::unexpected(tokens.error());
+    }
+
+    return mecab_braille_wakati(*tokens, kana_options);
+}
+
+/**
+ * @brief Parses Japanese text with MeCab and converts it to information-processing braille.
+ *
+ * This is a convenience wrapper for @ref mecab_parse followed by
+ * @ref mecab_ip_braille_wakati. Japanese tokens are converted in the same way
+ * as @ref mecab_braille_translate, while ASCII alphanumeric and punctuation
+ * fragments use information-processing braille.
+ *
+ * @param text UTF-8 source text.
+ * @param parse_options MeCab invocation options.
+ * @param kana_options Kana conversion options used before braille conversion.
+ * @return Braille wakachi-gaki text on success.
+ */
+[[nodiscard]] inline auto mecab_ip_braille_translate(
+    std::u8string_view text,
+    const mecab_options& parse_options = {},
+    const mecab_kana_options& kana_options = {}) -> result<std::u8string>
+{
+    const auto tokens = mecab_parse(text, parse_options);
+    if (!tokens.has_value()) {
+        return std::unexpected(tokens.error());
+    }
+
+    return mecab_ip_braille_wakati(*tokens, kana_options);
 }
 
 } // namespace xer

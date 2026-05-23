@@ -169,6 +169,7 @@ inline constexpr std::array<std::u8string_view, 26> alpha_braille_table = {
 }
 
 
+
 /**
  * @brief Converts one information-processing braille alphabetic character.
  *
@@ -554,7 +555,6 @@ enum class braille_ascii_mode {
 
     return output;
 }
-
 
 
 namespace detail {
