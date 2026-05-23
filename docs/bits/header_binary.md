@@ -4,7 +4,7 @@
 
 `<xer/binary.h>` provides small binary-data utility functions.
 
-The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for XER's 128-bit unsigned integer type, and simple checksum calculation for byte sequences and files.
+The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for XER's 128-bit unsigned integer type, simple checksum calculation, and CRC calculation for byte sequences and files.
 
 These functions treat input values as fixed-width binary values. They do not depend on the CPU's native endian setting.
 
@@ -60,7 +60,7 @@ When `xer::uint128_t` is available:
 auto reverse_bits(xer::uint128_t value) noexcept -> xer::uint128_t;
 ```
 
-For simple checksums, the header provides additive and XOR checksums in 8-bit, 16-bit, and 32-bit forms.
+For simple checksums, the header provides additive and XOR checksums in 8-bit, 16-bit, and 32-bit forms. It also provides CRC16 and CRC32 calculation helpers.
 
 ---
 
@@ -378,7 +378,101 @@ The XOR checksum functions XOR each checksum unit and return the result in the c
 
 These are intentionally simple checksums. They are useful for small binary formats, simple diagnostics, and compatibility with simple protocols.
 
-They are not cryptographic hashes and are not replacements for CRC algorithms.
+They are not cryptographic hashes. Use `crc16` or `crc32` when compatibility with common CRC algorithms is needed.
+
+
+---
+
+## CRC16 and CRC32
+
+`crc16` and `crc32` calculate standard CRC values over a byte sequence.
+
+```cpp
+auto crc16(std::span<const std::byte> bytes) noexcept -> std::uint16_t;
+auto crc32(std::span<const std::byte> bytes) noexcept -> std::uint32_t;
+```
+
+`crc16` uses CRC-16/ARC parameters:
+
+- polynomial: `0xa001`
+- initial value: `0x0000`
+- final XOR: none
+- check value for `"123456789"`: `0xbb3d`
+
+`crc32` uses CRC-32/ISO-HDLC parameters:
+
+- polynomial: `0xedb88320`
+- initial value: `0xffffffff`
+- final XOR: `0xffffffff`
+- check value for `"123456789"`: `0xcbf43926`
+
+These functions operate on bytes. Unlike 16-bit and 32-bit simple checksums, CRC calculation does not use `byte_order`.
+
+---
+
+## CRC Input Forms
+
+The CRC functions follow the same input-form policy as the checksum functions.
+
+### `std::span<const std::byte>`
+
+The span overloads are the primary in-memory byte-sequence overloads.
+
+```cpp
+auto crc16(std::span<const std::byte> bytes) noexcept -> std::uint16_t;
+auto crc32(std::span<const std::byte> bytes) noexcept -> std::uint32_t;
+```
+
+These overloads do not allocate and do not fail.
+
+### Pointer and Size
+
+Pointer-and-size overloads are provided for C-style byte buffers.
+
+```cpp
+auto crc16(const void* data, std::size_t size) noexcept -> xer::result<std::uint16_t>;
+auto crc32(const void* data, std::size_t size) noexcept -> xer::result<std::uint32_t>;
+```
+
+If `data` is `nullptr` and `size` is not zero, these overloads fail with `error_t::invalid_argument`.
+
+`data == nullptr` with `size == 0` is accepted and represents an empty byte sequence.
+
+### Iterator Range
+
+Iterator-range overloads are provided for byte-like ranges.
+
+```cpp
+template<std::input_iterator InputIt>
+auto crc16(InputIt first, InputIt last) -> std::uint16_t;
+
+template<std::input_iterator InputIt>
+auto crc32(InputIt first, InputIt last) -> std::uint32_t;
+```
+
+The iterator value type must be `std::byte` or a byte-like integer value convertible to `std::uint8_t`.
+
+### File Path
+
+File overloads calculate the CRC of a whole file.
+
+```cpp
+auto crc16(const path& filename) -> xer::result<std::uint16_t>;
+auto crc32(const path& filename) -> xer::result<std::uint32_t>;
+```
+
+These overloads read the whole file content and then calculate the CRC. File I/O failures are reported through `xer::result`.
+
+---
+
+## Empty Input for CRC
+
+Empty input is valid.
+
+For empty input:
+
+- `crc16` returns `0x0000`
+- `crc32` returns `0x00000000`
 
 ---
 
@@ -401,7 +495,7 @@ For empty input, all checksum functions return zero.
 The rough boundary is:
 
 - `<xer/bytes.h>` converts text or byte-like storage into explicit byte views or byte vectors
-- `<xer/binary.h>` performs small binary value manipulation and simple checksum calculation
+- `<xer/binary.h>` performs small binary value manipulation, simple checksum calculation, and CRC calculation
 - `<xer/stdio.h>` handles stream-based binary I/O and whole-file operations
 
 ---
@@ -438,6 +532,11 @@ auto main() -> int
         xer::byte_order::big_endian);
 
     if (checksum != 0x0406) {
+        return 1;
+    }
+
+    const auto crc = xer::crc32(std::span<const std::byte>(bytes));
+    if (crc != 0xb63cfbcd) {
         return 1;
     }
 

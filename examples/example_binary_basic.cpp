@@ -20,6 +20,8 @@
 // checksum_add8: 0a
 // checksum_xor16_be: 0206
 // checksum_add32_le: 04030201
+// crc16: bb3d
+// crc32: cbf43926
 
 auto main() -> int
 {
@@ -31,6 +33,17 @@ auto main() -> int
         std::byte{0x02},
         std::byte{0x03},
         std::byte{0x04},
+    };
+    constexpr std::array<std::byte, 9> crc_bytes{
+        std::byte{'1'},
+        std::byte{'2'},
+        std::byte{'3'},
+        std::byte{'4'},
+        std::byte{'5'},
+        std::byte{'6'},
+        std::byte{'7'},
+        std::byte{'8'},
+        std::byte{'9'},
     };
 
     if (!xer::printf(u8"high_u8: %02x\n", xer::high_u8(value16)).has_value()) {
@@ -74,6 +87,18 @@ auto main() -> int
         xer::checksum_add32(
             std::span<const std::byte>(bytes),
             xer::byte_order::little_endian)).has_value()) {
+        return 1;
+    }
+
+    if (!xer::printf(
+        u8"crc16: %04x\n",
+        xer::crc16(std::span<const std::byte>(crc_bytes))).has_value()) {
+        return 1;
+    }
+
+    if (!xer::printf(
+        u8"crc32: %08x\n",
+        xer::crc32(std::span<const std::byte>(crc_bytes))).has_value()) {
         return 1;
     }
 

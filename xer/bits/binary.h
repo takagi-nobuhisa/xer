@@ -416,6 +416,55 @@ template<typename InputIt>
     return result;
 }
 
+
+
+template<typename InputIt>
+[[nodiscard]] constexpr auto crc16_iter(InputIt first, InputIt last) -> std::uint16_t
+{
+    return std::accumulate(
+        first,
+        last,
+        std::uint16_t{0x0000u},
+        [](std::uint16_t crc, const auto& value) -> std::uint16_t {
+            crc = static_cast<std::uint16_t>(
+                crc ^ static_cast<std::uint16_t>(checksum_byte_value(value)));
+
+            for (int i = 0; i < 8; ++i) {
+                if ((crc & 0x0001u) != 0) {
+                    crc = static_cast<std::uint16_t>((crc >> 1) ^ 0xa001u);
+                } else {
+                    crc = static_cast<std::uint16_t>(crc >> 1);
+                }
+            }
+
+            return crc;
+        });
+}
+
+template<typename InputIt>
+[[nodiscard]] constexpr auto crc32_iter(InputIt first, InputIt last) -> std::uint32_t
+{
+    const auto crc = std::accumulate(
+        first,
+        last,
+        std::uint32_t{0xffffffffu},
+        [](std::uint32_t value, const auto& byte) -> std::uint32_t {
+            value ^= static_cast<std::uint32_t>(checksum_byte_value(byte));
+
+            for (int i = 0; i < 8; ++i) {
+                if ((value & 0x00000001u) != 0) {
+                    value = (value >> 1) ^ 0xedb88320u;
+                } else {
+                    value >>= 1;
+                }
+            }
+
+            return value;
+        });
+
+    return crc ^ 0xffffffffu;
+}
+
 [[nodiscard]] inline auto checksum_bytes_from_pointer(
     const void* data,
     const std::size_t size) noexcept -> result<std::span<const std::byte>>
@@ -805,6 +854,117 @@ template<std::input_iterator InputIt>
     }
 
     return checksum_xor32(std::span<const std::byte>(*bytes), order);
+}
+
+
+/**
+ * @brief Calculates a CRC-16/ARC value for a byte span.
+ * @param bytes Source bytes.
+ * @return CRC-16/ARC value.
+ */
+[[nodiscard]] constexpr auto crc16(std::span<const std::byte> bytes) noexcept -> std::uint16_t
+{
+    return detail::crc16_iter(bytes.begin(), bytes.end());
+}
+
+/**
+ * @brief Calculates a CRC-32/ISO-HDLC value for a byte span.
+ * @param bytes Source bytes.
+ * @return CRC-32/ISO-HDLC value.
+ */
+[[nodiscard]] constexpr auto crc32(std::span<const std::byte> bytes) noexcept -> std::uint32_t
+{
+    return detail::crc32_iter(bytes.begin(), bytes.end());
+}
+
+/**
+ * @brief Calculates a CRC-16/ARC value for a pointer and byte size.
+ * @param data Source byte pointer.
+ * @param size Number of bytes.
+ * @return CRC-16/ARC value on success.
+ */
+[[nodiscard]] inline auto crc16(
+    const void* data,
+    std::size_t size) noexcept -> result<std::uint16_t>
+{
+    const auto bytes = detail::checksum_bytes_from_pointer(data, size);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return crc16(*bytes);
+}
+
+/**
+ * @brief Calculates a CRC-32/ISO-HDLC value for a pointer and byte size.
+ * @param data Source byte pointer.
+ * @param size Number of bytes.
+ * @return CRC-32/ISO-HDLC value on success.
+ */
+[[nodiscard]] inline auto crc32(
+    const void* data,
+    std::size_t size) noexcept -> result<std::uint32_t>
+{
+    const auto bytes = detail::checksum_bytes_from_pointer(data, size);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return crc32(*bytes);
+}
+
+/**
+ * @brief Calculates a CRC-16/ARC value for an iterator range.
+ * @param first First byte iterator.
+ * @param last End iterator.
+ * @return CRC-16/ARC value.
+ */
+template<std::input_iterator InputIt>
+[[nodiscard]] constexpr auto crc16(InputIt first, InputIt last) -> std::uint16_t
+{
+    return detail::crc16_iter(first, last);
+}
+
+/**
+ * @brief Calculates a CRC-32/ISO-HDLC value for an iterator range.
+ * @param first First byte iterator.
+ * @param last End iterator.
+ * @return CRC-32/ISO-HDLC value.
+ */
+template<std::input_iterator InputIt>
+[[nodiscard]] constexpr auto crc32(InputIt first, InputIt last) -> std::uint32_t
+{
+    return detail::crc32_iter(first, last);
+}
+
+/**
+ * @brief Calculates a CRC-16/ARC value for a file.
+ * @param filename Source file path.
+ * @return CRC-16/ARC value on success.
+ */
+[[nodiscard]] inline auto crc16(const path& filename) -> result<std::uint16_t>
+{
+    const auto bytes = file_get_contents(filename);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return crc16(std::span<const std::byte>(*bytes));
+}
+
+/**
+ * @brief Calculates a CRC-32/ISO-HDLC value for a file.
+ * @param filename Source file path.
+ * @return CRC-32/ISO-HDLC value on success.
+ */
+[[nodiscard]] inline auto crc32(const path& filename) -> result<std::uint32_t>
+{
+    const auto bytes = file_get_contents(filename);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return crc32(std::span<const std::byte>(*bytes));
 }
 
 } // namespace xer
