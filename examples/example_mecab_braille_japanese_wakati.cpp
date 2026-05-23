@@ -1,0 +1,47 @@
+﻿// XER_EXAMPLE_BEGIN: mecab_braille_japanese_wakati
+//
+// This example invokes MeCab and converts the parsed tokens to Japanese
+// braille wakachi-gaki text. Japanese punctuation is kept close to the
+// preceding phrase instead of being separated by an extra space.
+//
+// MeCab must be installed and available from PATH.
+
+#include <xer/mecab.h>
+#include <xer/stdio.h>
+
+namespace {
+
+auto print_line(std::u8string_view label, std::u8string_view value) -> bool
+{
+    return xer::printf(u8"%@%@\n", label, value).has_value();
+}
+
+} // namespace
+
+auto main() -> int
+{
+    const auto tokens = xer::mecab_parse(u8"私はキャラクターです。猫もいます。");
+    if (!tokens.has_value()) {
+        return 1;
+    }
+
+    xer::mecab_kana_options options;
+    options.kind = xer::mecab_kana_kind::hiragana;
+
+    const auto kana = xer::mecab_kana_wakati(*tokens, options);
+    const auto braille = xer::mecab_braille_wakati(*tokens, options);
+    if (!braille.has_value()) {
+        return 1;
+    }
+
+    if (!print_line(u8"kana:    ", kana)) {
+        return 1;
+    }
+    if (!print_line(u8"braille: ", *braille)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+// XER_EXAMPLE_END: mecab_braille_japanese_wakati

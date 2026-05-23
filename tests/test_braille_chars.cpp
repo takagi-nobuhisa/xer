@@ -126,6 +126,30 @@ void test_punct_to_braille_rejects_unsupported_input()
 }
 
 
+void test_japanese_punct_to_braille()
+{
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'。'), u8"⠲");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'、'), u8"⠰");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'？'), u8"⠢");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'！'), u8"⠖");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'・'), u8"⠂");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'「'), u8"⠤");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'」'), u8"⠤");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'『'), u8"⠰⠤");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'』'), u8"⠰⠤");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'（'), u8"⠶");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'）'), u8"⠶");
+    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'…'), u8"⠄⠄⠄");
+}
+
+void test_japanese_punct_to_braille_rejects_unsupported_input()
+{
+    assert_invalid_argument(xer::braille::japanese_punct_to_braille(U'a'));
+    assert_invalid_argument(xer::braille::japanese_punct_to_braille(U'1'));
+    assert_invalid_argument(xer::braille::japanese_punct_to_braille(U' '));
+}
+
+
 void test_kana_to_braille_basic_hiragana()
 {
     assert_braille_result_eq(xer::braille::kana_to_braille(U'あ'), u8"⠁");
@@ -186,6 +210,7 @@ void test_kana_to_braille_voiced()
     assert_braille_result_eq(xer::braille::kana_to_braille(U'ゾ'), u8"⠐⠺");
     assert_braille_result_eq(xer::braille::kana_to_braille(U'ド'), u8"⠐⠞");
     assert_braille_result_eq(xer::braille::kana_to_braille(U'ブ'), u8"⠐⠭");
+    assert_braille_result_eq(xer::braille::kana_to_braille(U'ヴ'), u8"⠐⠉");
 }
 
 void test_kana_to_braille_semi_voiced()
@@ -209,7 +234,6 @@ void test_kana_to_braille_rejects_unsupported_input()
     assert_invalid_argument(xer::braille::kana_to_braille(U'ゃ'));
     assert_invalid_argument(xer::braille::kana_to_braille(U'ャ'));
     assert_invalid_argument(xer::braille::kana_to_braille(U'ぁ'));
-    assert_invalid_argument(xer::braille::kana_to_braille(U'ヴ'));
 }
 
 void test_kana_text_to_braille_basic_text()
@@ -237,6 +261,32 @@ void test_kana_text_to_braille_combines_voiced_and_semivoiced_yoon()
         u8"⠘⠡ ⠘⠹ ⠘⠮ ⠨⠭");
 }
 
+void test_kana_text_to_braille_combines_special_sounds()
+{
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"ファ フィ フェ フォ"),
+        u8"⠢⠥ ⠢⠧ ⠢⠯ ⠢⠮");
+
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"ティ ディ チェ シェ ジェ"),
+        u8"⠈⠗ ⠘⠗ ⠈⠟ ⠈⠻ ⠘⠻");
+
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"ウィ ウェ ウォ クァ グァ トゥ ドゥ"),
+        u8"⠢⠃ ⠢⠋ ⠢⠊ ⠢⠡ ⠲⠡ ⠢⠝ ⠲⠝");
+
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"ヴァ ヴィ ヴ ヴェ ヴォ"),
+        u8"⠲⠥ ⠲⠧ ⠐⠉ ⠲⠯ ⠲⠮");
+}
+
+void test_kana_text_to_braille_converts_japanese_punctuation()
+{
+    assert_braille_text_eq(
+        xer::braille::kana_text_to_braille(u8"あ、い。う？え！「お」"),
+        u8"⠁⠰⠃⠲⠉⠢⠋⠖⠤⠊⠤");
+}
+
 void test_kana_text_to_braille_rejects_unsupported_input()
 {
     assert_string_invalid_argument(xer::braille::kana_text_to_braille(u8"ゃ"));
@@ -257,9 +307,13 @@ auto main() -> int
     test_alnum_to_braille_rejects_non_alnum();
     test_punct_to_braille();
     test_punct_to_braille_rejects_unsupported_input();
+    test_japanese_punct_to_braille();
+    test_japanese_punct_to_braille_rejects_unsupported_input();
     test_kana_text_to_braille_basic_text();
     test_kana_text_to_braille_combines_yoon();
     test_kana_text_to_braille_combines_voiced_and_semivoiced_yoon();
+    test_kana_text_to_braille_combines_special_sounds();
+    test_kana_text_to_braille_converts_japanese_punctuation();
     test_kana_text_to_braille_rejects_unsupported_input();
     test_kana_to_braille_basic_hiragana();
     test_kana_to_braille_basic_katakana();

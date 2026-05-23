@@ -171,7 +171,7 @@ inline constexpr std::array<std::u8string_view, 26> alpha_braille_table = {
 
 namespace detail {
 
-[[nodiscard]] constexpr auto kana_yoon_body_braille(
+[[nodiscard]] constexpr auto kana_combined_braille(
     char32_t base,
     char32_t small) -> result<std::u8string_view>
 {
@@ -205,6 +205,9 @@ namespace detail {
         case U'ょ':
         case U'ョ':
             return u8"⠈⠺";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠈⠻";
         default:
             break;
         }
@@ -222,6 +225,9 @@ namespace detail {
         case U'ょ':
         case U'ョ':
             return u8"⠈⠞";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠈⠟";
         default:
             break;
         }
@@ -256,6 +262,9 @@ namespace detail {
         case U'ょ':
         case U'ョ':
             return u8"⠈⠮";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠈⠯";
         default:
             break;
         }
@@ -324,6 +333,9 @@ namespace detail {
         case U'ょ':
         case U'ョ':
             return u8"⠘⠺";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠘⠻";
         default:
             break;
         }
@@ -380,6 +392,196 @@ namespace detail {
         }
         break;
 
+    case U'い':
+    case U'イ':
+        switch (small) {
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠈⠋";
+        default:
+            break;
+        }
+        break;
+
+    case U'う':
+    case U'ウ':
+        switch (small) {
+        case U'ぃ':
+        case U'ィ':
+            return u8"⠢⠃";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠢⠋";
+        case U'ぉ':
+        case U'ォ':
+            return u8"⠢⠊";
+        default:
+            break;
+        }
+        break;
+
+    case U'く':
+    case U'ク':
+        switch (small) {
+        case U'ぁ':
+        case U'ァ':
+            return u8"⠢⠡";
+        case U'ぃ':
+        case U'ィ':
+            return u8"⠢⠣";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠢⠫";
+        case U'ぉ':
+        case U'ォ':
+            return u8"⠢⠪";
+        default:
+            break;
+        }
+        break;
+
+    case U'ぐ':
+    case U'グ':
+        switch (small) {
+        case U'ぁ':
+        case U'ァ':
+            return u8"⠲⠡";
+        case U'ぃ':
+        case U'ィ':
+            return u8"⠲⠣";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠲⠫";
+        case U'ぉ':
+        case U'ォ':
+            return u8"⠲⠪";
+        default:
+            break;
+        }
+        break;
+
+    case U'つ':
+    case U'ツ':
+        switch (small) {
+        case U'ぁ':
+        case U'ァ':
+            return u8"⠢⠕";
+        case U'ぃ':
+        case U'ィ':
+            return u8"⠢⠗";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠢⠟";
+        case U'ぉ':
+        case U'ォ':
+            return u8"⠢⠞";
+        default:
+            break;
+        }
+        break;
+
+    case U'て':
+    case U'テ':
+        switch (small) {
+        case U'ぃ':
+        case U'ィ':
+            return u8"⠈⠗";
+        case U'ゅ':
+        case U'ュ':
+            return u8"⠨⠝";
+        default:
+            break;
+        }
+        break;
+
+    case U'で':
+    case U'デ':
+        switch (small) {
+        case U'ぃ':
+        case U'ィ':
+            return u8"⠘⠗";
+        case U'ゅ':
+        case U'ュ':
+            return u8"⠸⠝";
+        default:
+            break;
+        }
+        break;
+
+    case U'と':
+    case U'ト':
+        switch (small) {
+        case U'ぅ':
+        case U'ゥ':
+            return u8"⠢⠝";
+        default:
+            break;
+        }
+        break;
+
+    case U'ど':
+    case U'ド':
+        switch (small) {
+        case U'ぅ':
+        case U'ゥ':
+            return u8"⠲⠝";
+        default:
+            break;
+        }
+        break;
+
+    case U'ふ':
+    case U'フ':
+        switch (small) {
+        case U'ぁ':
+        case U'ァ':
+            return u8"⠢⠥";
+        case U'ぃ':
+        case U'ィ':
+            return u8"⠢⠧";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠢⠯";
+        case U'ぉ':
+        case U'ォ':
+            return u8"⠢⠮";
+        case U'ゅ':
+        case U'ュ':
+            return u8"⠨⠭";
+        case U'ょ':
+        case U'ョ':
+            return u8"⠨⠮";
+        default:
+            break;
+        }
+        break;
+
+    case U'ヴ':
+    case U'ゔ':
+        switch (small) {
+        case U'ぁ':
+        case U'ァ':
+            return u8"⠲⠥";
+        case U'ぃ':
+        case U'ィ':
+            return u8"⠲⠧";
+        case U'ぇ':
+        case U'ェ':
+            return u8"⠲⠯";
+        case U'ぉ':
+        case U'ォ':
+            return u8"⠲⠮";
+        case U'ゅ':
+        case U'ュ':
+            return u8"⠸⠭";
+        case U'ょ':
+        case U'ョ':
+            return u8"⠸⠮";
+        default:
+            break;
+        }
+        break;
+
     default:
         break;
     }
@@ -387,10 +589,12 @@ namespace detail {
     return std::unexpected(make_error(error_t::invalid_argument));
 }
 
-[[nodiscard]] constexpr auto kana_is_yoon_small(char32_t c) noexcept -> bool
+[[nodiscard]] constexpr auto kana_is_combining_small(char32_t c) noexcept -> bool
 {
-    return c == U'ゃ' || c == U'ゅ' || c == U'ょ'
-        || c == U'ャ' || c == U'ュ' || c == U'ョ';
+    return c == U'ぁ' || c == U'ぃ' || c == U'ぅ' || c == U'ぇ' || c == U'ぉ'
+        || c == U'ゃ' || c == U'ゅ' || c == U'ょ' || c == U'ゎ'
+        || c == U'ァ' || c == U'ィ' || c == U'ゥ' || c == U'ェ' || c == U'ォ'
+        || c == U'ャ' || c == U'ュ' || c == U'ョ' || c == U'ヮ';
 }
 
 [[nodiscard]] constexpr auto kana_is_ascii_space(char32_t c) noexcept -> bool
@@ -399,6 +603,53 @@ namespace detail {
 }
 
 } // namespace detail
+
+
+/**
+ * @brief Converts one Japanese punctuation mark to braille cells.
+ *
+ * This function maps commonly used Japanese kana-braille punctuation marks.
+ * It is separate from @ref punct_to_braille, which targets Grade 1 English
+ * braille punctuation.
+ *
+ * @param c Japanese punctuation character.
+ * @return Corresponding braille cells, or invalid_argument for unsupported input.
+ */
+[[nodiscard]] constexpr auto japanese_punct_to_braille(char32_t c)
+    -> result<std::u8string_view>
+{
+    switch (c) {
+    case U'。':
+        return u8"⠲";
+    case U'、':
+        return u8"⠰";
+    case U'？':
+    case U'?':
+        return u8"⠢";
+    case U'！':
+    case U'!':
+        return u8"⠖";
+    case U'・':
+        return u8"⠂";
+    case U'「':
+    case U'」':
+        return u8"⠤";
+    case U'『':
+    case U'』':
+        return u8"⠰⠤";
+    case U'（':
+    case U'）':
+    case U'(':
+    case U')':
+        return u8"⠶";
+    case U'…':
+        return u8"⠄⠄⠄";
+    case U'‥':
+        return u8"⠄⠄";
+    default:
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+}
 
 /**
  * @brief Converts one Japanese kana character to braille cells.
@@ -655,6 +906,10 @@ namespace detail {
     case U'ポ':
         return u8"⠠⠮";
 
+    case U'ゔ':
+    case U'ヴ':
+        return u8"⠐⠉";
+
     default:
         return std::unexpected(make_error(error_t::invalid_argument));
     }
@@ -713,12 +968,22 @@ namespace detail {
             continue;
         }
 
-        if (detail::kana_is_yoon_small(c)) {
+        const auto punctuation = japanese_punct_to_braille(c);
+        if (punctuation.has_value()) {
+            const auto flushed = flush_pending();
+            if (!flushed.has_value()) {
+                return std::unexpected(flushed.error());
+            }
+            output += *punctuation;
+            continue;
+        }
+
+        if (detail::kana_is_combining_small(c)) {
             if (pending == U'\0') {
                 return std::unexpected(make_error(error_t::invalid_argument));
             }
 
-            const auto yoon = detail::kana_yoon_body_braille(pending, c);
+            const auto yoon = detail::kana_combined_braille(pending, c);
             if (!yoon.has_value()) {
                 return std::unexpected(yoon.error());
             }

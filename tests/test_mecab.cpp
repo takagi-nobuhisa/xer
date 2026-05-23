@@ -492,6 +492,40 @@ void test_mecab_braille_wakati_converts_kana_wakati_text()
     xer_assert_eq(*result, u8"⠄⠕⠳⠄ ⠡⠃⠈⠱⠋ ⠃⠣⠵⠹");
 }
 
+void test_mecab_braille_wakati_converts_japanese_punctuation_without_extra_leading_spaces()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"私\t名詞,代名詞,一般,*,*,*,私,ワタシ,ワタシ\n"
+        u8"は\t助詞,係助詞,*,*,*,*,は,ハ,ワ\n"
+        u8"明日\t名詞,副詞可能,*,*,*,*,明日,アシタ,アシタ\n"
+        u8"、\t記号,読点,*,*,*,*,、,、,、\n"
+        u8"学校\t名詞,一般,*,*,*,*,学校,ガッコウ,ガッコー\n"
+        u8"へ\t助詞,格助詞,一般,*,*,*,へ,ヘ,エ\n"
+        u8"行き\t動詞,自立,*,*,五段・カ行促音便,連用形,行く,イキ,イキ\n"
+        u8"ます\t助動詞,*,*,*,特殊・マス,基本形,ます,マス\n"
+        u8"。\t記号,句点,*,*,*,*,。,。,。\n"
+        u8"EOS\n");
+
+    const auto result = xer::mecab_braille_wakati(tokens);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, u8"⠄⠕⠳⠄ ⠁⠳⠕⠰ ⠐⠡⠂⠪⠉⠋ ⠃⠣⠵⠹⠲");
+}
+
+void test_mecab_braille_wakati_keeps_kagi_close_to_inner_text()
+{
+    const auto tokens = parse_mecab_test_tokens(
+        u8"「\t記号,括弧開,*,*,*,*,「,「,「\n"
+        u8"はい\t感動詞,*,*,*,*,*,はい,ハイ,ハイ\n"
+        u8"」\t記号,括弧閉,*,*,*,*,」,」,」\n"
+        u8"EOS\n");
+
+    const auto result = xer::mecab_braille_wakati(tokens);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, u8"⠤⠥⠃⠤");
+}
+
 void test_mecab_parse_rejects_invalid_utf8()
 {
     const std::u8string invalid {
@@ -533,6 +567,8 @@ auto main() -> int
     test_mecab_to_kana_falls_back_to_surface();
     test_mecab_kana_wakati_separates_phrases();
     test_mecab_braille_wakati_converts_kana_wakati_text();
+    test_mecab_braille_wakati_converts_japanese_punctuation_without_extra_leading_spaces();
+    test_mecab_braille_wakati_keeps_kagi_close_to_inner_text();
     test_mecab_parse_rejects_invalid_utf8();
 
     return 0;

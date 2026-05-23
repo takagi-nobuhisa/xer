@@ -868,6 +868,95 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
     return tokens;
 }
 
+
+[[nodiscard]] inline auto mecab_braille_is_opening_symbol(char32_t c) noexcept -> bool
+{
+    return c == U'「' || c == U'『' || c == U'（' || c == U'(';
+}
+
+[[nodiscard]] inline auto mecab_braille_is_closing_symbol(char32_t c) noexcept -> bool
+{
+    return c == U'」' || c == U'』' || c == U'）' || c == U')';
+}
+
+[[nodiscard]] inline auto mecab_braille_is_sentence_ending_symbol(char32_t c) noexcept -> bool
+{
+    return c == U'。' || c == U'？' || c == U'?' || c == U'！' || c == U'!';
+}
+
+[[nodiscard]] inline auto mecab_braille_is_pause_symbol(char32_t c) noexcept -> bool
+{
+    return c == U'、' || c == U'・';
+}
+
+[[nodiscard]] inline auto mecab_braille_symbol_needs_following_space(char32_t c) noexcept -> bool
+{
+    return mecab_braille_is_closing_symbol(c)
+        || mecab_braille_is_sentence_ending_symbol(c)
+        || mecab_braille_is_pause_symbol(c)
+        || c == U'…'
+        || c == U'‥';
+}
+
+[[nodiscard]] inline auto mecab_braille_symbol_text(
+    std::u8string_view text) -> result<std::u8string>
+{
+    std::u8string output;
+    output.reserve(text.size() * 2);
+
+    for (std::size_t index = 0; index < text.size();) {
+        const auto decoded = decode_utf8_at(text, index);
+        if (!decoded.has_value()) {
+            return std::unexpected(decoded.error());
+        }
+
+        const char32_t c = decoded->value;
+        index += decoded->size;
+
+        const auto converted = braille::japanese_punct_to_braille(c);
+        if (!converted.has_value()) {
+            return std::unexpected(converted.error());
+        }
+
+        output += *converted;
+    }
+
+    return output;
+}
+
+[[nodiscard]] inline auto mecab_braille_last_code_point(
+    std::u8string_view text) -> char32_t
+{
+    char32_t result = U'\0';
+
+    for (std::size_t index = 0; index < text.size();) {
+        const auto decoded = decode_utf8_at(text, index);
+        if (!decoded.has_value()) {
+            return U'\0';
+        }
+
+        result = decoded->value;
+        index += decoded->size;
+    }
+
+    return result;
+}
+
+[[nodiscard]] inline auto mecab_braille_first_code_point(
+    std::u8string_view text) -> char32_t
+{
+    if (text.empty()) {
+        return U'\0';
+    }
+
+    const auto decoded = decode_utf8_at(text, 0);
+    if (!decoded.has_value()) {
+        return U'\0';
+    }
+
+    return decoded->value;
+}
+
 } // namespace detail
 
 /**
@@ -1026,8 +1115,59 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
     std::span<const mecab_token> tokens,
     const mecab_kana_options& options = {}) -> result<std::u8string>
 {
-    const auto kana = mecab_kana_wakati(tokens, options);
-    return braille::kana_text_to_braille(kana);
+    const auto phrases = mecab_split_phrases(tokens);
+
+    std::u8string result;
+    bool pending_space = false;
+
+    const auto append_pending_space = [&]() {
+        if (pending_space && !result.empty()) {
+            result.push_back(u8' ');
+        }
+        pending_space = false;
+    };
+
+    for (const auto& phrase : phrases) {
+        const auto begin = tokens.begin() + static_cast<std::ptrdiff_t>(phrase.index);
+        const auto end = begin + static_cast<std::ptrdiff_t>(phrase.count);
+        const std::span<const mecab_token> range(begin, end);
+
+        if (phrase.kind == mecab_phrase_kind::symbol) {
+            for (const auto& token : range) {
+                const char32_t first = detail::mecab_braille_first_code_point(token.surface);
+
+                if (detail::mecab_braille_is_opening_symbol(first)) {
+                    append_pending_space();
+                } else {
+                    pending_space = false;
+                }
+
+                const auto converted = detail::mecab_braille_symbol_text(token.surface);
+                if (!converted.has_value()) {
+                    return std::unexpected(converted.error());
+                }
+
+                result += *converted;
+
+                const char32_t last = detail::mecab_braille_last_code_point(token.surface);
+                pending_space = detail::mecab_braille_symbol_needs_following_space(last);
+            }
+            continue;
+        }
+
+        append_pending_space();
+
+        const auto kana = mecab_to_kana(range, options);
+        const auto converted = braille::kana_text_to_braille(kana);
+        if (!converted.has_value()) {
+            return std::unexpected(converted.error());
+        }
+
+        result += *converted;
+        pending_space = true;
+    }
+
+    return result;
 }
 
 /**

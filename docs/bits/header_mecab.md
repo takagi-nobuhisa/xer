@@ -16,7 +16,7 @@ The current implementation focuses on the lowest-level public foundation:
 - converting MeCab-derived readings to kana text
 - producing kana wakachi-gaki text using the phrase ranges
 - producing romaji wakachi-gaki text by combining kana conversion and `strtoctrans`
-- producing Japanese braille wakachi-gaki text by combining kana wakachi-gaki and `<xer/braille.h>`
+- producing Japanese braille wakachi-gaki text by combining phrase ranges, MeCab-derived kana readings, Japanese punctuation handling, and `<xer/braille.h>`
 
 Higher-level Japanese text processing such as ruby generation is planned to build on top of this analysis layer. Braille-oriented wakachi-gaki conversion now has an initial helper built on the kana layer.
 
@@ -32,7 +32,7 @@ On top of the token layer, XER provides `mecab_split_phrases` to derive practica
 
 The kana layer uses `mecab_features::読み` where available and provides `mecab_to_kana` and `mecab_kana_wakati` as practical reading-based conversion helpers.
 
-The braille layer builds on the kana layer and `<xer/braille.h>`. It provides `mecab_braille_wakati` as a practical Japanese braille wakachi-gaki helper for MeCab token sequences.
+The braille layer builds on the token, phrase, kana, and punctuation layers. It provides `mecab_braille_wakati` as a practical Japanese braille wakachi-gaki helper for MeCab token sequences. Unlike `mecab_kana_wakati`, it handles symbol ranges directly so that Japanese punctuation can be attached more naturally in braille output.
 
 The romaji layer builds on the kana layer and `strtoctrans`. It provides `mecab_romaji_wakati` as a practical romaji wakachi-gaki helper. Particle reading correction is performed before romanization, so particles such as `は`, `へ`, and `を` can become `wa`, `e`, and `o` in the final output.
 
@@ -517,21 +517,32 @@ auto mecab_braille_wakati(
 
 `mecab_braille_wakati` converts a MeCab token sequence to Japanese braille wakachi-gaki text.
 
-The function first calls `mecab_kana_wakati` with the same kana options. It then passes the resulting kana wakachi-gaki text to `xer::braille::kana_text_to_braille`.
+The function uses `mecab_split_phrases` to process bunsetsu-like ranges and symbol ranges separately.
 
-ASCII spaces inserted by `mecab_kana_wakati` are preserved as ASCII spaces in the braille output.
+For ordinary bunsetsu-like ranges, it calls `mecab_to_kana` with the same kana options and then converts the resulting kana text through `xer::braille::kana_text_to_braille`.
+
+For symbol ranges, it converts each symbol directly through the Japanese punctuation conversion layer used by `<xer/braille.h>`. This avoids inserting unnecessary spaces before punctuation such as `。`, `、`, `」`, or `）`.
+
+Spacing is controlled as follows:
+
+- ordinary bunsetsu-like ranges are separated by ASCII spaces
+- opening symbols such as `「`, `『`, `（`, and `(` are attached to the following phrase after any required preceding space
+- closing symbols, sentence-ending symbols, pause symbols, and leaders request a following space
+- symbol marks themselves are emitted as braille punctuation, not as surface text
 
 For example, a token sequence corresponding to:
 
 ```text
-私は猫です
+私は猫です。
 ```
 
 is intended to produce braille wakachi-gaki close to the braille representation of:
 
 ```text
-わたしわ ねこです
+わたしわ ねこです。
 ```
+
+without an extra space before the Japanese full stop.
 
 The exact reading and phrase boundaries depend on the installed MeCab dictionary.
 
@@ -539,7 +550,7 @@ The exact reading and phrase boundaries depend on the installed MeCab dictionary
 
 `mecab_braille_wakati` returns `xer::result<std::u8string>` because the braille conversion layer can fail.
 
-Errors from `xer::braille::kana_text_to_braille` are propagated. For example, if the kana wakachi-gaki text contains punctuation or another unsupported character for the current braille conversion layer, the function returns `error_t::invalid_argument`.
+Errors from `xer::braille::kana_text_to_braille` and the Japanese punctuation conversion layer are propagated. For example, if the token sequence contains a symbol that is not supported as Japanese braille punctuation, the function returns `error_t::invalid_argument`.
 
 `mecab_braille_wakati` does not invoke MeCab. It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
 
@@ -763,7 +774,6 @@ Implemented:
 
 Not yet implemented in this header:
 
-- display-oriented spacing that attaches punctuation naturally
 - ruby-oriented structures
 - word or bunsetsu counting helpers
 

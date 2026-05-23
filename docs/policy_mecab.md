@@ -148,7 +148,7 @@ auto mecab_parse(
 
 `mecab_to_kana` converts token readings to kana without inserting spaces. `mecab_kana_wakati` combines reading-based kana conversion with `mecab_split_phrases` and inserts spaces between the derived phrase ranges.
 
-`mecab_braille_wakati` builds on `mecab_kana_wakati`. It converts the kana wakachi-gaki output to Japanese braille through `<xer/braille.h>` and preserves ASCII spaces inserted between phrase ranges.
+`mecab_braille_wakati` builds on `mecab_split_phrases`, `mecab_to_kana`, and `<xer/braille.h>`. It converts bunsetsu-like ranges to kana and braille, converts supported Japanese punctuation directly, and suppresses unnecessary spaces before punctuation.
 
 `mecab_romaji_wakati` builds on the same phrase ranges. It converts bunsetsu ranges to kana, romanizes them through `strtoctrans`, and preserves symbol ranges as surface text.
 
@@ -258,7 +258,7 @@ The first bunsetsu-oriented primitive is implemented through `mecab_split_phrase
 It returns bunsetsu-like token ranges and symbol ranges, and is the common foundation for kana spacing, romanization, braille-oriented conversion, and bunsetsu counts.
 
 The first reading-based output helpers are implemented through `mecab_to_kana` and `mecab_kana_wakati`.
-They provide practical kana conversion and kana wakachi-gaki based on MeCab-derived readings. The first braille-oriented output helper is implemented through `mecab_braille_wakati`, which combines kana wakachi-gaki and `<xer/braille.h>`. The first romaji output helper is implemented through `mecab_romaji_wakati`, which combines kana conversion and `strtoctrans`.
+They provide practical kana conversion and kana wakachi-gaki based on MeCab-derived readings. The first braille-oriented output helper is implemented through `mecab_braille_wakati`, which combines phrase ranges, kana conversion, Japanese punctuation handling, and `<xer/braille.h>`. The first romaji output helper is implemented through `mecab_romaji_wakati`, which combines kana conversion and `strtoctrans`.
 
 ---
 
@@ -550,7 +550,7 @@ Display-oriented punctuation spacing is intentionally not handled here. At this 
 
 ## Braille Wakachi-Gaki Policy
 
-Braille wakachi-gaki is implemented as a helper layer above kana wakachi-gaki and `<xer/braille.h>`.
+Braille wakachi-gaki is implemented as a helper layer above MeCab token sequences, phrase ranges, kana conversion, Japanese punctuation handling, and `<xer/braille.h>`.
 
 The current public API is:
 
@@ -564,14 +564,16 @@ auto mecab_braille_wakati(
 
 The conversion policy is:
 
-1. derive kana wakachi-gaki with `mecab_kana_wakati`
-2. preserve the ASCII spaces inserted by the kana wakachi-gaki layer
-3. convert the resulting kana sequence to braille with `xer::braille::kana_text_to_braille`
-4. propagate errors from the braille conversion layer
+1. derive practical bunsetsu-like ranges and symbol ranges with `mecab_split_phrases`
+2. convert bunsetsu-like ranges to kana with `mecab_to_kana`
+3. convert the kana sequence to braille with `xer::braille::kana_text_to_braille`
+4. convert symbol ranges directly with the Japanese punctuation conversion layer
+5. insert ASCII spaces between bunsetsu-like ranges while suppressing unnecessary spaces before punctuation
+6. propagate errors from the braille conversion layer
 
-This design intentionally keeps the MeCab-specific braille helper thin. The kana-to-braille logic remains reusable without MeCab, while the MeCab layer remains responsible for readings and phrase spacing.
+This design keeps the kana-to-braille logic reusable without MeCab while allowing the MeCab layer to control phrase spacing and punctuation attachment.
 
-At the current stage, punctuation handling is still limited by `xer::braille::kana_text_to_braille`. If the kana wakachi-gaki text contains unsupported symbols, `mecab_braille_wakati` reports the corresponding error instead of silently dropping or guessing a braille representation.
+At the current stage, punctuation handling covers the supported Japanese punctuation marks exposed by `<xer/braille.h>`. Unsupported symbols still produce an error instead of being silently dropped or guessed.
 
 The result remains dictionary-dependent. Different MeCab dictionaries may produce different readings, token boundaries, and feature layouts. XER therefore treats this helper as practical braille-oriented wakachi-gaki, not as complete Japanese braille translation.
 
@@ -668,7 +670,7 @@ This limitation is acceptable within the overall design goal.
 
 Braille-oriented conversion depends on bunsetsu-aware segmentation rather than naïve token spacing.
 
-The details of braille conversion rules are to be defined separately, but the MeCab facility should provide the segmentation and readings needed to support it.
+The low-level kana and punctuation conversion rules are defined in `<xer/braille.h>`. The MeCab facility provides the segmentation, readings, particle-reading correction, and punctuation attachment needed to make that conversion usable for ordinary Japanese text.
 
 ---
 
@@ -692,8 +694,8 @@ The following items require later API or algorithm design:
 
 - dictionary-dependent feature interpretation strategy beyond the current IPADIC-style named members for higher-level helpers
 - detailed ruby output format
-- display-oriented punctuation spacing rules
-- detailed braille conversion rules
+- automatic numeric, alphabetic, and information-processing braille mode switching
+- higher-accuracy Japanese braille wakachi-gaki refinements
 - additional bunsetsu segmentation refinements based on real examples
 - error models for later higher-level transformations where additional failures arise
 
