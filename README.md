@@ -10,7 +10,7 @@ It keeps the spirit of the C standard library where that style is still practica
 
 xer is under active development.
 
-The project began by rebuilding practical parts of the C standard library in a way that fits its design goals. It now also covers adjacent areas that benefit from the same approach, including structured data handling, process and socket utilities, Tcl/Tk integration, and a lightweight image/canvas subsystem.
+The project began by rebuilding practical parts of the C standard library in a way that fits its design goals. It now also covers adjacent areas that benefit from the same approach, including structured data handling, process and socket utilities, Tcl/Tk integration, a lightweight image/canvas subsystem, and Japanese text-processing helpers such as MeCab-based wakachi-gaki, furigana formatting, kansuji conversion, and braille conversion.
 
 The current library scope includes:
 
@@ -23,6 +23,7 @@ The current library scope includes:
 - process and socket utilities
 - Tcl/Tk integration
 - image/canvas drawing, bitmap fonts, and basic pixel processing
+- Japanese text helpers, including kansuji, furigana, MeCab integration, kana/romaji wakachi-gaki, and braille conversion
 
 This project does **not** aim at full source-level compatibility with the C standard library, PHP, or platform APIs, even when familiar names are reused.
 
@@ -105,6 +106,18 @@ Instead, it builds on `FILE`-style I/O and exposes redesigned stream types such 
 - `binary_stream`
 - `text_stream`
 
+### 7. Practical Japanese text-processing helpers
+
+xer includes small Japanese text-processing building blocks that are useful in ordinary tools and examples:
+
+- kansuji conversion
+- furigana formatting
+- MeCab-based morphological parsing and wakachi-gaki helpers
+- kana and romaji conversion helpers built on MeCab readings
+- braille constants, low-level character conversion, kana text conversion, ASCII mode switching, information-processing braille helpers, and MeCab-based braille translation
+
+The braille facilities are practical building blocks. They do not claim to be a complete, standards-grade braille translation engine, and MeCab-based conversion depends on the readings produced by the external MeCab dictionary.
+
 ## Public headers
 
 Current public headers:
@@ -116,7 +129,11 @@ Current public headers:
 - `xer/scope.h`
 - `xer/string.h`
 - `xer/ctype.h`
+- `xer/braille.h`
 - `xer/stdlib.h`
+- `xer/kansuji.h`
+- `xer/mecab.h`
+- `xer/furigana.h`
 - `xer/bytes.h`
 - `xer/base64.h`
 - `xer/parse.h`
@@ -201,6 +218,7 @@ At least for now, xer does not aim to provide:
 - `iostream`-based design
 - complete compatibility with all host-specific behavior
 - immediate support for every compiler
+- complete Japanese reading disambiguation or complete braille translation
 
 Some headers are intentionally not provided as standalone public headers, and some areas such as `math.h` are postponed.
 
@@ -215,6 +233,7 @@ These documents describe the current direction of the project, including:
 - path handling
 - I/O design
 - arithmetic behavior
+- MeCab integration policy
 - Tcl/Tk integration policy
 - image/canvas and bitmap-font policy
 - coding conventions
