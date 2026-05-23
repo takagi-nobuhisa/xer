@@ -33,6 +33,7 @@
 ### Data Encoding and Format Processing
 
 - `xer/bytes.h`
+- `xer/binary.h`
 - `xer/base64.h`
 - `xer/parse.h`
 - `xer/json.h`
