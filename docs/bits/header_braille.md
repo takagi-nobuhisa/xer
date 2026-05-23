@@ -24,7 +24,7 @@ The current implementation provides:
 
 - Japanese braille numeric and alphabetic indicators
 - Japanese braille capital indicators
-- information-processing braille indicators
+- information-processing braille indicators with `ip_` names
 - one-character English alphabet conversion
 - one-character digit conversion under an already active numeric mode
 - one-character alphanumeric dispatch
@@ -69,6 +69,12 @@ inline constexpr std::u8string_view alphabetic_indicator;
 inline constexpr std::u8string_view capital_indicator;
 inline constexpr std::u8string_view double_capital_indicator;
 
+inline constexpr std::u8string_view ip_lowercase_indicator;
+inline constexpr std::u8string_view ip_uppercase_indicator;
+inline constexpr std::u8string_view ip_single_uppercase_indicator;
+inline constexpr std::u8string_view ip_double_uppercase_indicator;
+inline constexpr std::u8string_view ip_numeric_indicator;
+
 [[nodiscard]] constexpr auto alpha_to_braille(char32_t c)
     -> result<std::u8string_view>;
 
@@ -89,16 +95,6 @@ inline constexpr std::u8string_view double_capital_indicator;
 
 [[nodiscard]] auto kana_text_to_braille(std::u8string_view text)
     -> result<std::u8string>;
-
-namespace information_processing {
-
-inline constexpr std::u8string_view lowercase_indicator;
-inline constexpr std::u8string_view uppercase_indicator;
-inline constexpr std::u8string_view single_uppercase_indicator;
-inline constexpr std::u8string_view double_uppercase_indicator;
-inline constexpr std::u8string_view numeric_indicator;
-
-} // namespace information_processing
 
 } // namespace xer::braille
 ```
@@ -189,67 +185,63 @@ text += u8"⠁⠃⠉";
 
 ## Information-Processing Braille Indicators
 
-Information-processing braille indicators are placed under:
+Information-processing braille indicators are exposed directly in `xer::braille` with the `ip_` prefix.
+
+The `ip_` prefix keeps information-processing braille names short while still separating them from the ordinary Japanese braille indicators.
+
+### `ip_lowercase_indicator`
 
 ```cpp
-namespace xer::braille::information_processing
+inline constexpr std::u8string_view ip_lowercase_indicator = u8"⠰";
 ```
 
-This keeps them separate from the ordinary Japanese braille indicators while still making them available through the same public header.
-
-### `lowercase_indicator`
-
-```cpp
-inline constexpr std::u8string_view lowercase_indicator = u8"⠰";
-```
-
-`lowercase_indicator` is the information-processing braille lowercase indicator.
+`ip_lowercase_indicator` is the information-processing braille lowercase indicator.
 
 It is the Unicode braille pattern for dots 5-6.
 
 ---
 
-### `uppercase_indicator`
+### `ip_uppercase_indicator`
 
 ```cpp
-inline constexpr std::u8string_view uppercase_indicator = u8"⠠";
+inline constexpr std::u8string_view ip_uppercase_indicator = u8"⠠";
 ```
 
-`uppercase_indicator` is the information-processing braille uppercase indicator.
+`ip_uppercase_indicator` is the information-processing braille uppercase indicator.
 
 It is the Unicode braille pattern for dot 6.
 
 ---
 
-### `single_uppercase_indicator`
+### `ip_single_uppercase_indicator`
 
 ```cpp
-inline constexpr std::u8string_view single_uppercase_indicator = u8"⠠";
+inline constexpr std::u8string_view ip_single_uppercase_indicator = u8"⠠";
 ```
 
-`single_uppercase_indicator` represents the single-uppercase indicator.
+`ip_single_uppercase_indicator` represents the single-uppercase indicator.
 
-At the current stage, it has the same cell as `uppercase_indicator`.
+At the current stage, it has the same cell as `ip_uppercase_indicator`.
 
 ---
 
-### `double_uppercase_indicator`
+### `ip_double_uppercase_indicator`
 
 ```cpp
-inline constexpr std::u8string_view double_uppercase_indicator = u8"⠠⠠";
+inline constexpr std::u8string_view ip_double_uppercase_indicator = u8"⠠⠠";
 ```
 
-`double_uppercase_indicator` represents two consecutive uppercase indicators.
+`ip_double_uppercase_indicator` represents two consecutive uppercase indicators.
 
 ---
 
-### `numeric_indicator`
+### `ip_numeric_indicator`
 
 ```cpp
-inline constexpr std::u8string_view numeric_indicator = u8"⠼";
+inline constexpr std::u8string_view ip_numeric_indicator = u8"⠼";
 ```
 
-`numeric_indicator` is the information-processing braille numeric indicator.
+`ip_numeric_indicator` is the information-processing braille numeric indicator.
 
 It is the Unicode braille pattern for dots 3-4-5-6.
 

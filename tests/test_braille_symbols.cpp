@@ -23,19 +23,17 @@ void test_general_braille_indicators()
 
 void test_information_processing_braille_indicators()
 {
-    namespace ip = xer::braille::information_processing;
+    static_assert(xer::braille::ip_lowercase_indicator == u8"⠰");
+    static_assert(xer::braille::ip_uppercase_indicator == u8"⠠");
+    static_assert(xer::braille::ip_single_uppercase_indicator == u8"⠠");
+    static_assert(xer::braille::ip_double_uppercase_indicator == u8"⠠⠠");
+    static_assert(xer::braille::ip_numeric_indicator == u8"⠼");
 
-    static_assert(ip::lowercase_indicator == u8"⠰");
-    static_assert(ip::uppercase_indicator == u8"⠠");
-    static_assert(ip::single_uppercase_indicator == u8"⠠");
-    static_assert(ip::double_uppercase_indicator == u8"⠠⠠");
-    static_assert(ip::numeric_indicator == u8"⠼");
-
-    xer_assert(ip::lowercase_indicator == xer::braille::alphabetic_indicator);
-    xer_assert(ip::uppercase_indicator == xer::braille::capital_indicator);
-    xer_assert(ip::single_uppercase_indicator == xer::braille::capital_indicator);
-    xer_assert(ip::double_uppercase_indicator == xer::braille::double_capital_indicator);
-    xer_assert(ip::numeric_indicator == xer::braille::numeric_indicator);
+    xer_assert(xer::braille::ip_lowercase_indicator == xer::braille::alphabetic_indicator);
+    xer_assert(xer::braille::ip_uppercase_indicator == xer::braille::capital_indicator);
+    xer_assert(xer::braille::ip_single_uppercase_indicator == xer::braille::capital_indicator);
+    xer_assert(xer::braille::ip_double_uppercase_indicator == xer::braille::double_capital_indicator);
+    xer_assert(xer::braille::ip_numeric_indicator == xer::braille::numeric_indicator);
 }
 
 } // namespace

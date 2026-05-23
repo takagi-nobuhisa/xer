@@ -64,20 +64,21 @@ auto main() -> int {
         return 1;
     }
 
-    namespace ip = xer::braille::information_processing;
-
-    if (!print_label_and_text(u8"information lowercase: ",
-                              concat(ip::lowercase_indicator, letters))) {
+    if (!print_label_and_text(
+            u8"information lowercase: ",
+            concat(xer::braille::ip_lowercase_indicator, letters))) {
         return 1;
     }
 
-    if (!print_label_and_text(u8"information uppercase: ",
-                              concat(ip::uppercase_indicator, u8"⠁"))) {
+    if (!print_label_and_text(
+            u8"information uppercase: ",
+            concat(xer::braille::ip_uppercase_indicator, u8"⠁"))) {
         return 1;
     }
 
-    if (!print_label_and_text(u8"information numeric: ",
-                              concat(ip::numeric_indicator, digits))) {
+    if (!print_label_and_text(
+            u8"information numeric: ",
+            concat(xer::braille::ip_numeric_indicator, digits))) {
         return 1;
     }
 
