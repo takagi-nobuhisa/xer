@@ -1323,13 +1323,6 @@ private:
     std::size_t buffer_size_ = 0;
 };
 
-template<typename InputIt>
-[[nodiscard]] constexpr auto md5_iter(InputIt first, InputIt last) -> std::array<std::byte, 16>
-{
-    md5_context context;
-    context.update(first, last);
-    return context.final();
-}
 
 
 [[nodiscard]] constexpr auto sha1_read_u32_be(
@@ -1389,53 +1382,51 @@ public:
         }
 
         std::array<std::byte, 20> digest{};
-        sha1_write_u32_be(digest, 0, h0_);
-        sha1_write_u32_be(digest, 4, h1_);
-        sha1_write_u32_be(digest, 8, h2_);
-        sha1_write_u32_be(digest, 12, h3_);
-        sha1_write_u32_be(digest, 16, h4_);
+        for (std::size_t i = 0; i < h_.size(); ++i) {
+            sha1_write_u32_be(digest, i * 4u, h_[i]);
+        }
         return digest;
     }
 
 private:
     constexpr auto transform(const std::array<std::byte, 64>& block) noexcept -> void
     {
-        std::array<std::uint32_t, 80> words{};
+        std::array<std::uint32_t, 80> w{};
         for (std::size_t i = 0; i < 16u; ++i) {
-            words[i] = sha1_read_u32_be(block, i * 4u);
+            w[i] = sha1_read_u32_be(block, i * 4u);
+        }
+        for (std::size_t i = 16u; i < w.size(); ++i) {
+            w[i] = std::rotl(w[i - 3u] ^ w[i - 8u] ^ w[i - 14u] ^ w[i - 16u], 1);
         }
 
-        for (std::size_t i = 16u; i < words.size(); ++i) {
-            words[i] = std::rotl(
-                words[i - 3u] ^ words[i - 8u] ^ words[i - 14u] ^ words[i - 16u],
-                1);
-        }
+        auto a = h_[0];
+        auto b = h_[1];
+        auto c = h_[2];
+        auto d = h_[3];
+        auto e = h_[4];
 
-        auto a = h0_;
-        auto b = h1_;
-        auto c = h2_;
-        auto d = h3_;
-        auto e = h4_;
-
-        for (std::size_t i = 0; i < words.size(); ++i) {
+        for (std::size_t i = 0; i < 80u; ++i) {
             std::uint32_t f = 0;
             std::uint32_t k = 0;
 
             if (i < 20u) {
                 f = (b & c) | ((~b) & d);
                 k = 0x5a827999u;
-            } else if (i < 40u) {
+            }
+            else if (i < 40u) {
                 f = b ^ c ^ d;
                 k = 0x6ed9eba1u;
-            } else if (i < 60u) {
+            }
+            else if (i < 60u) {
                 f = (b & c) | (b & d) | (c & d);
                 k = 0x8f1bbcdcu;
-            } else {
+            }
+            else {
                 f = b ^ c ^ d;
                 k = 0xca62c1d6u;
             }
 
-            const auto temp = std::rotl(a, 5) + f + e + k + words[i];
+            const auto temp = std::rotl(a, 5) + f + e + k + w[i];
             e = d;
             d = c;
             c = std::rotl(b, 30);
@@ -1443,27 +1434,223 @@ private:
             a = temp;
         }
 
-        h0_ += a;
-        h1_ += b;
-        h2_ += c;
-        h3_ += d;
-        h4_ += e;
+        h_[0] += a;
+        h_[1] += b;
+        h_[2] += c;
+        h_[3] += d;
+        h_[4] += e;
     }
 
-    std::uint32_t h0_ = 0x67452301u;
-    std::uint32_t h1_ = 0xefcdab89u;
-    std::uint32_t h2_ = 0x98badcfeu;
-    std::uint32_t h3_ = 0x10325476u;
-    std::uint32_t h4_ = 0xc3d2e1f0u;
+    std::array<std::uint32_t, 5> h_{
+        0x67452301u,
+        0xefcdab89u,
+        0x98badcfeu,
+        0x10325476u,
+        0xc3d2e1f0u,
+    };
     std::uint64_t bit_count_ = 0;
     std::array<std::byte, 64> buffer_{};
     std::size_t buffer_size_ = 0;
 };
 
+[[nodiscard]] constexpr auto sha256_read_u32_be(
+    const std::array<std::byte, 64>& block,
+    std::size_t offset) noexcept -> std::uint32_t
+{
+    return (static_cast<std::uint32_t>(checksum_byte_value(block[offset])) << 24) |
+        (static_cast<std::uint32_t>(checksum_byte_value(block[offset + 1])) << 16) |
+        (static_cast<std::uint32_t>(checksum_byte_value(block[offset + 2])) << 8) |
+        static_cast<std::uint32_t>(checksum_byte_value(block[offset + 3]));
+}
+
+constexpr auto sha256_write_u32_be(
+    std::array<std::byte, 32>& output,
+    std::size_t offset,
+    std::uint32_t value) noexcept -> void
+{
+    output[offset] = static_cast<std::byte>((value >> 24) & 0xffu);
+    output[offset + 1] = static_cast<std::byte>((value >> 16) & 0xffu);
+    output[offset + 2] = static_cast<std::byte>((value >> 8) & 0xffu);
+    output[offset + 3] = static_cast<std::byte>(value & 0xffu);
+}
+
+class sha256_context {
+public:
+    constexpr auto update_byte(std::uint8_t value) noexcept -> void
+    {
+        buffer_[buffer_size_] = static_cast<std::byte>(value);
+        ++buffer_size_;
+        bit_count_ += 8u;
+
+        if (buffer_size_ == buffer_.size()) {
+            transform(buffer_);
+            buffer_size_ = 0;
+        }
+    }
+
+    template<typename InputIt>
+    constexpr auto update(InputIt first, InputIt last) -> void
+    {
+        for (; first != last; ++first) {
+            update_byte(checksum_byte_value(*first));
+        }
+    }
+
+    [[nodiscard]] constexpr auto final() noexcept -> std::array<std::byte, 32>
+    {
+        const auto message_bit_count = bit_count_;
+
+        update_byte(0x80u);
+        while (buffer_size_ != 56u) {
+            update_byte(0x00u);
+        }
+
+        for (int i = 7; i >= 0; --i) {
+            update_byte(static_cast<std::uint8_t>((message_bit_count >> (i * 8)) & 0xffu));
+        }
+
+        std::array<std::byte, 32> digest{};
+        for (std::size_t i = 0; i < h_.size(); ++i) {
+            sha256_write_u32_be(digest, i * 4u, h_[i]);
+        }
+        return digest;
+    }
+
+private:
+    [[nodiscard]] static constexpr auto ch(
+        std::uint32_t x,
+        std::uint32_t y,
+        std::uint32_t z) noexcept -> std::uint32_t
+    {
+        return (x & y) ^ ((~x) & z);
+    }
+
+    [[nodiscard]] static constexpr auto maj(
+        std::uint32_t x,
+        std::uint32_t y,
+        std::uint32_t z) noexcept -> std::uint32_t
+    {
+        return (x & y) ^ (x & z) ^ (y & z);
+    }
+
+    [[nodiscard]] static constexpr auto big_sigma0(std::uint32_t x) noexcept -> std::uint32_t
+    {
+        return std::rotr(x, 2) ^ std::rotr(x, 13) ^ std::rotr(x, 22);
+    }
+
+    [[nodiscard]] static constexpr auto big_sigma1(std::uint32_t x) noexcept -> std::uint32_t
+    {
+        return std::rotr(x, 6) ^ std::rotr(x, 11) ^ std::rotr(x, 25);
+    }
+
+    [[nodiscard]] static constexpr auto small_sigma0(std::uint32_t x) noexcept -> std::uint32_t
+    {
+        return std::rotr(x, 7) ^ std::rotr(x, 18) ^ (x >> 3);
+    }
+
+    [[nodiscard]] static constexpr auto small_sigma1(std::uint32_t x) noexcept -> std::uint32_t
+    {
+        return std::rotr(x, 17) ^ std::rotr(x, 19) ^ (x >> 10);
+    }
+
+    constexpr auto transform(const std::array<std::byte, 64>& block) noexcept -> void
+    {
+        constexpr std::array<std::uint32_t, 64> k{
+            0x428a2f98u, 0x71374491u, 0xb5c0fbcfu, 0xe9b5dba5u,
+            0x3956c25bu, 0x59f111f1u, 0x923f82a4u, 0xab1c5ed5u,
+            0xd807aa98u, 0x12835b01u, 0x243185beu, 0x550c7dc3u,
+            0x72be5d74u, 0x80deb1feu, 0x9bdc06a7u, 0xc19bf174u,
+            0xe49b69c1u, 0xefbe4786u, 0x0fc19dc6u, 0x240ca1ccu,
+            0x2de92c6fu, 0x4a7484aau, 0x5cb0a9dcu, 0x76f988dau,
+            0x983e5152u, 0xa831c66du, 0xb00327c8u, 0xbf597fc7u,
+            0xc6e00bf3u, 0xd5a79147u, 0x06ca6351u, 0x14292967u,
+            0x27b70a85u, 0x2e1b2138u, 0x4d2c6dfcu, 0x53380d13u,
+            0x650a7354u, 0x766a0abbu, 0x81c2c92eu, 0x92722c85u,
+            0xa2bfe8a1u, 0xa81a664bu, 0xc24b8b70u, 0xc76c51a3u,
+            0xd192e819u, 0xd6990624u, 0xf40e3585u, 0x106aa070u,
+            0x19a4c116u, 0x1e376c08u, 0x2748774cu, 0x34b0bcb5u,
+            0x391c0cb3u, 0x4ed8aa4au, 0x5b9cca4fu, 0x682e6ff3u,
+            0x748f82eeu, 0x78a5636fu, 0x84c87814u, 0x8cc70208u,
+            0x90befffau, 0xa4506cebu, 0xbef9a3f7u, 0xc67178f2u,
+        };
+
+        std::array<std::uint32_t, 64> w{};
+        for (std::size_t i = 0; i < 16u; ++i) {
+            w[i] = sha256_read_u32_be(block, i * 4u);
+        }
+        for (std::size_t i = 16u; i < w.size(); ++i) {
+            w[i] = small_sigma1(w[i - 2u]) + w[i - 7u] +
+                small_sigma0(w[i - 15u]) + w[i - 16u];
+        }
+
+        auto a = h_[0];
+        auto b = h_[1];
+        auto c = h_[2];
+        auto d = h_[3];
+        auto e = h_[4];
+        auto f = h_[5];
+        auto g = h_[6];
+        auto h = h_[7];
+
+        for (std::size_t i = 0; i < 64u; ++i) {
+            const auto temp1 = h + big_sigma1(e) + ch(e, f, g) + k[i] + w[i];
+            const auto temp2 = big_sigma0(a) + maj(a, b, c);
+            h = g;
+            g = f;
+            f = e;
+            e = d + temp1;
+            d = c;
+            c = b;
+            b = a;
+            a = temp1 + temp2;
+        }
+
+        h_[0] += a;
+        h_[1] += b;
+        h_[2] += c;
+        h_[3] += d;
+        h_[4] += e;
+        h_[5] += f;
+        h_[6] += g;
+        h_[7] += h;
+    }
+
+    std::array<std::uint32_t, 8> h_{
+        0x6a09e667u,
+        0xbb67ae85u,
+        0x3c6ef372u,
+        0xa54ff53au,
+        0x510e527fu,
+        0x9b05688cu,
+        0x1f83d9abu,
+        0x5be0cd19u,
+    };
+    std::uint64_t bit_count_ = 0;
+    std::array<std::byte, 64> buffer_{};
+    std::size_t buffer_size_ = 0;
+};
+
+
 template<typename InputIt>
 [[nodiscard]] constexpr auto sha1_iter(InputIt first, InputIt last) -> std::array<std::byte, 20>
 {
     sha1_context context;
+    context.update(first, last);
+    return context.final();
+}
+
+template<typename InputIt>
+[[nodiscard]] constexpr auto sha256_iter(InputIt first, InputIt last) -> std::array<std::byte, 32>
+{
+    sha256_context context;
+    context.update(first, last);
+    return context.final();
+}
+
+template<typename InputIt>
+[[nodiscard]] constexpr auto md5_iter(InputIt first, InputIt last) -> std::array<std::byte, 16>
+{
+    md5_context context;
     context.update(first, last);
     return context.final();
 }
@@ -1593,6 +1780,7 @@ template<std::input_iterator InputIt>
 }
 
 
+
 /**
  * @brief Calculates the SHA-1 digest for a byte span.
  * @param bytes Source bytes.
@@ -1646,6 +1834,62 @@ template<std::input_iterator InputIt>
     }
 
     return sha1(std::span<const std::byte>(*bytes));
+}
+
+
+/**
+ * @brief Calculates the SHA-256 digest for a byte span.
+ * @param bytes Source bytes.
+ * @return 32-byte SHA-256 digest.
+ */
+[[nodiscard]] constexpr auto sha256(std::span<const std::byte> bytes) noexcept -> std::array<std::byte, 32>
+{
+    return detail::sha256_iter(bytes.begin(), bytes.end());
+}
+
+/**
+ * @brief Calculates the SHA-256 digest for a pointer and byte size.
+ * @param data Source byte pointer.
+ * @param size Number of bytes.
+ * @return 32-byte SHA-256 digest on success.
+ */
+[[nodiscard]] inline auto sha256(
+    const void* data,
+    std::size_t size) noexcept -> result<std::array<std::byte, 32>>
+{
+    const auto bytes = detail::checksum_bytes_from_pointer(data, size);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return sha256(*bytes);
+}
+
+/**
+ * @brief Calculates the SHA-256 digest for an iterator range.
+ * @param first First byte iterator.
+ * @param last End iterator.
+ * @return 32-byte SHA-256 digest.
+ */
+template<std::input_iterator InputIt>
+[[nodiscard]] constexpr auto sha256(InputIt first, InputIt last) -> std::array<std::byte, 32>
+{
+    return detail::sha256_iter(first, last);
+}
+
+/**
+ * @brief Calculates the SHA-256 digest for a file.
+ * @param filename Source file path.
+ * @return 32-byte SHA-256 digest on success.
+ */
+[[nodiscard]] inline auto sha256(const path& filename) -> result<std::array<std::byte, 32>>
+{
+    const auto bytes = file_get_contents(filename);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return sha256(std::span<const std::byte>(*bytes));
 }
 
 } // namespace xer

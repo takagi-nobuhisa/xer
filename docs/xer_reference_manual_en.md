@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.5.0a1**
+Target version: **v0.5.0a2**
 
 ---
 
@@ -5056,7 +5056,7 @@ auto main() -> int
 
 `<xer/binary.h>` provides small binary-data utility functions.
 
-The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for XER's 128-bit unsigned integer type, simple checksum calculation, CRC calculation, and basic hash calculation for byte sequences and files.
+The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for XER's 128-bit unsigned integer type, simple checksum calculation, CRC calculation, binary-to-hex conversion, hex-to-binary conversion, and practical hash calculation for byte sequences and files.
 
 These functions treat input values as fixed-width binary values. They do not depend on the CPU's native endian setting.
 
@@ -5112,7 +5112,9 @@ When `xer::uint128_t` is available:
 auto reverse_bits(xer::uint128_t value) noexcept -> xer::uint128_t;
 ```
 
-For simple checksums, the header provides additive checksums, XOR checksums, and convenience aliases in 8-bit, 16-bit, and 32-bit forms. It also provides CRC16 and CRC32 calculation helpers, plus MD5 and SHA-1 digest helpers for compatibility-oriented hashing.
+For simple checksums, the header provides additive checksums, XOR checksums, and convenience aliases in 8-bit, 16-bit, and 32-bit forms. It also provides CRC16 and CRC32 calculation helpers.
+
+For binary/text conversion, the header provides `bin2hex` and `hex2bin`. For practical hash calculation, the header provides `md5`, `sha1`, and `sha256`.
 
 ---
 
@@ -5590,7 +5592,7 @@ For empty input, all checksum functions return zero.
 The rough boundary is:
 
 - `<xer/bytes.h>` converts text or byte-like storage into explicit byte views or byte vectors
-- `<xer/binary.h>` performs small binary value manipulation, simple checksum calculation, CRC calculation, and basic hash calculation
+- `<xer/binary.h>` performs small binary value manipulation, simple checksum calculation, CRC calculation, hex conversion, and hash calculation
 - `<xer/stdio.h>` handles stream-based binary I/O and whole-file operations
 
 ---
@@ -5648,7 +5650,8 @@ auto main() -> int
 ```cpp
 auto bin2hex(std::span<const std::byte> bytes) -> std::u8string;
 
-auto bin2hex(const void* data, std::size_t size) -> xer::result<std::u8string>;
+auto bin2hex(const void* data, std::size_t size) noexcept
+    -> xer::result<std::u8string>;
 
 template<std::input_iterator InputIt>
 auto bin2hex(InputIt first, InputIt last) -> std::u8string;
@@ -5690,21 +5693,23 @@ If the input length is odd, or if the input contains a non-hexadecimal character
 
 ---
 
-## MD5
 
-`md5` calculates the MD5 message digest of a byte sequence. The digest is returned as 16 raw bytes. Use `bin2hex` when a conventional 32-character hexadecimal representation is needed.
+## Hash Functions
+
+`md5`, `sha1`, and `sha256` calculate message digests of byte sequences and files.
 
 ```cpp
-auto md5(std::span<const std::byte> bytes) noexcept -> std::array<std::byte, 16>;
+auto md5(std::span<const std::byte> bytes) noexcept
+    -> std::array<std::byte, 16>;
 
-auto md5(const void* data, std::size_t size) noexcept
-    -> xer::result<std::array<std::byte, 16>>;
+auto sha1(std::span<const std::byte> bytes) noexcept
+    -> std::array<std::byte, 20>;
 
-template<std::input_iterator InputIt>
-auto md5(InputIt first, InputIt last) -> std::array<std::byte, 16>;
-
-auto md5(const xer::path& filename) -> xer::result<std::array<std::byte, 16>>;
+auto sha256(std::span<const std::byte> bytes) noexcept
+    -> std::array<std::byte, 32>;
 ```
+
+The returned array contains the raw digest bytes, not a hexadecimal string. Use `bin2hex` when a conventional hexadecimal representation is needed.
 
 For example:
 
@@ -5712,75 +5717,117 @@ For example:
 const auto text = std::string_view("abc");
 const auto bytes = std::as_bytes(std::span(text));
 
-const auto digest = xer::md5(bytes);
+const auto digest = xer::sha256(bytes);
 const auto hex = xer::bin2hex(digest.begin(), digest.end());
-// hex == u8"900150983cd24fb0d6963f7d28e17f72"
+// hex == u8"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 ```
 
-The span overload does not allocate and does not fail. The pointer-and-size overload fails with `error_t::invalid_argument` when `data == nullptr` and `size != 0`. `data == nullptr` with `size == 0` is accepted as an empty byte sequence.
+The digest sizes are:
 
-The iterator-range overload accepts `std::byte` and byte-like integer values convertible to `std::uint8_t`.
+- `md5`: 16 bytes, 128 bits
+- `sha1`: 20 bytes, 160 bits
+- `sha256`: 32 bytes, 256 bits
 
-The file overload reads the whole file content and then calculates the MD5 digest. File I/O failures are reported through `xer::result`.
-
-Known test values include:
-
-| Input | MD5 hex string |
-| --- | --- |
-| empty input | `d41d8cd98f00b204e9800998ecf8427e` |
-| `a` | `0cc175b9c0f1b6a831c399e269772661` |
-| `abc` | `900150983cd24fb0d6963f7d28e17f72` |
-| `message digest` | `f96b697d7cb7938d525a2f31aaf161d0` |
-| `abcdefghijklmnopqrstuvwxyz` | `c3fcd3d76192e4007dfb496cca67e13b` |
-
-MD5 is provided for compatibility, file identification, and non-security checks. It must not be used as a cryptographic security mechanism.
+MD5 and SHA-1 are provided mainly for compatibility with existing file formats, tools, and test data. They must not be used as cryptographic security mechanisms. Among these three functions, SHA-256 is the preferred choice when a stronger modern hash is needed.
 
 ---
 
-## SHA-1
+## Hash Input Forms
 
-`sha1` calculates the SHA-1 message digest of a byte sequence. The digest is returned as 20 raw bytes. Use `bin2hex` when a conventional 40-character hexadecimal representation is needed.
+The hash functions are provided for four input forms.
+
+### `std::span<const std::byte>`
+
+The span overloads are the primary in-memory byte-sequence overloads.
 
 ```cpp
-auto sha1(std::span<const std::byte> bytes) noexcept -> std::array<std::byte, 20>;
+auto md5(std::span<const std::byte> bytes) noexcept
+    -> std::array<std::byte, 16>;
+
+auto sha1(std::span<const std::byte> bytes) noexcept
+    -> std::array<std::byte, 20>;
+
+auto sha256(std::span<const std::byte> bytes) noexcept
+    -> std::array<std::byte, 32>;
+```
+
+These overloads do not allocate and do not fail.
+
+### Pointer and Size
+
+Pointer-and-size overloads are provided for C-style byte buffers.
+
+```cpp
+auto md5(const void* data, std::size_t size) noexcept
+    -> xer::result<std::array<std::byte, 16>>;
 
 auto sha1(const void* data, std::size_t size) noexcept
     -> xer::result<std::array<std::byte, 20>>;
 
+auto sha256(const void* data, std::size_t size) noexcept
+    -> xer::result<std::array<std::byte, 32>>;
+```
+
+If `data` is `nullptr` and `size` is not zero, these overloads fail with `error_t::invalid_argument`.
+
+`data == nullptr` with `size == 0` is accepted and represents an empty byte sequence.
+
+### Iterator Range
+
+Iterator-range overloads are provided for byte-like ranges.
+
+```cpp
+template<std::input_iterator InputIt>
+auto md5(InputIt first, InputIt last) -> std::array<std::byte, 16>;
+
 template<std::input_iterator InputIt>
 auto sha1(InputIt first, InputIt last) -> std::array<std::byte, 20>;
 
-auto sha1(const xer::path& filename) -> xer::result<std::array<std::byte, 20>>;
+template<std::input_iterator InputIt>
+auto sha256(InputIt first, InputIt last) -> std::array<std::byte, 32>;
 ```
 
-For example:
+The iterator value type must be `std::byte` or a byte-like integer value convertible to `std::uint8_t`.
+
+These overloads are useful for containers such as `std::array<std::byte, N>`, `std::vector<std::byte>`, and `std::array<std::uint8_t, N>`.
+
+### File Path
+
+File overloads calculate the hash of a whole file.
 
 ```cpp
-const auto text = std::string_view("abc");
-const auto bytes = std::as_bytes(std::span(text));
-
-const auto digest = xer::sha1(bytes);
-const auto hex = xer::bin2hex(digest.begin(), digest.end());
-// hex == u8"a9993e364706816aba3e25717850c26c9cd0d89d"
+auto md5(const xer::path& filename) -> xer::result<std::array<std::byte, 16>>;
+auto sha1(const xer::path& filename) -> xer::result<std::array<std::byte, 20>>;
+auto sha256(const xer::path& filename) -> xer::result<std::array<std::byte, 32>>;
 ```
 
-The span overload does not allocate and does not fail. The pointer-and-size overload fails with `error_t::invalid_argument` when `data == nullptr` and `size != 0`. `data == nullptr` with `size == 0` is accepted as an empty byte sequence.
+These overloads read the whole file content and then calculate the hash. File I/O failures are reported through `xer::result`.
 
-The iterator-range overload accepts `std::byte` and byte-like integer values convertible to `std::uint8_t`.
+---
 
-The file overload reads the whole file content and then calculates the SHA-1 digest. File I/O failures are reported through `xer::result`.
+## Known Hash Test Values
 
-Known test values include:
+Known digest values include:
 
-| Input | SHA-1 hex string |
-| --- | --- |
-| empty input | `da39a3ee5e6b4b0d3255bfef95601890afd80709` |
-| `a` | `86f7e437faa5a7fce15d1ddcb9eaeaea377667b8` |
-| `abc` | `a9993e364706816aba3e25717850c26c9cd0d89d` |
-| `message digest` | `c12252ceda8be8994d5fa0290a47231c1d16aae3` |
-| `abcdefghijklmnopqrstuvwxyz` | `32d10c7b8cf96570ca04ce37f2a19d84240d3a89` |
+| Input | MD5 | SHA-1 | SHA-256 |
+| --- | --- | --- | --- |
+| empty input | `d41d8cd98f00b204e9800998ecf8427e` | `da39a3ee5e6b4b0d3255bfef95601890afd80709` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `a` | `0cc175b9c0f1b6a831c399e269772661` | `86f7e437faa5a7fce15d1ddcb9eaeaea377667b8` | `ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb` |
+| `abc` | `900150983cd24fb0d6963f7d28e17f72` | `a9993e364706816aba3e25717850c26c9cd0d89d` | `ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad` |
+| `message digest` | `f96b697d7cb7938d525a2f31aaf161d0` | `c12252ceda8be8994d5fa0290a47231c1d16aae3` | `f7846f55cf23e14eebeab5b4e1550cad5b509e3348fbc4efa3a1413d393cb650` |
+| `abcdefghijklmnopqrstuvwxyz` | `c3fcd3d76192e4007dfb496cca67e13b` | `32d10c7b8cf96570ca04ce37f2a19d84240d3a89` | `71c480df93d6ae2f1efad1447c66c9525e316218cf51fc8d9ed832f2daf18b73` |
 
-SHA-1 is provided for compatibility, file identification, and non-security checks. It must not be used as a cryptographic security mechanism.
+---
+
+## Empty Input for Hash Functions
+
+Empty input is valid.
+
+For empty input:
+
+- `md5` returns `d41d8cd98f00b204e9800998ecf8427e`
+- `sha1` returns `da39a3ee5e6b4b0d3255bfef95601890afd80709`
+- `sha256` returns `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
 
 ---
 

@@ -24,6 +24,7 @@ The current library scope includes:
 
 - string and character handling
 - I/O and filesystem-oriented utilities
+- binary data helpers, including checksums, CRC, hex conversion, MD5, SHA-1, and SHA-256
 - path handling
 - arithmetic helpers and numeric utility types
 - time utilities
@@ -144,6 +145,7 @@ Current public headers:
 - `xer/furigana.h`
 - `xer/bytes.h`
 - `xer/base64.h`
+- `xer/binary.h`
 - `xer/parse.h`
 - `xer/json.h`
 - `xer/ini.h`
