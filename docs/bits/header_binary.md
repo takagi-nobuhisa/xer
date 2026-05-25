@@ -4,7 +4,7 @@
 
 `<xer/binary.h>` provides small binary-data utility functions.
 
-The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for XER's 128-bit unsigned integer type, simple checksum calculation, and CRC calculation for byte sequences and files.
+The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for XER's 128-bit unsigned integer type, simple checksum calculation, CRC calculation for byte sequences and files, and hexadecimal conversion helpers.
 
 These functions treat input values as fixed-width binary values. They do not depend on the CPU's native endian setting.
 
@@ -61,6 +61,20 @@ auto reverse_bits(xer::uint128_t value) noexcept -> xer::uint128_t;
 ```
 
 For simple checksums, the header provides additive checksums, XOR checksums, and convenience aliases in 8-bit, 16-bit, and 32-bit forms. It also provides CRC16 and CRC32 calculation helpers.
+
+The header also provides PHP-style hexadecimal conversion helpers:
+
+```cpp
+auto bin2hex(std::span<const std::byte> bytes) -> std::u8string;
+
+auto bin2hex(const void* data, std::size_t size)
+    -> xer::result<std::u8string>;
+
+template<std::input_iterator InputIt>
+auto bin2hex(InputIt first, InputIt last) -> std::u8string;
+
+auto hex2bin(std::u8string_view hex) -> xer::result<std::vector<std::byte>>;
+```
 
 ---
 
@@ -524,6 +538,71 @@ For empty input:
 Empty input is valid.
 
 For empty input, all checksum functions return zero.
+
+---
+
+
+## `bin2hex` and `hex2bin`
+
+`bin2hex` converts binary data to a lowercase hexadecimal string.
+
+```cpp
+auto bin2hex(std::span<const std::byte> bytes) -> std::u8string;
+
+auto bin2hex(const void* data, std::size_t size)
+    -> xer::result<std::u8string>;
+
+template<std::input_iterator InputIt>
+auto bin2hex(InputIt first, InputIt last) -> std::u8string;
+```
+
+Each input byte is represented by exactly two hexadecimal digits.
+
+```cpp
+const std::array<std::byte, 4> bytes {
+    std::byte{0x12},
+    std::byte{0x34},
+    std::byte{0xab},
+    std::byte{0xcd},
+};
+
+const auto text = xer::bin2hex(std::span<const std::byte>(bytes));
+// text == u8"1234abcd"
+```
+
+The output uses lowercase letters `a` through `f`.
+
+The iterator overload accepts byte-like values. The iterator value type must be `std::byte` or a byte-like integer value convertible to `std::uint8_t`.
+
+The pointer-and-size overload is provided for C-style byte buffers. If `data` is `nullptr` and `size` is not zero, it fails with `error_t::invalid_argument`. `data == nullptr` with `size == 0` is accepted and represents an empty byte sequence.
+
+`hex2bin` converts a hexadecimal string back to binary data.
+
+```cpp
+auto hex2bin(std::u8string_view hex) -> xer::result<std::vector<std::byte>>;
+```
+
+`hex2bin` accepts both lowercase and uppercase hexadecimal digits.
+
+```cpp
+const auto bytes = xer::hex2bin(u8"1234ABCD");
+if (!bytes.has_value()) {
+    return 1;
+}
+
+// *bytes contains { 0x12, 0x34, 0xab, 0xcd }
+```
+
+The input string must contain an even number of characters. If the input length is odd, `hex2bin` fails with `error_t::invalid_argument`.
+
+If the input contains a character other than `0` through `9`, `a` through `f`, or `A` through `F`, `hex2bin` fails with `error_t::invalid_argument`.
+
+Empty input is valid:
+
+- `bin2hex` returns an empty string for an empty byte sequence.
+- `hex2bin` returns an empty vector for an empty string.
+
+These functions are modeled after PHP's `bin2hex` and `hex2bin`, but use XER's usual C++ types and `xer::result` for fallible conversion.
 
 ---
 

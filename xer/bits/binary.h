@@ -15,6 +15,8 @@
 #include <iterator>
 #include <numeric>
 #include <span>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -465,6 +467,47 @@ template<typename InputIt>
     return crc ^ 0xffffffffu;
 }
 
+
+[[nodiscard]] constexpr auto hex_digit_value(char8_t value) noexcept -> int
+{
+    if (value >= u8'0' && value <= u8'9') {
+        return static_cast<int>(value - u8'0');
+    }
+
+    if (value >= u8'a' && value <= u8'f') {
+        return static_cast<int>(value - u8'a') + 10;
+    }
+
+    if (value >= u8'A' && value <= u8'F') {
+        return static_cast<int>(value - u8'A') + 10;
+    }
+
+    return -1;
+}
+
+template<typename InputIt>
+[[nodiscard]] auto bin2hex_iter(InputIt first, InputIt last) -> std::u8string
+{
+    constexpr char8_t table[] = u8"0123456789abcdef";
+
+    std::u8string result;
+
+    if constexpr (std::forward_iterator<InputIt>) {
+        const auto size = std::distance(first, last);
+        if (size > 0) {
+            result.reserve(static_cast<std::size_t>(size) * 2u);
+        }
+    }
+
+    for (; first != last; ++first) {
+        const auto value = checksum_byte_value(*first);
+        result.push_back(table[(value >> 4) & 0x0fu]);
+        result.push_back(table[value & 0x0fu]);
+    }
+
+    return result;
+}
+
 [[nodiscard]] inline auto checksum_bytes_from_pointer(
     const void* data,
     const std::size_t size) noexcept -> result<std::span<const std::byte>>
@@ -477,6 +520,75 @@ template<typename InputIt>
 }
 
 } // namespace detail
+
+
+/**
+ * @brief Converts binary data to a lowercase hexadecimal string.
+ * @param bytes Source bytes.
+ * @return Lowercase hexadecimal string.
+ */
+[[nodiscard]] inline auto bin2hex(std::span<const std::byte> bytes) -> std::u8string
+{
+    return detail::bin2hex_iter(bytes.begin(), bytes.end());
+}
+
+/**
+ * @brief Converts binary data to a lowercase hexadecimal string.
+ * @param data Source byte pointer.
+ * @param size Number of bytes.
+ * @return Lowercase hexadecimal string on success.
+ */
+[[nodiscard]] inline auto bin2hex(
+    const void* data,
+    std::size_t size) -> result<std::u8string>
+{
+    const auto bytes = detail::checksum_bytes_from_pointer(data, size);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return bin2hex(*bytes);
+}
+
+/**
+ * @brief Converts an iterator range of bytes to a lowercase hexadecimal string.
+ * @param first First byte iterator.
+ * @param last End iterator.
+ * @return Lowercase hexadecimal string.
+ */
+template<std::input_iterator InputIt>
+[[nodiscard]] auto bin2hex(InputIt first, InputIt last) -> std::u8string
+{
+    return detail::bin2hex_iter(first, last);
+}
+
+/**
+ * @brief Converts a hexadecimal string to binary data.
+ * @param hex Hexadecimal string. Both lowercase and uppercase letters are accepted.
+ * @return Binary data on success.
+ */
+[[nodiscard]] inline auto hex2bin(std::u8string_view hex) -> result<std::vector<std::byte>>
+{
+    if ((hex.size() % 2u) != 0u) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    std::vector<std::byte> result;
+    result.reserve(hex.size() / 2u);
+
+    for (std::size_t i = 0; i < hex.size(); i += 2u) {
+        const auto high = detail::hex_digit_value(hex[i]);
+        const auto low = detail::hex_digit_value(hex[i + 1u]);
+
+        if (high < 0 || low < 0) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        result.push_back(static_cast<std::byte>((high << 4) | low));
+    }
+
+    return result;
+}
 
 /**
  * @brief Calculates an 8-bit additive checksum for a byte span.

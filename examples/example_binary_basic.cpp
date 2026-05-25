@@ -17,6 +17,8 @@
 // make_u16: 1234
 // byteswap u32: 78563412
 // reverse_bits u8: 48
+// bin2hex: 01020304
+// hex2bin size: 4
 // checksum8: 0a
 // checksum_xor16_be: 0206
 // checksum32_le: 04030201
@@ -65,6 +67,21 @@ auto main() -> int
     }
 
     if (!xer::printf(u8"reverse_bits u8: %02x\n", xer::reverse_bits(bits8)).has_value()) {
+        return 1;
+    }
+
+
+    const auto hex = xer::bin2hex(std::span<const std::byte>(bytes));
+    if (!xer::printf(u8"bin2hex: %@\n", hex).has_value()) {
+        return 1;
+    }
+
+    const auto decoded = xer::hex2bin(hex);
+    if (!decoded.has_value()) {
+        return 1;
+    }
+
+    if (!xer::printf(u8"hex2bin size: %@\n", decoded->size()).has_value()) {
         return 1;
     }
 

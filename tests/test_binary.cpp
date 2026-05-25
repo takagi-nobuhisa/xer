@@ -158,6 +158,76 @@ void test_reverse_bits_round_trip()
 }
 
 
+
+void test_bin2hex_span()
+{
+    const std::array<std::byte, 5> bytes{
+        std::byte{0x00},
+        std::byte{0x0f},
+        std::byte{0x10},
+        std::byte{0xab},
+        std::byte{0xff},
+    };
+
+    const auto hex = xer::bin2hex(std::span<const std::byte>(bytes));
+    xer_assert_eq(hex, u8"000f10abff");
+    xer_assert_eq(xer::bin2hex(std::span<const std::byte>{}), u8"");
+}
+
+void test_bin2hex_pointer()
+{
+    const std::array<std::byte, 3> bytes{
+        std::byte{0x12},
+        std::byte{0x34},
+        std::byte{0x56},
+    };
+
+    const auto hex = xer::bin2hex(bytes.data(), bytes.size());
+    xer_assert(hex.has_value());
+    xer_assert_eq(*hex, u8"123456");
+
+    const auto empty = xer::bin2hex(nullptr, 0);
+    xer_assert(empty.has_value());
+    xer_assert_eq(*empty, u8"");
+
+    const auto invalid = xer::bin2hex(nullptr, 1);
+    xer_assert_not(invalid.has_value());
+}
+
+void test_bin2hex_iterators()
+{
+    const std::vector<unsigned char> bytes{0x00u, 0x0fu, 0x10u, 0xabu, 0xffu};
+    xer_assert_eq(xer::bin2hex(bytes.begin(), bytes.end()), u8"000f10abff");
+
+    const std::u8string text = u8"ABC";
+    xer_assert_eq(xer::bin2hex(text.begin(), text.end()), u8"414243");
+}
+
+void test_hex2bin()
+{
+    const auto bytes = xer::hex2bin(u8"000f10ABff");
+    xer_assert(bytes.has_value());
+    xer_assert_eq(bytes->size(), 5u);
+    xer_assert((*bytes)[0] == std::byte{0x00});
+    xer_assert((*bytes)[1] == std::byte{0x0f});
+    xer_assert((*bytes)[2] == std::byte{0x10});
+    xer_assert((*bytes)[3] == std::byte{0xab});
+    xer_assert((*bytes)[4] == std::byte{0xff});
+
+    const auto round_trip = xer::bin2hex(std::span<const std::byte>(*bytes));
+    xer_assert_eq(round_trip, u8"000f10abff");
+
+    const auto empty = xer::hex2bin(u8"");
+    xer_assert(empty.has_value());
+    xer_assert_eq(empty->size(), 0u);
+
+    const auto odd = xer::hex2bin(u8"0");
+    xer_assert_not(odd.has_value());
+
+    const auto invalid = xer::hex2bin(u8"00xz");
+    xer_assert_not(invalid.has_value());
+}
+
 void test_checksum_span()
 {
     constexpr std::array<std::byte, 5> bytes{
@@ -497,6 +567,10 @@ auto main() -> int
     test_reverse_bits_u128();
 #endif
     test_reverse_bits_round_trip();
+    test_bin2hex_span();
+    test_bin2hex_pointer();
+    test_bin2hex_iterators();
+    test_hex2bin();
     test_checksum_span();
     test_checksum_pointer();
     test_checksum_iterators();
