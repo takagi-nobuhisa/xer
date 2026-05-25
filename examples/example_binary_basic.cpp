@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string>
 
 #include <xer/binary.h>
 #include <xer/stdio.h>
@@ -17,13 +18,13 @@
 // make_u16: 1234
 // byteswap u32: 78563412
 // reverse_bits u8: 48
-// bin2hex: 01020304
-// hex2bin size: 4
 // checksum8: 0a
 // checksum_xor16_be: 0206
 // checksum32_le: 04030201
 // crc16: bb3d
 // crc32: cbf43926
+// bin2hex: 01020304
+// md5 abc: 900150983cd24fb0d6963f7d28e17f72
 
 auto main() -> int
 {
@@ -47,6 +48,11 @@ auto main() -> int
         std::byte{'8'},
         std::byte{'9'},
     };
+    constexpr std::array<std::byte, 3> md5_bytes{
+        std::byte{'a'},
+        std::byte{'b'},
+        std::byte{'c'},
+    };
 
     if (!xer::printf(u8"high_u8: %02x\n", xer::high_u8(value16)).has_value()) {
         return 1;
@@ -67,21 +73,6 @@ auto main() -> int
     }
 
     if (!xer::printf(u8"reverse_bits u8: %02x\n", xer::reverse_bits(bits8)).has_value()) {
-        return 1;
-    }
-
-
-    const auto hex = xer::bin2hex(std::span<const std::byte>(bytes));
-    if (!xer::printf(u8"bin2hex: %@\n", hex).has_value()) {
-        return 1;
-    }
-
-    const auto decoded = xer::hex2bin(hex);
-    if (!decoded.has_value()) {
-        return 1;
-    }
-
-    if (!xer::printf(u8"hex2bin size: %@\n", decoded->size()).has_value()) {
         return 1;
     }
 
@@ -116,6 +107,17 @@ auto main() -> int
     if (!xer::printf(
         u8"crc32: %08x\n",
         xer::crc32(std::span<const std::byte>(crc_bytes))).has_value()) {
+        return 1;
+    }
+
+    const auto hex = xer::bin2hex(std::span<const std::byte>(bytes));
+    if (!xer::printf(u8"bin2hex: %@\n", hex).has_value()) {
+        return 1;
+    }
+
+    const auto digest = xer::md5(std::span<const std::byte>(md5_bytes));
+    const auto digest_hex = xer::bin2hex(digest.begin(), digest.end());
+    if (!xer::printf(u8"md5 abc: %@\n", digest_hex).has_value()) {
         return 1;
     }
 

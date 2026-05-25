@@ -158,76 +158,6 @@ void test_reverse_bits_round_trip()
 }
 
 
-
-void test_bin2hex_span()
-{
-    const std::array<std::byte, 5> bytes{
-        std::byte{0x00},
-        std::byte{0x0f},
-        std::byte{0x10},
-        std::byte{0xab},
-        std::byte{0xff},
-    };
-
-    const auto hex = xer::bin2hex(std::span<const std::byte>(bytes));
-    xer_assert_eq(hex, u8"000f10abff");
-    xer_assert_eq(xer::bin2hex(std::span<const std::byte>{}), u8"");
-}
-
-void test_bin2hex_pointer()
-{
-    const std::array<std::byte, 3> bytes{
-        std::byte{0x12},
-        std::byte{0x34},
-        std::byte{0x56},
-    };
-
-    const auto hex = xer::bin2hex(bytes.data(), bytes.size());
-    xer_assert(hex.has_value());
-    xer_assert_eq(*hex, u8"123456");
-
-    const auto empty = xer::bin2hex(nullptr, 0);
-    xer_assert(empty.has_value());
-    xer_assert_eq(*empty, u8"");
-
-    const auto invalid = xer::bin2hex(nullptr, 1);
-    xer_assert_not(invalid.has_value());
-}
-
-void test_bin2hex_iterators()
-{
-    const std::vector<unsigned char> bytes{0x00u, 0x0fu, 0x10u, 0xabu, 0xffu};
-    xer_assert_eq(xer::bin2hex(bytes.begin(), bytes.end()), u8"000f10abff");
-
-    const std::u8string text = u8"ABC";
-    xer_assert_eq(xer::bin2hex(text.begin(), text.end()), u8"414243");
-}
-
-void test_hex2bin()
-{
-    const auto bytes = xer::hex2bin(u8"000f10ABff");
-    xer_assert(bytes.has_value());
-    xer_assert_eq(bytes->size(), 5u);
-    xer_assert((*bytes)[0] == std::byte{0x00});
-    xer_assert((*bytes)[1] == std::byte{0x0f});
-    xer_assert((*bytes)[2] == std::byte{0x10});
-    xer_assert((*bytes)[3] == std::byte{0xab});
-    xer_assert((*bytes)[4] == std::byte{0xff});
-
-    const auto round_trip = xer::bin2hex(std::span<const std::byte>(*bytes));
-    xer_assert_eq(round_trip, u8"000f10abff");
-
-    const auto empty = xer::hex2bin(u8"");
-    xer_assert(empty.has_value());
-    xer_assert_eq(empty->size(), 0u);
-
-    const auto odd = xer::hex2bin(u8"0");
-    xer_assert_not(odd.has_value());
-
-    const auto invalid = xer::hex2bin(u8"00xz");
-    xer_assert_not(invalid.has_value());
-}
-
 void test_checksum_span()
 {
     constexpr std::array<std::byte, 5> bytes{
@@ -547,6 +477,148 @@ void test_crc_file()
     xer_assert(remove_result.has_value());
 }
 
+
+void test_bin2hex_span()
+{
+    const std::array<std::byte, 4> bytes{
+        std::byte{0x00},
+        std::byte{0x12},
+        std::byte{0xab},
+        std::byte{0xff},
+    };
+
+    xer_assert_eq(xer::bin2hex(std::span<const std::byte>(bytes)), std::u8string(u8"0012abff"));
+
+    const std::array<std::byte, 0> empty{};
+    xer_assert_eq(xer::bin2hex(std::span<const std::byte>(empty)), std::u8string());
+}
+
+void test_bin2hex_pointer()
+{
+    const std::array<std::byte, 3> bytes{
+        std::byte{0x01},
+        std::byte{0x23},
+        std::byte{0x45},
+    };
+
+    const auto result = xer::bin2hex(bytes.data(), bytes.size());
+    xer_assert(result.has_value());
+    xer_assert_eq(*result, std::u8string(u8"012345"));
+
+    const auto empty = xer::bin2hex(nullptr, 0);
+    xer_assert(empty.has_value());
+    xer_assert_eq(*empty, std::u8string());
+
+    const auto invalid = xer::bin2hex(nullptr, 1);
+    xer_assert_not(invalid.has_value());
+}
+
+void test_bin2hex_iterators()
+{
+    const std::vector<unsigned char> bytes{0xdeu, 0xadu, 0xbeu, 0xefu};
+
+    xer_assert_eq(xer::bin2hex(bytes.begin(), bytes.end()), std::u8string(u8"deadbeef"));
+}
+
+void test_hex2bin()
+{
+    const auto result = xer::hex2bin(u8"0012ABff");
+    xer_assert(result.has_value());
+    xer_assert_eq(result->size(), 4u);
+    xer_assert_eq((*result)[0], std::byte{0x00});
+    xer_assert_eq((*result)[1], std::byte{0x12});
+    xer_assert_eq((*result)[2], std::byte{0xab});
+    xer_assert_eq((*result)[3], std::byte{0xff});
+
+    const auto empty = xer::hex2bin(u8"");
+    xer_assert(empty.has_value());
+    xer_assert_eq(empty->size(), 0u);
+
+    xer_assert_not(xer::hex2bin(u8"0").has_value());
+    xer_assert_not(xer::hex2bin(u8"xx").has_value());
+}
+
+void test_md5_span()
+{
+    constexpr std::array<std::byte, 0> empty{};
+    const auto empty_digest = xer::md5(std::span<const std::byte>(empty));
+    xer_assert_eq(xer::bin2hex(empty_digest.begin(), empty_digest.end()), std::u8string(u8"d41d8cd98f00b204e9800998ecf8427e"));
+
+    constexpr std::array<std::byte, 3> abc{
+        std::byte{'a'},
+        std::byte{'b'},
+        std::byte{'c'},
+    };
+    const auto abc_digest = xer::md5(std::span<const std::byte>(abc));
+    xer_assert_eq(xer::bin2hex(abc_digest.begin(), abc_digest.end()), std::u8string(u8"900150983cd24fb0d6963f7d28e17f72"));
+
+    constexpr std::array<std::byte, 56> long_text{
+        std::byte{'a'}, std::byte{'b'}, std::byte{'c'}, std::byte{'d'},
+        std::byte{'e'}, std::byte{'f'}, std::byte{'g'}, std::byte{'h'},
+        std::byte{'i'}, std::byte{'j'}, std::byte{'k'}, std::byte{'l'},
+        std::byte{'m'}, std::byte{'n'}, std::byte{'o'}, std::byte{'p'},
+        std::byte{'q'}, std::byte{'r'}, std::byte{'s'}, std::byte{'t'},
+        std::byte{'u'}, std::byte{'v'}, std::byte{'w'}, std::byte{'x'},
+        std::byte{'y'}, std::byte{'z'}, std::byte{'A'}, std::byte{'B'},
+        std::byte{'C'}, std::byte{'D'}, std::byte{'E'}, std::byte{'F'},
+        std::byte{'G'}, std::byte{'H'}, std::byte{'I'}, std::byte{'J'},
+        std::byte{'K'}, std::byte{'L'}, std::byte{'M'}, std::byte{'N'},
+        std::byte{'O'}, std::byte{'P'}, std::byte{'Q'}, std::byte{'R'},
+        std::byte{'S'}, std::byte{'T'}, std::byte{'U'}, std::byte{'V'},
+        std::byte{'W'}, std::byte{'X'}, std::byte{'Y'}, std::byte{'Z'},
+        std::byte{'0'}, std::byte{'1'}, std::byte{'2'}, std::byte{'3'},
+    };
+    const auto long_digest = xer::md5(std::span<const std::byte>(long_text));
+    xer_assert_eq(xer::bin2hex(long_digest.begin(), long_digest.end()), std::u8string(u8"d43e61e9b5f8c9d22c4dc5db6e6df775"));
+}
+
+void test_md5_pointer()
+{
+    const std::array<std::byte, 1> bytes{std::byte{'a'}};
+
+    const auto digest = xer::md5(bytes.data(), bytes.size());
+    xer_assert(digest.has_value());
+    xer_assert_eq(xer::bin2hex(digest->begin(), digest->end()), std::u8string(u8"0cc175b9c0f1b6a831c399e269772661"));
+
+    const auto invalid = xer::md5(nullptr, 1);
+    xer_assert_not(invalid.has_value());
+}
+
+void test_md5_iterators()
+{
+    const std::vector<unsigned char> bytes{
+        'm', 'e', 's', 's', 'a', 'g', 'e', ' ',
+        'd', 'i', 'g', 'e', 's', 't',
+    };
+
+    const auto digest = xer::md5(bytes.begin(), bytes.end());
+    xer_assert_eq(xer::bin2hex(digest.begin(), digest.end()), std::u8string(u8"f96b697d7cb7938d525a2f31aaf161d0"));
+}
+
+void test_md5_file()
+{
+    const std::array<std::byte, 26> bytes{
+        std::byte{'a'}, std::byte{'b'}, std::byte{'c'}, std::byte{'d'},
+        std::byte{'e'}, std::byte{'f'}, std::byte{'g'}, std::byte{'h'},
+        std::byte{'i'}, std::byte{'j'}, std::byte{'k'}, std::byte{'l'},
+        std::byte{'m'}, std::byte{'n'}, std::byte{'o'}, std::byte{'p'},
+        std::byte{'q'}, std::byte{'r'}, std::byte{'s'}, std::byte{'t'},
+        std::byte{'u'}, std::byte{'v'}, std::byte{'w'}, std::byte{'x'},
+        std::byte{'y'}, std::byte{'z'},
+    };
+
+    const xer::path filename(u8"test_binary_md5.tmp");
+    const auto write_result = xer::file_put_contents(filename, std::span<const std::byte>(bytes));
+    xer_assert(write_result.has_value());
+
+    const auto digest = xer::md5(filename);
+    xer_assert(digest.has_value());
+    xer_assert_eq(xer::bin2hex(digest->begin(), digest->end()), std::u8string(u8"c3fcd3d76192e4007dfb496cca67e13b"));
+
+    const auto remove_result = xer::remove(filename);
+    xer_assert(remove_result.has_value());
+}
+
 } // namespace
 
 auto main() -> int
@@ -567,10 +639,6 @@ auto main() -> int
     test_reverse_bits_u128();
 #endif
     test_reverse_bits_round_trip();
-    test_bin2hex_span();
-    test_bin2hex_pointer();
-    test_bin2hex_iterators();
-    test_hex2bin();
     test_checksum_span();
     test_checksum_pointer();
     test_checksum_iterators();
@@ -580,6 +648,14 @@ auto main() -> int
     test_crc_pointer();
     test_crc_iterators();
     test_crc_file();
+    test_bin2hex_span();
+    test_bin2hex_pointer();
+    test_bin2hex_iterators();
+    test_hex2bin();
+    test_md5_span();
+    test_md5_pointer();
+    test_md5_iterators();
+    test_md5_file();
 
     return 0;
 }

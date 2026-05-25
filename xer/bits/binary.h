@@ -8,6 +8,7 @@
 #ifndef XER_BITS_BINARY_H_INCLUDED_
 #define XER_BITS_BINARY_H_INCLUDED_
 
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -467,47 +468,6 @@ template<typename InputIt>
     return crc ^ 0xffffffffu;
 }
 
-
-[[nodiscard]] constexpr auto hex_digit_value(char8_t value) noexcept -> int
-{
-    if (value >= u8'0' && value <= u8'9') {
-        return static_cast<int>(value - u8'0');
-    }
-
-    if (value >= u8'a' && value <= u8'f') {
-        return static_cast<int>(value - u8'a') + 10;
-    }
-
-    if (value >= u8'A' && value <= u8'F') {
-        return static_cast<int>(value - u8'A') + 10;
-    }
-
-    return -1;
-}
-
-template<typename InputIt>
-[[nodiscard]] auto bin2hex_iter(InputIt first, InputIt last) -> std::u8string
-{
-    constexpr char8_t table[] = u8"0123456789abcdef";
-
-    std::u8string result;
-
-    if constexpr (std::forward_iterator<InputIt>) {
-        const auto size = std::distance(first, last);
-        if (size > 0) {
-            result.reserve(static_cast<std::size_t>(size) * 2u);
-        }
-    }
-
-    for (; first != last; ++first) {
-        const auto value = checksum_byte_value(*first);
-        result.push_back(table[(value >> 4) & 0x0fu]);
-        result.push_back(table[value & 0x0fu]);
-    }
-
-    return result;
-}
-
 [[nodiscard]] inline auto checksum_bytes_from_pointer(
     const void* data,
     const std::size_t size) noexcept -> result<std::span<const std::byte>>
@@ -520,75 +480,6 @@ template<typename InputIt>
 }
 
 } // namespace detail
-
-
-/**
- * @brief Converts binary data to a lowercase hexadecimal string.
- * @param bytes Source bytes.
- * @return Lowercase hexadecimal string.
- */
-[[nodiscard]] inline auto bin2hex(std::span<const std::byte> bytes) -> std::u8string
-{
-    return detail::bin2hex_iter(bytes.begin(), bytes.end());
-}
-
-/**
- * @brief Converts binary data to a lowercase hexadecimal string.
- * @param data Source byte pointer.
- * @param size Number of bytes.
- * @return Lowercase hexadecimal string on success.
- */
-[[nodiscard]] inline auto bin2hex(
-    const void* data,
-    std::size_t size) -> result<std::u8string>
-{
-    const auto bytes = detail::checksum_bytes_from_pointer(data, size);
-    if (!bytes.has_value()) {
-        return std::unexpected(bytes.error());
-    }
-
-    return bin2hex(*bytes);
-}
-
-/**
- * @brief Converts an iterator range of bytes to a lowercase hexadecimal string.
- * @param first First byte iterator.
- * @param last End iterator.
- * @return Lowercase hexadecimal string.
- */
-template<std::input_iterator InputIt>
-[[nodiscard]] auto bin2hex(InputIt first, InputIt last) -> std::u8string
-{
-    return detail::bin2hex_iter(first, last);
-}
-
-/**
- * @brief Converts a hexadecimal string to binary data.
- * @param hex Hexadecimal string. Both lowercase and uppercase letters are accepted.
- * @return Binary data on success.
- */
-[[nodiscard]] inline auto hex2bin(std::u8string_view hex) -> result<std::vector<std::byte>>
-{
-    if ((hex.size() % 2u) != 0u) {
-        return std::unexpected(make_error(error_t::invalid_argument));
-    }
-
-    std::vector<std::byte> result;
-    result.reserve(hex.size() / 2u);
-
-    for (std::size_t i = 0; i < hex.size(); i += 2u) {
-        const auto high = detail::hex_digit_value(hex[i]);
-        const auto low = detail::hex_digit_value(hex[i + 1u]);
-
-        if (high < 0 || low < 0) {
-            return std::unexpected(make_error(error_t::invalid_argument));
-        }
-
-        result.push_back(static_cast<std::byte>((high << 4) | low));
-    }
-
-    return result;
-}
 
 /**
  * @brief Calculates an 8-bit additive checksum for a byte span.
@@ -1236,6 +1127,332 @@ template<std::input_iterator InputIt>
     }
 
     return crc32(std::span<const std::byte>(*bytes));
+}
+
+
+namespace detail {
+
+[[nodiscard]] constexpr auto hex_digit(unsigned int value) noexcept -> char8_t
+{
+    constexpr char8_t digits[] = u8"0123456789abcdef";
+    return digits[value & 0x0fu];
+}
+
+[[nodiscard]] constexpr auto hex_value(char8_t ch) noexcept -> int
+{
+    if (ch >= u8'0' && ch <= u8'9') {
+        return static_cast<int>(ch - u8'0');
+    }
+
+    if (ch >= u8'a' && ch <= u8'f') {
+        return static_cast<int>(ch - u8'a') + 10;
+    }
+
+    if (ch >= u8'A' && ch <= u8'F') {
+        return static_cast<int>(ch - u8'A') + 10;
+    }
+
+    return -1;
+}
+
+template<typename InputIt>
+[[nodiscard]] auto bin2hex_iter(InputIt first, InputIt last) -> std::u8string
+{
+    std::u8string result;
+
+    if constexpr (std::forward_iterator<InputIt>) {
+        const auto length = std::distance(first, last);
+        if (length > 0) {
+            result.reserve(static_cast<std::size_t>(length) * 2u);
+        }
+    }
+
+    for (; first != last; ++first) {
+        const auto value = checksum_byte_value(*first);
+        result.push_back(hex_digit(static_cast<unsigned int>(value >> 4u)));
+        result.push_back(hex_digit(static_cast<unsigned int>(value & 0x0fu)));
+    }
+
+    return result;
+}
+
+[[nodiscard]] constexpr auto md5_read_u32_le(
+    const std::array<std::byte, 64>& block,
+    std::size_t offset) noexcept -> std::uint32_t
+{
+    return static_cast<std::uint32_t>(checksum_byte_value(block[offset])) |
+        (static_cast<std::uint32_t>(checksum_byte_value(block[offset + 1])) << 8) |
+        (static_cast<std::uint32_t>(checksum_byte_value(block[offset + 2])) << 16) |
+        (static_cast<std::uint32_t>(checksum_byte_value(block[offset + 3])) << 24);
+}
+
+constexpr auto md5_write_u32_le(
+    std::array<std::byte, 16>& output,
+    std::size_t offset,
+    std::uint32_t value) noexcept -> void
+{
+    output[offset] = static_cast<std::byte>(value & 0xffu);
+    output[offset + 1] = static_cast<std::byte>((value >> 8) & 0xffu);
+    output[offset + 2] = static_cast<std::byte>((value >> 16) & 0xffu);
+    output[offset + 3] = static_cast<std::byte>((value >> 24) & 0xffu);
+}
+
+class md5_context {
+public:
+    constexpr auto update_byte(std::uint8_t value) noexcept -> void
+    {
+        buffer_[buffer_size_] = static_cast<std::byte>(value);
+        ++buffer_size_;
+        bit_count_ += 8u;
+
+        if (buffer_size_ == buffer_.size()) {
+            transform(buffer_);
+            buffer_size_ = 0;
+        }
+    }
+
+    template<typename InputIt>
+    constexpr auto update(InputIt first, InputIt last) -> void
+    {
+        for (; first != last; ++first) {
+            update_byte(checksum_byte_value(*first));
+        }
+    }
+
+    [[nodiscard]] constexpr auto final() noexcept -> std::array<std::byte, 16>
+    {
+        const auto message_bit_count = bit_count_;
+
+        update_byte(0x80u);
+        while (buffer_size_ != 56u) {
+            update_byte(0x00u);
+        }
+
+        for (int i = 0; i < 8; ++i) {
+            update_byte(static_cast<std::uint8_t>((message_bit_count >> (i * 8)) & 0xffu));
+        }
+
+        std::array<std::byte, 16> digest{};
+        md5_write_u32_le(digest, 0, a_);
+        md5_write_u32_le(digest, 4, b_);
+        md5_write_u32_le(digest, 8, c_);
+        md5_write_u32_le(digest, 12, d_);
+        return digest;
+    }
+
+private:
+    constexpr auto transform(const std::array<std::byte, 64>& block) noexcept -> void
+    {
+        constexpr std::array<std::uint32_t, 64> k{
+            0xd76aa478u, 0xe8c7b756u, 0x242070dbu, 0xc1bdceeeu,
+            0xf57c0fafu, 0x4787c62au, 0xa8304613u, 0xfd469501u,
+            0x698098d8u, 0x8b44f7afu, 0xffff5bb1u, 0x895cd7beu,
+            0x6b901122u, 0xfd987193u, 0xa679438eu, 0x49b40821u,
+            0xf61e2562u, 0xc040b340u, 0x265e5a51u, 0xe9b6c7aau,
+            0xd62f105du, 0x02441453u, 0xd8a1e681u, 0xe7d3fbc8u,
+            0x21e1cde6u, 0xc33707d6u, 0xf4d50d87u, 0x455a14edu,
+            0xa9e3e905u, 0xfcefa3f8u, 0x676f02d9u, 0x8d2a4c8au,
+            0xfffa3942u, 0x8771f681u, 0x6d9d6122u, 0xfde5380cu,
+            0xa4beea44u, 0x4bdecfa9u, 0xf6bb4b60u, 0xbebfbc70u,
+            0x289b7ec6u, 0xeaa127fau, 0xd4ef3085u, 0x04881d05u,
+            0xd9d4d039u, 0xe6db99e5u, 0x1fa27cf8u, 0xc4ac5665u,
+            0xf4292244u, 0x432aff97u, 0xab9423a7u, 0xfc93a039u,
+            0x655b59c3u, 0x8f0ccc92u, 0xffeff47du, 0x85845dd1u,
+            0x6fa87e4fu, 0xfe2ce6e0u, 0xa3014314u, 0x4e0811a1u,
+            0xf7537e82u, 0xbd3af235u, 0x2ad7d2bbu, 0xeb86d391u,
+        };
+
+        constexpr std::array<int, 64> s{
+            7, 12, 17, 22, 7, 12, 17, 22,
+            7, 12, 17, 22, 7, 12, 17, 22,
+            5, 9, 14, 20, 5, 9, 14, 20,
+            5, 9, 14, 20, 5, 9, 14, 20,
+            4, 11, 16, 23, 4, 11, 16, 23,
+            4, 11, 16, 23, 4, 11, 16, 23,
+            6, 10, 15, 21, 6, 10, 15, 21,
+            6, 10, 15, 21, 6, 10, 15, 21,
+        };
+
+        std::array<std::uint32_t, 16> m{};
+        for (std::size_t i = 0; i < m.size(); ++i) {
+            m[i] = md5_read_u32_le(block, i * 4u);
+        }
+
+        auto a = a_;
+        auto b = b_;
+        auto c = c_;
+        auto d = d_;
+
+        for (std::size_t i = 0; i < 64u; ++i) {
+            std::uint32_t f = 0;
+            std::size_t g = 0;
+
+            if (i < 16u) {
+                f = (b & c) | ((~b) & d);
+                g = i;
+            } else if (i < 32u) {
+                f = (d & b) | ((~d) & c);
+                g = (5u * i + 1u) % 16u;
+            } else if (i < 48u) {
+                f = b ^ c ^ d;
+                g = (3u * i + 5u) % 16u;
+            } else {
+                f = c ^ (b | (~d));
+                g = (7u * i) % 16u;
+            }
+
+            const auto temp = d;
+            d = c;
+            c = b;
+            b += std::rotl(a + f + k[i] + m[g], s[i]);
+            a = temp;
+        }
+
+        a_ += a;
+        b_ += b;
+        c_ += c;
+        d_ += d;
+    }
+
+    std::uint32_t a_ = 0x67452301u;
+    std::uint32_t b_ = 0xefcdab89u;
+    std::uint32_t c_ = 0x98badcfeu;
+    std::uint32_t d_ = 0x10325476u;
+    std::uint64_t bit_count_ = 0;
+    std::array<std::byte, 64> buffer_{};
+    std::size_t buffer_size_ = 0;
+};
+
+template<typename InputIt>
+[[nodiscard]] constexpr auto md5_iter(InputIt first, InputIt last) -> std::array<std::byte, 16>
+{
+    md5_context context;
+    context.update(first, last);
+    return context.final();
+}
+
+} // namespace detail
+
+/**
+ * @brief Converts binary data to a lowercase hexadecimal string.
+ * @param bytes Source bytes.
+ * @return Lowercase hexadecimal string.
+ */
+[[nodiscard]] inline auto bin2hex(std::span<const std::byte> bytes) -> std::u8string
+{
+    return detail::bin2hex_iter(bytes.begin(), bytes.end());
+}
+
+/**
+ * @brief Converts binary data to a lowercase hexadecimal string.
+ * @param data Source byte pointer.
+ * @param size Number of bytes.
+ * @return Lowercase hexadecimal string on success.
+ */
+[[nodiscard]] inline auto bin2hex(
+    const void* data,
+    std::size_t size) -> result<std::u8string>
+{
+    const auto bytes = detail::checksum_bytes_from_pointer(data, size);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return bin2hex(*bytes);
+}
+
+/**
+ * @brief Converts an iterator range of bytes to a lowercase hexadecimal string.
+ * @param first First byte iterator.
+ * @param last End iterator.
+ * @return Lowercase hexadecimal string.
+ */
+template<std::input_iterator InputIt>
+[[nodiscard]] auto bin2hex(InputIt first, InputIt last) -> std::u8string
+{
+    return detail::bin2hex_iter(first, last);
+}
+
+/**
+ * @brief Converts a hexadecimal string to binary data.
+ * @param hex Source hexadecimal string.
+ * @return Binary data on success.
+ */
+[[nodiscard]] inline auto hex2bin(std::u8string_view hex) -> result<std::vector<std::byte>>
+{
+    if ((hex.size() % 2u) != 0u) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    std::vector<std::byte> result;
+    result.reserve(hex.size() / 2u);
+
+    for (std::size_t i = 0; i < hex.size(); i += 2u) {
+        const auto high = detail::hex_value(hex[i]);
+        const auto low = detail::hex_value(hex[i + 1u]);
+        if (high < 0 || low < 0) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        result.push_back(static_cast<std::byte>((high << 4) | low));
+    }
+
+    return result;
+}
+
+/**
+ * @brief Calculates the MD5 digest for a byte span.
+ * @param bytes Source bytes.
+ * @return 16-byte MD5 digest.
+ */
+[[nodiscard]] constexpr auto md5(std::span<const std::byte> bytes) noexcept -> std::array<std::byte, 16>
+{
+    return detail::md5_iter(bytes.begin(), bytes.end());
+}
+
+/**
+ * @brief Calculates the MD5 digest for a pointer and byte size.
+ * @param data Source byte pointer.
+ * @param size Number of bytes.
+ * @return 16-byte MD5 digest on success.
+ */
+[[nodiscard]] inline auto md5(
+    const void* data,
+    std::size_t size) noexcept -> result<std::array<std::byte, 16>>
+{
+    const auto bytes = detail::checksum_bytes_from_pointer(data, size);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return md5(*bytes);
+}
+
+/**
+ * @brief Calculates the MD5 digest for an iterator range.
+ * @param first First byte iterator.
+ * @param last End iterator.
+ * @return 16-byte MD5 digest.
+ */
+template<std::input_iterator InputIt>
+[[nodiscard]] constexpr auto md5(InputIt first, InputIt last) -> std::array<std::byte, 16>
+{
+    return detail::md5_iter(first, last);
+}
+
+/**
+ * @brief Calculates the MD5 digest for a file.
+ * @param filename Source file path.
+ * @return 16-byte MD5 digest on success.
+ */
+[[nodiscard]] inline auto md5(const path& filename) -> result<std::array<std::byte, 16>>
+{
+    const auto bytes = file_get_contents(filename);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return md5(std::span<const std::byte>(*bytes));
 }
 
 } // namespace xer
