@@ -1,4 +1,12 @@
-# xer
+# xer C++ Utility Library
+
+<p align="center">
+  <img src="icon.png" alt="xer C++ Utility Library アイコン" width="160" height="160">
+</p>
+
+<p align="center">
+  <a href="https://x.com/xercpplib">X: @xercpplib</a>
+</p>
 
 [English README / 英語版 README](README.md)
 
