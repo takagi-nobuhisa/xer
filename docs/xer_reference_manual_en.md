@@ -5056,7 +5056,7 @@ auto main() -> int
 
 `<xer/binary.h>` provides small binary-data utility functions.
 
-The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for XER's 128-bit unsigned integer type, simple checksum calculation, and CRC calculation for byte sequences and files.
+The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for XER's 128-bit unsigned integer type, simple checksum calculation, CRC calculation, and basic hash calculation for byte sequences and files.
 
 These functions treat input values as fixed-width binary values. They do not depend on the CPU's native endian setting.
 
@@ -5112,7 +5112,7 @@ When `xer::uint128_t` is available:
 auto reverse_bits(xer::uint128_t value) noexcept -> xer::uint128_t;
 ```
 
-For simple checksums, the header provides additive checksums, XOR checksums, and convenience aliases in 8-bit, 16-bit, and 32-bit forms. It also provides CRC16 and CRC32 calculation helpers.
+For simple checksums, the header provides additive checksums, XOR checksums, and convenience aliases in 8-bit, 16-bit, and 32-bit forms. It also provides CRC16 and CRC32 calculation helpers, plus MD5 and SHA-1 digest helpers for compatibility-oriented hashing.
 
 ---
 
@@ -5590,7 +5590,7 @@ For empty input, all checksum functions return zero.
 The rough boundary is:
 
 - `<xer/bytes.h>` converts text or byte-like storage into explicit byte views or byte vectors
-- `<xer/binary.h>` performs small binary value manipulation, simple checksum calculation, and CRC calculation
+- `<xer/binary.h>` performs small binary value manipulation, simple checksum calculation, CRC calculation, and basic hash calculation
 - `<xer/stdio.h>` handles stream-based binary I/O and whole-file operations
 
 ---
@@ -5734,6 +5734,53 @@ Known test values include:
 | `abcdefghijklmnopqrstuvwxyz` | `c3fcd3d76192e4007dfb496cca67e13b` |
 
 MD5 is provided for compatibility, file identification, and non-security checks. It must not be used as a cryptographic security mechanism.
+
+---
+
+## SHA-1
+
+`sha1` calculates the SHA-1 message digest of a byte sequence. The digest is returned as 20 raw bytes. Use `bin2hex` when a conventional 40-character hexadecimal representation is needed.
+
+```cpp
+auto sha1(std::span<const std::byte> bytes) noexcept -> std::array<std::byte, 20>;
+
+auto sha1(const void* data, std::size_t size) noexcept
+    -> xer::result<std::array<std::byte, 20>>;
+
+template<std::input_iterator InputIt>
+auto sha1(InputIt first, InputIt last) -> std::array<std::byte, 20>;
+
+auto sha1(const xer::path& filename) -> xer::result<std::array<std::byte, 20>>;
+```
+
+For example:
+
+```cpp
+const auto text = std::string_view("abc");
+const auto bytes = std::as_bytes(std::span(text));
+
+const auto digest = xer::sha1(bytes);
+const auto hex = xer::bin2hex(digest.begin(), digest.end());
+// hex == u8"a9993e364706816aba3e25717850c26c9cd0d89d"
+```
+
+The span overload does not allocate and does not fail. The pointer-and-size overload fails with `error_t::invalid_argument` when `data == nullptr` and `size != 0`. `data == nullptr` with `size == 0` is accepted as an empty byte sequence.
+
+The iterator-range overload accepts `std::byte` and byte-like integer values convertible to `std::uint8_t`.
+
+The file overload reads the whole file content and then calculates the SHA-1 digest. File I/O failures are reported through `xer::result`.
+
+Known test values include:
+
+| Input | SHA-1 hex string |
+| --- | --- |
+| empty input | `da39a3ee5e6b4b0d3255bfef95601890afd80709` |
+| `a` | `86f7e437faa5a7fce15d1ddcb9eaeaea377667b8` |
+| `abc` | `a9993e364706816aba3e25717850c26c9cd0d89d` |
+| `message digest` | `c12252ceda8be8994d5fa0290a47231c1d16aae3` |
+| `abcdefghijklmnopqrstuvwxyz` | `32d10c7b8cf96570ca04ce37f2a19d84240d3a89` |
+
+SHA-1 is provided for compatibility, file identification, and non-security checks. It must not be used as a cryptographic security mechanism.
 
 ---
 

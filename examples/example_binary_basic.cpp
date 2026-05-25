@@ -25,6 +25,7 @@
 // crc32: cbf43926
 // bin2hex: 01020304
 // md5 abc: 900150983cd24fb0d6963f7d28e17f72
+// sha1 abc: a9993e364706816aba3e25717850c26c9cd0d89d
 
 auto main() -> int
 {
@@ -48,7 +49,7 @@ auto main() -> int
         std::byte{'8'},
         std::byte{'9'},
     };
-    constexpr std::array<std::byte, 3> md5_bytes{
+    constexpr std::array<std::byte, 3> digest_source{
         std::byte{'a'},
         std::byte{'b'},
         std::byte{'c'},
@@ -115,9 +116,15 @@ auto main() -> int
         return 1;
     }
 
-    const auto digest = xer::md5(std::span<const std::byte>(md5_bytes));
-    const auto digest_hex = xer::bin2hex(digest.begin(), digest.end());
-    if (!xer::printf(u8"md5 abc: %@\n", digest_hex).has_value()) {
+    const auto md5_digest = xer::md5(std::span<const std::byte>(digest_source));
+    const auto md5_digest_hex = xer::bin2hex(md5_digest.begin(), md5_digest.end());
+    if (!xer::printf(u8"md5 abc: %@\n", md5_digest_hex).has_value()) {
+        return 1;
+    }
+
+    const auto sha1_digest = xer::sha1(std::span<const std::byte>(digest_source));
+    const auto sha1_digest_hex = xer::bin2hex(sha1_digest.begin(), sha1_digest.end());
+    if (!xer::printf(u8"sha1 abc: %@\n", sha1_digest_hex).has_value()) {
         return 1;
     }
 

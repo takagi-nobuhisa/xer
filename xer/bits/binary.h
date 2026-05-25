@@ -1331,6 +1331,143 @@ template<typename InputIt>
     return context.final();
 }
 
+
+[[nodiscard]] constexpr auto sha1_read_u32_be(
+    const std::array<std::byte, 64>& block,
+    std::size_t offset) noexcept -> std::uint32_t
+{
+    return (static_cast<std::uint32_t>(checksum_byte_value(block[offset])) << 24) |
+        (static_cast<std::uint32_t>(checksum_byte_value(block[offset + 1])) << 16) |
+        (static_cast<std::uint32_t>(checksum_byte_value(block[offset + 2])) << 8) |
+        static_cast<std::uint32_t>(checksum_byte_value(block[offset + 3]));
+}
+
+constexpr auto sha1_write_u32_be(
+    std::array<std::byte, 20>& output,
+    std::size_t offset,
+    std::uint32_t value) noexcept -> void
+{
+    output[offset] = static_cast<std::byte>((value >> 24) & 0xffu);
+    output[offset + 1] = static_cast<std::byte>((value >> 16) & 0xffu);
+    output[offset + 2] = static_cast<std::byte>((value >> 8) & 0xffu);
+    output[offset + 3] = static_cast<std::byte>(value & 0xffu);
+}
+
+class sha1_context {
+public:
+    constexpr auto update_byte(std::uint8_t value) noexcept -> void
+    {
+        buffer_[buffer_size_] = static_cast<std::byte>(value);
+        ++buffer_size_;
+        bit_count_ += 8u;
+
+        if (buffer_size_ == buffer_.size()) {
+            transform(buffer_);
+            buffer_size_ = 0;
+        }
+    }
+
+    template<typename InputIt>
+    constexpr auto update(InputIt first, InputIt last) -> void
+    {
+        for (; first != last; ++first) {
+            update_byte(checksum_byte_value(*first));
+        }
+    }
+
+    [[nodiscard]] constexpr auto final() noexcept -> std::array<std::byte, 20>
+    {
+        const auto message_bit_count = bit_count_;
+
+        update_byte(0x80u);
+        while (buffer_size_ != 56u) {
+            update_byte(0x00u);
+        }
+
+        for (int i = 7; i >= 0; --i) {
+            update_byte(static_cast<std::uint8_t>((message_bit_count >> (i * 8)) & 0xffu));
+        }
+
+        std::array<std::byte, 20> digest{};
+        sha1_write_u32_be(digest, 0, h0_);
+        sha1_write_u32_be(digest, 4, h1_);
+        sha1_write_u32_be(digest, 8, h2_);
+        sha1_write_u32_be(digest, 12, h3_);
+        sha1_write_u32_be(digest, 16, h4_);
+        return digest;
+    }
+
+private:
+    constexpr auto transform(const std::array<std::byte, 64>& block) noexcept -> void
+    {
+        std::array<std::uint32_t, 80> words{};
+        for (std::size_t i = 0; i < 16u; ++i) {
+            words[i] = sha1_read_u32_be(block, i * 4u);
+        }
+
+        for (std::size_t i = 16u; i < words.size(); ++i) {
+            words[i] = std::rotl(
+                words[i - 3u] ^ words[i - 8u] ^ words[i - 14u] ^ words[i - 16u],
+                1);
+        }
+
+        auto a = h0_;
+        auto b = h1_;
+        auto c = h2_;
+        auto d = h3_;
+        auto e = h4_;
+
+        for (std::size_t i = 0; i < words.size(); ++i) {
+            std::uint32_t f = 0;
+            std::uint32_t k = 0;
+
+            if (i < 20u) {
+                f = (b & c) | ((~b) & d);
+                k = 0x5a827999u;
+            } else if (i < 40u) {
+                f = b ^ c ^ d;
+                k = 0x6ed9eba1u;
+            } else if (i < 60u) {
+                f = (b & c) | (b & d) | (c & d);
+                k = 0x8f1bbcdcu;
+            } else {
+                f = b ^ c ^ d;
+                k = 0xca62c1d6u;
+            }
+
+            const auto temp = std::rotl(a, 5) + f + e + k + words[i];
+            e = d;
+            d = c;
+            c = std::rotl(b, 30);
+            b = a;
+            a = temp;
+        }
+
+        h0_ += a;
+        h1_ += b;
+        h2_ += c;
+        h3_ += d;
+        h4_ += e;
+    }
+
+    std::uint32_t h0_ = 0x67452301u;
+    std::uint32_t h1_ = 0xefcdab89u;
+    std::uint32_t h2_ = 0x98badcfeu;
+    std::uint32_t h3_ = 0x10325476u;
+    std::uint32_t h4_ = 0xc3d2e1f0u;
+    std::uint64_t bit_count_ = 0;
+    std::array<std::byte, 64> buffer_{};
+    std::size_t buffer_size_ = 0;
+};
+
+template<typename InputIt>
+[[nodiscard]] constexpr auto sha1_iter(InputIt first, InputIt last) -> std::array<std::byte, 20>
+{
+    sha1_context context;
+    context.update(first, last);
+    return context.final();
+}
+
 } // namespace detail
 
 /**
@@ -1453,6 +1590,62 @@ template<std::input_iterator InputIt>
     }
 
     return md5(std::span<const std::byte>(*bytes));
+}
+
+
+/**
+ * @brief Calculates the SHA-1 digest for a byte span.
+ * @param bytes Source bytes.
+ * @return 20-byte SHA-1 digest.
+ */
+[[nodiscard]] constexpr auto sha1(std::span<const std::byte> bytes) noexcept -> std::array<std::byte, 20>
+{
+    return detail::sha1_iter(bytes.begin(), bytes.end());
+}
+
+/**
+ * @brief Calculates the SHA-1 digest for a pointer and byte size.
+ * @param data Source byte pointer.
+ * @param size Number of bytes.
+ * @return 20-byte SHA-1 digest on success.
+ */
+[[nodiscard]] inline auto sha1(
+    const void* data,
+    std::size_t size) noexcept -> result<std::array<std::byte, 20>>
+{
+    const auto bytes = detail::checksum_bytes_from_pointer(data, size);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return sha1(*bytes);
+}
+
+/**
+ * @brief Calculates the SHA-1 digest for an iterator range.
+ * @param first First byte iterator.
+ * @param last End iterator.
+ * @return 20-byte SHA-1 digest.
+ */
+template<std::input_iterator InputIt>
+[[nodiscard]] constexpr auto sha1(InputIt first, InputIt last) -> std::array<std::byte, 20>
+{
+    return detail::sha1_iter(first, last);
+}
+
+/**
+ * @brief Calculates the SHA-1 digest for a file.
+ * @param filename Source file path.
+ * @return 20-byte SHA-1 digest on success.
+ */
+[[nodiscard]] inline auto sha1(const path& filename) -> result<std::array<std::byte, 20>>
+{
+    const auto bytes = file_get_contents(filename);
+    if (!bytes.has_value()) {
+        return std::unexpected(bytes.error());
+    }
+
+    return sha1(std::span<const std::byte>(*bytes));
 }
 
 } // namespace xer
