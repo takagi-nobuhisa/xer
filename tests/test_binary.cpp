@@ -308,6 +308,88 @@ void test_checksum_file()
 }
 
 
+
+void test_checksum_aliases()
+{
+    constexpr std::array<std::byte, 5> bytes{
+        std::byte{0x01},
+        std::byte{0x02},
+        std::byte{0x03},
+        std::byte{0x04},
+        std::byte{0x05},
+    };
+
+    static_assert(xer::checksum8(std::span<const std::byte>(bytes))
+        == xer::checksum_add8(std::span<const std::byte>(bytes)));
+    static_assert(xer::checksum16(
+        std::span<const std::byte>(bytes),
+        xer::byte_order::big_endian)
+        == xer::checksum_add16(
+            std::span<const std::byte>(bytes),
+            xer::byte_order::big_endian));
+    static_assert(xer::checksum32(
+        std::span<const std::byte>(bytes),
+        xer::byte_order::little_endian)
+        == xer::checksum_add32(
+            std::span<const std::byte>(bytes),
+            xer::byte_order::little_endian));
+
+    xer_assert_eq(
+        xer::checksum8(std::span<const std::byte>(bytes)),
+        xer::checksum_add8(std::span<const std::byte>(bytes)));
+    xer_assert_eq(
+        xer::checksum16(std::span<const std::byte>(bytes), xer::byte_order::big_endian),
+        xer::checksum_add16(std::span<const std::byte>(bytes), xer::byte_order::big_endian));
+    xer_assert_eq(
+        xer::checksum32(std::span<const std::byte>(bytes), xer::byte_order::little_endian),
+        xer::checksum_add32(std::span<const std::byte>(bytes), xer::byte_order::little_endian));
+
+    const auto pointer8 = xer::checksum8(bytes.data(), bytes.size());
+    const auto pointer_add8 = xer::checksum_add8(bytes.data(), bytes.size());
+    xer_assert(pointer8.has_value());
+    xer_assert(pointer_add8.has_value());
+    xer_assert_eq(*pointer8, *pointer_add8);
+
+    const auto pointer16 = xer::checksum16(
+        bytes.data(),
+        bytes.size(),
+        xer::byte_order::big_endian);
+    const auto pointer_add16 = xer::checksum_add16(
+        bytes.data(),
+        bytes.size(),
+        xer::byte_order::big_endian);
+    xer_assert(pointer16.has_value());
+    xer_assert(pointer_add16.has_value());
+    xer_assert_eq(*pointer16, *pointer_add16);
+
+    xer_assert_eq(xer::checksum8(bytes.begin(), bytes.end()), xer::checksum_add8(bytes.begin(), bytes.end()));
+    xer_assert_eq(
+        xer::checksum16(bytes.begin(), bytes.end(), xer::byte_order::little_endian),
+        xer::checksum_add16(bytes.begin(), bytes.end(), xer::byte_order::little_endian));
+    xer_assert_eq(
+        xer::checksum32(bytes.begin(), bytes.end(), xer::byte_order::big_endian),
+        xer::checksum_add32(bytes.begin(), bytes.end(), xer::byte_order::big_endian));
+
+    const xer::path filename(u8"test_binary_checksum_alias.tmp");
+    const auto write_result = xer::file_put_contents(filename, std::span<const std::byte>(bytes));
+    xer_assert(write_result.has_value());
+
+    const auto file8 = xer::checksum8(filename);
+    const auto file_add8 = xer::checksum_add8(filename);
+    xer_assert(file8.has_value());
+    xer_assert(file_add8.has_value());
+    xer_assert_eq(*file8, *file_add8);
+
+    const auto file32 = xer::checksum32(filename, xer::byte_order::big_endian);
+    const auto file_add32 = xer::checksum_add32(filename, xer::byte_order::big_endian);
+    xer_assert(file32.has_value());
+    xer_assert(file_add32.has_value());
+    xer_assert_eq(*file32, *file_add32);
+
+    const auto remove_result = xer::remove(filename);
+    xer_assert(remove_result.has_value());
+}
+
 void test_crc_span()
 {
     constexpr std::array<std::byte, 9> bytes{
@@ -419,6 +501,7 @@ auto main() -> int
     test_checksum_pointer();
     test_checksum_iterators();
     test_checksum_file();
+    test_checksum_aliases();
     test_crc_span();
     test_crc_pointer();
     test_crc_iterators();

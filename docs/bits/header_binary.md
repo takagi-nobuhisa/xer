@@ -60,7 +60,7 @@ When `xer::uint128_t` is available:
 auto reverse_bits(xer::uint128_t value) noexcept -> xer::uint128_t;
 ```
 
-For simple checksums, the header provides additive and XOR checksums in 8-bit, 16-bit, and 32-bit forms. It also provides CRC16 and CRC32 calculation helpers.
+For simple checksums, the header provides additive checksums, XOR checksums, and convenience aliases in 8-bit, 16-bit, and 32-bit forms. It also provides CRC16 and CRC32 calculation helpers.
 
 ---
 
@@ -172,9 +172,12 @@ For 8-bit checksums, no byte-order setting is needed because each input byte is 
 The 8-bit checksum functions calculate a simple checksum over individual bytes.
 
 ```cpp
+auto checksum8(std::span<const std::byte> bytes) noexcept -> std::uint8_t;
 auto checksum_add8(std::span<const std::byte> bytes) noexcept -> std::uint8_t;
 auto checksum_xor8(std::span<const std::byte> bytes) noexcept -> std::uint8_t;
 ```
+
+`checksum8` is the usual additive 8-bit checksum. It is equivalent to `checksum_add8`.
 
 `checksum_add8` adds all bytes modulo 256.
 
@@ -190,7 +193,7 @@ const std::array<std::byte, 4> bytes {
     std::byte{0x04},
 };
 
-const auto sum = xer::checksum_add8(std::span<const std::byte>(bytes)); // 0x0a
+const auto sum = xer::checksum8(std::span<const std::byte>(bytes));      // 0x0a
 const auto x = xer::checksum_xor8(std::span<const std::byte>(bytes));   // 0x04
 ```
 
@@ -201,12 +204,17 @@ const auto x = xer::checksum_xor8(std::span<const std::byte>(bytes));   // 0x04
 The 16-bit checksum functions group the input bytes into 16-bit words and then calculate either an additive checksum or an XOR checksum.
 
 ```cpp
+auto checksum16(std::span<const std::byte> bytes, byte_order order) noexcept
+    -> std::uint16_t;
+
 auto checksum_add16(std::span<const std::byte> bytes, byte_order order) noexcept
     -> std::uint16_t;
 
 auto checksum_xor16(std::span<const std::byte> bytes, byte_order order) noexcept
     -> std::uint16_t;
 ```
+
+`checksum16` is the usual additive 16-bit checksum. It is equivalent to `checksum_add16`.
 
 The byte order controls how each pair of bytes is converted into a word.
 
@@ -236,12 +244,17 @@ With little-endian grouping, the same input is treated as:
 The 32-bit checksum functions group the input bytes into 32-bit words and then calculate either an additive checksum or an XOR checksum.
 
 ```cpp
+auto checksum32(std::span<const std::byte> bytes, byte_order order) noexcept
+    -> std::uint32_t;
+
 auto checksum_add32(std::span<const std::byte> bytes, byte_order order) noexcept
     -> std::uint32_t;
 
 auto checksum_xor32(std::span<const std::byte> bytes, byte_order order) noexcept
     -> std::uint32_t;
 ```
+
+`checksum32` is the usual additive 32-bit checksum. It is equivalent to `checksum_add32`.
 
 For bytes `{0x01, 0x02, 0x03, 0x04}`:
 
@@ -273,14 +286,21 @@ The checksum functions are provided for four input forms.
 The span overloads are the primary in-memory byte-sequence overloads.
 
 ```cpp
+auto checksum8(std::span<const std::byte> bytes) noexcept -> std::uint8_t;
 auto checksum_add8(std::span<const std::byte> bytes) noexcept -> std::uint8_t;
 auto checksum_xor8(std::span<const std::byte> bytes) noexcept -> std::uint8_t;
+
+auto checksum16(std::span<const std::byte> bytes, byte_order order) noexcept
+    -> std::uint16_t;
 
 auto checksum_add16(std::span<const std::byte> bytes, byte_order order) noexcept
     -> std::uint16_t;
 
 auto checksum_xor16(std::span<const std::byte> bytes, byte_order order) noexcept
     -> std::uint16_t;
+
+auto checksum32(std::span<const std::byte> bytes, byte_order order) noexcept
+    -> std::uint32_t;
 
 auto checksum_add32(std::span<const std::byte> bytes, byte_order order) noexcept
     -> std::uint32_t;
@@ -296,17 +316,26 @@ These overloads do not allocate and do not fail.
 Pointer-and-size overloads are provided for C-style byte buffers.
 
 ```cpp
+auto checksum8(const void* data, std::size_t size) noexcept
+    -> xer::result<std::uint8_t>;
+
 auto checksum_add8(const void* data, std::size_t size) noexcept
     -> xer::result<std::uint8_t>;
 
 auto checksum_xor8(const void* data, std::size_t size) noexcept
     -> xer::result<std::uint8_t>;
 
+auto checksum16(const void* data, std::size_t size, byte_order order) noexcept
+    -> xer::result<std::uint16_t>;
+
 auto checksum_add16(const void* data, std::size_t size, byte_order order) noexcept
     -> xer::result<std::uint16_t>;
 
 auto checksum_xor16(const void* data, std::size_t size, byte_order order) noexcept
     -> xer::result<std::uint16_t>;
+
+auto checksum32(const void* data, std::size_t size, byte_order order) noexcept
+    -> xer::result<std::uint32_t>;
 
 auto checksum_add32(const void* data, std::size_t size, byte_order order) noexcept
     -> xer::result<std::uint32_t>;
@@ -325,16 +354,25 @@ Iterator-range overloads are provided for byte-like ranges.
 
 ```cpp
 template<std::input_iterator InputIt>
+auto checksum8(InputIt first, InputIt last) -> std::uint8_t;
+
+template<std::input_iterator InputIt>
 auto checksum_add8(InputIt first, InputIt last) -> std::uint8_t;
 
 template<std::input_iterator InputIt>
 auto checksum_xor8(InputIt first, InputIt last) -> std::uint8_t;
 
 template<std::input_iterator InputIt>
+auto checksum16(InputIt first, InputIt last, byte_order order) -> std::uint16_t;
+
+template<std::input_iterator InputIt>
 auto checksum_add16(InputIt first, InputIt last, byte_order order) -> std::uint16_t;
 
 template<std::input_iterator InputIt>
 auto checksum_xor16(InputIt first, InputIt last, byte_order order) -> std::uint16_t;
+
+template<std::input_iterator InputIt>
+auto checksum32(InputIt first, InputIt last, byte_order order) -> std::uint32_t;
 
 template<std::input_iterator InputIt>
 auto checksum_add32(InputIt first, InputIt last, byte_order order) -> std::uint32_t;
@@ -352,12 +390,15 @@ These overloads are useful with containers such as `std::vector<std::byte>`, `st
 File overloads calculate the checksum of a whole file.
 
 ```cpp
+auto checksum8(const path& filename) -> xer::result<std::uint8_t>;
 auto checksum_add8(const path& filename) -> xer::result<std::uint8_t>;
 auto checksum_xor8(const path& filename) -> xer::result<std::uint8_t>;
 
+auto checksum16(const path& filename, byte_order order) -> xer::result<std::uint16_t>;
 auto checksum_add16(const path& filename, byte_order order) -> xer::result<std::uint16_t>;
 auto checksum_xor16(const path& filename, byte_order order) -> xer::result<std::uint16_t>;
 
+auto checksum32(const path& filename, byte_order order) -> xer::result<std::uint32_t>;
 auto checksum_add32(const path& filename, byte_order order) -> xer::result<std::uint32_t>;
 auto checksum_xor32(const path& filename, byte_order order) -> xer::result<std::uint32_t>;
 ```
@@ -370,9 +411,11 @@ These overloads read the whole file content and then calculate the checksum. Fil
 
 The additive checksum functions add each checksum unit and keep only the low bits of the result.
 
-- `checksum_add8` keeps the low 8 bits
-- `checksum_add16` keeps the low 16 bits
-- `checksum_add32` keeps the low 32 bits
+- `checksum8` and `checksum_add8` keep the low 8 bits
+- `checksum16` and `checksum_add16` keep the low 16 bits
+- `checksum32` and `checksum_add32` keep the low 32 bits
+
+`checksum8`, `checksum16`, and `checksum32` are convenience aliases for the additive checksum functions. Use `checksum_add8`, `checksum_add16`, or `checksum_add32` when the additive method should be explicit at the call site.
 
 The XOR checksum functions XOR each checksum unit and return the result in the corresponding width.
 
@@ -527,7 +570,7 @@ auto main() -> int
         std::byte{0x04},
     };
 
-    const auto checksum = xer::checksum_add16(
+    const auto checksum = xer::checksum16(
         std::span<const std::byte>(bytes),
         xer::byte_order::big_endian);
 

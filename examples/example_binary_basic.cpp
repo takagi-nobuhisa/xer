@@ -17,9 +17,9 @@
 // make_u16: 1234
 // byteswap u32: 78563412
 // reverse_bits u8: 48
-// checksum_add8: 0a
+// checksum8: 0a
 // checksum_xor16_be: 0206
-// checksum_add32_le: 04030201
+// checksum32_le: 04030201
 // crc16: bb3d
 // crc32: cbf43926
 
@@ -69,8 +69,8 @@ auto main() -> int
     }
 
     if (!xer::printf(
-        u8"checksum_add8: %02x\n",
-        xer::checksum_add8(std::span<const std::byte>(bytes))).has_value()) {
+        u8"checksum8: %02x\n",
+        xer::checksum8(std::span<const std::byte>(bytes))).has_value()) {
         return 1;
     }
 
@@ -83,8 +83,8 @@ auto main() -> int
     }
 
     if (!xer::printf(
-        u8"checksum_add32_le: %08x\n",
-        xer::checksum_add32(
+        u8"checksum32_le: %08x\n",
+        xer::checksum32(
             std::span<const std::byte>(bytes),
             xer::byte_order::little_endian)).has_value()) {
         return 1;

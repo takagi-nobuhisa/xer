@@ -489,6 +489,16 @@ template<typename InputIt>
 }
 
 /**
+ * @brief Calculates an 8-bit additive checksum for a byte span.
+ * @param bytes Source bytes.
+ * @return 8-bit additive checksum.
+ */
+[[nodiscard]] constexpr auto checksum8(std::span<const std::byte> bytes) noexcept -> std::uint8_t
+{
+    return checksum_add8(bytes);
+}
+
+/**
  * @brief Calculates an 8-bit XOR checksum for a byte span.
  * @param bytes Source bytes.
  * @return 8-bit XOR checksum.
@@ -509,6 +519,19 @@ template<typename InputIt>
     byte_order order) noexcept -> std::uint16_t
 {
     return detail::checksum_add16_iter(bytes.begin(), bytes.end(), order);
+}
+
+/**
+ * @brief Calculates a 16-bit additive checksum for a byte span.
+ * @param bytes Source bytes.
+ * @param order Byte order used to group bytes into 16-bit words.
+ * @return 16-bit additive checksum.
+ */
+[[nodiscard]] constexpr auto checksum16(
+    std::span<const std::byte> bytes,
+    byte_order order) noexcept -> std::uint16_t
+{
+    return checksum_add16(bytes, order);
 }
 
 /**
@@ -535,6 +558,19 @@ template<typename InputIt>
     byte_order order) noexcept -> std::uint32_t
 {
     return detail::checksum_add32_iter(bytes.begin(), bytes.end(), order);
+}
+
+/**
+ * @brief Calculates a 32-bit additive checksum for a byte span.
+ * @param bytes Source bytes.
+ * @param order Byte order used to group bytes into 32-bit words.
+ * @return 32-bit additive checksum.
+ */
+[[nodiscard]] constexpr auto checksum32(
+    std::span<const std::byte> bytes,
+    byte_order order) noexcept -> std::uint32_t
+{
+    return checksum_add32(bytes, order);
 }
 
 /**
@@ -566,6 +602,19 @@ template<typename InputIt>
     }
 
     return checksum_add8(*bytes);
+}
+
+/**
+ * @brief Calculates an 8-bit additive checksum for a pointer and byte size.
+ * @param data Source byte pointer.
+ * @param size Number of bytes.
+ * @return 8-bit additive checksum on success.
+ */
+[[nodiscard]] inline auto checksum8(
+    const void* data,
+    std::size_t size) noexcept -> result<std::uint8_t>
+{
+    return checksum_add8(data, size);
 }
 
 /**
@@ -604,6 +653,21 @@ template<typename InputIt>
     }
 
     return checksum_add16(*bytes, order);
+}
+
+/**
+ * @brief Calculates a 16-bit additive checksum for a pointer and byte size.
+ * @param data Source byte pointer.
+ * @param size Number of bytes.
+ * @param order Byte order used to group bytes into 16-bit words.
+ * @return 16-bit additive checksum on success.
+ */
+[[nodiscard]] inline auto checksum16(
+    const void* data,
+    std::size_t size,
+    byte_order order) noexcept -> result<std::uint16_t>
+{
+    return checksum_add16(data, size, order);
 }
 
 /**
@@ -647,6 +711,21 @@ template<typename InputIt>
 }
 
 /**
+ * @brief Calculates a 32-bit additive checksum for a pointer and byte size.
+ * @param data Source byte pointer.
+ * @param size Number of bytes.
+ * @param order Byte order used to group bytes into 32-bit words.
+ * @return 32-bit additive checksum on success.
+ */
+[[nodiscard]] inline auto checksum32(
+    const void* data,
+    std::size_t size,
+    byte_order order) noexcept -> result<std::uint32_t>
+{
+    return checksum_add32(data, size, order);
+}
+
+/**
  * @brief Calculates a 32-bit XOR checksum for a pointer and byte size.
  * @param data Source byte pointer.
  * @param size Number of bytes.
@@ -679,6 +758,18 @@ template<std::input_iterator InputIt>
 }
 
 /**
+ * @brief Calculates an 8-bit additive checksum for an iterator range.
+ * @param first First byte iterator.
+ * @param last End iterator.
+ * @return 8-bit additive checksum.
+ */
+template<std::input_iterator InputIt>
+[[nodiscard]] constexpr auto checksum8(InputIt first, InputIt last) -> std::uint8_t
+{
+    return checksum_add8(first, last);
+}
+
+/**
  * @brief Calculates an 8-bit XOR checksum for an iterator range.
  * @param first First byte iterator.
  * @param last End iterator.
@@ -704,6 +795,22 @@ template<std::input_iterator InputIt>
     byte_order order) -> std::uint16_t
 {
     return detail::checksum_add16_iter(first, last, order);
+}
+
+/**
+ * @brief Calculates a 16-bit additive checksum for an iterator range.
+ * @param first First byte iterator.
+ * @param last End iterator.
+ * @param order Byte order used to group bytes into 16-bit words.
+ * @return 16-bit additive checksum.
+ */
+template<std::input_iterator InputIt>
+[[nodiscard]] constexpr auto checksum16(
+    InputIt first,
+    InputIt last,
+    byte_order order) -> std::uint16_t
+{
+    return checksum_add16(first, last, order);
 }
 
 /**
@@ -739,6 +846,22 @@ template<std::input_iterator InputIt>
 }
 
 /**
+ * @brief Calculates a 32-bit additive checksum for an iterator range.
+ * @param first First byte iterator.
+ * @param last End iterator.
+ * @param order Byte order used to group bytes into 32-bit words.
+ * @return 32-bit additive checksum.
+ */
+template<std::input_iterator InputIt>
+[[nodiscard]] constexpr auto checksum32(
+    InputIt first,
+    InputIt last,
+    byte_order order) -> std::uint32_t
+{
+    return checksum_add32(first, last, order);
+}
+
+/**
  * @brief Calculates a 32-bit XOR checksum for an iterator range.
  * @param first First byte iterator.
  * @param last End iterator.
@@ -767,6 +890,16 @@ template<std::input_iterator InputIt>
     }
 
     return checksum_add8(std::span<const std::byte>(*bytes));
+}
+
+/**
+ * @brief Calculates an 8-bit additive checksum for a file.
+ * @param filename Source file path.
+ * @return 8-bit additive checksum on success.
+ */
+[[nodiscard]] inline auto checksum8(const path& filename) -> result<std::uint8_t>
+{
+    return checksum_add8(filename);
 }
 
 /**
@@ -803,6 +936,19 @@ template<std::input_iterator InputIt>
 }
 
 /**
+ * @brief Calculates a 16-bit additive checksum for a file.
+ * @param filename Source file path.
+ * @param order Byte order used to group bytes into 16-bit words.
+ * @return 16-bit additive checksum on success.
+ */
+[[nodiscard]] inline auto checksum16(
+    const path& filename,
+    byte_order order) -> result<std::uint16_t>
+{
+    return checksum_add16(filename, order);
+}
+
+/**
  * @brief Calculates a 16-bit XOR checksum for a file.
  * @param filename Source file path.
  * @param order Byte order used to group bytes into 16-bit words.
@@ -836,6 +982,19 @@ template<std::input_iterator InputIt>
     }
 
     return checksum_add32(std::span<const std::byte>(*bytes), order);
+}
+
+/**
+ * @brief Calculates a 32-bit additive checksum for a file.
+ * @param filename Source file path.
+ * @param order Byte order used to group bytes into 32-bit words.
+ * @return 32-bit additive checksum on success.
+ */
+[[nodiscard]] inline auto checksum32(
+    const path& filename,
+    byte_order order) -> result<std::uint32_t>
+{
+    return checksum_add32(filename, order);
 }
 
 /**
