@@ -502,9 +502,9 @@ Details follow this document:
 
 ### 17.11 Unicode Utilities
 
-Unicode utilities provide a practical way to handle Unicode text at the code point layer and to normalize UTF-8 text to Unicode NFC.
+Unicode utilities provide a practical way to handle Unicode text at the code point layer, at the extended grapheme cluster layer, and to normalize UTF-8 text to Unicode NFC.
 
-The code point layer supports traversal of:
+The code point layer and grapheme cluster layer support traversal of:
 
 - `std::u8string_view`
 - `std::u16string_view`
@@ -517,7 +517,8 @@ The current normalization scope is deliberately narrow:
 - `normalize_nfc`
 - `is_normalized_nfc`
 
-Grapheme cluster traversal should be built on top of the code point layer later.
+Grapheme cluster traversal is built on top of the code point layer. It is intended for practical user-visible character traversal and keeps malformed input explicit through `xer::result`.
+
 Other normalization forms and ICU-based text services may be considered later only when there is a clear practical need.
 
 Details follow this document:
@@ -541,5 +542,5 @@ Details follow this document:
 - It avoids unstable external dependencies and prefers mature, stable external components when integration is worthwhile
 - It isolates external-component features behind dedicated public headers and uses compile-time detection where appropriate
 - It organizes documentation, examples, and development scripts by role
-- It includes additional practical facilities such as process handling, socket support, value-domain utilities, Tcl/Tk integration, image/canvas APIs, bitmap-font-based text rendering, MeCab-based Japanese text processing, and Unicode code point traversal and ICU-based Unicode NFC normalization
+- It includes additional practical facilities such as process handling, socket support, value-domain utilities, Tcl/Tk integration, image/canvas APIs, bitmap-font-based text rendering, MeCab-based Japanese text processing, and Unicode code point traversal, grapheme cluster traversal, and ICU-based Unicode NFC normalization
 - It continues to evolve incrementally, starting from the facilities most needed in practice

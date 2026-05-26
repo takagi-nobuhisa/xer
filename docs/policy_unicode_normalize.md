@@ -8,10 +8,11 @@ The current public scope is intentionally incremental:
 
 ```text
 code point traversal for UTF-8, UTF-16, and wide string views
+extended grapheme cluster traversal for UTF-8, UTF-16, and wide string views
 NFC normalization for UTF-8 text
 ```
 
-Code point traversal is a small table-free layer. Unicode normalization is provided as a practical external-component feature based on the ICU C API.
+Code point traversal is a small table-free layer. Grapheme cluster traversal is built on that layer and uses compact rule helpers for practical extended grapheme cluster boundaries. Unicode normalization is provided as a practical external-component feature based on the ICU C API.
 
 This gives XER a useful and standards-based normalization facility without embedding large Unicode normalization tables into the header-only library.
 
@@ -29,10 +30,11 @@ The internal implementation may be placed under:
 
 ```text
 xer/bits/unicode_code_point.h
+xer/bits/unicode_grapheme_cluster.h
 xer/bits/unicode_normalize.h
 ```
 
-The feature is not absorbed into `<xer/string.h>` or `<xer/ctype.h>`. Code point traversal is a Unicode-specific low-level facility, and normalization depends on ICU and is much heavier than ordinary string utilities or character classification.
+The feature is not absorbed into `<xer/string.h>` or `<xer/ctype.h>`. Code point traversal and grapheme cluster traversal are Unicode-specific text traversal facilities, and normalization depends on ICU and is much heavier than ordinary string utilities or character classification.
 
 ---
 
@@ -112,6 +114,46 @@ auto code_points(std::wstring_view text)
 
 The dereferenced range element is `xer::result<xer::code_point>` so malformed input remains explicit during traversal.
 
+The grapheme cluster traversal API is:
+
+```cpp
+struct grapheme_cluster {
+    std::size_t offset;
+    std::size_t size;
+};
+
+auto next_grapheme_cluster(std::u8string_view text, std::size_t offset = 0)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto prev_grapheme_cluster(std::u8string_view text, std::size_t offset)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto next_grapheme_cluster(std::u16string_view text, std::size_t offset = 0)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto prev_grapheme_cluster(std::u16string_view text, std::size_t offset)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto next_grapheme_cluster(std::wstring_view text, std::size_t offset = 0)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto prev_grapheme_cluster(std::wstring_view text, std::size_t offset)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto grapheme_clusters(std::u8string_view text)
+    -> xer::grapheme_cluster_range<char8_t>;
+
+auto grapheme_clusters(std::u16string_view text)
+    -> xer::grapheme_cluster_range<char16_t>;
+
+auto grapheme_clusters(std::wstring_view text)
+    -> xer::grapheme_cluster_range<wchar_t>;
+```
+
+The dereferenced range element is `xer::result<xer::grapheme_cluster>` so malformed input remains explicit during traversal.
+
+`xer::grapheme_cluster` records only source `offset` and `size`. It does not own or copy the underlying text, and it does not pretend that a user-visible character can always be represented by one `char32_t`.
+
 The normalization API is:
 
 ```cpp
@@ -124,6 +166,7 @@ auto is_normalized_nfc(std::u8string_view text)
 
 All return types follow the ordinary XER error policy.
 Code point decoding can fail when the offset is outside the view or when the input is malformed.
+Grapheme cluster traversal can fail when the offset is outside the view, when `prev_grapheme_cluster` is given a non-boundary offset, or when the input is malformed.
 The normalization functions can fail when the input is invalid UTF-8, when a size is outside ICU's supported range, or when ICU reports an error.
 
 Function return types should use trailing return type syntax.
@@ -140,7 +183,7 @@ For code point traversal, the supported source views are:
 - `std::u16string_view`
 - `std::wstring_view`
 
-The `offset` and `size` fields of `xer::code_point` are expressed in source code units.
+The `offset` and `size` fields of `xer::code_point` and `xer::grapheme_cluster` are expressed in source code units.
 
 For normalization, the public input and output representation is UTF-8:
 

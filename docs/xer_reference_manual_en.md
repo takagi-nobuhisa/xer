@@ -4946,10 +4946,13 @@ The current scope includes:
 - code point traversal for `std::u8string_view`
 - code point traversal for `std::u16string_view`
 - code point traversal for `std::wstring_view`
+- extended grapheme cluster traversal for `std::u8string_view`
+- extended grapheme cluster traversal for `std::u16string_view`
+- extended grapheme cluster traversal for `std::wstring_view`
 - NFC normalization for UTF-8 text
 - NFC status checking for UTF-8 text
 
-Code point traversal itself does not use ICU. NFC normalization uses the ICU C API.
+Code point traversal and grapheme cluster traversal themselves do not use ICU. NFC normalization uses the ICU C API.
 
 At present, `<xer/unicode.h>` includes the ICU-based normalization implementation, so including this public header requires the ICU development headers to be available.
 
@@ -5050,6 +5053,60 @@ The dereferenced range element is:
 
 ```cpp
 xer::result<xer::code_point>
+```
+
+This keeps malformed input explicit during traversal.
+
+`<xer/unicode.h>` provides the following grapheme cluster traversal type:
+
+```cpp
+struct grapheme_cluster {
+    std::size_t offset;
+    std::size_t size;
+};
+```
+
+The `offset` and `size` fields are expressed in source code units. A grapheme cluster may contain multiple code points, so `grapheme_cluster` intentionally does not contain a `char32_t` value.
+
+The header provides these grapheme cluster functions:
+
+```cpp
+auto next_grapheme_cluster(std::u8string_view text, std::size_t offset = 0)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto prev_grapheme_cluster(std::u8string_view text, std::size_t offset)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto next_grapheme_cluster(std::u16string_view text, std::size_t offset = 0)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto prev_grapheme_cluster(std::u16string_view text, std::size_t offset)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto next_grapheme_cluster(std::wstring_view text, std::size_t offset = 0)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto prev_grapheme_cluster(std::wstring_view text, std::size_t offset)
+    -> xer::result<xer::grapheme_cluster>;
+```
+
+It also provides range helpers:
+
+```cpp
+auto grapheme_clusters(std::u8string_view text)
+    -> xer::grapheme_cluster_range<char8_t>;
+
+auto grapheme_clusters(std::u16string_view text)
+    -> xer::grapheme_cluster_range<char16_t>;
+
+auto grapheme_clusters(std::wstring_view text)
+    -> xer::grapheme_cluster_range<wchar_t>;
+```
+
+The dereferenced range element is:
+
+```cpp
+xer::result<xer::grapheme_cluster>
 ```
 
 This keeps malformed input explicit during traversal.
@@ -5268,7 +5325,137 @@ U+3099 COMBINING KATAKANA-HIRAGANA VOICED SOUND MARK
 
 Code point APIs intentionally expose this as two code points.
 
-Grapheme cluster APIs should be built on top of this layer later. They should return source string spans rather than a single `char32_t`, because one grapheme cluster may contain multiple code points.
+Grapheme cluster APIs are built on top of this layer and return source string spans rather than a single `char32_t`, because one grapheme cluster may contain multiple code points.
+
+---
+
+
+## `grapheme_cluster`
+
+```cpp
+struct grapheme_cluster {
+    std::size_t offset;
+    std::size_t size;
+};
+```
+
+### Purpose
+
+`grapheme_cluster` describes one extended grapheme cluster and the corresponding source span.
+
+It does not own the original string. It only records where the cluster begins and how many source code units it occupies.
+
+Unlike `code_point`, it does not contain a `char32_t` value. A single user-visible character can consist of multiple Unicode code points, such as a base character followed by a combining mark, an emoji with a variation selector, or an emoji ZWJ sequence.
+
+---
+
+## `next_grapheme_cluster`
+
+```cpp
+auto next_grapheme_cluster(std::u8string_view text, std::size_t offset = 0)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto next_grapheme_cluster(std::u16string_view text, std::size_t offset = 0)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto next_grapheme_cluster(std::wstring_view text, std::size_t offset = 0)
+    -> xer::result<xer::grapheme_cluster>;
+```
+
+### Purpose
+
+`next_grapheme_cluster` decodes the extended grapheme cluster beginning at `offset`.
+
+The implementation is based on the code point traversal layer and groups practical extended grapheme cluster sequences, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences.
+
+### Return Model
+
+The return type is:
+
+```cpp
+xer::result<xer::grapheme_cluster>
+```
+
+The function can fail if:
+
+- `offset` is outside the string view
+- `offset` is equal to the end of the string view
+- the input contains malformed UTF-8
+- the input contains malformed UTF-16 surrogate pairs
+- the decoded value is not a Unicode scalar value
+
+Out-of-range offsets are reported as `xer::error_t::out_of_range`. Malformed encoded text is reported as `xer::error_t::encoding_error`.
+
+### Example
+
+```cpp
+constexpr std::u8string_view text = u8"A\u0301B";
+
+const auto first = xer::next_grapheme_cluster(text, 0);
+// first->offset == 0
+// first->size == 3
+```
+
+---
+
+## `prev_grapheme_cluster`
+
+```cpp
+auto prev_grapheme_cluster(std::u8string_view text, std::size_t offset)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto prev_grapheme_cluster(std::u16string_view text, std::size_t offset)
+    -> xer::result<xer::grapheme_cluster>;
+
+auto prev_grapheme_cluster(std::wstring_view text, std::size_t offset)
+    -> xer::result<xer::grapheme_cluster>;
+```
+
+### Purpose
+
+`prev_grapheme_cluster` decodes the extended grapheme cluster immediately before `offset`.
+
+The `offset` argument is a one-past cluster boundary. Passing `text.size()` decodes the final grapheme cluster. Passing an offset inside a cluster is reported as `xer::error_t::encoding_error`.
+
+---
+
+## `grapheme_clusters`
+
+```cpp
+auto grapheme_clusters(std::u8string_view text)
+    -> xer::grapheme_cluster_range<char8_t>;
+
+auto grapheme_clusters(std::u16string_view text)
+    -> xer::grapheme_cluster_range<char16_t>;
+
+auto grapheme_clusters(std::wstring_view text)
+    -> xer::grapheme_cluster_range<wchar_t>;
+```
+
+### Purpose
+
+`grapheme_clusters` creates a lightweight input range that walks through the source text by extended grapheme cluster.
+
+The dereferenced element type is:
+
+```cpp
+xer::result<xer::grapheme_cluster>
+```
+
+### Example
+
+```cpp
+constexpr std::u8string_view text = u8"A\u0301B👩‍💻";
+
+for (const auto& item : xer::grapheme_clusters(text)) {
+    if (!item.has_value()) {
+        // malformed input
+        break;
+    }
+
+    // item->offset and item->size describe the cluster span.
+}
+```
 
 ---
 
@@ -5423,6 +5610,8 @@ In this example, `before` is expected to contain `false`, while `after` is expec
 `<xer/unicode.h>` is intentionally independent from ordinary string-processing headers such as `<xer/string.h>`.
 
 The code point traversal layer is small and table-free. It validates UTF-8 and UTF-16 structure, reports malformed input through `xer::result`, and records source spans in code units.
+
+The grapheme cluster traversal layer is built on top of the code point layer. It is intended for practical user-visible character traversal while still returning source spans instead of copying text.
 
 Unicode normalization is heavier than simple UTF-8 string utilities because it requires Unicode normalization data. XER delegates this responsibility to ICU instead of embedding a large generated Unicode table in the header-only library.
 
