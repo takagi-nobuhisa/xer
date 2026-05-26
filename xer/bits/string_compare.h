@@ -143,7 +143,7 @@ template<supported_string_character CharT, typename Normalizer>
         static_assert(std::same_as<CharT, char32_t>);
         for (std::size_t index = 0; index < source.size(); ++index) {
             const char32_t value = source[index];
-            if (!is_valid_code_point(value)) {
+            if (!xer::detail::is_unicode_scalar_value(value)) {
                 return std::unexpected(make_error(error_t::encoding_error));
             }
             auto normalized = normalizer(value);

@@ -21,6 +21,7 @@
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
 #include <xer/bits/string_character.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/bits/string_read.h>
 #include <xer/bits/toctrans.h>
 #include <xer/error.h>
@@ -167,7 +168,7 @@ template<typename CharT>
     std::u32string& output,
     const char32_t value) -> result<void>
 {
-    if (!is_valid_code_point(value)) {
+    if (!xer::detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
@@ -245,7 +246,7 @@ template<supported_string_character CharT>
         }
     } else {
         for (const char32_t value : source) {
-            if (!is_valid_code_point(value)) {
+            if (!xer::detail::is_unicode_scalar_value(value)) {
                 return std::unexpected(make_error(error_t::encoding_error));
             }
 
@@ -1043,7 +1044,7 @@ template<detail::supported_string_character CharT>
         }
     } else {
         for (const char32_t value : source) {
-            if (!detail::is_valid_code_point(value)) {
+            if (!detail::is_unicode_scalar_value(value)) {
                 return std::unexpected(make_error(error_t::encoding_error));
             }
 

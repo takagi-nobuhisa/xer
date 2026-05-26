@@ -14,6 +14,7 @@
 
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 
 namespace xer::detail {
@@ -371,7 +372,7 @@ inline void append_packed_utf8(std::u8string& out, std::uint32_t packed)
         std::uint32_t packed = static_cast<std::uint32_t>(u0);
         ++index;
 
-        if (u0 >= 0xd800u && u0 <= 0xdbffu) {
+        if (xer::detail::is_unicode_high_surrogate(u0)) {
             if (index >= value.size()) {
                 return std::unexpected(make_error(error_t::encoding_error));
             }

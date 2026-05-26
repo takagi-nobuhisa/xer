@@ -88,16 +88,6 @@ template<typename T>
 }
 
 /**
- * @brief Returns whether the specified code point is the invalid UTF-32 value.
- *
- * @param value Code point.
- * @return `true` if invalid, otherwise `false`.
- */
-[[nodiscard]] constexpr auto is_invalid_utf32(char32_t value) noexcept -> bool {
-    return value == xer::advanced::detail::invalid_utf32;
-}
-
-/**
  * @brief Returns the default encoding for plain `char`.
  *
  * @return Default encoding.
@@ -191,12 +181,12 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
     }
 
     if constexpr (sizeof(wchar_t) == 2) {
-        if (value > xer::detail::unicode_bmp_max_code_point || xer::detail::is_unicode_surrogate(value) || is_invalid_utf32(value)) {
+        if (!xer::detail::is_unicode_bmp_scalar_value(value)) {
             return std::unexpected(make_error(error_t::encoding_error));
         }
         *out = static_cast<wchar_t>(value);
     } else if constexpr (sizeof(wchar_t) == 4) {
-        if (is_invalid_utf32(value)) {
+        if (!xer::detail::is_unicode_scalar_value(value)) {
             return std::unexpected(make_error(error_t::encoding_error));
         }
         *out = static_cast<wchar_t>(value);
@@ -219,7 +209,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
         return {};
     }
 
-    if (value > xer::detail::unicode_bmp_max_code_point || xer::detail::is_unicode_surrogate(value) || is_invalid_utf32(value)) {
+    if (!xer::detail::is_unicode_bmp_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
@@ -235,7 +225,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @return Success or error.
  */
 [[nodiscard]] inline auto write_tc(char32_t* out, char32_t value) -> result<void> {
-    if (is_invalid_utf32(value)) {
+    if (!xer::detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
@@ -260,7 +250,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
         return cp;
     } else if constexpr (sizeof(wchar_t) == 4) {
         const char32_t cp = static_cast<char32_t>(value);
-        if (is_invalid_utf32(cp)) {
+        if (!xer::detail::is_unicode_scalar_value(cp)) {
             return std::unexpected(make_error(error_t::encoding_error));
         }
         return cp;
@@ -290,7 +280,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @return Code point or error.
  */
 [[nodiscard]] inline auto read_tc(char32_t value) -> result<char32_t> {
-    if (is_invalid_utf32(value) || xer::detail::is_unicode_surrogate(value)) {
+    if (!xer::detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
     return value;
@@ -352,7 +342,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
     }
 
     const char32_t value = xer::advanced::packed_utf8_to_utf32(packed);
-    if (value == xer::advanced::detail::invalid_utf32 || xer::detail::is_unicode_surrogate(value)) {
+    if (!xer::detail::is_unicode_scalar_value(value)) {
         return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
@@ -435,7 +425,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
         (static_cast<std::uint16_t>(b1) << 8u);
 
     const char32_t value = xer::advanced::packed_cp932_to_utf32(packed);
-    if (value == xer::advanced::detail::invalid_utf32 || xer::detail::is_unicode_surrogate(value)) {
+    if (!xer::detail::is_unicode_scalar_value(value)) {
         return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
@@ -480,7 +470,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @return Encoded result or error.
  */
 [[nodiscard]] inline auto encode_utf8_mb_char(char32_t value) -> result<encoded_char> {
-    if (is_invalid_utf32(value) || xer::detail::is_unicode_surrogate(value)) {
+    if (!xer::detail::is_unicode_scalar_value(value)) {
         return unexpected_error<encoded_char>(error_t::encoding_error);
     }
 
@@ -517,7 +507,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @return Encoded result or error.
  */
 [[nodiscard]] inline auto encode_cp932_char(char32_t value) -> result<encoded_char> {
-    if (is_invalid_utf32(value) || xer::detail::is_unicode_surrogate(value)) {
+    if (!xer::detail::is_unicode_scalar_value(value)) {
         return unexpected_error<encoded_char>(error_t::encoding_error);
     }
 

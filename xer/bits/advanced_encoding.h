@@ -131,7 +131,7 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
         return b1 | (b2 << 8);
     }
 
-    if (code_point <= 0xFFFFu) {
+    if (code_point <= xer::detail::unicode_bmp_max_code_point) {
         const std::uint32_t b1 =
             0xE0u | (static_cast<std::uint32_t>(code_point) >> 12);
         const std::uint32_t b2 =
@@ -228,7 +228,7 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
                                   ((b3 & 0x3Fu) << 6) |
                                   (b4 & 0x3Fu));
 
-        if (code_point > xer::detail::unicode_max_code_point) {
+        if (!xer::detail::is_unicode_scalar_value(code_point)) {
             return detail::invalid_utf32;
         }
 
@@ -249,11 +249,12 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
         return detail::invalid_packed_utf16;
     }
 
-    if (code_point <= 0xFFFFu) {
+    if (code_point <= xer::detail::unicode_bmp_max_code_point) {
         return static_cast<std::uint32_t>(code_point);
     }
 
-    const std::uint32_t value = static_cast<std::uint32_t>(code_point) - 0x10000u;
+    const std::uint32_t value = static_cast<std::uint32_t>(code_point) -
+        static_cast<std::uint32_t>(xer::detail::unicode_supplementary_first);
     const std::uint16_t high = static_cast<std::uint16_t>(
         static_cast<std::uint32_t>(xer::detail::unicode_high_surrogate_first) |
         (value >> 10));

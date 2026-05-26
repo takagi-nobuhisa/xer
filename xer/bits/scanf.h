@@ -25,6 +25,7 @@
 #include <xer/bits/scanf_format.h>
 #include <xer/bits/standard_streams.h>
 #include <xer/bits/text_stream_io.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 
 namespace xer::detail {
@@ -149,8 +150,8 @@ using scan_intermediate_value_t =
     std::u16string result;
 
     for (char32_t ch : *decoded) {
-        if (ch <= 0xffffu) {
-            if (ch >= 0xd800u && ch <= 0xdfffu) {
+        if (ch <= xer::detail::unicode_bmp_max_code_point) {
+            if (xer::detail::is_unicode_surrogate(ch)) {
                 return std::unexpected(make_error(error_t::encoding_error));
             }
 
@@ -158,13 +159,15 @@ using scan_intermediate_value_t =
             continue;
         }
 
-        if (ch > 0x10ffffu) {
+        if (!xer::detail::is_unicode_scalar_value(ch)) {
             return std::unexpected(make_error(error_t::encoding_error));
         }
 
-        const char32_t value20 = ch - 0x10000u;
-        result.push_back(static_cast<char16_t>(0xd800u + ((value20 >> 10) & 0x3ffu)));
-        result.push_back(static_cast<char16_t>(0xdc00u + (value20 & 0x3ffu)));
+        const char32_t value20 = ch - xer::detail::unicode_supplementary_first;
+        result.push_back(static_cast<char16_t>(
+            xer::detail::unicode_high_surrogate_first + ((value20 >> 10) & 0x3ffu)));
+        result.push_back(static_cast<char16_t>(
+            xer::detail::unicode_low_surrogate_first + (value20 & 0x3ffu)));
     }
 
     return result;
@@ -214,7 +217,7 @@ using scan_intermediate_value_t =
 [[nodiscard]] inline auto scan_append_utf8(
     std::u8string& out,
     char32_t value) -> result<void> {
-    if (value > 0x10ffffu || (value >= 0xd800u && value <= 0xdfffu)) {
+    if (!xer::detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 

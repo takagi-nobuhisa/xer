@@ -17,6 +17,7 @@
 #include <vector>
 
 #include <xer/bits/common.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 
 namespace xer::detail {
@@ -222,7 +223,7 @@ struct scan_format_t {
             (static_cast<char32_t>(c1 & 0x3fu) << 6) |
             static_cast<char32_t>(c2 & 0x3fu);
 
-        if (value < 0x800u || (value >= 0xd800u && value <= 0xdfffu)) {
+        if (value < 0x800u || !xer::detail::is_unicode_scalar_value(value)) {
             return std::unexpected(make_error(error_t::encoding_error));
         }
 
@@ -250,7 +251,8 @@ struct scan_format_t {
             (static_cast<char32_t>(c2 & 0x3fu) << 6) |
             static_cast<char32_t>(c3 & 0x3fu);
 
-        if (value < 0x10000u || value > 0x10ffffu) {
+        if (value < xer::detail::unicode_supplementary_first ||
+            !xer::detail::is_unicode_scalar_value(value)) {
             return std::unexpected(make_error(error_t::encoding_error));
         }
 
