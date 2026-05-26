@@ -11,6 +11,7 @@
 #include <xer/furigana.h>
 #include <xer/kansuji.h>
 #include <xer/mecab.h>
+#include <xer/bits/ja_is.h>
 #include <xer/bits/ja_to.h>
 
 #endif /* XER_JA_H_INCLUDED_ */

@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.5.0a4**
+Target version: **v0.5.0a5**
 
 ---
 
@@ -4954,6 +4954,7 @@ It includes:
 #include <xer/furigana.h>
 #include <xer/kansuji.h>
 #include <xer/mecab.h>
+#include <xer/bits/ja_is.h>
 #include <xer/bits/ja_to.h>
 ```
 
@@ -4973,12 +4974,40 @@ Examples:
 xer::ja::to_kansuji(2026, xer::ja::k十);
 xer::ja::from_kansuji(u8"二千二十六");
 xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_html);
+xer::ja::is_hiragana(U'あ');
+xer::ja::is_katakana(U'ア');
+xer::ja::is_kanji(U'漢');
 xer::ja::to_hiragana(u8"カタカナ");
 xer::ja::to_katakana(u8"ひらがな");
 xer::ja::mecab_parse(u8"私は猫です。");
 ```
 
 ---
+
+## Character Classification
+
+`xer::ja::is_hiragana` checks whether a code point belongs to the Unicode Hiragana block.
+
+`xer::ja::is_katakana` checks whether a code point is katakana, including fullwidth katakana, halfwidth katakana, Katakana Phonetic Extensions, and Kana Supplement/Extended blocks.
+
+`xer::ja::is_kana` checks whether a code point is hiragana or katakana.
+
+`xer::ja::is_kanji` checks whether a code point belongs to the common CJK unified ideograph or CJK compatibility ideograph ranges. Unicode shares many kanji/hanzi/hanja code points, so this function does not attempt to identify language-specific usage.
+
+`xer::ja::is_japanese_punctuation` checks whether a code point is punctuation commonly used in Japanese text.
+
+`xer::ja::is_japanese` checks whether a code point is kana, kanji, or Japanese punctuation.
+
+```cpp
+xer::ja::is_hiragana(U'あ'); // true
+xer::ja::is_katakana(U'ア'); // true
+xer::ja::is_kana(U'ｱ'); // true
+xer::ja::is_kanji(U'漢'); // true
+xer::ja::is_japanese_punctuation(U'。'); // true
+xer::ja::is_japanese(U'日'); // true
+```
+
+These functions are defined in the internal implementation header `<xer/bits/ja_is.h>` and are available through `<xer/ja.h>`.
 
 ## Kana Conversion
 
