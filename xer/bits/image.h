@@ -22,6 +22,7 @@
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/error.h>
 #include <xer/bits/file_contents.h>
+#include <xer/bits/unicode_code_point.h>
 #include <xer/bits/unicode_common.h>
 #include <xer/parse.h>
 #include <xer/path.h>
@@ -550,77 +551,13 @@ inline constexpr std::uint16_t xbf_format_version = 1;
         return std::unexpected(xer::make_error(xer::error_t::not_found));
     }
 
-    const std::uint8_t b1 = static_cast<std::uint8_t>(text[offset]);
-
-    if (b1 <= 0x7fu) {
-        ++offset;
-        return static_cast<char32_t>(b1);
+    auto decoded = xer::next_code_point(text, offset);
+    if (!decoded.has_value()) {
+        return std::unexpected(decoded.error());
     }
 
-    if (b1 >= 0xc2u && b1 <= 0xdfu) {
-        if (offset + 1 >= text.size()) {
-            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
-        }
-
-        const std::uint8_t b2 = static_cast<std::uint8_t>(text[offset + 1]);
-        const std::uint32_t packed =
-            static_cast<std::uint32_t>(b1) |
-            (static_cast<std::uint32_t>(b2) << 8);
-
-        const char32_t ch = xer::advanced::packed_utf8_to_utf32(packed);
-        if (ch == xer::advanced::detail::invalid_utf32) {
-            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
-        }
-
-        offset += 2;
-        return ch;
-    }
-
-    if (b1 >= 0xe0u && b1 <= 0xefu) {
-        if (offset + 2 >= text.size()) {
-            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
-        }
-
-        const std::uint8_t b2 = static_cast<std::uint8_t>(text[offset + 1]);
-        const std::uint8_t b3 = static_cast<std::uint8_t>(text[offset + 2]);
-        const std::uint32_t packed =
-            static_cast<std::uint32_t>(b1) |
-            (static_cast<std::uint32_t>(b2) << 8) |
-            (static_cast<std::uint32_t>(b3) << 16);
-
-        const char32_t ch = xer::advanced::packed_utf8_to_utf32(packed);
-        if (ch == xer::advanced::detail::invalid_utf32) {
-            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
-        }
-
-        offset += 3;
-        return ch;
-    }
-
-    if (b1 >= 0xf0u && b1 <= 0xf4u) {
-        if (offset + 3 >= text.size()) {
-            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
-        }
-
-        const std::uint8_t b2 = static_cast<std::uint8_t>(text[offset + 1]);
-        const std::uint8_t b3 = static_cast<std::uint8_t>(text[offset + 2]);
-        const std::uint8_t b4 = static_cast<std::uint8_t>(text[offset + 3]);
-        const std::uint32_t packed =
-            static_cast<std::uint32_t>(b1) |
-            (static_cast<std::uint32_t>(b2) << 8) |
-            (static_cast<std::uint32_t>(b3) << 16) |
-            (static_cast<std::uint32_t>(b4) << 24);
-
-        const char32_t ch = xer::advanced::packed_utf8_to_utf32(packed);
-        if (ch == xer::advanced::detail::invalid_utf32) {
-            return std::unexpected(xer::make_error(xer::error_t::encoding_error));
-        }
-
-        offset += 4;
-        return ch;
-    }
-
-    return std::unexpected(xer::make_error(xer::error_t::encoding_error));
+    offset = decoded->offset + decoded->size;
+    return decoded->value;
 }
 
 [[nodiscard]] constexpr auto bitmap_font_saturating_add(

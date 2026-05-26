@@ -18,6 +18,7 @@
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
 #include <xer/bits/json_value.h>
+#include <xer/bits/unicode_code_point.h>
 #include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 #include <xer/parse.h>
@@ -275,7 +276,7 @@ private:
                 continue;
             }
 
-            auto code_point = parse_utf8_code_point(ch);
+            auto code_point = parse_utf8_code_point(pos - 1);
             if (!code_point.has_value()) {
                 return std::unexpected(code_point.error());
             }
@@ -372,37 +373,19 @@ private:
         return static_cast<char32_t>(value);
     }
 
-    [[nodiscard]] auto parse_utf8_code_point(char8_t first_byte) -> result<char32_t, parse_error_detail>
+    [[nodiscard]] auto parse_utf8_code_point(
+        std::size_t first_byte_pos) -> result<char32_t, parse_error_detail>
     {
-        const std::uint8_t b1 = static_cast<std::uint8_t>(first_byte);
-        std::uint32_t packed = b1;
-        std::size_t extra = 0;
-
-        if (b1 >= 0xC2u && b1 <= 0xDFu) {
-            extra = 1;
-        } else if (b1 >= 0xE0u && b1 <= 0xEFu) {
-            extra = 2;
-        } else if (b1 >= 0xF0u && b1 <= 0xF4u) {
-            extra = 3;
-        } else {
-            return std::unexpected(make_parse_error(parse_error_reason::invalid_encoding, static_cast<std::size_t>(-1), error_t::encoding_error));
+        auto decoded = xer::next_code_point(text, first_byte_pos);
+        if (!decoded.has_value()) {
+            return std::unexpected(make_parse_error(
+                parse_error_reason::invalid_encoding,
+                static_cast<std::size_t>(-1),
+                decoded.error().code));
         }
 
-        if (pos + extra > text.size()) {
-            return std::unexpected(make_parse_error(parse_error_reason::invalid_encoding, static_cast<std::size_t>(-1), error_t::encoding_error));
-        }
-
-        for (std::size_t i = 0; i < extra; ++i) {
-            const std::uint8_t byte = static_cast<std::uint8_t>(text[pos++]);
-            packed |= static_cast<std::uint32_t>(byte) << ((i + 1u) * 8u);
-        }
-
-        const char32_t code_point = xer::advanced::packed_utf8_to_utf32(packed);
-        if (code_point == xer::advanced::detail::invalid_utf32) {
-            return std::unexpected(make_parse_error(parse_error_reason::invalid_encoding, static_cast<std::size_t>(-1), error_t::encoding_error));
-        }
-
-        return code_point;
+        pos = decoded->offset + decoded->size;
+        return decoded->value;
     }
 
     [[nodiscard]] auto parse_array() -> result<json_value, parse_error_detail>

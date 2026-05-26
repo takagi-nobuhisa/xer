@@ -14,7 +14,7 @@
 
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
-#include <xer/bits/unicode_common.h>
+#include <xer/bits/unicode_code_point.h>
 #include <xer/error.h>
 
 namespace xer::detail {
@@ -220,61 +220,18 @@ namespace xer::detail {
     std::string_view value,
     std::size_t& index) -> result<char32_t>
 {
-    if (index >= value.size()) {
-        return std::unexpected(make_error(error_t::invalid_argument));
+    const auto text = std::u8string_view(
+        reinterpret_cast<const char8_t*>(value.data()), value.size());
+    auto decoded = xer::next_code_point(text, index);
+    if (!decoded.has_value()) {
+        if (decoded.error().code == error_t::out_of_range) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+        return std::unexpected(decoded.error());
     }
 
-    const unsigned char c0 = static_cast<unsigned char>(value[index]);
-    std::uint32_t packed = 0;
-    std::size_t length = 0;
-
-    if (c0 <= 0x7fu) {
-        packed = static_cast<std::uint32_t>(c0);
-        length = 1;
-    } else if (c0 >= 0xc2u && c0 <= 0xdfu) {
-        if (index + 1 >= value.size()) {
-            return std::unexpected(make_error(error_t::encoding_error));
-        }
-
-        const unsigned char c1 = static_cast<unsigned char>(value[index + 1]);
-        packed = static_cast<std::uint32_t>(c0) |
-                 (static_cast<std::uint32_t>(c1) << 8);
-        length = 2;
-    } else if (c0 >= 0xe0u && c0 <= 0xefu) {
-        if (index + 2 >= value.size()) {
-            return std::unexpected(make_error(error_t::encoding_error));
-        }
-
-        const unsigned char c1 = static_cast<unsigned char>(value[index + 1]);
-        const unsigned char c2 = static_cast<unsigned char>(value[index + 2]);
-        packed = static_cast<std::uint32_t>(c0) |
-                 (static_cast<std::uint32_t>(c1) << 8) |
-                 (static_cast<std::uint32_t>(c2) << 16);
-        length = 3;
-    } else if (c0 >= 0xf0u && c0 <= 0xf4u) {
-        if (index + 3 >= value.size()) {
-            return std::unexpected(make_error(error_t::encoding_error));
-        }
-
-        const unsigned char c1 = static_cast<unsigned char>(value[index + 1]);
-        const unsigned char c2 = static_cast<unsigned char>(value[index + 2]);
-        const unsigned char c3 = static_cast<unsigned char>(value[index + 3]);
-        packed = static_cast<std::uint32_t>(c0) |
-                 (static_cast<std::uint32_t>(c1) << 8) |
-                 (static_cast<std::uint32_t>(c2) << 16) |
-                 (static_cast<std::uint32_t>(c3) << 24);
-        length = 4;
-    } else {
-        return std::unexpected(make_error(error_t::encoding_error));
-    }
-
-    const char32_t code_point = advanced::packed_utf8_to_utf32(packed);
-    if (code_point == advanced::detail::invalid_utf32) {
-        return std::unexpected(make_error(error_t::encoding_error));
-    }
-
-    index += length;
-    return code_point;
+    index = decoded->offset + decoded->size;
+    return decoded->value;
 }
 
 /**
@@ -372,7 +329,7 @@ inline void append_packed_utf8(std::u8string& out, std::uint32_t packed)
         std::uint32_t packed = static_cast<std::uint32_t>(u0);
         ++index;
 
-        if (xer::detail::is_unicode_high_surrogate(u0)) {
+        if (u0 >= 0xd800u && u0 <= 0xdbffu) {
             if (index >= value.size()) {
                 return std::unexpected(make_error(error_t::encoding_error));
             }

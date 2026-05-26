@@ -96,61 +96,27 @@ inline auto standard_text_state_close(text_stream_handle_t handle) noexcept -> i
         return r1;
     }
 
-    if (b1 <= 0x7fu) {
-        out = static_cast<char32_t>(b1);
-        return 1;
+    const std::size_t length = utf8_sequence_length(b1);
+    if (length == 0) {
+        return -1;
     }
 
-    std::uint32_t packed = static_cast<std::uint32_t>(b1);
-
-    if (b1 >= 0xc2u && b1 <= 0xdfu) {
-        unsigned char b2 = 0;
-        const int r2 = standard_text_state_read_byte(state, b2);
-        if (r2 != 1) {
+    char8_t bytes[4] = {static_cast<char8_t>(b1), 0, 0, 0};
+    for (std::size_t i = 1; i < length; ++i) {
+        unsigned char byte = 0;
+        if (standard_text_state_read_byte(state, byte) != 1) {
             return -1;
         }
-
-        packed |= static_cast<std::uint32_t>(b2) << 8;
-        out = advanced::packed_utf8_to_utf32(packed);
-        return out == advanced::detail::invalid_utf32 ? -1 : 1;
+        bytes[i] = static_cast<char8_t>(byte);
     }
 
-    if (b1 >= 0xe0u && b1 <= 0xefu) {
-        unsigned char b2 = 0;
-        unsigned char b3 = 0;
-
-        const int r2 = standard_text_state_read_byte(state, b2);
-        const int r3 = standard_text_state_read_byte(state, b3);
-        if (r2 != 1 || r3 != 1) {
-            return -1;
-        }
-
-        packed |= static_cast<std::uint32_t>(b2) << 8;
-        packed |= static_cast<std::uint32_t>(b3) << 16;
-        out = advanced::packed_utf8_to_utf32(packed);
-        return out == advanced::detail::invalid_utf32 ? -1 : 1;
+    auto decoded = next_code_point(std::u8string_view(bytes, length), 0);
+    if (!decoded.has_value()) {
+        return -1;
     }
 
-    if (b1 >= 0xf0u && b1 <= 0xf4u) {
-        unsigned char b2 = 0;
-        unsigned char b3 = 0;
-        unsigned char b4 = 0;
-
-        const int r2 = standard_text_state_read_byte(state, b2);
-        const int r3 = standard_text_state_read_byte(state, b3);
-        const int r4 = standard_text_state_read_byte(state, b4);
-        if (r2 != 1 || r3 != 1 || r4 != 1) {
-            return -1;
-        }
-
-        packed |= static_cast<std::uint32_t>(b2) << 8;
-        packed |= static_cast<std::uint32_t>(b3) << 16;
-        packed |= static_cast<std::uint32_t>(b4) << 24;
-        out = advanced::packed_utf8_to_utf32(packed);
-        return out == advanced::detail::invalid_utf32 ? -1 : 1;
-    }
-
-    return -1;
+    out = decoded->value;
+    return 1;
 }
 
 /**

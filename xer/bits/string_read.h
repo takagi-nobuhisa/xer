@@ -17,6 +17,7 @@
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
 #include <xer/bits/string_character.h>
+#include <xer/bits/unicode_code_point.h>
 #include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 
@@ -62,45 +63,12 @@ template<typename T>
     const std::u8string_view source,
     const std::size_t index) -> result<decoded_code_point>
 {
-    if (index >= source.size()) {
-        return unexpected_string_error<decoded_code_point>(error_t::out_of_range);
+    auto decoded = xer::next_code_point(source, index);
+    if (!decoded.has_value()) {
+        return std::unexpected(decoded.error());
     }
 
-    const std::uint8_t b1 = static_cast<std::uint8_t>(source[index]);
-
-    if (b1 <= 0x7Fu) {
-        return decoded_code_point {static_cast<char32_t>(b1), 1};
-    }
-
-    std::uint32_t packed = static_cast<std::uint32_t>(b1);
-    std::size_t count = 0;
-
-    if (b1 >= 0xC2u && b1 <= 0xDFu) {
-        count = 2;
-    } else if (b1 >= 0xE0u && b1 <= 0xEFu) {
-        count = 3;
-    } else if (b1 >= 0xF0u && b1 <= 0xF4u) {
-        count = 4;
-    } else {
-        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
-    }
-
-    if (index + count > source.size()) {
-        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
-    }
-
-    for (std::size_t i = 1; i < count; ++i) {
-        packed |= static_cast<std::uint32_t>(
-                      static_cast<std::uint8_t>(source[index + i]))
-                  << static_cast<unsigned int>(i * 8);
-    }
-
-    const char32_t code_point = xer::advanced::packed_utf8_to_utf32(packed);
-    if (code_point == xer::advanced::detail::invalid_utf32) {
-        return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
-    }
-
-    return decoded_code_point {code_point, count};
+    return decoded_code_point{decoded->value, decoded->size};
 }
 
 /**

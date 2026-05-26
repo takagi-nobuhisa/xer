@@ -18,6 +18,7 @@
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
 #include <xer/bits/json_value.h>
+#include <xer/bits/unicode_code_point.h>
 #include <xer/error.h>
 
 namespace xer::detail {
@@ -65,42 +66,13 @@ inline void json_encode_append_hex4(std::u8string& out, std::uint16_t value)
     std::u8string_view text,
     std::size_t& pos) -> result<char32_t>
 {
-    if (pos >= text.size()) {
-        return std::unexpected(make_error(error_t::encoding_error));
+    auto decoded = xer::next_code_point(text, pos);
+    if (!decoded.has_value()) {
+        return std::unexpected(decoded.error());
     }
 
-    const std::uint8_t b1 = static_cast<std::uint8_t>(text[pos++]);
-    if (b1 <= 0x7Fu) {
-        return static_cast<char32_t>(b1);
-    }
-
-    std::size_t extra = 0;
-    if (b1 >= 0xC2u && b1 <= 0xDFu) {
-        extra = 1;
-    } else if (b1 >= 0xE0u && b1 <= 0xEFu) {
-        extra = 2;
-    } else if (b1 >= 0xF0u && b1 <= 0xF4u) {
-        extra = 3;
-    } else {
-        return std::unexpected(make_error(error_t::encoding_error));
-    }
-
-    if (pos + extra > text.size()) {
-        return std::unexpected(make_error(error_t::encoding_error));
-    }
-
-    std::uint32_t packed = b1;
-    for (std::size_t i = 0; i < extra; ++i) {
-        const std::uint8_t byte = static_cast<std::uint8_t>(text[pos++]);
-        packed |= static_cast<std::uint32_t>(byte) << ((i + 1u) * 8u);
-    }
-
-    const char32_t code_point = xer::advanced::packed_utf8_to_utf32(packed);
-    if (code_point == xer::advanced::detail::invalid_utf32) {
-        return std::unexpected(make_error(error_t::encoding_error));
-    }
-
-    return code_point;
+    pos = decoded->offset + decoded->size;
+    return decoded->value;
 }
 
 [[nodiscard]] inline auto json_encode_string(std::u8string_view value) -> result<std::u8string>
