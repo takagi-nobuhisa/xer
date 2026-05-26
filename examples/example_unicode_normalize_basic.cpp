@@ -1,7 +1,7 @@
 ﻿#include <string_view>
 
 #include <xer/stdio.h>
-#include <xer/unicode_normalize.h>
+#include <xer/unicode.h>
 
 // XER_TEST_FEATURES: icu
 

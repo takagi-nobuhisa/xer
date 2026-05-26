@@ -19,7 +19,7 @@ This gives XER a useful and standards-based normalization facility without embed
 Unicode normalization is provided through:
 
 ```text
-xer/unicode_normalize.h
+xer/unicode.h
 ```
 
 The internal implementation may be placed under:
@@ -34,7 +34,7 @@ The feature is not absorbed into `<xer/string.h>` or `<xer/ctype.h>` because it 
 
 ## External Dependency
 
-`<xer/unicode_normalize.h>` depends on the ICU C API.
+`<xer/unicode.h>` depends on the ICU C API.
 
 Required headers include:
 
@@ -44,7 +44,7 @@ Required headers include:
 #include <unicode/unorm2.h>
 ```
 
-If these headers are not available, including `<xer/unicode_normalize.h>` should fail at compile time with `#error`.
+If these headers are not available, including `<xer/unicode.h>` should fail at compile time with `#error`.
 
 This is intentional. A program that explicitly includes this header is requesting ICU-based Unicode normalization, so missing ICU development headers should be detected statically.
 
@@ -238,7 +238,7 @@ If ICU is not available in the test environment, ICU-dependent tests may be skip
 
 ## Documentation Requirements
 
-The reference fragment for `<xer/unicode_normalize.h>` should document:
+The reference fragment for `<xer/unicode.h>` should document:
 
 - the ICU dependency
 - required ICU headers
@@ -255,7 +255,7 @@ Examples should remain small and should not introduce unrelated ICU features.
 
 ## Summary
 
-- Unicode normalization is provided through `<xer/unicode_normalize.h>`.
+- Unicode normalization is provided through `<xer/unicode.h>`.
 - The implementation uses ICU C API only.
 - The initial scope is NFC and `is_normalized_nfc`.
 - Public input and output are UTF-8.

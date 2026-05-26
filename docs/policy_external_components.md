@@ -34,7 +34,7 @@ For example:
 ```text
 xer/tk.h
 xer/mecab.h
-xer/unicode_normalize.h
+xer/unicode.h
 ```
 
 should not make ordinary string, character, arithmetic, or I/O headers depend on Tcl/Tk, MeCab, or ICU.
@@ -160,7 +160,7 @@ It invokes a MeCab executable and therefore depends mainly on runtime availabili
 
 ### ICU
 
-ICU-based Unicode normalization is provided by `<xer/unicode_normalize.h>`.
+ICU-based Unicode normalization is provided by `<xer/unicode.h>`.
 It requires ICU C API headers at compile time and ICU libraries at link time.
 The initial public scope is NFC normalization and NFC status checking.
 

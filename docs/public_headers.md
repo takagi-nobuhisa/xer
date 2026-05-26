@@ -29,7 +29,7 @@
 - `xer/kansuji.h`
 - `xer/mecab.h`
 - `xer/furigana.h`
-- `xer/unicode_normalize.h`
+- `xer/unicode.h`
 
 ### Data Encoding and Format Processing
 
@@ -214,17 +214,17 @@ This keeps the responsibility clear:
 
 Future MeCab-based automatic furigana helpers can reuse this formatter without making the low-level formatting API depend on MeCab process execution.
 
-### Why `unicode_normalize.h` Is Independent
+### Why `unicode.h` Is Independent
 
 Unicode normalization is a text-processing facility, but it depends on the external ICU C API and is heavier than ordinary low-level string operations.
 
-For that reason, Unicode normalization is not absorbed into `xer/string.h` or `xer/ctype.h`, but is provided through the independent public header `xer/unicode_normalize.h`.
+For that reason, Unicode normalization is not absorbed into `xer/string.h` or `xer/ctype.h`, but is provided through the independent public header `xer/unicode.h`.
 
 At the current stage, this keeps the responsibility clear:
 
 - `normalize_nfc` converts valid UTF-8 text to Unicode Normalization Form C
 - `is_normalized_nfc` checks whether valid UTF-8 text is already NFC
-- including `xer/unicode_normalize.h` requires ICU development headers and ICU libraries at link time
+- including `xer/unicode.h` requires ICU development headers and ICU libraries at link time
 
 Future normalization forms or ICU-based Unicode helpers can build on this header without making the ordinary string headers depend on ICU.
 

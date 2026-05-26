@@ -862,7 +862,7 @@ function detect_pair_features(string $header1, string $header2): array
     if ($header1 === 'xer/tk.h' || $header2 === 'xer/tk.h') {
         $features[] = 'tcltk';
     }
-    if ($header1 === 'xer/unicode_normalize.h' || $header2 === 'xer/unicode_normalize.h') {
+    if ($header1 === 'xer/unicode.h' || $header2 === 'xer/unicode.h') {
         $features[] = 'icu';
     }
     return $features;

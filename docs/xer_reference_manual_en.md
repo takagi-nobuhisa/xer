@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.5.0a2**
+Target version: **v0.5.0a3**
 
 ---
 
@@ -4935,11 +4935,11 @@ This separation keeps formatting logic reusable and keeps automatic reading logi
 
 ---
 
-# `<xer/unicode_normalize.h>`
+# `<xer/unicode.h>`
 
 ## Purpose
 
-`<xer/unicode_normalize.h>` provides Unicode normalization utilities.
+`<xer/unicode.h>` provides Unicode normalization utilities.
 
 The current scope is intentionally narrow. This header provides NFC normalization and NFC status checking for UTF-8 text. The implementation uses the ICU C API.
 
@@ -4949,7 +4949,7 @@ This header depends on external ICU development headers and ICU libraries. If th
 
 ## External Dependency
 
-`<xer/unicode_normalize.h>` requires the ICU C API headers:
+`<xer/unicode.h>` requires the ICU C API headers:
 
 ```cpp
 #include <unicode/utypes.h>
@@ -4985,7 +4985,7 @@ The XER test runner handles known environments separately.
 
 ## Main Entities
 
-At minimum, `<xer/unicode_normalize.h>` provides the following functions:
+At minimum, `<xer/unicode.h>` provides the following functions:
 
 ```cpp
 auto normalize_nfc(std::u8string_view text)
@@ -5147,7 +5147,7 @@ In this example, `before` is expected to contain `false`, while `after` is expec
 
 ## Design Notes
 
-`<xer/unicode_normalize.h>` is intentionally independent from ordinary string-processing headers such as `<xer/string.h>`.
+`<xer/unicode.h>` is intentionally independent from ordinary string-processing headers such as `<xer/string.h>`.
 
 Unicode normalization is heavier than simple UTF-8 string utilities because it requires Unicode normalization data. XER delegates this responsibility to ICU instead of embedding a large generated Unicode table in the header-only library.
 

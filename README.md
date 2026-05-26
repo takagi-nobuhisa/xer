@@ -145,7 +145,7 @@ Current public headers:
 - `xer/kansuji.h`
 - `xer/mecab.h`
 - `xer/furigana.h`
-- `xer/unicode_normalize.h`
+- `xer/unicode.h`
 - `xer/bytes.h`
 - `xer/base64.h`
 - `xer/binary.h`

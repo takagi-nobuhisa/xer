@@ -25,7 +25,7 @@
 #        include <unicode/ustring.h>
 #        include <unicode/unorm2.h>
 #    else
-#        error "xer/unicode_normalize.h requires ICU C API headers: <unicode/utypes.h>, <unicode/ustring.h>, and <unicode/unorm2.h>."
+#        error "xer/unicode.h requires ICU C API headers: <unicode/utypes.h>, <unicode/ustring.h>, and <unicode/unorm2.h>."
 #    endif
 #else
 #    include <unicode/utypes.h>

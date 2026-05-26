@@ -767,7 +767,7 @@ function detect_source_features(string $sourceFile): array
         $features[] = 'tcltk';
     }
 
-    if (preg_match('/#\s*include\s*[<"]xer\/unicode_normalize\.h[>"]/', $content)) {
+    if (preg_match('/#\s*include\s*[<"]xer\/unicode\.h[>"]/', $content)) {
         $features[] = 'icu';
     }
 
