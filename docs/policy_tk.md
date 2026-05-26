@@ -19,6 +19,25 @@ Tcl/Tk support is provided through the public header:
 xer/tk.h
 ```
 
+Including this header requires Tcl/Tk development headers.
+The header should check for the required C API headers with `__has_include` when available and fail with `#error` when they are missing.
+
+Required headers are:
+
+```cpp
+#include <tcl.h>
+#include <tk.h>
+```
+
+On Debian-family systems, the user or build script may need to add an include path such as:
+
+```text
+-I/usr/include/tcl
+```
+
+If the include path is not set and the headers cannot be found, compilation should fail.
+This is intentional because a source file that includes `<xer/tk.h>` is explicitly requesting Tcl/Tk support.
+
 The implementation may be split internally into:
 
 ```text
@@ -698,6 +717,10 @@ When Tcl/Tk is available, the tests should compile and run normally.
 Header combination tests must also understand that `<xer/tk.h>` requires Tcl/Tk development headers.
 If Tcl/Tk is unavailable, pairs involving `<xer/tk.h>` may be skipped rather than reported as ordinary header collisions.
 
+This does not mean that `<xer/tk.h>` provides a runtime fallback.
+When `<xer/tk.h>` is included in an ordinary build, missing Tcl/Tk headers are compile-time errors.
+The skip behavior is only a test-runner policy for environments where the optional external component is not installed.
+
 MSYS2 and Debian-family Linux systems may require different include-path handling.
 Debian-family systems may need paths such as:
 
@@ -732,6 +755,7 @@ Examples that require an actual display server should be separated from examples
 ## Summary
 
 - Tcl/Tk support is exposed through `<xer/tk.h>` and `xer::tk`
+- `<xer/tk.h>` requires Tcl/Tk development headers and reports missing headers with `#error`
 - `Tk_Main` is not used
 - Tcl/Tk integer macros are wrapped by `xer::tk` constants
 - `error_detail` stores `result_code`, not a copied message string

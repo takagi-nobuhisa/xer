@@ -23,7 +23,20 @@
 #include <utility>
 #include <vector>
 
-#include <tcl.h>
+#if defined(__has_include)
+#    if __has_include(<tcl.h>)
+#        include <tcl.h>
+#        define XER_BITS_TCL_AVAILABLE_ 1
+#    else
+#        define XER_BITS_TCL_AVAILABLE_ 0
+#        error "xer/bits/tcl.h requires the Tcl C API header <tcl.h>. On Debian-like systems, add an include path such as -I/usr/include/tcl."
+#    endif
+#else
+#    include <tcl.h>
+#    define XER_BITS_TCL_AVAILABLE_ 1
+#endif
+
+#if XER_BITS_TCL_AVAILABLE_
 
 #include <xer/bits/common.h>
 #include <xer/bits/environs.h>
@@ -1224,5 +1237,7 @@ template<class F>
 }
 
 } // namespace xer::tk
+
+#endif /* XER_BITS_TCL_AVAILABLE_ */
 
 #endif /* XER_BITS_TCL_H_INCLUDED_ */

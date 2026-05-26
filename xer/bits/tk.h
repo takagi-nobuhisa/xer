@@ -10,7 +10,20 @@
 
 #include <expected>
 
-#include <tk.h>
+#if defined(__has_include)
+#    if __has_include(<tk.h>)
+#        include <tk.h>
+#        define XER_BITS_TK_AVAILABLE_ 1
+#    else
+#        define XER_BITS_TK_AVAILABLE_ 0
+#        error "xer/bits/tk.h requires the Tk C API header <tk.h>. On Debian-like systems, add an include path such as -I/usr/include/tcl."
+#    endif
+#else
+#    include <tk.h>
+#    define XER_BITS_TK_AVAILABLE_ 1
+#endif
+
+#if XER_BITS_TK_AVAILABLE_
 
 #include <xer/bits/common.h>
 #include <xer/bits/tcl.h>
@@ -328,5 +341,7 @@ inline auto do_one_event(event_flag_t flags = event_all) -> int
 }
 
 } // namespace xer::tk
+
+#endif /* XER_BITS_TK_AVAILABLE_ */
 
 #endif /* XER_BITS_TK_H_INCLUDED_ */
