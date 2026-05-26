@@ -11,6 +11,7 @@ It includes:
 #include <xer/kansuji.h>
 #include <xer/mecab.h>
 #include <xer/bits/ja_is.h>
+#include <xer/bits/ja_kanji.h>
 #include <xer/bits/ja_to.h>
 ```
 
@@ -33,6 +34,8 @@ xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_html);
 xer::ja::is_hiragana(U'あ');
 xer::ja::is_katakana(U'ア');
 xer::ja::is_kanji(U'漢');
+xer::ja::is_name_kanji(U'凜');
+xer::ja::jis_kanji_level_of(U'亜');
 xer::ja::to_hiragana(u8"カタカナ");
 xer::ja::to_katakana(u8"ひらがな");
 xer::ja::mecab_parse(u8"私は猫です。");
@@ -64,6 +67,61 @@ xer::ja::is_japanese(U'日'); // true
 ```
 
 These functions are defined in the internal implementation header `<xer/bits/ja_is.h>` and are available through `<xer/ja.h>`.
+
+
+## Kanji Classification Tables
+
+`xer::ja::name_kanji_class_of` returns the practical Japanese name-use class of a code point.
+
+```cpp
+namespace xer::ja {
+
+enum class name_kanji_class {
+    none = 0,
+    name = 1,
+    jouyou = 2,
+    kyouiku = 3,
+};
+
+}
+```
+
+The class is ordered by containment: educational kanji are treated as a subset of common-use kanji, and common-use kanji are treated as usable in Japanese given names.
+
+```cpp
+xer::ja::is_name_kanji(U'凜'); // true
+xer::ja::is_jouyou_kanji(U'鬱'); // true
+xer::ja::is_kyouiku_kanji(U'日'); // true
+```
+
+`xer::ja::jis_kanji_level_of` returns the JIS kanji level.
+
+```cpp
+namespace xer::ja {
+
+enum class jis_kanji_level {
+    none = 0,
+    level_1 = 1,
+    level_2 = 2,
+    level_3 = 3,
+    level_4 = 4,
+};
+
+}
+```
+
+Convenience predicates are also provided.
+
+```cpp
+xer::ja::is_jis_level_1_kanji(U'亜'); // true
+xer::ja::is_jis_level_2_kanji(U'弌'); // true
+xer::ja::is_jis_level_3_kanji(U'俱'); // true
+xer::ja::is_jis_level_4_kanji(U'㐆'); // true
+```
+
+The implementation stores compact one-byte flags for the basic CJK unified ideograph range and uses a sparse fallback table for supported code points outside that range. The low two bits store `name_kanji_class`, and bits 2..4 store `jis_kanji_level`.
+
+These functions are defined in the internal implementation header `<xer/bits/ja_kanji.h>` and are available through `<xer/ja.h>`.
 
 ## Kana Conversion
 
