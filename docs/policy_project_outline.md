@@ -95,8 +95,13 @@ Examples of external components that fit this policy include:
 
 - **Tcl/Tk** for lightweight GUI integration
 - **MeCab** for Japanese morphological analysis
+- **ICU** for Unicode normalization
 
 These components are old, well-established, and sufficiently stable that XER can build practical facilities around them without expecting constant breakage from upstream changes.
+
+External-component details follow this document:
+
+- `policy_external_components.md`
 
 ---
 
@@ -179,10 +184,11 @@ XER does not depend on locale.
 
 ### 6.5 Detailed References
 
-Details of character encoding conversion follow these documents:
+Details of character encoding conversion and Unicode text handling follow these documents:
 
 - `policy_encoding.md`
 - `policy_ctype.md`
+- `policy_unicode_normalize.md`
 
 ---
 
@@ -494,6 +500,24 @@ Details follow this document:
 
 ---
 
+### 17.11 Unicode Normalization
+
+Unicode normalization provides a practical way to normalize UTF-8 text to Unicode NFC.
+The implementation uses ICU C API rather than embedding Unicode normalization tables into XER.
+
+The initial scope is deliberately narrow:
+
+- `normalize_nfc`
+- `is_normalized_nfc`
+
+Other normalization forms and ICU-based text services may be considered later only when there is a clear practical need.
+
+Details follow this document:
+
+- `policy_unicode_normalize.md`
+
+---
+
 ## 18. Summary
 
 - XER is a C++23 library designed for programmers familiar with C
@@ -507,6 +531,7 @@ Details follow this document:
 - It performs validation through common headers and `static_assert`
 - It uses PHP as a development-only tool for code generation and testing
 - It avoids unstable external dependencies and prefers mature, stable external components when integration is worthwhile
+- It isolates external-component features behind dedicated public headers and uses compile-time detection where appropriate
 - It organizes documentation, examples, and development scripts by role
-- It includes additional practical facilities such as process handling, socket support, value-domain utilities, Tcl/Tk integration, image/canvas APIs, bitmap-font-based text rendering, and MeCab-based Japanese text processing
+- It includes additional practical facilities such as process handling, socket support, value-domain utilities, Tcl/Tk integration, image/canvas APIs, bitmap-font-based text rendering, MeCab-based Japanese text processing, and ICU-based Unicode NFC normalization
 - It continues to evolve incrementally, starting from the facilities most needed in practice

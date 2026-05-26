@@ -217,6 +217,31 @@ function is_windows_target(): bool
 }
 
 /**
+ * @return string|null
+ */
+function detect_msys2_prefix(): ?string
+{
+    $prefix = getenv('MINGW_PREFIX');
+    if (is_string($prefix) && trim($prefix) !== '') {
+        return str_replace('\\', '/', rtrim(trim($prefix), '/\\'));
+    }
+
+    $msystem = getenv('MSYSTEM');
+    if (!is_string($msystem)) {
+        return null;
+    }
+
+    return match (strtoupper(trim($msystem))) {
+        'UCRT64' => '/ucrt64',
+        'CLANG64' => '/clang64',
+        'CLANGARM64' => '/clangarm64',
+        'MINGW64' => '/mingw64',
+        'MINGW32' => '/mingw32',
+        default => null,
+    };
+}
+
+/**
  * @return int
  */
 function detect_default_jobs(): int
@@ -455,6 +480,8 @@ function split_command_fragment(string $value): array
  *   build_id:string,
  *   tcltk_cflags:list<string>,
  *   tcltk_libs:list<string>,
+ *   icu_cflags:list<string>,
+ *   icu_libs:list<string>,
  *   targets:list<string>,
  *   source_selectors:list<string>
  * }
@@ -470,6 +497,8 @@ function parse_arguments(array $argv): array
     $ldflags = split_command_fragment(getenv('XER_TEST_LDFLAGS') ?: '');
     $tcltkCflags = split_command_fragment(getenv('XER_TEST_TCLTK_CFLAGS') ?: '');
     $tcltkLibs = split_command_fragment(getenv('XER_TEST_TCLTK_LIBS') ?: '');
+    $icuCflags = split_command_fragment(getenv('XER_TEST_ICU_CFLAGS') ?: '');
+    $icuLibs = split_command_fragment(getenv('XER_TEST_ICU_LIBS') ?: '');
     $jobs = detect_default_jobs();
     $buildId = detect_default_build_id();
     $targets = [];
@@ -514,6 +543,16 @@ function parse_arguments(array $argv): array
             continue;
         }
 
+        if (str_starts_with($arg, '--icu-cflags=')) {
+            $icuCflags = split_command_fragment(substr($arg, strlen('--icu-cflags=')));
+            continue;
+        }
+
+        if (str_starts_with($arg, '--icu-libs=')) {
+            $icuLibs = split_command_fragment(substr($arg, strlen('--icu-libs=')));
+            continue;
+        }
+
         if (looks_like_cpp_source_selector($arg)) {
             $sourceSelectors[] = $arg;
             continue;
@@ -530,6 +569,8 @@ function parse_arguments(array $argv): array
         'build_id' => $buildId,
         'tcltk_cflags' => $tcltkCflags,
         'tcltk_libs' => $tcltkLibs,
+        'icu_cflags' => $icuCflags,
+        'icu_libs' => $icuLibs,
         'targets' => normalize_targets($targets),
         'source_selectors' => normalize_source_selectors($sourceSelectors),
     ];
@@ -726,6 +767,10 @@ function detect_source_features(string $sourceFile): array
         $features[] = 'tcltk';
     }
 
+    if (preg_match('/#\s*include\s*[<"]xer\/unicode_normalize\.h[>"]/', $content)) {
+        $features[] = 'icu';
+    }
+
     $features = array_values(array_unique($features, SORT_STRING));
     sort($features, SORT_STRING);
 
@@ -822,6 +867,89 @@ function tcltk_option_candidates(array $options): array
 
 /**
  * @param array<string, mixed> $options
+ * @return list<array{cflags:list<string>, libs:list<string>, source:string}>
+ */
+function icu_option_candidates(array $options): array
+{
+    $candidates = [];
+
+    if ($options['icu_cflags'] !== [] || $options['icu_libs'] !== []) {
+        $candidates[] = [
+            'cflags' => $options['icu_cflags'],
+            'libs' => $options['icu_libs'],
+            'source' => 'command line or environment',
+        ];
+    }
+
+    if (find_executable('pkg-config') !== null) {
+        foreach (['icu-uc'] as $package) {
+            $output = [];
+            $exitCode = 0;
+            exec('pkg-config --cflags --libs ' . escapeshellarg($package) . ' 2>/dev/null', $output, $exitCode);
+            if ($exitCode === 0 && $output !== []) {
+                $tokens = split_command_fragment(implode(' ', $output));
+                $cflags = [];
+                $libs = [];
+                foreach ($tokens as $token) {
+                    if (str_starts_with($token, '-l') || str_starts_with($token, '-L') || str_starts_with($token, '-Wl,')) {
+                        $libs[] = $token;
+                    } else {
+                        $cflags[] = $token;
+                    }
+                }
+                $candidates[] = [
+                    'cflags' => $cflags,
+                    'libs' => $libs,
+                    'source' => 'pkg-config ' . $package,
+                ];
+            }
+        }
+    }
+
+    $msys2Prefix = detect_msys2_prefix();
+    if ($msys2Prefix !== null) {
+        $candidates[] = [
+            'cflags' => ['-I' . $msys2Prefix . '/include'],
+            'libs' => ['-L' . $msys2Prefix . '/lib', '-licuuc', '-licudt'],
+            'source' => 'MSYS2 ICU libraries under ' . $msys2Prefix,
+        ];
+    }
+
+    if (is_windows_target()) {
+        $candidates[] = [
+            'cflags' => [],
+            'libs' => ['-licuuc', '-licudt'],
+            'source' => 'default Windows/MSYS2 ICU libraries',
+        ];
+        $candidates[] = [
+            'cflags' => [],
+            'libs' => ['-licuuc', '-licudata'],
+            'source' => 'default Windows/MSYS2 ICU libraries with icudata fallback',
+        ];
+    } else {
+        $candidates[] = [
+            'cflags' => [],
+            'libs' => ['-licuuc', '-licudata'],
+            'source' => 'default Unix ICU libraries',
+        ];
+    }
+
+    $unique = [];
+    $result = [];
+    foreach ($candidates as $candidate) {
+        $key = implode("\0", $candidate['cflags']) . "\1" . implode("\0", $candidate['libs']);
+        if (isset($unique[$key])) {
+            continue;
+        }
+        $unique[$key] = true;
+        $result[] = $candidate;
+    }
+
+    return $result;
+}
+
+/**
+ * @param array<string, mixed> $options
  * @param array{cflags:list<string>, libs:list<string>, source:string} $candidate
  * @return array{available:bool, output:string, command_line:string}
  */
@@ -839,6 +967,45 @@ function probe_tcltk_candidate(array $options, array $candidate, string $scriptD
     write_text_file(
         $sourceFile,
         "#include <tcl.h>\n#include <tk.h>\nauto main() -> int { return 0; }\n"
+    );
+
+    $command = array_merge(
+        [$options['cxx'], '-std=gnu++23'],
+        $options['cxxflags'],
+        $candidate['cflags'],
+        [$sourceFile, '-o', $executable],
+        $candidate['libs'],
+        $options['ldflags']
+    );
+
+    $result = run_command($command, $scriptDir);
+
+    return [
+        'available' => $result['exit_code'] === 0,
+        'output' => $result['output'],
+        'command_line' => $result['command_line'],
+    ];
+}
+
+/**
+ * @param array<string, mixed> $options
+ * @param array{cflags:list<string>, libs:list<string>, source:string} $candidate
+ * @return array{available:bool, output:string, command_line:string}
+ */
+function probe_icu_candidate(array $options, array $candidate, string $scriptDir, string $buildRoot): array
+{
+    $probeDir = normalize_path($buildRoot . '/probe');
+    ensure_directory($probeDir);
+
+    $sourceFile = normalize_path($probeDir . '/icu_probe.cpp');
+    $executable = normalize_path($probeDir . '/icu_probe');
+    if (is_windows()) {
+        $executable .= '.exe';
+    }
+
+    write_text_file(
+        $sourceFile,
+        "#include <unicode/utypes.h>\n#include <unicode/ustring.h>\n#include <unicode/unorm2.h>\nauto main() -> int { UErrorCode status = U_ZERO_ERROR; return unorm2_getNFCInstance(&status) == nullptr; }\n"
     );
 
     $command = array_merge(
@@ -880,6 +1047,13 @@ function detect_feature_options(array $options, string $scriptDir, string $build
             'reason' => 'Tcl/Tk development files were not found.',
             'source' => '',
         ],
+        'icu' => [
+            'available' => false,
+            'cflags' => [],
+            'libs' => [],
+            'reason' => 'ICU development files were not found.',
+            'source' => '',
+        ],
     ];
 
     $lastOutput = '';
@@ -907,6 +1081,34 @@ function detect_feature_options(array $options, string $scriptDir, string $build
         $features['tcltk']['reason'] = "Tcl/Tk probe failed.\n" . $lastCommandLine;
         if ($lastOutput !== '') {
             $features['tcltk']['reason'] .= "\n" . $lastOutput;
+        }
+    }
+
+    $lastOutput = '';
+    $lastCommandLine = '';
+    foreach (icu_option_candidates($options) as $candidate) {
+        $probe = probe_icu_candidate($options, $candidate, $scriptDir, $buildRoot);
+        $lastOutput = $probe['output'];
+        $lastCommandLine = $probe['command_line'];
+
+        if (!$probe['available']) {
+            continue;
+        }
+
+        $features['icu'] = [
+            'available' => true,
+            'cflags' => $candidate['cflags'],
+            'libs' => $candidate['libs'],
+            'reason' => '',
+            'source' => $candidate['source'],
+        ];
+        break;
+    }
+
+    if (!$features['icu']['available'] && ($lastCommandLine !== '' || $lastOutput !== '')) {
+        $features['icu']['reason'] = "ICU probe failed.\n" . $lastCommandLine;
+        if ($lastOutput !== '') {
+            $features['icu']['reason'] .= "\n" . $lastOutput;
         }
     }
 
@@ -1455,6 +1657,8 @@ $options = [
     'ldflags' => $parsed['ldflags'],
     'tcltk_cflags' => $parsed['tcltk_cflags'],
     'tcltk_libs' => $parsed['tcltk_libs'],
+    'icu_cflags' => $parsed['icu_cflags'],
+    'icu_libs' => $parsed['icu_libs'],
 ];
 $jobs = $parsed['jobs'];
 $targets = $parsed['targets'];

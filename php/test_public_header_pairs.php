@@ -38,6 +38,7 @@ final class Config
     public bool $incremental = true;
     public int $jobs = 1;
     public ?string $tcltkCflags = null;
+    public ?string $icuCflags = null;
     public bool $skipUnavailableFeatures = true;
 }
 
@@ -46,6 +47,9 @@ final class FeatureConfig
     public bool $tcltkAvailable = false;
     public string $tcltkCflags = '';
     public string $tcltkDetectionNote = '';
+    public bool $icuAvailable = false;
+    public string $icuCflags = '';
+    public string $icuDetectionNote = '';
 }
 
 /**
@@ -371,6 +375,10 @@ function build_config(array $argv): Config
             $config->tcltkCflags = substr($arg, strlen('--tcltk-cflags='));
             continue;
         }
+        if (str_starts_with($arg, '--icu-cflags=')) {
+            $config->icuCflags = substr($arg, strlen('--icu-cflags='));
+            continue;
+        }
         if (str_starts_with($arg, '--skip-unavailable-features=')) {
             $value = substr($arg, strlen('--skip-unavailable-features='));
             $config->skipUnavailableFeatures = parse_bool_option($value);
@@ -553,27 +561,48 @@ function detect_features(Config $config): FeatureConfig
 {
     $features = new FeatureConfig();
 
-    $manual = $config->tcltkCflags;
-    if ($manual !== null) {
-        $features->tcltkAvailable = can_compile_tcltk_probe($config, $manual);
-        $features->tcltkCflags = $manual;
+    $manualTclTk = $config->tcltkCflags;
+    if ($manualTclTk !== null) {
+        $features->tcltkAvailable = can_compile_tcltk_probe($config, $manualTclTk);
+        $features->tcltkCflags = $manualTclTk;
         $features->tcltkDetectionNote = $features->tcltkAvailable
             ? 'manual --tcltk-cflags'
             : 'manual --tcltk-cflags did not compile';
-        return $features;
-    }
-
-    foreach (detect_tcltk_cflag_candidates() as $candidate) {
-        if (can_compile_tcltk_probe($config, $candidate['cflags'])) {
-            $features->tcltkAvailable = true;
-            $features->tcltkCflags = $candidate['cflags'];
-            $features->tcltkDetectionNote = $candidate['note'];
-            return $features;
+    } else {
+        foreach (detect_tcltk_cflag_candidates() as $candidate) {
+            if (can_compile_tcltk_probe($config, $candidate['cflags'])) {
+                $features->tcltkAvailable = true;
+                $features->tcltkCflags = $candidate['cflags'];
+                $features->tcltkDetectionNote = $candidate['note'];
+                break;
+            }
+        }
+        if (!$features->tcltkAvailable) {
+            $features->tcltkDetectionNote = 'no usable Tcl/Tk include configuration was found';
         }
     }
 
-    $features->tcltkAvailable = false;
-    $features->tcltkDetectionNote = 'no usable Tcl/Tk include configuration was found';
+    $manualIcu = $config->icuCflags;
+    if ($manualIcu !== null) {
+        $features->icuAvailable = can_compile_icu_probe($config, $manualIcu);
+        $features->icuCflags = $manualIcu;
+        $features->icuDetectionNote = $features->icuAvailable
+            ? 'manual --icu-cflags'
+            : 'manual --icu-cflags did not compile';
+    } else {
+        foreach (detect_icu_cflag_candidates() as $candidate) {
+            if (can_compile_icu_probe($config, $candidate['cflags'])) {
+                $features->icuAvailable = true;
+                $features->icuCflags = $candidate['cflags'];
+                $features->icuDetectionNote = $candidate['note'];
+                break;
+            }
+        }
+        if (!$features->icuAvailable) {
+            $features->icuDetectionNote = 'no usable ICU include configuration was found';
+        }
+    }
+
     return $features;
 }
 
@@ -710,6 +739,96 @@ CPP;
 }
 
 /**
+ * @return array<int, array{cflags:string, note:string}>
+ */
+function detect_icu_cflag_candidates(): array
+{
+    $candidates = [];
+    $seen = [];
+
+    $add = static function (string $cflags, string $note) use (&$candidates, &$seen): void {
+        $normalized = trim($cflags);
+        if (isset($seen[$normalized])) {
+            return;
+        }
+        $seen[$normalized] = true;
+        $candidates[] = [
+            'cflags' => $normalized,
+            'note' => $note,
+        ];
+    };
+
+    if (find_executable('pkg-config') !== null) {
+        $output = [];
+        $exitCode = 0;
+        exec('pkg-config --cflags icu-uc 2>/dev/null', $output, $exitCode);
+        if ($exitCode === 0) {
+            $add(trim(implode(' ', array_map('trim', $output))), 'pkg-config --cflags icu-uc');
+        }
+    }
+
+    $msys2Prefix = detect_msys2_prefix();
+    if ($msys2Prefix !== null) {
+        $add('-I' . $msys2Prefix . '/include', 'MSYS2 ICU include path under ' . $msys2Prefix);
+    }
+
+    $add('', 'compiler default include paths');
+
+    return $candidates;
+}
+
+function can_compile_icu_probe(Config $config, string $cflags): bool
+{
+    $probeDir = $config->buildRoot . DIRECTORY_SEPARATOR . 'feature_probe';
+    ensure_directory($probeDir);
+
+    $sourcePath = $probeDir . DIRECTORY_SEPARATOR . 'icu_probe.cpp';
+    $objectPath = $probeDir . DIRECTORY_SEPARATOR . 'icu_probe.o';
+    $logPath = $probeDir . DIRECTORY_SEPARATOR . 'icu_probe.log';
+
+    $source = <<<'CPP'
+#include <unicode/utypes.h>
+#include <unicode/ustring.h>
+#include <unicode/unorm2.h>
+
+auto main() -> int
+{
+    return 0;
+}
+CPP;
+
+    if (file_put_contents($sourcePath, $source) === false) {
+        throw new RuntimeException("failed to write ICU probe source: {$sourcePath}");
+    }
+
+    $parts = [
+        escapeshellarg($config->compiler),
+        '-std=' . escapeshellarg($config->cppStd),
+    ];
+    if (trim($cflags) !== '') {
+        $parts[] = trim($cflags);
+    }
+    $parts[] = '-c';
+    $parts[] = escapeshellarg($sourcePath);
+    $parts[] = '-o';
+    $parts[] = escapeshellarg($objectPath);
+
+    $command = implode(' ', $parts);
+
+    $output = [];
+    $exitCode = 0;
+    exec($command . ' 2>&1', $output, $exitCode);
+
+    $log = "Command: {$command}" . PHP_EOL . PHP_EOL . implode(PHP_EOL, $output);
+    if (!str_ends_with($log, PHP_EOL)) {
+        $log .= PHP_EOL;
+    }
+    file_put_contents($logPath, $log);
+
+    return $exitCode === 0;
+}
+
+/**
  * @param array<int, string> $features
  */
 function get_unavailable_feature_reason(
@@ -717,19 +836,21 @@ function get_unavailable_feature_reason(
     FeatureConfig $featureConfig,
     array $features
 ): ?string {
-    if (!in_array('tcltk', $features, true)) {
-        return null;
+    if (in_array('tcltk', $features, true) && !$featureConfig->tcltkAvailable) {
+        if (!$config->skipUnavailableFeatures) {
+            return null;
+        }
+        return 'Tcl/Tk headers are unavailable';
     }
 
-    if ($featureConfig->tcltkAvailable) {
-        return null;
+    if (in_array('icu', $features, true) && !$featureConfig->icuAvailable) {
+        if (!$config->skipUnavailableFeatures) {
+            return null;
+        }
+        return 'ICU headers are unavailable';
     }
 
-    if (!$config->skipUnavailableFeatures) {
-        return null;
-    }
-
-    return 'Tcl/Tk headers are unavailable';
+    return null;
 }
 
 /**
@@ -740,6 +861,9 @@ function detect_pair_features(string $header1, string $header2): array
     $features = [];
     if ($header1 === 'xer/tk.h' || $header2 === 'xer/tk.h') {
         $features[] = 'tcltk';
+    }
+    if ($header1 === 'xer/unicode_normalize.h' || $header2 === 'xer/unicode_normalize.h') {
+        $features[] = 'icu';
     }
     return $features;
 }
@@ -1138,10 +1262,14 @@ function start_compile_task(Config $config, FeatureConfig $features, array $meta
  */
 function get_pair_extra_cflags(FeatureConfig $featureConfig, array $features): string
 {
-    if (in_array('tcltk', $features, true)) {
-        return $featureConfig->tcltkCflags;
+    $cflags = [];
+    if (in_array('tcltk', $features, true) && $featureConfig->tcltkCflags !== '') {
+        $cflags[] = $featureConfig->tcltkCflags;
     }
-    return '';
+    if (in_array('icu', $features, true) && $featureConfig->icuCflags !== '') {
+        $cflags[] = $featureConfig->icuCflags;
+    }
+    return implode(' ', $cflags);
 }
 
 function build_compile_command(
@@ -1331,6 +1459,28 @@ function is_msys2(): bool
 
     $uname = php_uname('s');
     return stripos($uname, 'MSYS') !== false || stripos($uname, 'MINGW') !== false;
+}
+
+function detect_msys2_prefix(): ?string
+{
+    $prefix = getenv('MINGW_PREFIX');
+    if (is_string($prefix) && trim($prefix) !== '') {
+        return str_replace('\\', '/', rtrim(trim($prefix), '/\\'));
+    }
+
+    $msystem = getenv('MSYSTEM');
+    if (!is_string($msystem)) {
+        return null;
+    }
+
+    return match (strtoupper(trim($msystem))) {
+        'UCRT64' => '/ucrt64',
+        'CLANG64' => '/clang64',
+        'CLANGARM64' => '/clangarm64',
+        'MINGW64' => '/mingw64',
+        'MINGW32' => '/mingw32',
+        default => null,
+    };
 }
 
 function is_debian_like(): bool

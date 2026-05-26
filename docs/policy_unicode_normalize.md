@@ -1,0 +1,265 @@
+# Policy for Unicode Normalization
+
+## Overview
+
+Unicode normalization in XER is provided as a practical external-component feature based on the ICU C API.
+
+The initial public goal is intentionally narrow:
+
+```text
+NFC normalization for UTF-8 text
+```
+
+This gives XER a useful and standards-based normalization facility without embedding large Unicode normalization tables into the header-only library.
+
+---
+
+## Public Header
+
+Unicode normalization is provided through:
+
+```text
+xer/unicode_normalize.h
+```
+
+The internal implementation may be placed under:
+
+```text
+xer/bits/unicode_normalize.h
+```
+
+The feature is not absorbed into `<xer/string.h>` or `<xer/ctype.h>` because it depends on ICU and is much heavier than ordinary string utilities or character classification.
+
+---
+
+## External Dependency
+
+`<xer/unicode_normalize.h>` depends on the ICU C API.
+
+Required headers include:
+
+```cpp
+#include <unicode/utypes.h>
+#include <unicode/ustring.h>
+#include <unicode/unorm2.h>
+```
+
+If these headers are not available, including `<xer/unicode_normalize.h>` should fail at compile time with `#error`.
+
+This is intentional. A program that explicitly includes this header is requesting ICU-based Unicode normalization, so missing ICU development headers should be detected statically.
+
+Link settings are the user's build-system responsibility. XER may document typical link options, and XER's own test runner should add the required libraries for known environments.
+
+---
+
+## C API Only
+
+XER uses ICU's C API for this feature.
+
+The public API must not expose ICU C++ API types.
+It also should not expose ICU C API handles unless a future low-level advanced API has a clear need for them.
+
+Reasons:
+
+- The C API is stable and fits XER's C-oriented design.
+- Some platforms expose ICU through the C API only.
+- Public XER APIs should remain simple UTF-8-based functions returning `xer::result`.
+
+---
+
+## Public API Shape
+
+The initial API is:
+
+```cpp
+auto normalize_nfc(std::u8string_view text)
+    -> xer::result<std::u8string>;
+
+auto is_normalized_nfc(std::u8string_view text)
+    -> xer::result<bool>;
+```
+
+The return type follows the ordinary XER error policy.
+The functions can fail when the input is invalid UTF-8, when a size is outside ICU's supported range, or when ICU reports an error.
+
+Function return types should use trailing return type syntax.
+
+---
+
+## Text Representation
+
+The public input and output representation is UTF-8:
+
+- input: `std::u8string_view`
+- output: `std::u8string`
+
+Internally, the implementation may convert UTF-8 to ICU's UTF-16 representation, normalize it, and convert the result back to UTF-8.
+
+A typical internal flow is:
+
+```text
+std::u8string_view
+  -> ICU UTF-16 buffer
+  -> ICU NFC normalization
+  -> std::u8string
+```
+
+The internal use of UTF-16 does not change XER's public UTF-8-first policy.
+
+---
+
+## Initial Scope: NFC Only
+
+The first supported normalization form is NFC.
+
+NFC is the most practical initial form for XER because it is widely useful for:
+
+- file names
+- search keys
+- dictionary inputs
+- Japanese text containing combining dakuten or handakuten
+- text cleanup before comparison or storage
+
+XER does not initially expose NFD, NFKC, or NFKD.
+Those may be added later if there is a clear need.
+
+---
+
+## What NFC Means
+
+NFC is Unicode Normalization Form C.
+It performs canonical decomposition followed by canonical composition.
+
+Examples:
+
+```text
+U+304B HIRAGANA LETTER KA
+U+3099 COMBINING KATAKANA-HIRAGANA VOICED SOUND MARK
+```
+
+may normalize to:
+
+```text
+U+304C HIRAGANA LETTER GA
+```
+
+and:
+
+```text
+U+0041 LATIN CAPITAL LETTER A
+U+030A COMBINING RING ABOVE
+```
+
+may normalize to:
+
+```text
+U+00C5 LATIN CAPITAL LETTER A WITH RING ABOVE
+```
+
+XER delegates the exact Unicode normalization behavior to ICU.
+
+---
+
+## Error Handling
+
+Invalid UTF-8 should be reported as an encoding error.
+
+Input or output sizes that cannot be represented by the ICU C API length type should be reported as a length error.
+
+Other ICU failures should be reported as runtime errors unless a more precise existing XER error category is appropriate.
+
+The API should not throw exceptions for ordinary ICU failures.
+It should return `xer::result` errors.
+
+---
+
+## No Fallback Normalizer
+
+XER should not maintain a partial fallback NFC implementation.
+
+A partial or outdated Unicode normalization table would be worse than an explicit dependency because it could silently produce incorrect results.
+For this feature, ICU is the normalization engine.
+
+If ICU is unavailable, the feature is unavailable.
+The failure should occur at compile time when the header is included.
+
+---
+
+## Relationship to Other Unicode Features
+
+Unicode normalization is separate from:
+
+- character classification in `<xer/ctype.h>`
+- low-level string operations in `<xer/string.h>`
+- encoding conversion in `<xer/stdlib.h>`
+- Japanese morphological processing in `<xer/mecab.h>`
+- furigana formatting in `<xer/furigana.h>`
+- braille conversion in `<xer/braille.h>`
+
+These features may use normalized text where appropriate, but they should not become implicitly dependent on ICU unless the dependency is explicitly accepted.
+
+---
+
+## Future Expansion
+
+Possible future additions include:
+
+```cpp
+auto normalize_nfd(std::u8string_view text)
+    -> xer::result<std::u8string>;
+
+auto normalize_nfkc(std::u8string_view text)
+    -> xer::result<std::u8string>;
+
+auto normalize_nfkd(std::u8string_view text)
+    -> xer::result<std::u8string>;
+```
+
+Other ICU-based text facilities, such as case folding, collation, transliteration, or locale-sensitive processing, should not be added automatically just because ICU is available.
+Each should have its own practical need and API policy.
+
+---
+
+## Testing Policy
+
+Tests should cover at least:
+
+- ASCII text that is already NFC
+- Japanese text that is already NFC
+- Japanese decomposed dakuten input such as `か` + U+3099
+- Latin decomposed input such as `A` + U+030A
+- `is_normalized_nfc` for both normalized and non-normalized inputs
+- invalid UTF-8 input
+
+The PHP test runner should link ICU for known supported environments.
+If ICU is not available in the test environment, ICU-dependent tests may be skipped.
+
+---
+
+## Documentation Requirements
+
+The reference fragment for `<xer/unicode_normalize.h>` should document:
+
+- the ICU dependency
+- required ICU headers
+- typical link options
+- the public API
+- valid UTF-8 input requirements
+- NFC-only scope
+- failure conditions
+- future limitations
+
+Examples should remain small and should not introduce unrelated ICU features.
+
+---
+
+## Summary
+
+- Unicode normalization is provided through `<xer/unicode_normalize.h>`.
+- The implementation uses ICU C API only.
+- The initial scope is NFC and `is_normalized_nfc`.
+- Public input and output are UTF-8.
+- Missing ICU headers are compile-time errors.
+- User link settings are outside XER's responsibility.
+- XER does not provide a partial fallback normalizer.
+- Future ICU-based features should be added only with explicit need and separate design consideration.
