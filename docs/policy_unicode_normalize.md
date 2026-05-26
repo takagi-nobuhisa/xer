@@ -9,6 +9,7 @@ The current public scope is intentionally incremental:
 ```text
 code point traversal for UTF-8, UTF-16, and wide string views
 extended grapheme cluster traversal for UTF-8, UTF-16, and wide string views
+grapheme-cluster-based string operations for UTF-8, UTF-16, and wide string views
 NFC normalization for UTF-8 text
 ```
 
@@ -48,10 +49,11 @@ The internal implementation may be placed under:
 ```text
 xer/bits/unicode_code_point.h
 xer/bits/unicode_grapheme_cluster.h
+xer/bits/unicode_grapheme_string.h
 xer/bits/unicode_normalize.h
 ```
 
-The feature is not absorbed into `<xer/string.h>` or `<xer/ctype.h>`. Code point traversal and grapheme cluster traversal are Unicode-specific text traversal facilities, and normalization depends on ICU and is much heavier than ordinary string utilities or character classification.
+The feature is not absorbed into `<xer/string.h>` or `<xer/ctype.h>`. Code point traversal, grapheme cluster traversal, and grapheme-cluster-based string operations are Unicode-specific text facilities, and normalization depends on ICU and is much heavier than ordinary string utilities or character classification.
 
 ---
 
@@ -173,6 +175,30 @@ The dereferenced range element is `xer::result<xer::grapheme_cluster>` so malfor
 
 The default grapheme cluster rules are practical rules for English/Japanese-oriented text processing. They are not a promise of full UAX #29 conformance for every script, nor a replacement for language-specific boundary tailoring.
 
+
+The grapheme-cluster-based string operation API is:
+
+```cpp
+auto grapheme_length(std::u8string_view text)
+    -> xer::result<std::size_t>;
+
+auto grapheme_substr(
+    std::u8string_view text,
+    std::size_t offset,
+    std::size_t count = std::u8string_view::npos)
+    -> xer::result<std::u8string_view>;
+
+auto grapheme_left(std::u8string_view text, std::size_t count)
+    -> xer::result<std::u8string_view>;
+
+auto grapheme_right(std::u8string_view text, std::size_t count)
+    -> xer::result<std::u8string_view>;
+```
+
+`std::u16string_view` and `std::wstring_view` overloads are also provided.
+
+These functions take grapheme cluster counts, not source code-unit counts. They return views into the original text and do not allocate.
+
 The normalization API is:
 
 ```cpp
@@ -185,7 +211,7 @@ auto is_normalized_nfc(std::u8string_view text)
 
 All return types follow the ordinary XER error policy.
 Code point decoding can fail when the offset is outside the view or when the input is malformed.
-Grapheme cluster traversal can fail when the offset is outside the view, when `prev_grapheme_cluster` is given a non-boundary offset, or when the input is malformed.
+Grapheme cluster traversal can fail when the offset is outside the view, when `prev_grapheme_cluster` is given a non-boundary offset, or when the input is malformed. Grapheme-cluster-based string operations can fail when the requested offset is outside the grapheme cluster length or when malformed input is encountered while traversing the required part of the source view.
 The normalization functions can fail when the input is invalid UTF-8, when a size is outside ICU's supported range, or when ICU reports an error.
 
 Function return types should use trailing return type syntax.
@@ -202,7 +228,7 @@ For code point traversal, the supported source views are:
 - `std::u16string_view`
 - `std::wstring_view`
 
-The `offset` and `size` fields of `xer::code_point` and `xer::grapheme_cluster` are expressed in source code units.
+The `offset` and `size` fields of `xer::code_point` and `xer::grapheme_cluster` are expressed in source code units. Grapheme string operation offsets and counts are expressed in grapheme clusters.
 
 For normalization, the public input and output representation is UTF-8:
 
@@ -321,10 +347,6 @@ These features may use code point traversal or normalized text where appropriate
 ---
 
 ## Future Expansion
-
-Possible future additions include grapheme cluster traversal built on top of the code point layer.
-
-A grapheme cluster API should return source string spans rather than a single `char32_t`, because one grapheme cluster may contain multiple code points.
 
 Possible future normalization additions include:
 

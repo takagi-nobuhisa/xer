@@ -503,7 +503,7 @@ Details follow this document:
 
 ### 17.11 Unicode Utilities
 
-Unicode utilities provide a practical way to handle Unicode text at the code point layer, at the extended grapheme cluster layer, and to normalize UTF-8 text to Unicode NFC.
+Unicode utilities provide a practical way to handle Unicode text at the code point layer, at the extended grapheme cluster layer, through grapheme-cluster-based string operations, and to normalize UTF-8 text to Unicode NFC.
 
 The code point layer and grapheme cluster layer support traversal of:
 
@@ -518,7 +518,7 @@ The current normalization scope is deliberately narrow:
 - `normalize_nfc`
 - `is_normalized_nfc`
 
-Grapheme cluster traversal is built on top of the code point layer. It is intended for practical user-visible character traversal and keeps malformed input explicit through `xer::result`.
+Grapheme cluster traversal is built on top of the code point layer. It is intended for practical user-visible character traversal and keeps malformed input explicit through `xer::result`. Grapheme-cluster-based string operations such as length and substring helpers use that traversal layer and return views into the original text.
 
 The default Unicode text-handling scope is English and Japanese. The grapheme cluster implementation may handle common emoji and general Unicode sequences that appear in that scope, but XER does not try to cover every language-specific writing-system rule by default. Users who need broader script coverage can extend the public source code or use dedicated Unicode boundary services in their own programs.
 

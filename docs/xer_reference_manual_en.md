@@ -4949,10 +4949,13 @@ The current scope includes:
 - extended grapheme cluster traversal for `std::u8string_view`
 - extended grapheme cluster traversal for `std::u16string_view`
 - extended grapheme cluster traversal for `std::wstring_view`
+- grapheme-cluster-based string operations for `std::u8string_view`
+- grapheme-cluster-based string operations for `std::u16string_view`
+- grapheme-cluster-based string operations for `std::wstring_view`
 - NFC normalization for UTF-8 text
 - NFC status checking for UTF-8 text
 
-Code point traversal and grapheme cluster traversal themselves do not use ICU. NFC normalization uses the ICU C API.
+Code point traversal, grapheme cluster traversal, and grapheme-cluster-based string operations themselves do not use ICU. NFC normalization uses the ICU C API.
 
 At present, `<xer/unicode.h>` includes the ICU-based normalization implementation, so including this public header requires the ICU development headers to be available.
 
@@ -5110,6 +5113,27 @@ xer::result<xer::grapheme_cluster>
 ```
 
 This keeps malformed input explicit during traversal.
+
+The header also provides grapheme-cluster-based string operations:
+
+```cpp
+auto grapheme_length(std::u8string_view text)
+    -> xer::result<std::size_t>;
+
+auto grapheme_substr(
+    std::u8string_view text,
+    std::size_t offset,
+    std::size_t count = std::u8string_view::npos)
+    -> xer::result<std::u8string_view>;
+
+auto grapheme_left(std::u8string_view text, std::size_t count)
+    -> xer::result<std::u8string_view>;
+
+auto grapheme_right(std::u8string_view text, std::size_t count)
+    -> xer::result<std::u8string_view>;
+```
+
+`std::u16string_view` and `std::wstring_view` overloads are also provided. The returned substring values are views into the original text.
 
 The header also provides NFC utilities:
 
@@ -5457,6 +5481,134 @@ for (const auto& item : xer::grapheme_clusters(text)) {
 }
 ```
 
+
+---
+
+## `grapheme_length`
+
+```cpp
+auto grapheme_length(std::u8string_view text)
+    -> xer::result<std::size_t>;
+
+auto grapheme_length(std::u16string_view text)
+    -> xer::result<std::size_t>;
+
+auto grapheme_length(std::wstring_view text)
+    -> xer::result<std::size_t>;
+```
+
+### Purpose
+
+`grapheme_length` counts extended grapheme clusters in the source string view.
+
+This is different from `text.size()`, which counts source code units. For UTF-8 Japanese text, `text.size()` is a byte count. `grapheme_length` is intended for user-visible character counts based on XER's practical grapheme cluster rules.
+
+### Return Model
+
+The return type is:
+
+```cpp
+xer::result<std::size_t>
+```
+
+Malformed UTF-8 or UTF-16 input is reported as `xer::error_t::encoding_error`.
+
+### Example
+
+```cpp
+constexpr std::u8string_view text = u8"A\u0301B👩‍💻";
+const auto length = xer::grapheme_length(text);
+// *length == 3
+```
+
+---
+
+## `grapheme_substr`
+
+```cpp
+auto grapheme_substr(
+    std::u8string_view text,
+    std::size_t offset,
+    std::size_t count = std::u8string_view::npos)
+    -> xer::result<std::u8string_view>;
+
+auto grapheme_substr(
+    std::u16string_view text,
+    std::size_t offset,
+    std::size_t count = std::u16string_view::npos)
+    -> xer::result<std::u16string_view>;
+
+auto grapheme_substr(
+    std::wstring_view text,
+    std::size_t offset,
+    std::size_t count = std::wstring_view::npos)
+    -> xer::result<std::wstring_view>;
+```
+
+### Purpose
+
+`grapheme_substr` returns a substring view selected by grapheme cluster index.
+
+The `offset` and `count` parameters are grapheme cluster counts, not byte counts and not UTF-16 code-unit counts. The returned value is a view into the original string.
+
+If `offset` is equal to the grapheme cluster length, the result is an empty view at the end of the input. If `offset` is greater than the grapheme cluster length, the function returns `xer::error_t::out_of_range`.
+
+### Example
+
+```cpp
+constexpr std::u8string_view text = u8"A\u0301B👩‍💻C";
+const auto part = xer::grapheme_substr(text, 1, 2);
+// *part == u8"B👩‍💻"
+```
+
+---
+
+## `grapheme_left`
+
+```cpp
+auto grapheme_left(std::u8string_view text, std::size_t count)
+    -> xer::result<std::u8string_view>;
+
+auto grapheme_left(std::u16string_view text, std::size_t count)
+    -> xer::result<std::u16string_view>;
+
+auto grapheme_left(std::wstring_view text, std::size_t count)
+    -> xer::result<std::wstring_view>;
+```
+
+### Purpose
+
+`grapheme_left` returns the first `count` grapheme clusters as a view into the original string. If `count` is greater than the grapheme cluster length, the whole input view is returned.
+
+---
+
+## `grapheme_right`
+
+```cpp
+auto grapheme_right(std::u8string_view text, std::size_t count)
+    -> xer::result<std::u8string_view>;
+
+auto grapheme_right(std::u16string_view text, std::size_t count)
+    -> xer::result<std::u16string_view>;
+
+auto grapheme_right(std::wstring_view text, std::size_t count)
+    -> xer::result<std::wstring_view>;
+```
+
+### Purpose
+
+`grapheme_right` returns the last `count` grapheme clusters as a view into the original string. If `count` is greater than the grapheme cluster length, the whole input view is returned.
+
+`grapheme_right` first determines the grapheme cluster length, so malformed input anywhere in the source view is reported.
+
+### Example
+
+```cpp
+constexpr std::u8string_view text = u8"A\u0301B👩‍💻C";
+const auto right = xer::grapheme_right(text, 2);
+// *right == u8"👩‍💻C"
+```
+
 ---
 
 ## `normalize_nfc`
@@ -5611,7 +5763,7 @@ In this example, `before` is expected to contain `false`, while `after` is expec
 
 The code point traversal layer is small and table-free. It validates UTF-8 and UTF-16 structure, reports malformed input through `xer::result`, and records source spans in code units.
 
-The grapheme cluster traversal layer is built on top of the code point layer. It is intended for practical user-visible character traversal while still returning source spans instead of copying text.
+The grapheme cluster traversal layer is built on top of the code point layer. It is intended for practical user-visible character traversal while still returning source spans instead of copying text. The grapheme-cluster-based string operations provide convenient length and substring helpers while returning views into the original text.
 
 The default language scope of this layer is English and Japanese text. It handles common sequences needed for practical English/Japanese user-facing text, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences. It is not a full Unicode text-boundary engine for every script and does not provide language-specific tailoring. Users who need broader script coverage can extend XER's public source code or use a dedicated Unicode boundary service.
 
