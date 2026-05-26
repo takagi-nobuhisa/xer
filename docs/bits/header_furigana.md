@@ -68,8 +68,8 @@ enum class furigana_style : std::uint8_t {
 Callers normally use the public selector constants:
 
 ```cpp
-xer::ruby_html
-xer::ruby_paren
+xer::ja::ruby_html
+xer::ja::ruby_paren
 ```
 
 ---
@@ -80,7 +80,7 @@ xer::ruby_paren
 
 ```cpp
 const auto result =
-    xer::to_furigana(u8"学校", u8"がっこう", xer::ruby_html);
+    xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_html);
 ```
 
 Result:
@@ -113,7 +113,7 @@ Example:
 
 ```cpp
 const auto result =
-    xer::to_furigana(u8"A&B", u8"えー&びー", xer::ruby_html);
+    xer::ja::to_furigana(u8"A&B", u8"えー&びー", xer::ja::ruby_html);
 ```
 
 Result:
@@ -130,7 +130,7 @@ Result:
 
 ```cpp
 const auto result =
-    xer::to_furigana(u8"学校", u8"がっこう", xer::ruby_paren);
+    xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_paren);
 ```
 
 Result:
@@ -167,12 +167,12 @@ auto to_furigana(
 ### Examples
 
 ```cpp
-xer::to_furigana(u8"漢字", u8"かんじ", xer::ruby_html);
+xer::ja::to_furigana(u8"漢字", u8"かんじ", xer::ja::ruby_html);
 // <ruby>漢字<rt>かんじ</rt></ruby>
 ```
 
 ```cpp
-xer::to_furigana(u8"漢字", u8"かんじ", xer::ruby_paren);
+xer::ja::to_furigana(u8"漢字", u8"かんじ", xer::ja::ruby_paren);
 // 漢字(かんじ)
 ```
 
@@ -190,12 +190,12 @@ It therefore does not return `xer::result`.
 Empty base text and empty reading are accepted.
 
 ```cpp
-xer::to_furigana(u8"", u8"", xer::ruby_html);
+xer::ja::to_furigana(u8"", u8"", xer::ja::ruby_html);
 // <ruby><rt></rt></ruby>
 ```
 
 ```cpp
-xer::to_furigana(u8"", u8"", xer::ruby_paren);
+xer::ja::to_furigana(u8"", u8"", xer::ja::ruby_paren);
 // ()
 ```
 

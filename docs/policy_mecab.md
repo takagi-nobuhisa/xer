@@ -630,7 +630,7 @@ The conversion policy is:
 
 1. derive practical braille-oriented bunsetsu-like ranges and symbol ranges from the MeCab token sequence
 2. convert Japanese bunsetsu-like ranges to kana with `mecab_to_kana`
-3. convert the kana sequence to braille with `xer::braille::kana_text_to_braille`
+3. convert the kana sequence to braille with `xer::ja::kana_text_to_braille`
 4. convert ASCII alphanumeric-and-punctuation fragments from the original surface text
 5. convert symbol ranges directly with the Japanese punctuation conversion layer
 6. treat ASCII-symbol-only token ranges as braille symbol ranges so that separately tokenized fragments such as `+`, `=`, or `&&` can still be handled by the ASCII conversion path

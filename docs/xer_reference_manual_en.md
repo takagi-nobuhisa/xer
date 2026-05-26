@@ -1,6 +1,6 @@
 # XER Reference Manual
 
-Target version: **v0.5.0a3**
+Target version: **v0.5.0a4**
 
 ---
 
@@ -2165,9 +2165,9 @@ The detailed romanization behavior is documented in `header_string.md`.
 At the current stage, this header provides:
 
 - common braille sign constants as UTF-8 string views
-- one-character conversion helpers for English letters, digits, English braille punctuation, information-processing braille punctuation, Japanese kana, and Japanese punctuation
+- one-character conversion helpers for English letters, digits, English braille punctuation, and information-processing braille punctuation
 - ASCII alphanumeric-and-punctuation text conversion with automatic mode indicators
-- kana-text conversion that handles ordinary kana, yoon, extended foreign-sound kana sequences, Japanese punctuation, and ASCII spaces
+- Japanese-specific kana-braille helpers under `xer::ja`, declared by this header
 
 It does not perform complete Japanese braille translation. In particular, it does not decide readings from kanji and does not perform full braille wakachi-gaki by itself.
 
@@ -2191,9 +2191,7 @@ The current implementation provides:
 - one-character information-processing braille conversion
 - ASCII alphanumeric-and-punctuation text conversion with automatic ordinary braille indicators
 - ASCII alphanumeric-and-punctuation text conversion with automatic information-processing braille indicators
-- one-character Japanese kana conversion
-- one-character Japanese punctuation conversion
-- kana-text conversion for kana strings, yoon sequences, extended foreign-sound sequences, punctuation, and spaces
+- Japanese-specific kana-braille helpers under `xer::ja`
 
 The constants are represented as:
 
@@ -2209,7 +2207,7 @@ xer::result<std::u8string_view>
 
 This avoids allocation for the returned braille fragments and allows unsupported input characters to be reported explicitly.
 
-The kana-text conversion function returns:
+The Japanese kana-text conversion function is placed under `xer::ja` and returns:
 
 ```cpp
 xer::result<std::u8string>
@@ -2267,6 +2265,10 @@ inline constexpr std::u8string_view ip_numeric_indicator;
 [[nodiscard]] auto ip_alnum_punct_text_to_braille(std::u8string_view text)
     -> result<std::u8string>;
 
+} // namespace xer::braille
+
+namespace xer::ja {
+
 [[nodiscard]] constexpr auto japanese_punct_to_braille(char32_t c)
     -> result<std::u8string_view>;
 
@@ -2276,10 +2278,15 @@ inline constexpr std::u8string_view ip_numeric_indicator;
 [[nodiscard]] auto kana_text_to_braille(std::u8string_view text)
     -> result<std::u8string>;
 
-} // namespace xer::braille
+} // namespace xer::ja
 ```
 
 ---
+
+
+The Japanese-specific helpers are declared by `<xer/braille.h>` but are placed
+under `xer::ja`. The language-neutral and English / information-processing
+helpers remain under `xer::braille`.
 
 ## Japanese Braille Indicators
 
@@ -2758,16 +2765,16 @@ This helper is the preferred low-level conversion function for ASCII fragments t
 ---
 
 
-## `japanese_punct_to_braille`
+## `xer::ja::japanese_punct_to_braille`
 
 ```cpp
 [[nodiscard]] constexpr auto japanese_punct_to_braille(char32_t c)
     -> result<std::u8string_view>;
 ```
 
-`japanese_punct_to_braille` converts one Japanese punctuation mark to Japanese braille cells.
+`xer::ja::japanese_punct_to_braille` converts one Japanese punctuation mark to Japanese braille cells.
 
-This function is separate from `punct_to_braille`. `punct_to_braille` targets basic English braille punctuation, while `japanese_punct_to_braille` targets Japanese kana-braille punctuation used in Japanese text.
+This function is separate from `punct_to_braille`. `punct_to_braille` targets basic English braille punctuation, while `xer::ja::japanese_punct_to_braille` targets Japanese kana-braille punctuation used in Japanese text.
 
 Supported characters are:
 
@@ -2791,18 +2798,18 @@ Supported characters are:
 | `…` | `⠄⠄⠄` | ellipsis |
 | `‥` | `⠄⠄` | two-dot leader |
 
-`japanese_punct_to_braille` does not insert spaces around punctuation. Spacing is handled by higher-level text conversion functions such as `mecab_braille_wakati`.
+`xer::ja::japanese_punct_to_braille` does not insert spaces around punctuation. Spacing is handled by higher-level text conversion functions such as `mecab_braille_wakati`.
 
 ---
 
-## `kana_to_braille`
+## `xer::ja::kana_to_braille`
 
 ```cpp
 [[nodiscard]] constexpr auto kana_to_braille(char32_t c)
     -> result<std::u8string_view>;
 ```
 
-`kana_to_braille` converts one Japanese kana character to Japanese braille cells.
+`xer::ja::kana_to_braille` converts one Japanese kana character to Japanese braille cells.
 
 It accepts both hiragana and katakana for the same syllable.
 
@@ -2820,32 +2827,32 @@ The function handles:
 
 Some kana characters map to multiple braille cells. For example, voiced and semi-voiced kana are represented by a sign followed by the base kana cell.
 
-This function converts only one input character. It does not combine multiple input characters, so sequences such as `きゃ`, `シェ`, or `ティ` are handled by `kana_text_to_braille`, not by `kana_to_braille`.
+This function converts only one input character. It does not combine multiple input characters, so sequences such as `きゃ`, `シェ`, or `ティ` are handled by `xer::ja::kana_text_to_braille`, not by `xer::ja::kana_to_braille`.
 
 ---
 
-## `kana_text_to_braille`
+## `xer::ja::kana_text_to_braille`
 
 ```cpp
 [[nodiscard]] auto kana_text_to_braille(std::u8string_view text)
     -> result<std::u8string>;
 ```
 
-`kana_text_to_braille` converts UTF-8 kana text to Japanese braille text.
+`xer::ja::kana_text_to_braille` converts UTF-8 kana text to Japanese braille text.
 
 It performs the following low-level text conversion:
 
 - decodes UTF-8 input
 - preserves ASCII spaces as wakachi-gaki separators
-- converts Japanese punctuation through `japanese_punct_to_braille`
-- converts ordinary kana through `kana_to_braille`
+- converts Japanese punctuation through `xer::ja::japanese_punct_to_braille`
+- converts ordinary kana through `xer::ja::kana_to_braille`
 - combines supported small-kana sequences before conversion
 
 The function returns `error_t::encoding_error` for invalid UTF-8 input and `error_t::invalid_argument` for unsupported characters or unsupported small-kana combinations.
 
 ### Supported multi-kana sequences
 
-`kana_text_to_braille` supports ordinary yoon sequences and several extended foreign-sound kana sequences.
+`xer::ja::kana_text_to_braille` supports ordinary yoon sequences and several extended foreign-sound kana sequences.
 
 Supported base-plus-small-kana groups include:
 
@@ -2881,7 +2888,7 @@ Unsupported small-kana combinations are rejected rather than guessed.
 
 ### Scope
 
-`kana_text_to_braille` is still a low-level kana conversion function.
+`xer::ja::kana_text_to_braille` is still a low-level kana conversion function.
 
 It does not:
 
@@ -2907,7 +2914,7 @@ Common errors are:
 | `error_t::invalid_argument` | The input character or character sequence is not supported by the selected conversion helper. |
 | `error_t::encoding_error` | A UTF-8 text conversion function received invalid UTF-8 input. |
 
-One-character helpers do not allocate. `kana_text_to_braille` returns an owned `std::u8string` because it may combine input characters and append multiple output fragments.
+One-character helpers do not allocate. `xer::ja::kana_text_to_braille` returns an owned `std::u8string` because it may combine input characters and append multiple output fragments.
 
 ---
 
@@ -3442,18 +3449,18 @@ Callers normally use the public selector constants directly.
 
 | Selector | Basic Idea | Example for `123456789012` |
 |---|---|---|
-| `xer::k10` | Arabic digits with Japanese large units | `1234億5678万9012` |
-| `xer::k十` | Ordinary positional Kansuji | `千二百三十四億五千六百七十八万九千十二` |
-| `xer::k一〇` | Per-digit Kansuji | `一二三四億五六七八万九〇一二` |
-| `xer::k拾` | Practical Daiji positional Kansuji | `壱千弐百参拾四億五千六百七拾八万九千壱拾弐` |
+| `xer::ja::k10` | Arabic digits with Japanese large units | `1234億5678万9012` |
+| `xer::ja::k十` | Ordinary positional Kansuji | `千二百三十四億五千六百七十八万九千十二` |
+| `xer::ja::k一〇` | Per-digit Kansuji | `一二三四億五六七八万九〇一二` |
+| `xer::ja::k拾` | Practical Daiji positional Kansuji | `壱千弐百参拾四億五千六百七拾八万九千壱拾弐` |
 
 The selector names are intentionally based on how the number `10` is written in each style:
 
 ```cpp
-xer::k10
-xer::k十
-xer::k一〇
-xer::k拾
+xer::ja::k10
+xer::ja::k十
+xer::ja::k一〇
+xer::ja::k拾
 ```
 
 ---
@@ -3471,21 +3478,21 @@ auto to_kansuji(std::uint64_t value, kansuji_style style)
 
 ### Output Styles
 
-#### `xer::k10`
+#### `xer::ja::k10`
 
-`xer::k10` uses Arabic digits inside Japanese four-digit large-unit groups.
+`xer::ja::k10` uses Arabic digits inside Japanese four-digit large-unit groups.
 
 ```cpp
-xer::to_kansuji(UINT64_C(123456789012), xer::k10);
+xer::ja::to_kansuji(UINT64_C(123456789012), xer::ja::k10);
 // 1234億5678万9012
 ```
 
-#### `xer::k十`
+#### `xer::ja::k十`
 
-`xer::k十` uses ordinary positional Kansuji.
+`xer::ja::k十` uses ordinary positional Kansuji.
 
 ```cpp
-xer::to_kansuji(UINT64_C(123456789012), xer::k十);
+xer::ja::to_kansuji(UINT64_C(123456789012), xer::ja::k十);
 // 千二百三十四億五千六百七十八万九千十二
 ```
 
@@ -3498,13 +3505,13 @@ For `十`, `百`, and `千`, the generated form omits the leading `一`.
 | `1000` | `千` |
 | `110` | `百十` |
 
-#### `xer::k一〇`
+#### `xer::ja::k一〇`
 
-`xer::k一〇` writes each decimal digit independently.
+`xer::ja::k一〇` writes each decimal digit independently.
 Zero is generated as `〇`.
 
 ```cpp
-xer::to_kansuji(UINT64_C(123456789012), xer::k一〇);
+xer::ja::to_kansuji(UINT64_C(123456789012), xer::ja::k一〇);
 // 一二三四億五六七八万九〇一二
 ```
 
@@ -3516,12 +3523,12 @@ This style is suitable for cases where digits are conventionally read one by one
 | `2026` | `二〇二六` |
 | `9012` | `九〇一二` |
 
-#### `xer::k拾`
+#### `xer::ja::k拾`
 
-`xer::k拾` generates a practical Daiji positional style.
+`xer::ja::k拾` generates a practical Daiji positional style.
 
 ```cpp
-xer::to_kansuji(UINT64_C(110), xer::k拾);
+xer::ja::to_kansuji(UINT64_C(110), xer::ja::k拾);
 // 壱百壱拾
 ```
 
@@ -3534,7 +3541,7 @@ The current generation policy uses:
 
 Other digits remain in ordinary Kansuji form.
 
-Unlike `xer::k十`, generated Daiji output does **not** omit `壱` before small units.
+Unlike `xer::ja::k十`, generated Daiji output does **not** omit `壱` before small units.
 
 | Value | Output |
 |---:|---|
@@ -3552,10 +3559,10 @@ Unlike `xer::k十`, generated Daiji output does **not** omit `壱` before small 
 
 | Style | Output |
 |---|---|
-| `xer::k10` | `0` |
-| `xer::k十` | `零` |
-| `xer::k一〇` | `〇` |
-| `xer::k拾` | `零` |
+| `xer::ja::k10` | `0` |
+| `xer::ja::k十` | `零` |
+| `xer::ja::k一〇` | `〇` |
+| `xer::ja::k拾` | `零` |
 
 ---
 
@@ -3605,9 +3612,9 @@ The parser accepts the main notation families generated by `to_kansuji`.
 Examples:
 
 ```cpp
-xer::from_kansuji(u8"12億34万5");
-xer::from_kansuji(u8"一二億三四万五");
-xer::from_kansuji(u8"十二億三十四万五");
+xer::ja::from_kansuji(u8"12億34万5");
+xer::ja::from_kansuji(u8"一二億三四万五");
+xer::ja::from_kansuji(u8"十二億三十四万五");
 ```
 
 All three examples represent:
@@ -3645,7 +3652,7 @@ For ordinary positional Kansuji, parsing accepts both omitted and explicit leadi
 | `千` | `1000` |
 | `一千` | `1000` |
 
-Generation does not use the unnatural `一十`, `一百`, or `一千` forms for `xer::k十`, but parsing accepts them.
+Generation does not use the unnatural `一十`, `一百`, or `一千` forms for `xer::ja::k十`, but parsing accepts them.
 
 ---
 
@@ -3734,7 +3741,7 @@ error_t::overflow_error
 Example:
 
 ```cpp
-xer::from_kansuji(u8"1844京6744兆737億955万1616");
+xer::ja::from_kansuji(u8"1844京6744兆737億955万1616");
 // overflow_error
 ```
 
@@ -3745,7 +3752,7 @@ xer::from_kansuji(u8"1844京6744兆737億955万1616");
 `from_kansuji` follows XER's ordinary failure model.
 
 ```cpp
-const auto parsed = xer::from_kansuji(u8"十二億三十四万五");
+const auto parsed = xer::ja::from_kansuji(u8"十二億三十四万五");
 if (!parsed) {
     // parsed.error().code is available here.
 }
@@ -3984,7 +3991,7 @@ If `program` is empty, XER searches the `PATH` environment variable for the plat
 Example:
 
 ```cpp
-xer::mecab_options options {
+xer::ja::mecab_options options {
     .program = xer::path(u8"/usr/bin/mecab"),
 };
 ```
@@ -4326,7 +4333,7 @@ auto mecab_braille_wakati(
 
 The function uses `mecab_split_phrases` to process bunsetsu-like ranges and symbol ranges separately.
 
-For ordinary bunsetsu-like ranges, it normally calls `mecab_to_kana` with the same kana options and then converts the resulting kana text through `xer::braille::kana_text_to_braille`.
+For ordinary bunsetsu-like ranges, it normally calls `mecab_to_kana` with the same kana options and then converts the resulting kana text through `xer::ja::kana_text_to_braille`.
 
 When a token surface is an ASCII alphanumeric-and-punctuation fragment, the function converts that fragment from the original surface text through `xer::braille::alnum_punct_text_to_braille` instead of using MeCab readings. This allows fragments such as `ABC123` or `UTF-8` to keep their visible ASCII form in braille output.
 
@@ -4363,7 +4370,7 @@ The exact reading and phrase boundaries depend on the installed MeCab dictionary
 
 `mecab_braille_wakati` returns `xer::result<std::u8string>` because the braille conversion layer can fail.
 
-Errors from `xer::braille::kana_text_to_braille`, `xer::braille::alnum_punct_text_to_braille`, and the Japanese punctuation conversion layer are propagated. For example, if the token sequence contains a symbol that is not supported as Japanese braille punctuation, or an ASCII fragment contains punctuation that is not supported by ordinary English braille punctuation conversion, the function returns `error_t::invalid_argument`.
+Errors from `xer::ja::kana_text_to_braille`, `xer::braille::alnum_punct_text_to_braille`, and the Japanese punctuation conversion layer are propagated. For example, if the token sequence contains a symbol that is not supported as Japanese braille punctuation, or an ASCII fragment contains punctuation that is not supported by ordinary English braille punctuation conversion, the function returns `error_t::invalid_argument`.
 
 `mecab_braille_wakati` does not invoke MeCab. It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
 
@@ -4518,7 +4525,7 @@ This keeps the parser independent from human-readable MeCab default formatting.
 An empty input string is accepted.
 
 ```cpp
-const auto tokens = xer::mecab_parse(u8"");
+const auto tokens = xer::ja::mecab_parse(u8"");
 ```
 
 On success, the result is an empty token vector.
@@ -4526,7 +4533,7 @@ On success, the result is an empty token vector.
 ### Basic Example
 
 ```cpp
-const auto tokens = xer::mecab_parse(u8"私は猫です。");
+const auto tokens = xer::ja::mecab_parse(u8"私は猫です。");
 if (!tokens) {
     return;
 }
@@ -4765,8 +4772,8 @@ enum class furigana_style : std::uint8_t {
 Callers normally use the public selector constants:
 
 ```cpp
-xer::ruby_html
-xer::ruby_paren
+xer::ja::ruby_html
+xer::ja::ruby_paren
 ```
 
 ---
@@ -4777,7 +4784,7 @@ xer::ruby_paren
 
 ```cpp
 const auto result =
-    xer::to_furigana(u8"学校", u8"がっこう", xer::ruby_html);
+    xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_html);
 ```
 
 Result:
@@ -4810,7 +4817,7 @@ Example:
 
 ```cpp
 const auto result =
-    xer::to_furigana(u8"A&B", u8"えー&びー", xer::ruby_html);
+    xer::ja::to_furigana(u8"A&B", u8"えー&びー", xer::ja::ruby_html);
 ```
 
 Result:
@@ -4827,7 +4834,7 @@ Result:
 
 ```cpp
 const auto result =
-    xer::to_furigana(u8"学校", u8"がっこう", xer::ruby_paren);
+    xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_paren);
 ```
 
 Result:
@@ -4864,12 +4871,12 @@ auto to_furigana(
 ### Examples
 
 ```cpp
-xer::to_furigana(u8"漢字", u8"かんじ", xer::ruby_html);
+xer::ja::to_furigana(u8"漢字", u8"かんじ", xer::ja::ruby_html);
 // <ruby>漢字<rt>かんじ</rt></ruby>
 ```
 
 ```cpp
-xer::to_furigana(u8"漢字", u8"かんじ", xer::ruby_paren);
+xer::ja::to_furigana(u8"漢字", u8"かんじ", xer::ja::ruby_paren);
 // 漢字(かんじ)
 ```
 
@@ -4887,12 +4894,12 @@ It therefore does not return `xer::result`.
 Empty base text and empty reading are accepted.
 
 ```cpp
-xer::to_furigana(u8"", u8"", xer::ruby_html);
+xer::ja::to_furigana(u8"", u8"", xer::ja::ruby_html);
 // <ruby><rt></rt></ruby>
 ```
 
 ```cpp
-xer::to_furigana(u8"", u8"", xer::ruby_paren);
+xer::ja::to_furigana(u8"", u8"", xer::ja::ruby_paren);
 // ()
 ```
 
@@ -4932,6 +4939,51 @@ This separation keeps formatting logic reusable and keeps automatic reading logi
 - `<xer/mecab.h>` as a future higher-level reading source
 - `<xer/string.h>` in the broader Japanese text-processing area
 - `policy_mecab.md`
+
+---
+
+# `<xer/ja.h>`
+
+## Purpose
+
+`<xer/ja.h>` is a convenience umbrella header for Japanese-specific XER facilities.
+
+It includes:
+
+```cpp
+#include <xer/braille.h>
+#include <xer/furigana.h>
+#include <xer/kansuji.h>
+#include <xer/mecab.h>
+```
+
+The APIs provided by these headers are placed under `xer::ja`.
+
+---
+
+## Namespace Policy
+
+Japanese-specific APIs are collected under `xer::ja`.
+
+This keeps the main `xer` namespace focused on language-neutral utilities, while allowing XER to provide deeper Japanese support before v1.0.0.
+
+Examples:
+
+```cpp
+xer::ja::to_kansuji(2026, xer::ja::k十);
+xer::ja::from_kansuji(u8"二千二十六");
+xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_html);
+xer::ja::mecab_parse(u8"私は猫です。");
+xer::ja::kana_text_to_braille(u8"てんじ");
+```
+
+---
+
+## Notes
+
+`<xer/ja.h>` does not define a separate implementation layer. It is an include-only convenience header.
+
+Individual headers such as `<xer/braille.h>`, `<xer/kansuji.h>`, `<xer/furigana.h>`, and `<xer/mecab.h>` remain available when a caller wants to include only a smaller component.
 
 ---
 

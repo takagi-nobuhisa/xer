@@ -25,10 +25,10 @@ auto main() -> int
     // uses only alphanumeric text and a hyphenated ASCII fragment.
     constexpr auto text = u8"XERはABC123でUTF-8を扱います。";
 
-    xer::mecab_kana_options kana_options;
-    kana_options.kind = xer::mecab_kana_kind::hiragana;
+    xer::ja::mecab_kana_options kana_options;
+    kana_options.kind = xer::ja::mecab_kana_kind::hiragana;
 
-    const auto braille = xer::mecab_braille_translate(text, {}, kana_options);
+    const auto braille = xer::ja::mecab_braille_translate(text, {}, kana_options);
     if (!braille.has_value()) {
         return 1;
     }

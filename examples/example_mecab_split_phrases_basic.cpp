@@ -12,15 +12,15 @@
 
 auto main() -> int
 {
-    const auto tokens = xer::mecab_parse(u8"私は明日、学校へ行きます。");
+    const auto tokens = xer::ja::mecab_parse(u8"私は明日、学校へ行きます。");
     if (!tokens) {
         return 1;
     }
 
-    const auto phrases = xer::mecab_split_phrases(*tokens);
+    const auto phrases = xer::ja::mecab_split_phrases(*tokens);
 
     for (const auto& phrase : phrases) {
-        const auto kind = phrase.kind == xer::mecab_phrase_kind::bunsetsu
+        const auto kind = phrase.kind == xer::ja::mecab_phrase_kind::bunsetsu
             ? u8"文節"
             : u8"記号";
 

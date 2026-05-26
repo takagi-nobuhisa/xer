@@ -557,6 +557,10 @@ enum class braille_ascii_mode {
 }
 
 
+} // namespace xer::braille
+
+namespace xer::ja {
+
 namespace detail {
 
 [[nodiscard]] constexpr auto kana_combined_braille(
@@ -1426,6 +1430,6 @@ namespace detail {
 }
 
 
-} // namespace xer::braille
+} // namespace xer::ja
 
 #endif /* XER_BITS_BRAILLE_CHARS_H_INCLUDED_ */

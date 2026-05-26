@@ -6,7 +6,7 @@ namespace {
 void test_to_furigana_html()
 {
     const auto result =
-        xer::to_furigana(u8"学校", u8"がっこう", xer::ruby_html);
+        xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_html);
 
     xer_assert_eq(
         result,
@@ -16,7 +16,7 @@ void test_to_furigana_html()
 void test_to_furigana_parenthesized()
 {
     const auto result =
-        xer::to_furigana(u8"学校", u8"がっこう", xer::ruby_paren);
+        xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_paren);
 
     xer_assert_eq(result, u8"学校(がっこう)");
 }
@@ -24,10 +24,10 @@ void test_to_furigana_parenthesized()
 void test_to_furigana_html_escapes_base_text_and_reading()
 {
     const auto result =
-        xer::to_furigana(
+        xer::ja::to_furigana(
             u8"A&B<\"'>",
             u8"えー&びー<\"'>",
-            xer::ruby_html);
+            xer::ja::ruby_html);
 
     xer_assert_eq(
         result,
@@ -38,10 +38,10 @@ void test_to_furigana_html_escapes_base_text_and_reading()
 void test_to_furigana_parenthesized_does_not_escape()
 {
     const auto result =
-        xer::to_furigana(
+        xer::ja::to_furigana(
             u8"A&B<\"'>",
             u8"えー&びー<\"'>",
-            xer::ruby_paren);
+            xer::ja::ruby_paren);
 
     xer_assert_eq(result, u8"A&B<\"'>(えー&びー<\"'>)");
 }
@@ -49,9 +49,9 @@ void test_to_furigana_parenthesized_does_not_escape()
 void test_to_furigana_accepts_empty_base_text_and_reading()
 {
     const auto html =
-        xer::to_furigana(u8"", u8"", xer::ruby_html);
+        xer::ja::to_furigana(u8"", u8"", xer::ja::ruby_html);
     const auto paren =
-        xer::to_furigana(u8"", u8"", xer::ruby_paren);
+        xer::ja::to_furigana(u8"", u8"", xer::ja::ruby_paren);
 
     xer_assert_eq(html, u8"<ruby><rt></rt></ruby>");
     xer_assert_eq(paren, u8"()");

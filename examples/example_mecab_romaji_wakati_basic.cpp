@@ -22,10 +22,10 @@ auto print_error(std::u8string_view label, const xer::error<>& error) -> bool
 [[nodiscard]]
 auto print_romaji(
     std::u8string_view label,
-    std::span<const xer::mecab_token> tokens,
-    const xer::mecab_romaji_options& options = {}) -> bool
+    std::span<const xer::ja::mecab_token> tokens,
+    const xer::ja::mecab_romaji_options& options = {}) -> bool
 {
-    const auto text = xer::mecab_romaji_wakati(tokens, options);
+    const auto text = xer::ja::mecab_romaji_wakati(tokens, options);
     if (!text) {
         return print_error(label, text.error()) && false;
     }
@@ -37,7 +37,7 @@ auto print_romaji(
 
 auto main() -> int
 {
-    const auto tokens = xer::mecab_parse(u8"私は猫です。");
+    const auto tokens = xer::ja::mecab_parse(u8"私は猫です。");
     if (!tokens) {
         if (!print_error(u8"mecab_parse", tokens.error())) {
             return 1;
@@ -49,15 +49,15 @@ auto main() -> int
         return 1;
     }
 
-    const xer::mecab_romaji_options alt_options {
+    const xer::ja::mecab_romaji_options alt_options {
         .romaji = xer::ctrans_id::romaji_alt,
     };
     if (!print_romaji(u8"romaji_alt", *tokens, alt_options)) {
         return 1;
     }
 
-    const xer::mecab_romaji_options surface_particle_options {
-        .kana = xer::mecab_kana_options {
+    const xer::ja::mecab_romaji_options surface_particle_options {
+        .kana = xer::ja::mecab_kana_options {
             .particle_reading = false,
         },
     };

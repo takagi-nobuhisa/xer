@@ -22,10 +22,10 @@ auto main() -> int
 {
     constexpr auto text = u8"XERはC++23でUTF-8を扱います。";
 
-    xer::mecab_kana_options kana_options;
-    kana_options.kind = xer::mecab_kana_kind::hiragana;
+    xer::ja::mecab_kana_options kana_options;
+    kana_options.kind = xer::ja::mecab_kana_kind::hiragana;
 
-    const auto braille = xer::mecab_ip_braille_translate(text, {}, kana_options);
+    const auto braille = xer::ja::mecab_ip_braille_translate(text, {}, kana_options);
     if (!braille.has_value()) {
         return 1;
     }

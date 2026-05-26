@@ -32,9 +32,9 @@ auto print_result(
 
 auto main() -> int
 {
-    const auto basic_text = xer::braille::kana_text_to_braille(u8"かな カナ");
-    const auto yoon = xer::braille::kana_text_to_braille(u8"きゃ きゅ きょ");
-    const auto voiced_yoon = xer::braille::kana_text_to_braille(u8"ぎゃ じゅ びょ ぴゅ");
+    const auto basic_text = xer::ja::kana_text_to_braille(u8"かな カナ");
+    const auto yoon = xer::ja::kana_text_to_braille(u8"きゃ きゅ きょ");
+    const auto voiced_yoon = xer::ja::kana_text_to_braille(u8"ぎゃ じゅ びょ ぴゅ");
 
     if (!print_result(u8"basic text: ", basic_text)) {
         return 1;

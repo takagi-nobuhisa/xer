@@ -34,7 +34,7 @@ auto append_braille(
 
 auto append_kana(std::u8string& output, char32_t c) -> bool
 {
-    return append_braille(output, xer::braille::kana_to_braille(c));
+    return append_braille(output, xer::ja::kana_to_braille(c));
 }
 
 template <std::size_t N>
@@ -43,7 +43,7 @@ auto convert_kana(const std::array<char32_t, N>& input) -> xer::result<std::u8st
     std::u8string output;
 
     for (const auto c : input) {
-        const auto value = xer::braille::kana_to_braille(c);
+        const auto value = xer::ja::kana_to_braille(c);
         if (!value.has_value()) {
             return std::unexpected(value.error());
         }

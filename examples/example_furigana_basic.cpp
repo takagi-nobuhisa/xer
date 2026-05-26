@@ -13,11 +13,11 @@
 auto main() -> int
 {
     const auto html =
-        xer::to_furigana(u8"学校", u8"がっこう", xer::ruby_html);
+        xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_html);
     const auto paren =
-        xer::to_furigana(u8"学校", u8"がっこう", xer::ruby_paren);
+        xer::ja::to_furigana(u8"学校", u8"がっこう", xer::ja::ruby_paren);
     const auto escaped_html =
-        xer::to_furigana(u8"A&B", u8"えー&びー", xer::ruby_html);
+        xer::ja::to_furigana(u8"A&B", u8"えー&びー", xer::ja::ruby_html);
 
     if (!xer::printf(u8"html: %@\n", html)) {
         return 1;

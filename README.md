@@ -121,13 +121,15 @@ Instead, it builds on `FILE`-style I/O and exposes redesigned stream types such 
 
 ### 7. Practical Japanese text-processing helpers
 
-xer includes small Japanese text-processing building blocks that are useful in ordinary tools and examples:
+xer includes small Japanese text-processing building blocks that are useful in ordinary tools and examples. Japanese-specific APIs are collected under the `xer::ja` namespace:
 
 - kansuji conversion
 - furigana formatting
 - MeCab-based morphological parsing and wakachi-gaki helpers
 - kana and romaji conversion helpers built on MeCab readings
-- braille constants, low-level character conversion, kana text conversion, ASCII mode switching, information-processing braille helpers, and MeCab-based braille translation
+- braille constants and language-neutral / English low-level helpers under `xer::braille`
+- Japanese kana-braille helpers under `xer::ja`
+- MeCab-based braille translation
 
 The braille facilities are practical building blocks. They do not claim to be a complete, standards-grade braille translation engine, and MeCab-based conversion depends on the readings produced by the external MeCab dictionary.
 
@@ -147,6 +149,7 @@ Current public headers:
 - `xer/kansuji.h`
 - `xer/mecab.h`
 - `xer/furigana.h`
+- `xer/ja.h`
 - `xer/unicode.h`
 - `xer/bytes.h`
 - `xer/base64.h`

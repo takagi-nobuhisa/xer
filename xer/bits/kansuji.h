@@ -20,7 +20,7 @@
 #include <xer/bits/common.h>
 #include <xer/error.h>
 
-namespace xer {
+namespace xer::ja {
 
 /**
  * @brief Output style for @ref to_kansuji.
@@ -594,6 +594,6 @@ struct kansuji_token {
     return total;
 }
 
-} // namespace xer
+} // namespace xer::ja
 
 #endif /* XER_BITS_KANSUJI_H_INCLUDED_ */

@@ -14,7 +14,7 @@
 namespace {
 
 [[nodiscard]] auto join_surfaces(
-    const std::vector<xer::mecab_token>& tokens) -> std::u8string
+    const std::vector<xer::ja::mecab_token>& tokens) -> std::u8string
 {
     std::u8string result;
 
@@ -27,7 +27,7 @@ namespace {
 
 void test_mecab_parse_empty_text()
 {
-    const auto result = xer::mecab_parse(u8"");
+    const auto result = xer::ja::mecab_parse(u8"");
 
     xer_assert(result.has_value());
     xer_assert(result->empty());
@@ -37,7 +37,7 @@ void test_mecab_parse_returns_raw_tokens()
 {
     constexpr std::u8string_view text = u8"私は猫です。";
 
-    const auto result = xer::mecab_parse(text);
+    const auto result = xer::ja::mecab_parse(text);
 
     xer_assert(result.has_value());
     xer_assert_not(result->empty());
@@ -55,7 +55,7 @@ void test_mecab_parse_keeps_surface_sequence()
 {
     constexpr std::u8string_view text = u8"すもももももももものうち";
 
-    const auto result = xer::mecab_parse(text);
+    const auto result = xer::ja::mecab_parse(text);
 
     xer_assert(result.has_value());
     xer_assert_not(result->empty());
@@ -76,7 +76,7 @@ void test_mecab_parse_output_splits_ipadic_features()
         u8"は\t助詞,係助詞,*,*,*,*,は,ハ,ワ\n"
         u8"EOS\n";
 
-    const auto result = xer::detail::mecab_parse_output(output);
+    const auto result = xer::ja::detail::mecab_parse_output(output);
 
     xer_assert(result.has_value());
     xer_assert_eq(result->size(), 2uz);
@@ -111,7 +111,7 @@ void test_mecab_parse_output_preserves_short_features()
         u8"未知語\t名詞,一般\n"
         u8"EOS\n";
 
-    const auto result = xer::detail::mecab_parse_output(output);
+    const auto result = xer::ja::detail::mecab_parse_output(output);
 
     xer_assert(result.has_value());
     xer_assert_eq(result->size(), 1uz);
@@ -135,7 +135,7 @@ void test_mecab_parse_output_keeps_literal_feature_fields()
         u8"記号\t名詞,読点,一般\n"
         u8"EOS\n";
 
-    const auto result = xer::detail::mecab_parse_output(output);
+    const auto result = xer::ja::detail::mecab_parse_output(output);
 
     xer_assert(result.has_value());
     xer_assert_eq(result->size(), 1uz);
@@ -156,12 +156,12 @@ void test_mecab_token_copy_keeps_features_independent()
         u8"私\t名詞,代名詞,一般,*,*,*,私,ワタシ,ワタシ\n"
         u8"EOS\n";
 
-    auto result = xer::detail::mecab_parse_output(output);
+    auto result = xer::ja::detail::mecab_parse_output(output);
 
     xer_assert(result.has_value());
     xer_assert_eq(result->size(), 1uz);
 
-    xer::mecab_token copied = result->at(0);
+    xer::ja::mecab_token copied = result->at(0);
     result->at(0).feature = u8"変更後";
     result->at(0).features.品詞 = u8"変更後";
     result->at(0).features.項目.at(0) = u8"変更後";
@@ -176,17 +176,17 @@ void test_mecab_token_copy_keeps_features_independent()
 
 
 [[nodiscard]] auto parse_mecab_test_tokens(
-    std::u8string_view output) -> std::vector<xer::mecab_token>
+    std::u8string_view output) -> std::vector<xer::ja::mecab_token>
 {
-    auto result = xer::detail::mecab_parse_output(output);
+    auto result = xer::ja::detail::mecab_parse_output(output);
 
     xer_assert(result.has_value());
     return *result;
 }
 
 [[nodiscard]] auto phrase_surface(
-    const std::vector<xer::mecab_token>& tokens,
-    const xer::mecab_phrase& phrase) -> std::u8string
+    const std::vector<xer::ja::mecab_token>& tokens,
+    const xer::ja::mecab_phrase& phrase) -> std::u8string
 {
     std::u8string result;
 
@@ -199,7 +199,7 @@ void test_mecab_token_copy_keeps_features_independent()
 
 void test_mecab_split_phrases_empty()
 {
-    const auto phrases = xer::mecab_split_phrases({});
+    const auto phrases = xer::ja::mecab_split_phrases({});
 
     xer_assert(phrases.empty());
 }
@@ -218,36 +218,36 @@ void test_mecab_split_phrases_basic_bunsetsu_and_symbols()
         u8"。\t記号,句点,*,*,*,*,。,。,。\n"
         u8"EOS\n");
 
-    const auto phrases = xer::mecab_split_phrases(tokens);
+    const auto phrases = xer::ja::mecab_split_phrases(tokens);
 
     xer_assert_eq(phrases.size(), 6uz);
 
-    xer_assert_eq(phrases.at(0).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(0).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(0).index, 0uz);
     xer_assert_eq(phrases.at(0).count, 2uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(0)), u8"私は");
 
-    xer_assert_eq(phrases.at(1).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(1).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(1).index, 2uz);
     xer_assert_eq(phrases.at(1).count, 1uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(1)), u8"明日");
 
-    xer_assert_eq(phrases.at(2).kind, xer::mecab_phrase_kind::symbol);
+    xer_assert_eq(phrases.at(2).kind, xer::ja::mecab_phrase_kind::symbol);
     xer_assert_eq(phrases.at(2).index, 3uz);
     xer_assert_eq(phrases.at(2).count, 1uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(2)), u8"、");
 
-    xer_assert_eq(phrases.at(3).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(3).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(3).index, 4uz);
     xer_assert_eq(phrases.at(3).count, 2uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(3)), u8"学校へ");
 
-    xer_assert_eq(phrases.at(4).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(4).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(4).index, 6uz);
     xer_assert_eq(phrases.at(4).count, 2uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(4)), u8"行きます");
 
-    xer_assert_eq(phrases.at(5).kind, xer::mecab_phrase_kind::symbol);
+    xer_assert_eq(phrases.at(5).kind, xer::ja::mecab_phrase_kind::symbol);
     xer_assert_eq(phrases.at(5).index, 8uz);
     xer_assert_eq(phrases.at(5).count, 1uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(5)), u8"。");
@@ -261,15 +261,15 @@ void test_mecab_split_phrases_groups_consecutive_symbols()
         u8"？\t記号,一般,*,*,*,*,？,？,？\n"
         u8"EOS\n");
 
-    const auto phrases = xer::mecab_split_phrases(tokens);
+    const auto phrases = xer::ja::mecab_split_phrases(tokens);
 
     xer_assert_eq(phrases.size(), 2uz);
-    xer_assert_eq(phrases.at(0).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(0).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(0).index, 0uz);
     xer_assert_eq(phrases.at(0).count, 1uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(0)), u8"えっ");
 
-    xer_assert_eq(phrases.at(1).kind, xer::mecab_phrase_kind::symbol);
+    xer_assert_eq(phrases.at(1).kind, xer::ja::mecab_phrase_kind::symbol);
     xer_assert_eq(phrases.at(1).index, 1uz);
     xer_assert_eq(phrases.at(1).count, 2uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(1)), u8"！？");
@@ -285,15 +285,15 @@ void test_mecab_split_phrases_keeps_compound_nouns()
         u8"使う\t動詞,自立,*,*,五段・ワ行促音便,基本形,使う,ツカウ,ツカウ\n"
         u8"EOS\n");
 
-    const auto phrases = xer::mecab_split_phrases(tokens);
+    const auto phrases = xer::ja::mecab_split_phrases(tokens);
 
     xer_assert_eq(phrases.size(), 2uz);
-    xer_assert_eq(phrases.at(0).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(0).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(0).index, 0uz);
     xer_assert_eq(phrases.at(0).count, 4uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(0)), u8"形態素解析結果を");
 
-    xer_assert_eq(phrases.at(1).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(1).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(1).index, 4uz);
     xer_assert_eq(phrases.at(1).count, 1uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(1)), u8"使う");
@@ -308,15 +308,15 @@ void test_mecab_split_phrases_keeps_renyou_plus_independent_word()
         u8"考える\t動詞,自立,*,*,一段,基本形,考える,カンガエル,カンガエル\n"
         u8"EOS\n");
 
-    const auto phrases = xer::mecab_split_phrases(tokens);
+    const auto phrases = xer::ja::mecab_split_phrases(tokens);
 
     xer_assert_eq(phrases.size(), 2uz);
-    xer_assert_eq(phrases.at(0).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(0).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(0).index, 0uz);
     xer_assert_eq(phrases.at(0).count, 3uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(0)), u8"読み方を");
 
-    xer_assert_eq(phrases.at(1).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(1).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(1).index, 3uz);
     xer_assert_eq(phrases.at(1).count, 1uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(1)), u8"考える");
@@ -331,15 +331,15 @@ void test_mecab_split_phrases_keeps_prefix_with_following_word()
         u8"飲む\t動詞,自立,*,*,五段・マ行,基本形,飲む,ノム,ノム\n"
         u8"EOS\n");
 
-    const auto phrases = xer::mecab_split_phrases(tokens);
+    const auto phrases = xer::ja::mecab_split_phrases(tokens);
 
     xer_assert_eq(phrases.size(), 2uz);
-    xer_assert_eq(phrases.at(0).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(0).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(0).index, 0uz);
     xer_assert_eq(phrases.at(0).count, 3uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(0)), u8"お茶を");
 
-    xer_assert_eq(phrases.at(1).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(1).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(1).index, 3uz);
     xer_assert_eq(phrases.at(1).count, 1uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(1)), u8"飲む");
@@ -353,20 +353,20 @@ void test_mecab_split_phrases_handles_leading_symbols()
         u8"」\t記号,括弧閉,*,*,*,*,」,」,」\n"
         u8"EOS\n");
 
-    const auto phrases = xer::mecab_split_phrases(tokens);
+    const auto phrases = xer::ja::mecab_split_phrases(tokens);
 
     xer_assert_eq(phrases.size(), 3uz);
-    xer_assert_eq(phrases.at(0).kind, xer::mecab_phrase_kind::symbol);
+    xer_assert_eq(phrases.at(0).kind, xer::ja::mecab_phrase_kind::symbol);
     xer_assert_eq(phrases.at(0).index, 0uz);
     xer_assert_eq(phrases.at(0).count, 1uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(0)), u8"「");
 
-    xer_assert_eq(phrases.at(1).kind, xer::mecab_phrase_kind::bunsetsu);
+    xer_assert_eq(phrases.at(1).kind, xer::ja::mecab_phrase_kind::bunsetsu);
     xer_assert_eq(phrases.at(1).index, 1uz);
     xer_assert_eq(phrases.at(1).count, 1uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(1)), u8"はい");
 
-    xer_assert_eq(phrases.at(2).kind, xer::mecab_phrase_kind::symbol);
+    xer_assert_eq(phrases.at(2).kind, xer::ja::mecab_phrase_kind::symbol);
     xer_assert_eq(phrases.at(2).index, 2uz);
     xer_assert_eq(phrases.at(2).count, 1uz);
     xer_assert_eq(phrase_surface(tokens, phrases.at(2)), u8"」");
@@ -384,7 +384,7 @@ void test_mecab_to_kana_uses_mixed_kana_by_default()
         u8"。\t記号,句点,*,*,*,*,。,。,。\n"
         u8"EOS\n");
 
-    xer_assert_eq(xer::mecab_to_kana(tokens), u8"わたしわコンピューターおつかいます。");
+    xer_assert_eq(xer::ja::mecab_to_kana(tokens), u8"わたしわコンピューターおつかいます。");
 }
 
 void test_mecab_to_kana_hiragana_mode()
@@ -396,11 +396,11 @@ void test_mecab_to_kana_hiragana_mode()
         u8"を\t助詞,格助詞,一般,*,*,*,を,ヲ,ヲ\n"
         u8"EOS\n");
 
-    const xer::mecab_kana_options options {
-        .kind = xer::mecab_kana_kind::hiragana,
+    const xer::ja::mecab_kana_options options {
+        .kind = xer::ja::mecab_kana_kind::hiragana,
     };
 
-    xer_assert_eq(xer::mecab_to_kana(tokens, options), u8"わたしわこんぴゅーたーお");
+    xer_assert_eq(xer::ja::mecab_to_kana(tokens, options), u8"わたしわこんぴゅーたーお");
 }
 
 void test_mecab_to_kana_katakana_mode()
@@ -412,11 +412,11 @@ void test_mecab_to_kana_katakana_mode()
         u8"を\t助詞,格助詞,一般,*,*,*,を,ヲ,ヲ\n"
         u8"EOS\n");
 
-    const xer::mecab_kana_options options {
-        .kind = xer::mecab_kana_kind::katakana,
+    const xer::ja::mecab_kana_options options {
+        .kind = xer::ja::mecab_kana_kind::katakana,
     };
 
-    xer_assert_eq(xer::mecab_to_kana(tokens, options), u8"ワタシワコンピューターオ");
+    xer_assert_eq(xer::ja::mecab_to_kana(tokens, options), u8"ワタシワコンピューターオ");
 }
 
 void test_mecab_to_kana_can_keep_particle_surface_readings()
@@ -430,11 +430,11 @@ void test_mecab_to_kana_can_keep_particle_surface_readings()
         u8"を\t助詞,格助詞,一般,*,*,*,を,ヲ,ヲ\n"
         u8"EOS\n");
 
-    const xer::mecab_kana_options options {
+    const xer::ja::mecab_kana_options options {
         .particle_reading = false,
     };
 
-    xer_assert_eq(xer::mecab_to_kana(tokens, options), u8"わたしはがっこうへほんを");
+    xer_assert_eq(xer::ja::mecab_to_kana(tokens, options), u8"わたしはがっこうへほんを");
 }
 
 void test_mecab_to_kana_does_not_rewrite_non_particle_ha_he()
@@ -444,7 +444,7 @@ void test_mecab_to_kana_does_not_rewrite_non_particle_ha_he()
         u8"へ\t名詞,一般,*,*,*,*,へ,ヘ,ヘ\n"
         u8"EOS\n");
 
-    xer_assert_eq(xer::mecab_to_kana(tokens), u8"はへ");
+    xer_assert_eq(xer::ja::mecab_to_kana(tokens), u8"はへ");
 }
 
 void test_mecab_to_kana_falls_back_to_surface()
@@ -454,7 +454,7 @@ void test_mecab_to_kana_falls_back_to_surface()
         u8"未知\t名詞,一般\n"
         u8"EOS\n");
 
-    xer_assert_eq(xer::mecab_to_kana(tokens), u8"ABC未知");
+    xer_assert_eq(xer::ja::mecab_to_kana(tokens), u8"ABC未知");
 }
 
 void test_mecab_kana_wakati_separates_phrases()
@@ -471,7 +471,7 @@ void test_mecab_kana_wakati_separates_phrases()
         u8"。\t記号,句点,*,*,*,*,。,。,。\n"
         u8"EOS\n");
 
-    xer_assert_eq(xer::mecab_kana_wakati(tokens), u8"わたしわ あした 、 がっこうえ いきます 。");
+    xer_assert_eq(xer::ja::mecab_kana_wakati(tokens), u8"わたしわ あした 、 がっこうえ いきます 。");
 }
 
 
@@ -486,7 +486,7 @@ void test_mecab_braille_wakati_converts_kana_wakati_text()
         u8"ます\t助動詞,*,*,*,特殊・マス,基本形,ます,マス\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_braille_wakati(tokens);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, u8"⠄⠕⠳⠄ ⠡⠃⠈⠱⠋ ⠃⠣⠵⠹");
@@ -506,7 +506,7 @@ void test_mecab_braille_wakati_converts_japanese_punctuation_without_extra_leadi
         u8"。\t記号,句点,*,*,*,*,。,。,。\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_braille_wakati(tokens);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, u8"⠄⠕⠳⠄ ⠁⠳⠕⠰ ⠐⠡⠂⠪⠉⠋ ⠃⠣⠵⠹⠲");
@@ -520,7 +520,7 @@ void test_mecab_braille_wakati_keeps_kagi_close_to_inner_text()
         u8"」\t記号,括弧閉,*,*,*,*,」,」,」\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_braille_wakati(tokens);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, u8"⠤⠥⠃⠤");
@@ -539,7 +539,7 @@ void test_mecab_braille_wakati_keeps_post_quote_particle_close()
         u8"。\t記号,句点,*,*,*,*,。,。,。\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_braille_wakati(tokens);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, u8"⠤⠥⠃⠤⠞ ⠃⠃⠵⠹⠲");
@@ -553,7 +553,7 @@ void test_mecab_ip_braille_wakati_treats_standalone_ascii_punctuation_as_symbol(
         u8"B\t名詞,一般,*,*,*,*,B,*,*\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_ip_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_ip_braille_wakati(tokens);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, u8"⠠⠁⠬⠠⠃");
@@ -570,7 +570,7 @@ void test_mecab_braille_wakati_converts_ascii_fragments_from_surface()
         u8"。\t記号,句点,*,*,*,*,。,。,。\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_braille_wakati(tokens);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, u8"⠠⠠⠭⠑⠗⠄ ⠠⠁⠼⠁⠐⠟⠹⠲");
@@ -584,7 +584,7 @@ void test_mecab_ip_braille_wakati_converts_ascii_punctuation()
         u8"。\t記号,句点,*,*,*,*,。,。,。\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_ip_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_ip_braille_wakati(tokens);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, u8"⠠⠉⠬⠬⠼⠃⠉⠐⠟⠹⠲");
@@ -596,7 +596,7 @@ void test_mecab_braille_wakati_rejects_unsupported_ascii_punctuation()
         u8"C++23\t名詞,一般,*,*,*,*,C++23,*,*\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_braille_wakati(tokens);
 
     xer_assert_not(result.has_value());
     xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
@@ -614,7 +614,7 @@ void test_mecab_braille_wakati_converts_mixed_japanese_and_ascii_sentence()
         u8"。\t記号,句点,*,*,*,*,。,。,。\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_braille_wakati(tokens);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, u8"⠠⠠⠭⠑⠗⠄ ⠠⠠⠥⠞⠋⠤⠼⠓⠊ ⠁⠝⠡⠃⠵⠹⠲");
@@ -633,7 +633,7 @@ void test_mecab_braille_wakati_keeps_ascii_inside_japanese_quotes()
         u8"。\t記号,句点,*,*,*,*,。,。,。\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_braille_wakati(tokens);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, u8"⠤⠠⠠⠁⠃⠉⠼⠁⠃⠉⠤⠊ ⠡⠩⠇⠴ ⠳⠵⠹⠲");
@@ -653,7 +653,7 @@ void test_mecab_ip_braille_wakati_converts_mixed_code_like_sentence()
         u8"。\t記号,句点,*,*,*,*,。,。,。\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_ip_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_ip_braille_wakati(tokens);
 
     xer_assert(result.has_value());
     xer_assert_eq(*result, u8"⠰⠭⠢⠢⠒⠒⠼⠁⠚⠯⠯⠰⠽⠖⠒⠒⠼⠚⠐⠟⠹⠲");
@@ -667,7 +667,7 @@ void test_mecab_braille_wakati_rejects_ip_only_mixed_code_like_sentence()
         u8"10\t名詞,数,*,*,*,*,10,*,*\n"
         u8"EOS\n");
 
-    const auto result = xer::mecab_braille_wakati(tokens);
+    const auto result = xer::ja::mecab_braille_wakati(tokens);
 
     xer_assert_not(result.has_value());
     xer_assert_eq(result.error().code, xer::error_t::invalid_argument);
@@ -680,7 +680,7 @@ void test_mecab_parse_rejects_invalid_utf8()
         static_cast<char8_t>(0x81),
     };
 
-    const auto result = xer::mecab_parse(invalid);
+    const auto result = xer::ja::mecab_parse(invalid);
 
     xer_assert_not(result.has_value());
     xer_assert_eq(result.error().code, xer::error_t::encoding_error);

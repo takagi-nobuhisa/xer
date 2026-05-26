@@ -19,10 +19,10 @@ auto main() -> int
 {
     constexpr std::uint64_t value = UINT64_C(123456789012);
 
-    const auto text_k10 = xer::to_kansuji(value, xer::k10);
-    const auto text_k十 = xer::to_kansuji(value, xer::k十);
-    const auto text_k一〇 = xer::to_kansuji(value, xer::k一〇);
-    const auto text_k拾 = xer::to_kansuji(value, xer::k拾);
+    const auto text_k10 = xer::ja::to_kansuji(value, xer::ja::k10);
+    const auto text_k十 = xer::ja::to_kansuji(value, xer::ja::k十);
+    const auto text_k一〇 = xer::ja::to_kansuji(value, xer::ja::k一〇);
+    const auto text_k拾 = xer::ja::to_kansuji(value, xer::ja::k拾);
 
     if (!xer::printf(u8"k10  = %@\n", text_k10)) {
         return 1;
@@ -40,7 +40,7 @@ auto main() -> int
         return 1;
     }
 
-    const auto parsed = xer::from_kansuji(u8"十二億三十四万五");
+    const auto parsed = xer::ja::from_kansuji(u8"十二億三十四万五");
     if (!parsed) {
         return 1;
     }

@@ -40,13 +40,13 @@ The initial facility does **not** target:
 The generation function should be named:
 
 ```cpp
-xer::to_kansuji(...)
+xer::ja::to_kansuji(...)
 ```
 
 The parser function should be named:
 
 ```cpp
-xer::from_kansuji(...)
+xer::ja::from_kansuji(...)
 ```
 
 The word `kansuji` is used directly rather than expanding it into a longer English phrase such as `kanji_number`.
@@ -54,10 +54,10 @@ The word `kansuji` is used directly rather than expanding it into a longer Engli
 The format selector should use short, immediately recognizable identifiers.
 
 ```cpp
-xer::k10
-xer::k十
-xer::k一〇
-xer::k拾
+xer::ja::k10
+xer::ja::k十
+xer::ja::k一〇
+xer::ja::k拾
 ```
 
 These selectors are intentionally based on how the number `10` is written in each style.
@@ -83,7 +83,7 @@ auto from_kansuji(std::u8string_view text)
 
 ## Output Styles
 
-### `xer::k10`
+### `xer::ja::k10`
 
 This style uses Arabic numerals inside four-digit Japanese large-number groups.
 
@@ -93,7 +93,7 @@ Example:
 1234億5678万9012
 ```
 
-For the value `123456789012`, generation with `xer::k10` should produce:
+For the value `123456789012`, generation with `xer::ja::k10` should produce:
 
 ```text
 1234億5678万9012
@@ -101,7 +101,7 @@ For the value `123456789012`, generation with `xer::k10` should produce:
 
 ---
 
-### `xer::k十`
+### `xer::ja::k十`
 
 This style uses ordinary positional Kansuji with small units such as `十`, `百`, and `千`.
 
@@ -111,7 +111,7 @@ Example:
 千二百三十四億五千六百七十八万九千十二
 ```
 
-For the value `123456789012`, generation with `xer::k十` should produce:
+For the value `123456789012`, generation with `xer::ja::k十` should produce:
 
 ```text
 千二百三十四億五千六百七十八万九千十二
@@ -132,7 +132,7 @@ However, parsing may accept forms such as `一十`, `一百`, and `一千`.
 
 ---
 
-### `xer::k一〇`
+### `xer::ja::k一〇`
 
 This style writes each decimal digit independently with Kansuji digits and uses `〇` for zero.
 
@@ -142,7 +142,7 @@ Example:
 一二三四億五六七八万九〇一二
 ```
 
-For the value `123456789012`, generation with `xer::k一〇` should produce:
+For the value `123456789012`, generation with `xer::ja::k一〇` should produce:
 
 ```text
 一二三四億五六七八万九〇一二
@@ -160,7 +160,7 @@ Examples:
 
 ---
 
-### `xer::k拾`
+### `xer::ja::k拾`
 
 This style generates a practical Daiji positional notation.
 
@@ -180,7 +180,7 @@ The initial output policy uses:
 
 while ordinary forms remain for the other digits and for larger units unless a later policy revision says otherwise.
 
-Unlike `xer::k十`, generation with `xer::k拾` does **not** omit `壱` before small units.
+Unlike `xer::ja::k十`, generation with `xer::ja::k拾` does **not** omit `壱` before small units.
 
 Examples:
 
@@ -202,10 +202,10 @@ Zero should be generated according to the selected output style.
 
 | Style | Generated Text |
 |---|---|
-| `xer::k10` | `0` |
-| `xer::k十` | `零` |
-| `xer::k一〇` | `〇` |
-| `xer::k拾` | `零` |
+| `xer::ja::k10` | `0` |
+| `xer::ja::k十` | `零` |
+| `xer::ja::k一〇` | `〇` |
+| `xer::ja::k拾` | `零` |
 
 Parsing accepts:
 
@@ -279,11 +279,11 @@ This permissiveness is for parsing only.
 
 ### Generation
 
-For `xer::k十`:
+For `xer::ja::k十`:
 
 - `十`, `百`, and `千` omit leading `一`
 
-For `xer::k拾`:
+For `xer::ja::k拾`:
 
 - `壱拾`, `壱百`, and `壱千` retain leading `壱`
 
@@ -379,13 +379,13 @@ The following are deferred:
 
 The initial Kansuji facility should:
 
-- provide `xer::to_kansuji(...)`
-- provide `xer::from_kansuji(...)`
+- provide `xer::ja::to_kansuji(...)`
+- provide `xer::ja::from_kansuji(...)`
 - use memorable style selectors:
-  - `xer::k10`
-  - `xer::k十`
-  - `xer::k一〇`
-  - `xer::k拾`
+  - `xer::ja::k10`
+  - `xer::ja::k十`
+  - `xer::ja::k一〇`
+  - `xer::ja::k拾`
 - support practical Japanese integer notation families
 - generate canonical notation
 - parse common abbreviated forms

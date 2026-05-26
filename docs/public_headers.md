@@ -29,6 +29,7 @@
 - `xer/kansuji.h`
 - `xer/mecab.h`
 - `xer/furigana.h`
+- `xer/ja.h`
 - `xer/unicode.h`
 
 ### Data Encoding and Format Processing
@@ -163,8 +164,27 @@ At the current stage, this keeps the responsibility clear:
 
 - `xer/ctype.h` classifies Unicode braille pattern characters through `isctype(c, ctype_id::braille)`
 - `xer/braille.h` provides reusable braille sign constants as UTF-8 string views
-- `xer/braille.h` provides low-level kana, punctuation, ASCII-fragment, and information-processing braille conversion helpers
+- `xer/braille.h` provides reusable braille sign constants and language-neutral / English low-level helpers under `xer::braille`
+- `xer/braille.h` also declares Japanese kana-braille helpers, but those Japanese-specific APIs are placed under `xer::ja`
 - MeCab-based higher-level Japanese text conversion builds on these low-level pieces through `xer/mecab.h`
+
+
+### Why `ja.h` Is Provided
+
+`xer/ja.h` is a convenience umbrella header for Japanese-specific facilities.
+
+It includes the public headers whose primary purpose is Japanese text processing:
+
+- `xer/braille.h`
+- `xer/furigana.h`
+- `xer/kansuji.h`
+- `xer/mecab.h`
+
+The APIs provided by these headers are placed under `xer::ja`. This keeps the
+main `xer` namespace focused on language-neutral utilities while allowing XER
+to deepen Japanese support before v1.0.0.
+
+---
 
 ### Why `kansuji.h` Is Independent
 

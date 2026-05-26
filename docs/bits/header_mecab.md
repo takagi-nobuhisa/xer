@@ -203,7 +203,7 @@ If `program` is empty, XER searches the `PATH` environment variable for the plat
 Example:
 
 ```cpp
-xer::mecab_options options {
+xer::ja::mecab_options options {
     .program = xer::path(u8"/usr/bin/mecab"),
 };
 ```
@@ -545,7 +545,7 @@ auto mecab_braille_wakati(
 
 The function uses `mecab_split_phrases` to process bunsetsu-like ranges and symbol ranges separately.
 
-For ordinary bunsetsu-like ranges, it normally calls `mecab_to_kana` with the same kana options and then converts the resulting kana text through `xer::braille::kana_text_to_braille`.
+For ordinary bunsetsu-like ranges, it normally calls `mecab_to_kana` with the same kana options and then converts the resulting kana text through `xer::ja::kana_text_to_braille`.
 
 When a token surface is an ASCII alphanumeric-and-punctuation fragment, the function converts that fragment from the original surface text through `xer::braille::alnum_punct_text_to_braille` instead of using MeCab readings. This allows fragments such as `ABC123` or `UTF-8` to keep their visible ASCII form in braille output.
 
@@ -582,7 +582,7 @@ The exact reading and phrase boundaries depend on the installed MeCab dictionary
 
 `mecab_braille_wakati` returns `xer::result<std::u8string>` because the braille conversion layer can fail.
 
-Errors from `xer::braille::kana_text_to_braille`, `xer::braille::alnum_punct_text_to_braille`, and the Japanese punctuation conversion layer are propagated. For example, if the token sequence contains a symbol that is not supported as Japanese braille punctuation, or an ASCII fragment contains punctuation that is not supported by ordinary English braille punctuation conversion, the function returns `error_t::invalid_argument`.
+Errors from `xer::ja::kana_text_to_braille`, `xer::braille::alnum_punct_text_to_braille`, and the Japanese punctuation conversion layer are propagated. For example, if the token sequence contains a symbol that is not supported as Japanese braille punctuation, or an ASCII fragment contains punctuation that is not supported by ordinary English braille punctuation conversion, the function returns `error_t::invalid_argument`.
 
 `mecab_braille_wakati` does not invoke MeCab. It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
 
@@ -737,7 +737,7 @@ This keeps the parser independent from human-readable MeCab default formatting.
 An empty input string is accepted.
 
 ```cpp
-const auto tokens = xer::mecab_parse(u8"");
+const auto tokens = xer::ja::mecab_parse(u8"");
 ```
 
 On success, the result is an empty token vector.
@@ -745,7 +745,7 @@ On success, the result is an empty token vector.
 ### Basic Example
 
 ```cpp
-const auto tokens = xer::mecab_parse(u8"私は猫です。");
+const auto tokens = xer::ja::mecab_parse(u8"私は猫です。");
 if (!tokens) {
     return;
 }

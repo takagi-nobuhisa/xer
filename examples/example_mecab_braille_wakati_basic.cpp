@@ -13,16 +13,16 @@
 
 auto main() -> int
 {
-    const auto tokens = xer::mecab_parse(u8"私は猫です");
+    const auto tokens = xer::ja::mecab_parse(u8"私は猫です");
     if (!tokens.has_value()) {
         return 1;
     }
 
-    xer::mecab_kana_options options;
-    options.kind = xer::mecab_kana_kind::hiragana;
+    xer::ja::mecab_kana_options options;
+    options.kind = xer::ja::mecab_kana_kind::hiragana;
 
-    const auto kana = xer::mecab_kana_wakati(*tokens, options);
-    const auto braille = xer::mecab_braille_wakati(*tokens, options);
+    const auto kana = xer::ja::mecab_kana_wakati(*tokens, options);
+    const auto braille = xer::ja::mecab_braille_wakati(*tokens, options);
     if (!braille.has_value()) {
         return 1;
     }

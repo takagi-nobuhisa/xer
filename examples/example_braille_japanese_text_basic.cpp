@@ -31,9 +31,9 @@ auto print_result(
 
 auto main() -> int
 {
-    const auto sentence = xer::braille::kana_text_to_braille(u8"キャラクター、だよ。");
-    const auto foreign_sounds = xer::braille::kana_text_to_braille(u8"ヴォ ファ フィ フェ フォ");
-    const auto punctuation = xer::braille::kana_text_to_braille(u8"「にほんごてんじ」？！");
+    const auto sentence = xer::ja::kana_text_to_braille(u8"キャラクター、だよ。");
+    const auto foreign_sounds = xer::ja::kana_text_to_braille(u8"ヴォ ファ フィ フェ フォ");
+    const auto punctuation = xer::ja::kana_text_to_braille(u8"「にほんごてんじ」？！");
 
     if (!print_result(u8"sentence: ", sentence)) {
         return 1;

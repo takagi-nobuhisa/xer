@@ -27,7 +27,7 @@
 #include <xer/path.h>
 #include <xer/process.h>
 
-namespace xer {
+namespace xer::ja {
 
 /**
  * @brief Options used to invoke MeCab.
@@ -281,8 +281,8 @@ inline constexpr char8_t mecab_path_separator = u8':';
 [[nodiscard]] inline auto mecab_text_to_bytes(
     std::u8string_view text) -> result<std::vector<std::byte>>
 {
-    const std::string narrow = to_byte_string(text);
-    if (!is_valid_utf8(narrow)) {
+    const std::string narrow = ::xer::detail::to_byte_string(text);
+    if (!::xer::detail::is_valid_utf8(narrow)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
@@ -310,11 +310,11 @@ inline constexpr char8_t mecab_path_separator = u8':';
         narrow.push_back(static_cast<char>(std::to_integer<unsigned char>(value)));
     }
 
-    if (!is_valid_utf8(narrow)) {
+    if (!::xer::detail::is_valid_utf8(narrow)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
-    return to_u8string(narrow);
+    return ::xer::detail::to_u8string(narrow);
 }
 
 [[nodiscard]] inline auto mecab_make_process_options(
@@ -425,7 +425,7 @@ inline constexpr char8_t mecab_path_separator = u8':';
         return false;
     }
 
-    const auto decoded = decode_string_code_points(value);
+    const auto decoded = ::xer::detail::decode_string_code_points(value);
     if (!decoded.has_value() || decoded->empty()) {
         return false;
     }
@@ -527,7 +527,7 @@ inline constexpr char8_t mecab_path_separator = u8':';
         return false;
     }
 
-    const auto decoded = decode_string_code_points(surface);
+    const auto decoded = ::xer::detail::decode_string_code_points(surface);
     if (!decoded.has_value() || decoded->empty()) {
         return false;
     }
@@ -905,7 +905,7 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
     output.reserve(text.size() * 2);
 
     for (std::size_t index = 0; index < text.size();) {
-        const auto decoded = decode_utf8_at(text, index);
+        const auto decoded = ::xer::detail::decode_utf8_at(text, index);
         if (!decoded.has_value()) {
             return std::unexpected(decoded.error());
         }
@@ -913,7 +913,7 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
         const char32_t c = decoded->value;
         index += decoded->size;
 
-        const auto converted = braille::japanese_punct_to_braille(c);
+        const auto converted = japanese_punct_to_braille(c);
         if (!converted.has_value()) {
             return std::unexpected(converted.error());
         }
@@ -930,7 +930,7 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
     char32_t result = U'\0';
 
     for (std::size_t index = 0; index < text.size();) {
-        const auto decoded = decode_utf8_at(text, index);
+        const auto decoded = ::xer::detail::decode_utf8_at(text, index);
         if (!decoded.has_value()) {
             return U'\0';
         }
@@ -949,7 +949,7 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
         return U'\0';
     }
 
-    const auto decoded = decode_utf8_at(text, 0);
+    const auto decoded = ::xer::detail::decode_utf8_at(text, 0);
     if (!decoded.has_value()) {
         return U'\0';
     }
@@ -1025,7 +1025,7 @@ inline auto mecab_utf8_append(std::u8string& output, char32_t code_point) -> voi
         return {};
     }
 
-    const auto converted = braille::kana_text_to_braille(kana);
+    const auto converted = kana_text_to_braille(kana);
     if (!converted.has_value()) {
         return std::unexpected(converted.error());
     }
@@ -1593,6 +1593,6 @@ namespace detail {
     return mecab_ip_braille_wakati(*tokens, kana_options);
 }
 
-} // namespace xer
+} // namespace xer::ja
 
 #endif /* XER_BITS_MECAB_H_INCLUDED_ */

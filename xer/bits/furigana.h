@@ -15,7 +15,7 @@
 #include <xer/bits/common.h>
 #include <xer/bits/escape_html.h>
 
-namespace xer {
+namespace xer::ja {
 
 /**
  * @brief Output style for @ref to_furigana.
@@ -40,7 +40,7 @@ inline auto append_html_escaped(
 {
     for (const char8_t ch : text) {
         if (const auto escaped =
-                escape_html(static_cast<char32_t>(ch));
+                ::xer::detail::escape_html(static_cast<char32_t>(ch));
             escaped != nullptr) {
             out.append(escaped);
         } else {
@@ -56,7 +56,7 @@ inline auto append_html_escaped(
 
     for (const char8_t ch : text) {
         if (const auto escaped =
-                escape_html(static_cast<char32_t>(ch));
+                ::xer::detail::escape_html(static_cast<char32_t>(ch));
             escaped != nullptr) {
             size += std::u8string_view(escaped).size();
         } else {
@@ -135,6 +135,6 @@ inline auto append_html_escaped(
     return {};
 }
 
-} // namespace xer
+} // namespace xer::ja
 
 #endif /* XER_BITS_FURIGANA_H_INCLUDED_ */

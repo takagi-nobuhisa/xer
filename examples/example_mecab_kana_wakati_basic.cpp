@@ -12,35 +12,35 @@
 
 auto main() -> int
 {
-    const auto tokens = xer::mecab_parse(u8"私はコンピューターを学校へ持って行きます。");
+    const auto tokens = xer::ja::mecab_parse(u8"私はコンピューターを学校へ持って行きます。");
     if (!tokens) {
         return 1;
     }
 
-    if (!xer::printf(u8"mixed:    %@\n", xer::mecab_kana_wakati(*tokens))) {
+    if (!xer::printf(u8"mixed:    %@\n", xer::ja::mecab_kana_wakati(*tokens))) {
         return 1;
     }
 
-    xer::mecab_kana_options hiragana_options;
-    hiragana_options.kind = xer::mecab_kana_kind::hiragana;
+    xer::ja::mecab_kana_options hiragana_options;
+    hiragana_options.kind = xer::ja::mecab_kana_kind::hiragana;
 
-    if (!xer::printf(u8"hiragana: %@\n", xer::mecab_kana_wakati(*tokens, hiragana_options))) {
+    if (!xer::printf(u8"hiragana: %@\n", xer::ja::mecab_kana_wakati(*tokens, hiragana_options))) {
         return 1;
     }
 
-    xer::mecab_kana_options katakana_options;
-    katakana_options.kind = xer::mecab_kana_kind::katakana;
+    xer::ja::mecab_kana_options katakana_options;
+    katakana_options.kind = xer::ja::mecab_kana_kind::katakana;
 
-    if (!xer::printf(u8"katakana: %@\n", xer::mecab_kana_wakati(*tokens, katakana_options))) {
+    if (!xer::printf(u8"katakana: %@\n", xer::ja::mecab_kana_wakati(*tokens, katakana_options))) {
         return 1;
     }
 
-    xer::mecab_kana_options surface_particle_options;
+    xer::ja::mecab_kana_options surface_particle_options;
     surface_particle_options.particle_reading = false;
 
     if (!xer::printf(
             u8"raw particles: %@\n",
-            xer::mecab_kana_wakati(*tokens, surface_particle_options))) {
+            xer::ja::mecab_kana_wakati(*tokens, surface_particle_options))) {
         return 1;
     }
 

@@ -7,9 +7,9 @@
 At the current stage, this header provides:
 
 - common braille sign constants as UTF-8 string views
-- one-character conversion helpers for English letters, digits, English braille punctuation, information-processing braille punctuation, Japanese kana, and Japanese punctuation
+- one-character conversion helpers for English letters, digits, English braille punctuation, and information-processing braille punctuation
 - ASCII alphanumeric-and-punctuation text conversion with automatic mode indicators
-- kana-text conversion that handles ordinary kana, yoon, extended foreign-sound kana sequences, Japanese punctuation, and ASCII spaces
+- Japanese-specific kana-braille helpers under `xer::ja`, declared by this header
 
 It does not perform complete Japanese braille translation. In particular, it does not decide readings from kanji and does not perform full braille wakachi-gaki by itself.
 
@@ -33,9 +33,7 @@ The current implementation provides:
 - one-character information-processing braille conversion
 - ASCII alphanumeric-and-punctuation text conversion with automatic ordinary braille indicators
 - ASCII alphanumeric-and-punctuation text conversion with automatic information-processing braille indicators
-- one-character Japanese kana conversion
-- one-character Japanese punctuation conversion
-- kana-text conversion for kana strings, yoon sequences, extended foreign-sound sequences, punctuation, and spaces
+- Japanese-specific kana-braille helpers under `xer::ja`
 
 The constants are represented as:
 
@@ -51,7 +49,7 @@ xer::result<std::u8string_view>
 
 This avoids allocation for the returned braille fragments and allows unsupported input characters to be reported explicitly.
 
-The kana-text conversion function returns:
+The Japanese kana-text conversion function is placed under `xer::ja` and returns:
 
 ```cpp
 xer::result<std::u8string>
@@ -109,6 +107,10 @@ inline constexpr std::u8string_view ip_numeric_indicator;
 [[nodiscard]] auto ip_alnum_punct_text_to_braille(std::u8string_view text)
     -> result<std::u8string>;
 
+} // namespace xer::braille
+
+namespace xer::ja {
+
 [[nodiscard]] constexpr auto japanese_punct_to_braille(char32_t c)
     -> result<std::u8string_view>;
 
@@ -118,10 +120,15 @@ inline constexpr std::u8string_view ip_numeric_indicator;
 [[nodiscard]] auto kana_text_to_braille(std::u8string_view text)
     -> result<std::u8string>;
 
-} // namespace xer::braille
+} // namespace xer::ja
 ```
 
 ---
+
+
+The Japanese-specific helpers are declared by `<xer/braille.h>` but are placed
+under `xer::ja`. The language-neutral and English / information-processing
+helpers remain under `xer::braille`.
 
 ## Japanese Braille Indicators
 
@@ -600,16 +607,16 @@ This helper is the preferred low-level conversion function for ASCII fragments t
 ---
 
 
-## `japanese_punct_to_braille`
+## `xer::ja::japanese_punct_to_braille`
 
 ```cpp
 [[nodiscard]] constexpr auto japanese_punct_to_braille(char32_t c)
     -> result<std::u8string_view>;
 ```
 
-`japanese_punct_to_braille` converts one Japanese punctuation mark to Japanese braille cells.
+`xer::ja::japanese_punct_to_braille` converts one Japanese punctuation mark to Japanese braille cells.
 
-This function is separate from `punct_to_braille`. `punct_to_braille` targets basic English braille punctuation, while `japanese_punct_to_braille` targets Japanese kana-braille punctuation used in Japanese text.
+This function is separate from `punct_to_braille`. `punct_to_braille` targets basic English braille punctuation, while `xer::ja::japanese_punct_to_braille` targets Japanese kana-braille punctuation used in Japanese text.
 
 Supported characters are:
 
@@ -633,18 +640,18 @@ Supported characters are:
 | `…` | `⠄⠄⠄` | ellipsis |
 | `‥` | `⠄⠄` | two-dot leader |
 
-`japanese_punct_to_braille` does not insert spaces around punctuation. Spacing is handled by higher-level text conversion functions such as `mecab_braille_wakati`.
+`xer::ja::japanese_punct_to_braille` does not insert spaces around punctuation. Spacing is handled by higher-level text conversion functions such as `mecab_braille_wakati`.
 
 ---
 
-## `kana_to_braille`
+## `xer::ja::kana_to_braille`
 
 ```cpp
 [[nodiscard]] constexpr auto kana_to_braille(char32_t c)
     -> result<std::u8string_view>;
 ```
 
-`kana_to_braille` converts one Japanese kana character to Japanese braille cells.
+`xer::ja::kana_to_braille` converts one Japanese kana character to Japanese braille cells.
 
 It accepts both hiragana and katakana for the same syllable.
 
@@ -662,32 +669,32 @@ The function handles:
 
 Some kana characters map to multiple braille cells. For example, voiced and semi-voiced kana are represented by a sign followed by the base kana cell.
 
-This function converts only one input character. It does not combine multiple input characters, so sequences such as `きゃ`, `シェ`, or `ティ` are handled by `kana_text_to_braille`, not by `kana_to_braille`.
+This function converts only one input character. It does not combine multiple input characters, so sequences such as `きゃ`, `シェ`, or `ティ` are handled by `xer::ja::kana_text_to_braille`, not by `xer::ja::kana_to_braille`.
 
 ---
 
-## `kana_text_to_braille`
+## `xer::ja::kana_text_to_braille`
 
 ```cpp
 [[nodiscard]] auto kana_text_to_braille(std::u8string_view text)
     -> result<std::u8string>;
 ```
 
-`kana_text_to_braille` converts UTF-8 kana text to Japanese braille text.
+`xer::ja::kana_text_to_braille` converts UTF-8 kana text to Japanese braille text.
 
 It performs the following low-level text conversion:
 
 - decodes UTF-8 input
 - preserves ASCII spaces as wakachi-gaki separators
-- converts Japanese punctuation through `japanese_punct_to_braille`
-- converts ordinary kana through `kana_to_braille`
+- converts Japanese punctuation through `xer::ja::japanese_punct_to_braille`
+- converts ordinary kana through `xer::ja::kana_to_braille`
 - combines supported small-kana sequences before conversion
 
 The function returns `error_t::encoding_error` for invalid UTF-8 input and `error_t::invalid_argument` for unsupported characters or unsupported small-kana combinations.
 
 ### Supported multi-kana sequences
 
-`kana_text_to_braille` supports ordinary yoon sequences and several extended foreign-sound kana sequences.
+`xer::ja::kana_text_to_braille` supports ordinary yoon sequences and several extended foreign-sound kana sequences.
 
 Supported base-plus-small-kana groups include:
 
@@ -723,7 +730,7 @@ Unsupported small-kana combinations are rejected rather than guessed.
 
 ### Scope
 
-`kana_text_to_braille` is still a low-level kana conversion function.
+`xer::ja::kana_text_to_braille` is still a low-level kana conversion function.
 
 It does not:
 
@@ -749,7 +756,7 @@ Common errors are:
 | `error_t::invalid_argument` | The input character or character sequence is not supported by the selected conversion helper. |
 | `error_t::encoding_error` | A UTF-8 text conversion function received invalid UTF-8 input. |
 
-One-character helpers do not allocate. `kana_text_to_braille` returns an owned `std::u8string` because it may combine input characters and append multiple output fragments.
+One-character helpers do not allocate. `xer::ja::kana_text_to_braille` returns an owned `std::u8string` because it may combine input characters and append multiple output fragments.
 
 ---
 

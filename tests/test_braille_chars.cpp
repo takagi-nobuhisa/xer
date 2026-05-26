@@ -152,178 +152,178 @@ void test_ip_alnum_punct_text_to_braille_auto_mode()
 
 void test_japanese_punct_to_braille()
 {
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'。'), u8"⠲");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'、'), u8"⠰");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'？'), u8"⠢");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'！'), u8"⠖");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'・'), u8"⠂");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'「'), u8"⠤");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'」'), u8"⠤");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'『'), u8"⠰⠤");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'』'), u8"⠰⠤");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'（'), u8"⠶");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'）'), u8"⠶");
-    assert_braille_result_eq(xer::braille::japanese_punct_to_braille(U'…'), u8"⠄⠄⠄");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'。'), u8"⠲");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'、'), u8"⠰");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'？'), u8"⠢");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'！'), u8"⠖");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'・'), u8"⠂");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'「'), u8"⠤");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'」'), u8"⠤");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'『'), u8"⠰⠤");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'』'), u8"⠰⠤");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'（'), u8"⠶");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'）'), u8"⠶");
+    assert_braille_result_eq(xer::ja::japanese_punct_to_braille(U'…'), u8"⠄⠄⠄");
 }
 
 void test_japanese_punct_to_braille_rejects_unsupported_input()
 {
-    assert_invalid_argument(xer::braille::japanese_punct_to_braille(U'a'));
-    assert_invalid_argument(xer::braille::japanese_punct_to_braille(U'1'));
-    assert_invalid_argument(xer::braille::japanese_punct_to_braille(U' '));
+    assert_invalid_argument(xer::ja::japanese_punct_to_braille(U'a'));
+    assert_invalid_argument(xer::ja::japanese_punct_to_braille(U'1'));
+    assert_invalid_argument(xer::ja::japanese_punct_to_braille(U' '));
 }
 
 
 void test_kana_to_braille_basic_hiragana()
 {
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'あ'), u8"⠁");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'い'), u8"⠃");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'う'), u8"⠉");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'え'), u8"⠋");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'お'), u8"⠊");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'か'), u8"⠡");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'し'), u8"⠳");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'つ'), u8"⠝");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'の'), u8"⠎");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'も'), u8"⠾");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'や'), u8"⠌");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ゆ'), u8"⠬");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'よ'), u8"⠜");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'れ'), u8"⠛");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'わ'), u8"⠄");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'を'), u8"⠔");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ん'), u8"⠴");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'あ'), u8"⠁");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'い'), u8"⠃");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'う'), u8"⠉");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'え'), u8"⠋");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'お'), u8"⠊");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'か'), u8"⠡");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'し'), u8"⠳");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'つ'), u8"⠝");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'の'), u8"⠎");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'も'), u8"⠾");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'や'), u8"⠌");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ゆ'), u8"⠬");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'よ'), u8"⠜");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'れ'), u8"⠛");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'わ'), u8"⠄");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'を'), u8"⠔");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ん'), u8"⠴");
 }
 
 void test_kana_to_braille_basic_katakana()
 {
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ア'), u8"⠁");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'キ'), u8"⠣");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ス'), u8"⠹");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'テ'), u8"⠟");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ニ'), u8"⠇");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'フ'), u8"⠭");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'メ'), u8"⠿");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ロ'), u8"⠚");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ン'), u8"⠴");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ア'), u8"⠁");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'キ'), u8"⠣");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ス'), u8"⠹");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'テ'), u8"⠟");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ニ'), u8"⠇");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'フ'), u8"⠭");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'メ'), u8"⠿");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ロ'), u8"⠚");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ン'), u8"⠴");
 }
 
 void test_kana_to_braille_historic_kana_and_marks()
 {
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ゐ'), u8"⠆");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ゑ'), u8"⠖");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ヰ'), u8"⠆");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ヱ'), u8"⠖");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ー'), u8"⠒");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'っ'), u8"⠂");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ッ'), u8"⠂");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ゐ'), u8"⠆");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ゑ'), u8"⠖");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ヰ'), u8"⠆");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ヱ'), u8"⠖");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ー'), u8"⠒");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'っ'), u8"⠂");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ッ'), u8"⠂");
 }
 
 void test_kana_to_braille_voiced()
 {
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'が'), u8"⠐⠡");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ぎ'), u8"⠐⠣");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ざ'), u8"⠐⠱");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'じ'), u8"⠐⠳");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'だ'), u8"⠐⠕");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ぢ'), u8"⠐⠗");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'づ'), u8"⠐⠝");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ば'), u8"⠐⠥");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ぼ'), u8"⠐⠮");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ガ'), u8"⠐⠡");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ゾ'), u8"⠐⠺");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ド'), u8"⠐⠞");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ブ'), u8"⠐⠭");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ヴ'), u8"⠐⠉");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'が'), u8"⠐⠡");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ぎ'), u8"⠐⠣");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ざ'), u8"⠐⠱");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'じ'), u8"⠐⠳");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'だ'), u8"⠐⠕");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ぢ'), u8"⠐⠗");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'づ'), u8"⠐⠝");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ば'), u8"⠐⠥");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ぼ'), u8"⠐⠮");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ガ'), u8"⠐⠡");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ゾ'), u8"⠐⠺");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ド'), u8"⠐⠞");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ブ'), u8"⠐⠭");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ヴ'), u8"⠐⠉");
 }
 
 void test_kana_to_braille_semi_voiced()
 {
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ぱ'), u8"⠠⠥");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ぴ'), u8"⠠⠧");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ぷ'), u8"⠠⠭");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ぺ'), u8"⠠⠯");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ぽ'), u8"⠠⠮");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'パ'), u8"⠠⠥");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ピ'), u8"⠠⠧");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'プ'), u8"⠠⠭");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ペ'), u8"⠠⠯");
-    assert_braille_result_eq(xer::braille::kana_to_braille(U'ポ'), u8"⠠⠮");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ぱ'), u8"⠠⠥");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ぴ'), u8"⠠⠧");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ぷ'), u8"⠠⠭");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ぺ'), u8"⠠⠯");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ぽ'), u8"⠠⠮");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'パ'), u8"⠠⠥");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ピ'), u8"⠠⠧");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'プ'), u8"⠠⠭");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ペ'), u8"⠠⠯");
+    assert_braille_result_eq(xer::ja::kana_to_braille(U'ポ'), u8"⠠⠮");
 }
 
 void test_kana_to_braille_rejects_unsupported_input()
 {
-    assert_invalid_argument(xer::braille::kana_to_braille(U'a'));
-    assert_invalid_argument(xer::braille::kana_to_braille(U'1'));
-    assert_invalid_argument(xer::braille::kana_to_braille(U'ゃ'));
-    assert_invalid_argument(xer::braille::kana_to_braille(U'ャ'));
-    assert_invalid_argument(xer::braille::kana_to_braille(U'ぁ'));
+    assert_invalid_argument(xer::ja::kana_to_braille(U'a'));
+    assert_invalid_argument(xer::ja::kana_to_braille(U'1'));
+    assert_invalid_argument(xer::ja::kana_to_braille(U'ゃ'));
+    assert_invalid_argument(xer::ja::kana_to_braille(U'ャ'));
+    assert_invalid_argument(xer::ja::kana_to_braille(U'ぁ'));
 }
 
 void test_kana_text_to_braille_basic_text()
 {
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"かな カナ"),
+        xer::ja::kana_text_to_braille(u8"かな カナ"),
         u8"⠡⠅ ⠡⠅");
 }
 
 void test_kana_text_to_braille_combines_yoon()
 {
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"きゃ きゅ きょ"),
+        xer::ja::kana_text_to_braille(u8"きゃ きゅ きょ"),
         u8"⠈⠡ ⠈⠩ ⠈⠪");
 
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"しゃ ちゅ にょ りゃ"),
+        xer::ja::kana_text_to_braille(u8"しゃ ちゅ にょ りゃ"),
         u8"⠈⠱ ⠈⠝ ⠈⠎ ⠈⠑");
 }
 
 void test_kana_text_to_braille_combines_voiced_and_semivoiced_yoon()
 {
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"ぎゃ じゅ びょ ぴゅ"),
+        xer::ja::kana_text_to_braille(u8"ぎゃ じゅ びょ ぴゅ"),
         u8"⠘⠡ ⠘⠹ ⠘⠮ ⠨⠭");
 }
 
 void test_kana_text_to_braille_combines_special_sounds()
 {
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"ファ フィ フェ フォ"),
+        xer::ja::kana_text_to_braille(u8"ファ フィ フェ フォ"),
         u8"⠢⠥ ⠢⠧ ⠢⠯ ⠢⠮");
 
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"イェ キェ ニェ ヒェ"),
+        xer::ja::kana_text_to_braille(u8"イェ キェ ニェ ヒェ"),
         u8"⠈⠋ ⠈⠫ ⠈⠏ ⠈⠯");
 
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"スィ ズィ ティ ディ"),
+        xer::ja::kana_text_to_braille(u8"スィ ズィ ティ ディ"),
         u8"⠈⠳ ⠘⠳ ⠈⠗ ⠘⠗");
 
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"チェ シェ ジェ"),
+        xer::ja::kana_text_to_braille(u8"チェ シェ ジェ"),
         u8"⠈⠟ ⠈⠻ ⠘⠻");
 
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"ウィ ウェ ウォ クァ グァ トゥ ドゥ"),
+        xer::ja::kana_text_to_braille(u8"ウィ ウェ ウォ クァ グァ トゥ ドゥ"),
         u8"⠢⠃ ⠢⠋ ⠢⠊ ⠢⠡ ⠲⠡ ⠢⠝ ⠲⠝");
 
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"ヴァ ヴィ ヴ ヴェ ヴォ"),
+        xer::ja::kana_text_to_braille(u8"ヴァ ヴィ ヴ ヴェ ヴォ"),
         u8"⠲⠥ ⠲⠧ ⠐⠉ ⠲⠯ ⠲⠮");
 }
 
 void test_kana_text_to_braille_converts_japanese_punctuation()
 {
     assert_braille_text_eq(
-        xer::braille::kana_text_to_braille(u8"あ、い。う？え！「お」"),
+        xer::ja::kana_text_to_braille(u8"あ、い。う？え！「お」"),
         u8"⠁⠰⠃⠲⠉⠢⠋⠖⠤⠊⠤");
 }
 
 void test_kana_text_to_braille_rejects_unsupported_input()
 {
-    assert_string_invalid_argument(xer::braille::kana_text_to_braille(u8"ゃ"));
-    assert_string_invalid_argument(xer::braille::kana_text_to_braille(u8"あゃ"));
-    assert_string_invalid_argument(xer::braille::kana_text_to_braille(u8"abc"));
+    assert_string_invalid_argument(xer::ja::kana_text_to_braille(u8"ゃ"));
+    assert_string_invalid_argument(xer::ja::kana_text_to_braille(u8"あゃ"));
+    assert_string_invalid_argument(xer::ja::kana_text_to_braille(u8"abc"));
 }
 
 } // namespace

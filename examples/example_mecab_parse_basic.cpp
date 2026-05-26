@@ -11,7 +11,7 @@
 
 auto main() -> int
 {
-    const auto tokens = xer::mecab_parse(u8"私は猫です。");
+    const auto tokens = xer::ja::mecab_parse(u8"私は猫です。");
     if (!tokens) {
         return 1;
     }
