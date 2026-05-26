@@ -23,6 +23,7 @@
 #include <vector>
 
 #include <xer/bits/common.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 #include <xer/parse.h>
 
@@ -824,8 +825,7 @@ inline auto toml_append_utf8_code_point(
     std::u8string& out,
     char32_t code_point) -> result<void, parse_error_detail>
 {
-    if (code_point > U'\U0010FFFF' ||
-        (code_point >= static_cast<char32_t>(0xD800) && code_point <= static_cast<char32_t>(0xDFFF))) {
+    if (!xer::detail::is_unicode_scalar_value(code_point)) {
         return std::unexpected(toml_make_parse_error(parse_error_reason::invalid_syntax));
     }
 

@@ -17,6 +17,7 @@
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
 #include <xer/bits/mbstate.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 
 #if defined(XER_MB_CHAR_UTF8) && defined(XER_MB_CHAR_CP932)
@@ -178,17 +179,6 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
 }
 
 /**
- * @brief Checks whether a code point is a Unicode surrogate.
- *
- * @param value Code point.
- * @return `true` if surrogate, otherwise `false`.
- */
-[[nodiscard]] constexpr auto is_surrogate(char32_t value) noexcept -> bool {
-    return value >= static_cast<char32_t>(0xD800) &&
-           value <= static_cast<char32_t>(0xDFFF);
-}
-
-/**
  * @brief Converts a code point to wchar_t.
  *
  * @param out Output pointer.
@@ -201,7 +191,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
     }
 
     if constexpr (sizeof(wchar_t) == 2) {
-        if (value > 0xFFFF || is_surrogate(value) || is_invalid_utf32(value)) {
+        if (value > xer::detail::unicode_bmp_max_code_point || xer::detail::is_unicode_surrogate(value) || is_invalid_utf32(value)) {
             return std::unexpected(make_error(error_t::encoding_error));
         }
         *out = static_cast<wchar_t>(value);
@@ -229,7 +219,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
         return {};
     }
 
-    if (value > 0xFFFF || is_surrogate(value) || is_invalid_utf32(value)) {
+    if (value > xer::detail::unicode_bmp_max_code_point || xer::detail::is_unicode_surrogate(value) || is_invalid_utf32(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
@@ -264,7 +254,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
 [[nodiscard]] inline auto read_tc(wchar_t value) -> result<char32_t> {
     if constexpr (sizeof(wchar_t) == 2) {
         const char32_t cp = static_cast<char32_t>(static_cast<char16_t>(value));
-        if (is_surrogate(cp)) {
+        if (xer::detail::is_unicode_surrogate(cp)) {
             return std::unexpected(make_error(error_t::encoding_error));
         }
         return cp;
@@ -287,7 +277,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  */
 [[nodiscard]] inline auto read_tc(char16_t value) -> result<char32_t> {
     const char32_t cp = static_cast<char32_t>(value);
-    if (is_surrogate(cp)) {
+    if (xer::detail::is_unicode_surrogate(cp)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
     return cp;
@@ -300,7 +290,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @return Code point or error.
  */
 [[nodiscard]] inline auto read_tc(char32_t value) -> result<char32_t> {
-    if (is_invalid_utf32(value) || is_surrogate(value)) {
+    if (is_invalid_utf32(value) || xer::detail::is_unicode_surrogate(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
     return value;
@@ -362,7 +352,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
     }
 
     const char32_t value = xer::advanced::packed_utf8_to_utf32(packed);
-    if (value == xer::advanced::detail::invalid_utf32 || is_surrogate(value)) {
+    if (value == xer::advanced::detail::invalid_utf32 || xer::detail::is_unicode_surrogate(value)) {
         return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
@@ -445,7 +435,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
         (static_cast<std::uint16_t>(b1) << 8u);
 
     const char32_t value = xer::advanced::packed_cp932_to_utf32(packed);
-    if (value == xer::advanced::detail::invalid_utf32 || is_surrogate(value)) {
+    if (value == xer::advanced::detail::invalid_utf32 || xer::detail::is_unicode_surrogate(value)) {
         return unexpected_error<decoded_char>(error_t::encoding_error);
     }
 
@@ -490,7 +480,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @return Encoded result or error.
  */
 [[nodiscard]] inline auto encode_utf8_mb_char(char32_t value) -> result<encoded_char> {
-    if (is_invalid_utf32(value) || is_surrogate(value)) {
+    if (is_invalid_utf32(value) || xer::detail::is_unicode_surrogate(value)) {
         return unexpected_error<encoded_char>(error_t::encoding_error);
     }
 
@@ -527,7 +517,7 @@ inline void clear_state(xer::mbstate_t* ps) noexcept {
  * @return Encoded result or error.
  */
 [[nodiscard]] inline auto encode_cp932_char(char32_t value) -> result<encoded_char> {
-    if (is_invalid_utf32(value) || is_surrogate(value)) {
+    if (is_invalid_utf32(value) || xer::detail::is_unicode_surrogate(value)) {
         return unexpected_error<encoded_char>(error_t::encoding_error);
     }
 

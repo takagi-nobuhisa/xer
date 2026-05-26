@@ -29,6 +29,7 @@
 
 #include <xer/bits/common.h>
 #include <xer/bits/utf8_char_encode.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 
 namespace xer::detail {
@@ -210,13 +211,13 @@ inline auto append_utf8_char_for_printf(std::u8string& out, char32_t value) -> v
     for (std::size_t index = 0; index < value.size(); ++index) {
         const char16_t current = value[index];
 
-        if (current >= 0xD800 && current <= 0xDBFF) {
+        if (xer::detail::is_unicode_high_surrogate(current)) {
             if (index + 1 < value.size()) {
                 const char16_t next = value[index + 1];
-                if (next >= 0xDC00 && next <= 0xDFFF) {
-                    const char32_t high = static_cast<char32_t>(current - 0xD800);
-                    const char32_t low = static_cast<char32_t>(next - 0xDC00);
-                    append_utf8_char_for_printf(result, 0x10000 + ((high << 10) | low));
+                if (xer::detail::is_unicode_low_surrogate(next)) {
+                    append_utf8_char_for_printf(
+                        result,
+                        xer::detail::combine_unicode_surrogates(current, next));
                     ++index;
                     continue;
                 }
@@ -226,7 +227,7 @@ inline auto append_utf8_char_for_printf(std::u8string& out, char32_t value) -> v
             continue;
         }
 
-        if (current >= 0xDC00 && current <= 0xDFFF) {
+        if (xer::detail::is_unicode_low_surrogate(current)) {
             append_utf8_char_for_printf(result, U'\uFFFD');
             continue;
         }

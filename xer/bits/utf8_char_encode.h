@@ -12,6 +12,7 @@
 #include <string>
 
 #include <xer/bits/common.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 
 namespace xer::detail {
@@ -26,11 +27,7 @@ namespace xer::detail {
 [[nodiscard]] inline auto encode_utf8_char(
     char32_t value) noexcept -> result<std::u8string>
 {
-    if (value > 0x10ffffu) {
-        return std::unexpected(make_error(error_t::encoding_error));
-    }
-
-    if (value >= 0xd800u && value <= 0xdfffu) {
+    if (!xer::detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 

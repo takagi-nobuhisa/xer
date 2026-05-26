@@ -18,6 +18,7 @@
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
 #include <xer/bits/json_value.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 #include <xer/parse.h>
 
@@ -325,7 +326,7 @@ private:
 
         char32_t code_point = *first_unit;
 
-        if (code_point >= 0xD800u && code_point <= 0xDBFFu) {
+        if (xer::detail::is_unicode_high_surrogate(code_point)) {
             if (pos + 1 >= text.size() || text[pos] != u8'\\' || text[pos + 1] != u8'u') {
                 return std::unexpected(make_parse_error(parse_error_reason::invalid_encoding, static_cast<std::size_t>(-1), error_t::encoding_error));
             }
@@ -336,14 +337,14 @@ private:
                 return std::unexpected(second_unit.error());
             }
 
-            if (*second_unit < 0xDC00u || *second_unit > 0xDFFFu) {
+            if (!xer::detail::is_unicode_low_surrogate(*second_unit)) {
                 return std::unexpected(make_parse_error(parse_error_reason::invalid_encoding, static_cast<std::size_t>(-1), error_t::encoding_error));
             }
 
-            const std::uint32_t high = static_cast<std::uint32_t>(code_point) - 0xD800u;
-            const std::uint32_t low = static_cast<std::uint32_t>(*second_unit) - 0xDC00u;
-            code_point = static_cast<char32_t>(0x10000u + ((high << 10) | low));
-        } else if (code_point >= 0xDC00u && code_point <= 0xDFFFu) {
+            code_point = xer::detail::combine_unicode_surrogates(
+                static_cast<char16_t>(code_point),
+                static_cast<char16_t>(*second_unit));
+        } else if (xer::detail::is_unicode_low_surrogate(code_point)) {
             return std::unexpected(make_parse_error(parse_error_reason::invalid_encoding, static_cast<std::size_t>(-1), error_t::encoding_error));
         }
 

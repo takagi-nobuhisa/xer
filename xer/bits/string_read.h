@@ -17,6 +17,7 @@
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
 #include <xer/bits/string_character.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/error.h>
 
 namespace xer::detail {
@@ -48,18 +49,6 @@ template<typename T>
     const error_t code) -> result<T>
 {
     return std::unexpected(make_error(code));
-}
-
-/**
- * @brief Tests whether a code point is Unicode-valid.
- *
- * @param value Code point to test.
- * @return true if valid, otherwise false.
- */
-[[nodiscard]] constexpr auto is_valid_code_point(const char32_t value) noexcept -> bool
-{
-    return value <= static_cast<char32_t>(0x10FFFF) &&
-           !xer::advanced::detail::is_surrogate(value);
 }
 
 /**
@@ -131,11 +120,11 @@ template<typename T>
 
     const char16_t first = source[index];
 
-    if (first < 0xD800u || first > 0xDFFFu) {
+    if (!xer::detail::is_unicode_surrogate(static_cast<char32_t>(first))) {
         return decoded_code_point {static_cast<char32_t>(first), 1};
     }
 
-    if (first >= 0xDC00u) {
+    if (xer::detail::is_unicode_low_surrogate(first)) {
         return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
@@ -144,7 +133,7 @@ template<typename T>
     }
 
     const char16_t second = source[index + 1];
-    if (second < 0xDC00u || second > 0xDFFFu) {
+    if (!xer::detail::is_unicode_low_surrogate(second)) {
         return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
@@ -175,7 +164,7 @@ template<typename T>
     }
 
     const char32_t value = source[index];
-    if (!is_valid_code_point(value)) {
+    if (!xer::detail::is_unicode_scalar_value(value)) {
         return unexpected_string_error<decoded_code_point>(error_t::encoding_error);
     }
 
@@ -645,7 +634,7 @@ template<typename CharT, std::size_t N>
     const std::u8string_view source,
     const char32_t value) -> result<std::u8string_view::const_iterator>
 {
-    if (!detail::is_valid_code_point(value)) {
+    if (!detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
@@ -676,7 +665,7 @@ template<typename CharT, std::size_t N>
     const std::u16string_view source,
     const char32_t value) -> result<std::u16string_view::const_iterator>
 {
-    if (!detail::is_valid_code_point(value)) {
+    if (!detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
@@ -707,12 +696,12 @@ template<typename CharT, std::size_t N>
     const std::u32string_view source,
     const char32_t value) -> result<std::u32string_view::const_iterator>
 {
-    if (!detail::is_valid_code_point(value)) {
+    if (!detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
     for (auto it = source.begin(); it != source.end(); ++it) {
-        if (!detail::is_valid_code_point(*it)) {
+        if (!detail::is_unicode_scalar_value(*it)) {
             return std::unexpected(make_error(error_t::encoding_error));
         }
 
@@ -735,7 +724,7 @@ template<typename CharT, std::size_t N>
     const std::u8string_view source,
     const char32_t value) -> result<std::u8string_view::const_iterator>
 {
-    if (!detail::is_valid_code_point(value)) {
+    if (!detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
@@ -774,7 +763,7 @@ template<typename CharT, std::size_t N>
     const std::u16string_view source,
     const char32_t value) -> result<std::u16string_view::const_iterator>
 {
-    if (!detail::is_valid_code_point(value)) {
+    if (!detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
@@ -813,14 +802,14 @@ template<typename CharT, std::size_t N>
     const std::u32string_view source,
     const char32_t value) -> result<std::u32string_view::const_iterator>
 {
-    if (!detail::is_valid_code_point(value)) {
+    if (!detail::is_unicode_scalar_value(value)) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 
     for (auto it = source.end(); it != source.begin();) {
         --it;
 
-        if (!detail::is_valid_code_point(*it)) {
+        if (!detail::is_unicode_scalar_value(*it)) {
             return std::unexpected(make_error(error_t::encoding_error));
         }
 

@@ -22,6 +22,7 @@
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/error.h>
 #include <xer/bits/file_contents.h>
+#include <xer/bits/unicode_common.h>
 #include <xer/parse.h>
 #include <xer/path.h>
 
@@ -473,9 +474,6 @@ namespace detail {
 inline constexpr std::size_t xbf_header_size = 36;
 inline constexpr std::size_t xbf_range_entry_size = 24;
 inline constexpr std::uint16_t xbf_format_version = 1;
-inline constexpr std::uint32_t xbf_unicode_max = 0x10ffffu;
-inline constexpr std::uint32_t xbf_surrogate_first = 0xd800u;
-inline constexpr std::uint32_t xbf_surrogate_last = 0xdfffu;
 
 [[nodiscard]] inline auto bitmap_font_parse_error(
     xer::parse_error_reason reason,
@@ -531,14 +529,6 @@ inline constexpr std::uint32_t xbf_surrogate_last = 0xdfffu;
         (static_cast<std::uint64_t>(xbf_byte(bytes, offset + 5)) << 40) |
         (static_cast<std::uint64_t>(xbf_byte(bytes, offset + 6)) << 48) |
         (static_cast<std::uint64_t>(xbf_byte(bytes, offset + 7)) << 56));
-}
-
-[[nodiscard]] constexpr auto xbf_range_intersects_surrogates(
-    std::uint32_t first_code_point,
-    std::uint32_t last_code_point) noexcept -> bool
-{
-    return first_code_point <= xbf_surrogate_last &&
-           last_code_point >= xbf_surrogate_first;
 }
 
 [[nodiscard]] constexpr auto xbf_size_to_offset(
@@ -971,10 +961,10 @@ inline constexpr bool valid_image_extent =
         const auto width_kind = detail::xbf_byte(bytes, entry + 8);
 
         if (first_code_point > last_code_point ||
-            last_code_point > detail::xbf_unicode_max ||
-            detail::xbf_range_intersects_surrogates(
-                first_code_point,
-                last_code_point)) {
+            last_code_point > static_cast<std::uint32_t>(xer::detail::unicode_max_code_point) ||
+            xer::detail::unicode_range_intersects_surrogates(
+                static_cast<char32_t>(first_code_point),
+                static_cast<char32_t>(last_code_point))) {
             return std::unexpected(detail::bitmap_font_parse_error(
                 xer::parse_error_reason::invalid_range,
                 entry));

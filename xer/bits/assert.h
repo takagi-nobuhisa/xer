@@ -22,6 +22,7 @@
 
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
+#include <xer/bits/unicode_common.h>
 
 namespace xer {
 
@@ -153,12 +154,12 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
     for (std::size_t i = 0; i < value.size(); ++i) {
         const char16_t w1 = value[i];
 
-        if (w1 < 0xD800u || w1 > 0xDFFFu) {
+        if (!xer::detail::is_unicode_surrogate(static_cast<char32_t>(w1))) {
             append_utf8(out, static_cast<char32_t>(w1));
             continue;
         }
 
-        if (w1 >= 0xDC00u) {
+        if (xer::detail::is_unicode_low_surrogate(w1)) {
             append_utf8(out, replacement);
             continue;
         }
@@ -169,15 +170,12 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
         }
 
         const char16_t w2 = value[i + 1];
-        if (w2 < 0xDC00u || w2 > 0xDFFFu) {
+        if (!xer::detail::is_unicode_low_surrogate(w2)) {
             append_utf8(out, replacement);
             continue;
         }
 
-        const std::uint32_t high = static_cast<std::uint32_t>(w1) - 0xD800u;
-        const std::uint32_t low = static_cast<std::uint32_t>(w2) - 0xDC00u;
-        const char32_t code_point =
-            static_cast<char32_t>(0x10000u + ((high << 10) | low));
+        const char32_t code_point = xer::detail::combine_unicode_surrogates(w1, w2);
 
         append_utf8(out, code_point);
         ++i;

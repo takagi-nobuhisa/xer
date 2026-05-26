@@ -12,6 +12,7 @@
 
 #include <xer/bits/common.h>
 #include <xer/bits/packed_cp932_tables.h>
+#include <xer/bits/unicode_common.h>
 
 namespace xer::advanced {
 
@@ -36,17 +37,6 @@ inline constexpr char32_t invalid_utf32 = static_cast<char32_t>(-1);
  * @brief Invalid value for packed CP932.
  */
 inline constexpr std::int32_t invalid_packed_cp932 = -1;
-
-/**
- * @brief Tests whether the value is a Unicode surrogate code point.
- * @param code_point Code point to test.
- * @return `true` if the value is in U+D800..U+DFFF.
- */
-[[nodiscard]] inline constexpr auto is_surrogate(char32_t code_point) -> bool
-{
-    return code_point >= static_cast<char32_t>(0xD800u) &&
-           code_point <= static_cast<char32_t>(0xDFFFu);
-}
 
 /**
  * @brief Tests whether the byte is a UTF-8 continuation byte.
@@ -95,7 +85,7 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
  */
 [[nodiscard]] inline constexpr auto bmp_to_packed_utf16(char32_t code_point) -> std::uint32_t
 {
-    if (code_point > 0xFFFFu || is_surrogate(code_point)) {
+    if (!xer::detail::is_unicode_bmp_scalar_value(code_point)) {
         return invalid_packed_utf16;
     }
 
@@ -109,7 +99,7 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
  */
 [[nodiscard]] inline constexpr auto utf16_unit_to_utf32(char16_t code_unit) -> char32_t
 {
-    if (code_unit >= 0xD800u && code_unit <= 0xDFFFu) {
+    if (xer::detail::is_unicode_surrogate(static_cast<char32_t>(code_unit))) {
         return invalid_utf32;
     }
 
@@ -125,7 +115,7 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
  */
 [[nodiscard]] inline constexpr auto utf32_to_packed_utf8(char32_t code_point) -> std::uint32_t
 {
-    if (code_point > 0x10FFFFu || detail::is_surrogate(code_point)) {
+    if (!xer::detail::is_unicode_scalar_value(code_point)) {
         return detail::invalid_packed_utf8;
     }
 
@@ -210,7 +200,7 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
                                   ((b2 & 0x3Fu) << 6) |
                                   (b3 & 0x3Fu));
 
-        if (detail::is_surrogate(code_point)) {
+        if (xer::detail::is_unicode_surrogate(code_point)) {
             return detail::invalid_utf32;
         }
 
@@ -238,7 +228,7 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
                                   ((b3 & 0x3Fu) << 6) |
                                   (b4 & 0x3Fu));
 
-        if (code_point > 0x10FFFFu) {
+        if (code_point > xer::detail::unicode_max_code_point) {
             return detail::invalid_utf32;
         }
 
@@ -255,7 +245,7 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
  */
 [[nodiscard]] inline constexpr auto utf32_to_packed_utf16(char32_t code_point) -> std::uint32_t
 {
-    if (code_point > 0x10FFFFu || detail::is_surrogate(code_point)) {
+    if (!xer::detail::is_unicode_scalar_value(code_point)) {
         return detail::invalid_packed_utf16;
     }
 
@@ -264,10 +254,12 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
     }
 
     const std::uint32_t value = static_cast<std::uint32_t>(code_point) - 0x10000u;
-    const std::uint16_t high =
-        static_cast<std::uint16_t>(0xD800u | (value >> 10));
-    const std::uint16_t low =
-        static_cast<std::uint16_t>(0xDC00u | (value & 0x3FFu));
+    const std::uint16_t high = static_cast<std::uint16_t>(
+        static_cast<std::uint32_t>(xer::detail::unicode_high_surrogate_first) |
+        (value >> 10));
+    const std::uint16_t low = static_cast<std::uint16_t>(
+        static_cast<std::uint32_t>(xer::detail::unicode_low_surrogate_first) |
+        (value & 0x3FFu));
 
     return static_cast<std::uint32_t>(high) |
            (static_cast<std::uint32_t>(low) << 16);
@@ -287,7 +279,7 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
         return U'\0';
     }
 
-    if (w1 < 0xD800u || w1 > 0xDFFFu) {
+    if (!xer::detail::is_unicode_surrogate(static_cast<char32_t>(w1))) {
         if (w2 != 0) {
             return detail::invalid_utf32;
         }
@@ -295,17 +287,17 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
         return static_cast<char32_t>(w1);
     }
 
-    if (w1 < 0xD800u || w1 > 0xDBFFu) {
+    if (!xer::detail::is_unicode_high_surrogate(static_cast<char32_t>(w1))) {
         return detail::invalid_utf32;
     }
 
-    if (w2 < 0xDC00u || w2 > 0xDFFFu) {
+    if (!xer::detail::is_unicode_low_surrogate(static_cast<char32_t>(w2))) {
         return detail::invalid_utf32;
     }
 
-    const std::uint32_t high = static_cast<std::uint32_t>(w1) - 0xD800u;
-    const std::uint32_t low = static_cast<std::uint32_t>(w2) - 0xDC00u;
-    return static_cast<char32_t>(0x10000u + ((high << 10) | low));
+    return xer::detail::combine_unicode_surrogates(
+        static_cast<char16_t>(w1),
+        static_cast<char16_t>(w2));
 }
 
 /**
@@ -315,7 +307,7 @@ inline constexpr std::int32_t invalid_packed_cp932 = -1;
  */
 [[nodiscard]] inline constexpr auto utf32_to_packed_cp932(char32_t code_point) -> std::int32_t
 {
-    if (code_point > 0xFFFFu || detail::is_surrogate(code_point)) {
+    if (!xer::detail::is_unicode_bmp_scalar_value(code_point)) {
         return detail::invalid_packed_cp932;
     }
 
