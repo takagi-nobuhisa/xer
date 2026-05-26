@@ -104,6 +104,7 @@ In regular APIs:
 - strings are primarily UTF-8
 - individual text characters may use `char32_t`
 - CP932 is supported for interoperability with existing environments
+- language-oriented text handling primarily targets English and Japanese; broader script-specific behavior is left to user extensions or dedicated Unicode libraries
 
 ### 5. Locale-independent design
 

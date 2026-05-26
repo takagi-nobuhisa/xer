@@ -166,6 +166,7 @@ XER does not depend on locale.
 - **Characters** use UTF-32 when appropriate
 - UTF-16 and UTF-32 may also be used for intermediate data and platform interoperation
 - CP932 is also handled for compatibility with existing environments
+- Language-oriented text handling primarily targets English and Japanese; other languages and scripts are not default scope unless a clear project need appears
 
 ### 6.3 Mapping to Types
 
@@ -518,6 +519,8 @@ The current normalization scope is deliberately narrow:
 - `is_normalized_nfc`
 
 Grapheme cluster traversal is built on top of the code point layer. It is intended for practical user-visible character traversal and keeps malformed input explicit through `xer::result`.
+
+The default Unicode text-handling scope is English and Japanese. The grapheme cluster implementation may handle common emoji and general Unicode sequences that appear in that scope, but XER does not try to cover every language-specific writing-system rule by default. Users who need broader script coverage can extend the public source code or use dedicated Unicode boundary services in their own programs.
 
 Other normalization forms and ICU-based text services may be considered later only when there is a clear practical need.
 

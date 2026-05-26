@@ -18,6 +18,23 @@ This gives XER a useful and standards-based normalization facility without embed
 
 ---
 
+## Language Scope
+
+XER primarily targets practical text handling for English and Japanese.
+
+The Unicode APIs should therefore provide reliable building blocks for:
+
+- ASCII and ordinary English text
+- UTF-8 Japanese text
+- Japanese text that needs NFC normalization, such as kana with combining dakuten or handakuten
+- common emoji and symbol sequences that appear in Japanese or English user-facing text
+
+The grapheme cluster implementation is not intended to be a complete implementation of every language-specific writing-system rule in Unicode. In particular, complex script behavior outside the ordinary English/Japanese scope, such as Indic conjunct handling and other script-specific tailoring, is outside XER's default scope unless a clear project need appears.
+
+Users who need more complete handling for other languages or scripts may extend XER, add generated Unicode property tables, or use ICU text-boundary services directly in their own code. XER is publicly available as source code, so such extensions should remain possible without forcing the base header-only library to embed large Unicode data tables.
+
+---
+
 ## Public Header
 
 Unicode utilities are provided through:
@@ -153,6 +170,8 @@ auto grapheme_clusters(std::wstring_view text)
 The dereferenced range element is `xer::result<xer::grapheme_cluster>` so malformed input remains explicit during traversal.
 
 `xer::grapheme_cluster` records only source `offset` and `size`. It does not own or copy the underlying text, and it does not pretend that a user-visible character can always be represented by one `char32_t`.
+
+The default grapheme cluster rules are practical rules for English/Japanese-oriented text processing. They are not a promise of full UAX #29 conformance for every script, nor a replacement for language-specific boundary tailoring.
 
 The normalization API is:
 
