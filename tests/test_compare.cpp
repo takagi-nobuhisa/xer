@@ -187,9 +187,9 @@ void test_nan_handling()
  */
 void test_int128_operands()
 {
-    const __int128 one = 1;
-    const __int128 big = one << 100;
-    const unsigned __int128 ubig = static_cast<unsigned __int128>(big);
+    const xer::int128_t one = 1;
+    const xer::int128_t big = one << 100;
+    const xer::uint128_t ubig = static_cast<xer::uint128_t>(big);
 
     xer_assert(xer::eq(big, big));
     xer_assert(xer::lt(-big, big));

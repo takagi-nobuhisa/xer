@@ -189,7 +189,7 @@ template<class T, class U, class E>
  * @param value Source value.
  * @return Absolute value on success, or overflow_error on failure.
  */
-[[nodiscard]] constexpr auto abs(__int128 value) noexcept -> result<__int128> {
+[[nodiscard]] constexpr auto abs(xer::int128_t value) noexcept -> result<xer::int128_t> {
     return detail::signed_abs(value);
 }
 #endif
@@ -243,7 +243,7 @@ template<class E>
  */
 template<class E>
 [[nodiscard]] constexpr auto abs(
-    const std::expected<__int128, E>& value) noexcept -> result<__int128> {
+    const std::expected<xer::int128_t, E>& value) noexcept -> result<xer::int128_t> {
     return detail::abs_expected(value);
 }
 #endif
@@ -320,7 +320,7 @@ template<class E>
  * @return Unsigned absolute value.
  */
 [[nodiscard]] constexpr auto uabs(
-    __int128 value) noexcept -> result<unsigned __int128> {
+    xer::int128_t value) noexcept -> result<xer::uint128_t> {
     return detail::signed_uabs(value);
 }
 
@@ -331,7 +331,7 @@ template<class E>
  * @return Same value.
  */
 [[nodiscard]] constexpr auto uabs(
-    unsigned __int128 value) noexcept -> result<unsigned __int128> {
+    xer::uint128_t value) noexcept -> result<xer::uint128_t> {
     return value;
 }
 #endif
@@ -424,8 +424,8 @@ template<class E>
  */
 template<class E>
 [[nodiscard]] constexpr auto uabs(
-    const std::expected<__int128, E>& value) noexcept -> result<unsigned __int128> {
-    return detail::uabs_expected<__int128, unsigned __int128>(value);
+    const std::expected<xer::int128_t, E>& value) noexcept -> result<xer::uint128_t> {
+    return detail::uabs_expected<xer::int128_t, xer::uint128_t>(value);
 }
 
 /**
@@ -437,8 +437,8 @@ template<class E>
  */
 template<class E>
 [[nodiscard]] constexpr auto uabs(
-    const std::expected<unsigned __int128, E>& value) noexcept -> result<unsigned __int128> {
-    return detail::uabs_expected<unsigned __int128, unsigned __int128>(value);
+    const std::expected<xer::uint128_t, E>& value) noexcept -> result<xer::uint128_t> {
+    return detail::uabs_expected<xer::uint128_t, xer::uint128_t>(value);
 }
 #endif
 

@@ -193,9 +193,9 @@ void test_expected_propagation()
  */
 void test_int128_operands()
 {
-    const __int128 one = 1;
-    const __int128 big = one << 62;
-    const unsigned __int128 ubig = static_cast<unsigned __int128>(big);
+    const xer::int128_t one = 1;
+    const xer::int128_t big = one << 62;
+    const xer::uint128_t ubig = static_cast<xer::uint128_t>(big);
 
     const auto r1 = xer::add(big, 1);
     xer_assert(r1.has_value());
@@ -206,7 +206,7 @@ void test_int128_operands()
     xer_assert_eq(*r2, static_cast<std::int64_t>((one << 62) - 1));
 
     const auto r3 = xer::add(
-        static_cast<unsigned __int128>(std::numeric_limits<std::uint64_t>::max()) + 1,
+        static_cast<xer::uint128_t>(std::numeric_limits<std::uint64_t>::max()) + 1,
         0);
     xer_assert_not(r3.has_value());
 

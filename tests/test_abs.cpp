@@ -92,25 +92,25 @@ void test_abs_long_long()
 void test_abs_int128()
 {
     {
-        auto result = xer::abs(static_cast<__int128>(0));
+        auto result = xer::abs(static_cast<xer::int128_t>(0));
         xer_assert(result.has_value());
-        xer_assert_eq(*result, static_cast<__int128>(0));
+        xer_assert_eq(*result, static_cast<xer::int128_t>(0));
     }
 
     {
-        auto result = xer::abs(static_cast<__int128>(123));
+        auto result = xer::abs(static_cast<xer::int128_t>(123));
         xer_assert(result.has_value());
-        xer_assert_eq(*result, static_cast<__int128>(123));
+        xer_assert_eq(*result, static_cast<xer::int128_t>(123));
     }
 
     {
-        auto result = xer::abs(static_cast<__int128>(-123));
+        auto result = xer::abs(static_cast<xer::int128_t>(-123));
         xer_assert(result.has_value());
-        xer_assert_eq(*result, static_cast<__int128>(123));
+        xer_assert_eq(*result, static_cast<xer::int128_t>(123));
     }
 
     {
-        constexpr __int128 min_value = std::numeric_limits<__int128>::min();
+        constexpr xer::int128_t min_value = std::numeric_limits<xer::int128_t>::min();
         auto result = xer::abs(min_value);
         xer_assert(!result.has_value());
         xer_assert_eq(result.error().code, xer::error_t::overflow_error);
@@ -185,21 +185,21 @@ void test_uabs_long_long()
 void test_uabs_int128()
 {
     {
-        auto result = xer::uabs(static_cast<__int128>(123));
+        auto result = xer::uabs(static_cast<xer::int128_t>(123));
         xer_assert(result.has_value());
-        xer_assert_eq(*result, static_cast<unsigned __int128>(123));
+        xer_assert_eq(*result, static_cast<xer::uint128_t>(123));
     }
 
     {
-        auto result = xer::uabs(static_cast<__int128>(-123));
+        auto result = xer::uabs(static_cast<xer::int128_t>(-123));
         xer_assert(result.has_value());
-        xer_assert_eq(*result, static_cast<unsigned __int128>(123));
+        xer_assert_eq(*result, static_cast<xer::uint128_t>(123));
     }
 
     {
-        auto result = xer::uabs(static_cast<unsigned __int128>(123));
+        auto result = xer::uabs(static_cast<xer::uint128_t>(123));
         xer_assert(result.has_value());
-        xer_assert_eq(*result, static_cast<unsigned __int128>(123));
+        xer_assert_eq(*result, static_cast<xer::uint128_t>(123));
     }
 }
 #endif

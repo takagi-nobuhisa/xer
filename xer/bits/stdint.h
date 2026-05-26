@@ -51,8 +51,8 @@ using std::intptr_t;
 using std::uintptr_t;
 
 #if defined(__SIZEOF_INT128__)
-using int128_t = __int128;
-using uint128_t = unsigned __int128;
+__extension__ using int128_t = __int128;
+__extension__ using uint128_t = unsigned __int128;
 using intmax_t = int128_t;
 using uintmax_t = uint128_t;
 #else

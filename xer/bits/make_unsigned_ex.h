@@ -11,6 +11,8 @@
 #include <concepts>
 #include <type_traits>
 
+#include <xer/bits/stdint.h>
+
 namespace xer::detail {
 
 /**
@@ -29,13 +31,13 @@ struct make_unsigned_ex {
 
 #if defined(__SIZEOF_INT128__)
 template<>
-struct make_unsigned_ex<__int128> {
-    using type = unsigned __int128;
+struct make_unsigned_ex<xer::int128_t> {
+    using type = xer::uint128_t;
 };
 
 template<>
-struct make_unsigned_ex<unsigned __int128> {
-    using type = unsigned __int128;
+struct make_unsigned_ex<xer::uint128_t> {
+    using type = xer::uint128_t;
 };
 #endif
 
@@ -63,7 +65,7 @@ inline constexpr bool is_signed_integer_ex_v =
     std::same_as<std::remove_cv_t<T>, long> ||
     std::same_as<std::remove_cv_t<T>, long long>
 #if defined(__SIZEOF_INT128__)
-    || std::same_as<std::remove_cv_t<T>, __int128>
+    || std::same_as<std::remove_cv_t<T>, xer::int128_t>
 #endif
     ;
 
@@ -83,7 +85,7 @@ inline constexpr bool is_unsigned_integer_ex_v =
     std::same_as<std::remove_cv_t<T>, unsigned long> ||
     std::same_as<std::remove_cv_t<T>, unsigned long long>
 #if defined(__SIZEOF_INT128__)
-    || std::same_as<std::remove_cv_t<T>, unsigned __int128>
+    || std::same_as<std::remove_cv_t<T>, xer::uint128_t>
 #endif
     ;
 
