@@ -16,6 +16,8 @@ xer is a header-only C++23 library designed for programmers who are familiar wit
 
 It keeps the spirit of the C standard library where that style is still practical, but redesigns the APIs as a modern C++ library with stronger typing, explicit error handling, and Unicode-aware text processing.
 
+For language-oriented text processing, xer deliberately focuses on English and Japanese. It does not try to grow into a general-purpose Unicode text-layout or segmentation library for every script. When a trade-off is necessary, xer prefers deeper, more predictable Japanese support over broad but shallow coverage of many languages.
+
 ## Status
 
 xer is under active development.
@@ -46,7 +48,8 @@ This project does **not** aim at full source-level compatibility with the C stan
 - C++23-based
 - Explicit and predictable behavior
 - Minimal reliance on locale
-- Practical Unicode support
+- Practical Unicode support for English and Japanese
+- Strong Japanese text-processing support
 - Avoid unnecessary abstraction
 - Prefer simple APIs over clever APIs
 
@@ -104,7 +107,9 @@ In regular APIs:
 - strings are primarily UTF-8
 - individual text characters may use `char32_t`
 - CP932 is supported for interoperability with existing environments
-- language-oriented text handling primarily targets English and Japanese; broader script-specific behavior is left to user extensions or dedicated Unicode libraries
+- language-oriented text handling primarily targets English and Japanese
+- broader script-specific behavior is left to user extensions or dedicated Unicode libraries
+- Japanese text-processing quality and predictability are prioritized over expanding the standard scope to many languages
 
 ### 5. Locale-independent design
 
@@ -130,6 +135,8 @@ xer includes small Japanese text-processing building blocks that are useful in o
 - braille constants, low-level character conversion, kana text conversion, ASCII mode switching, information-processing braille helpers, and MeCab-based braille translation
 
 The braille facilities are practical building blocks. They do not claim to be a complete, standards-grade braille translation engine, and MeCab-based conversion depends on the readings produced by the external MeCab dictionary.
+
+xer keeps this Japanese-first stance intentionally. For scripts or languages outside English and Japanese, users can extend the public source code or combine xer with a dedicated Unicode library rather than expecting xer itself to cover every writing system.
 
 ## Public headers
 
