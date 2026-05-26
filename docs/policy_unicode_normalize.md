@@ -1,14 +1,17 @@
-# Policy for Unicode Normalization
+# Policy for Unicode Utilities
 
 ## Overview
 
-Unicode normalization in XER is provided as a practical external-component feature based on the ICU C API.
+Unicode utilities in XER are provided through `<xer/unicode.h>`.
 
-The initial public goal is intentionally narrow:
+The current public scope is intentionally incremental:
 
 ```text
+code point traversal for UTF-8, UTF-16, and wide string views
 NFC normalization for UTF-8 text
 ```
+
+Code point traversal is a small table-free layer. Unicode normalization is provided as a practical external-component feature based on the ICU C API.
 
 This gives XER a useful and standards-based normalization facility without embedding large Unicode normalization tables into the header-only library.
 
@@ -16,7 +19,7 @@ This gives XER a useful and standards-based normalization facility without embed
 
 ## Public Header
 
-Unicode normalization is provided through:
+Unicode utilities are provided through:
 
 ```text
 xer/unicode.h
@@ -25,10 +28,11 @@ xer/unicode.h
 The internal implementation may be placed under:
 
 ```text
+xer/bits/unicode_code_point.h
 xer/bits/unicode_normalize.h
 ```
 
-The feature is not absorbed into `<xer/string.h>` or `<xer/ctype.h>` because it depends on ICU and is much heavier than ordinary string utilities or character classification.
+The feature is not absorbed into `<xer/string.h>` or `<xer/ctype.h>`. Code point traversal is a Unicode-specific low-level facility, and normalization depends on ICU and is much heavier than ordinary string utilities or character classification.
 
 ---
 
@@ -69,7 +73,46 @@ Reasons:
 
 ## Public API Shape
 
-The initial API is:
+The code point traversal API is:
+
+```cpp
+struct code_point {
+    std::size_t offset;
+    std::size_t size;
+    char32_t value;
+};
+
+auto next_code_point(std::u8string_view text, std::size_t offset = 0)
+    -> xer::result<xer::code_point>;
+
+auto prev_code_point(std::u8string_view text, std::size_t offset)
+    -> xer::result<xer::code_point>;
+
+auto next_code_point(std::u16string_view text, std::size_t offset = 0)
+    -> xer::result<xer::code_point>;
+
+auto prev_code_point(std::u16string_view text, std::size_t offset)
+    -> xer::result<xer::code_point>;
+
+auto next_code_point(std::wstring_view text, std::size_t offset = 0)
+    -> xer::result<xer::code_point>;
+
+auto prev_code_point(std::wstring_view text, std::size_t offset)
+    -> xer::result<xer::code_point>;
+
+auto code_points(std::u8string_view text)
+    -> xer::code_point_range<char8_t>;
+
+auto code_points(std::u16string_view text)
+    -> xer::code_point_range<char16_t>;
+
+auto code_points(std::wstring_view text)
+    -> xer::code_point_range<wchar_t>;
+```
+
+The dereferenced range element is `xer::result<xer::code_point>` so malformed input remains explicit during traversal.
+
+The normalization API is:
 
 ```cpp
 auto normalize_nfc(std::u8string_view text)
@@ -79,8 +122,9 @@ auto is_normalized_nfc(std::u8string_view text)
     -> xer::result<bool>;
 ```
 
-The return type follows the ordinary XER error policy.
-The functions can fail when the input is invalid UTF-8, when a size is outside ICU's supported range, or when ICU reports an error.
+All return types follow the ordinary XER error policy.
+Code point decoding can fail when the offset is outside the view or when the input is malformed.
+The normalization functions can fail when the input is invalid UTF-8, when a size is outside ICU's supported range, or when ICU reports an error.
 
 Function return types should use trailing return type syntax.
 
@@ -88,7 +132,17 @@ Function return types should use trailing return type syntax.
 
 ## Text Representation
 
-The public input and output representation is UTF-8:
+The primary text representation remains UTF-8.
+
+For code point traversal, the supported source views are:
+
+- `std::u8string_view`
+- `std::u16string_view`
+- `std::wstring_view`
+
+The `offset` and `size` fields of `xer::code_point` are expressed in source code units.
+
+For normalization, the public input and output representation is UTF-8:
 
 - input: `std::u8string_view`
 - output: `std::u8string`
@@ -162,7 +216,11 @@ XER delegates the exact Unicode normalization behavior to ICU.
 
 ## Error Handling
 
-Invalid UTF-8 should be reported as an encoding error.
+Malformed UTF-8 and malformed UTF-16 surrogate pairs should be reported as encoding errors.
+
+Offsets outside the source view should be reported as out-of-range errors.
+
+Invalid UTF-8 passed to ICU-based normalization should be reported as an encoding error.
 
 Input or output sizes that cannot be represented by the ICU C API length type should be reported as a length error.
 
@@ -187,7 +245,7 @@ The failure should occur at compile time when the header is included.
 
 ## Relationship to Other Unicode Features
 
-Unicode normalization is separate from:
+Unicode code point traversal and normalization are separate from:
 
 - character classification in `<xer/ctype.h>`
 - low-level string operations in `<xer/string.h>`
@@ -196,13 +254,17 @@ Unicode normalization is separate from:
 - furigana formatting in `<xer/furigana.h>`
 - braille conversion in `<xer/braille.h>`
 
-These features may use normalized text where appropriate, but they should not become implicitly dependent on ICU unless the dependency is explicitly accepted.
+These features may use code point traversal or normalized text where appropriate, but they should not become implicitly dependent on ICU unless the dependency is explicitly accepted.
 
 ---
 
 ## Future Expansion
 
-Possible future additions include:
+Possible future additions include grapheme cluster traversal built on top of the code point layer.
+
+A grapheme cluster API should return source string spans rather than a single `char32_t`, because one grapheme cluster may contain multiple code points.
+
+Possible future normalization additions include:
 
 ```cpp
 auto normalize_nfd(std::u8string_view text)
@@ -224,6 +286,11 @@ Each should have its own practical need and API policy.
 
 Tests should cover at least:
 
+- UTF-8 code point traversal for ASCII, BMP, and supplementary-plane characters
+- UTF-16 code point traversal including surrogate pairs
+- wide string traversal on the host platform
+- malformed UTF-8
+- malformed UTF-16 surrogate pairs
 - ASCII text that is already NFC
 - Japanese text that is already NFC
 - Japanese decomposed dakuten input such as `か` + U+3099
@@ -240,6 +307,9 @@ If ICU is not available in the test environment, ICU-dependent tests may be skip
 
 The reference fragment for `<xer/unicode.h>` should document:
 
+- code point traversal APIs
+- source code unit offset and size semantics
+- malformed input handling
 - the ICU dependency
 - required ICU headers
 - typical link options
@@ -255,9 +325,10 @@ Examples should remain small and should not introduce unrelated ICU features.
 
 ## Summary
 
-- Unicode normalization is provided through `<xer/unicode.h>`.
-- The implementation uses ICU C API only.
-- The initial scope is NFC and `is_normalized_nfc`.
+- Unicode utilities are provided through `<xer/unicode.h>`.
+- Code point traversal supports `std::u8string_view`, `std::u16string_view`, and `std::wstring_view`.
+- The normalization implementation uses ICU C API only.
+- The current normalization scope is NFC and `is_normalized_nfc`.
 - Public input and output are UTF-8.
 - Missing ICU headers are compile-time errors.
 - User link settings are outside XER's responsibility.

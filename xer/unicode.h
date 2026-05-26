@@ -8,6 +8,7 @@
 #ifndef XER_UNICODE_H_INCLUDED_
 #define XER_UNICODE_H_INCLUDED_
 
+#include <xer/bits/unicode_code_point.h>
 #include <xer/bits/unicode_normalize.h>
 
 #endif /* XER_UNICODE_H_INCLUDED_ */

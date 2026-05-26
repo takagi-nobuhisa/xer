@@ -162,7 +162,7 @@ It invokes a MeCab executable and therefore depends mainly on runtime availabili
 
 ICU-based Unicode normalization is provided by `<xer/unicode.h>`.
 It requires ICU C API headers at compile time and ICU libraries at link time.
-The initial public scope is NFC normalization and NFC status checking.
+The ICU-dependent public scope is NFC normalization and NFC status checking. The code point traversal APIs in `<xer/unicode.h>` are table-free, but the public header currently also includes ICU-based normalization.
 
 ---
 

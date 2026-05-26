@@ -25,6 +25,7 @@ The project began by rebuilding practical parts of the C standard library in a w
 The current library scope includes:
 
 - string and character handling
+- Unicode code point traversal and NFC normalization
 - I/O and filesystem-oriented utilities
 - binary data helpers, including checksums, CRC, hex conversion, MD5, SHA-1, and SHA-256
 - path handling
