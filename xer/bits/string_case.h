@@ -20,6 +20,7 @@
 
 #include <xer/bits/advanced_encoding.h>
 #include <xer/bits/common.h>
+#include <xer/bits/ja_to.h>
 #include <xer/bits/string_character.h>
 #include <xer/bits/unicode_common.h>
 #include <xer/bits/string_read.h>
@@ -261,10 +262,10 @@ template<supported_string_character CharT>
 /**
  * @brief Normalizes ordinary fullwidth Katakana to Hiragana for romanization.
  *
- * Hiragana is returned unchanged. Katakana U+30A1..U+30F6 is mapped to the
- * corresponding Hiragana code point. The prolonged sound mark is preserved.
- * Unsupported code points are returned unchanged so the caller can reject them
- * through the normal romanization validation path.
+ * Hiragana is returned unchanged. Fullwidth Katakana is mapped by the same
+ * code-point helper used by xer::ja::to_hiragana(). The prolonged sound mark
+ * is preserved. Unsupported code points are returned unchanged so the caller
+ * can reject them through the normal romanization validation path.
  *
  * @param value Source code point.
  * @return Normalized code point.
@@ -272,11 +273,7 @@ template<supported_string_character CharT>
 [[nodiscard]] constexpr auto normalize_romaji_kana(
     const char32_t value) noexcept -> char32_t
 {
-    if (value >= U'\u30a1' && value <= U'\u30f6') {
-        return static_cast<char32_t>(value - 0x60);
-    }
-
-    return value;
+    return xer::ja::detail::katakana_to_hiragana_code_point(value);
 }
 
 /**
