@@ -178,3 +178,10 @@ The ICU-dependent public scope is NFC normalization and NFC status checking. The
 - xer's own test runner should handle known environments for tests and examples.
 - Command-line integrations, such as MeCab, are runtime dependencies and should report runtime errors through `xer::result`.
 - C APIs are preferred for external libraries when available.
+
+
+## zlib / ZIP
+
+`xer/zip.h` uses zlib for deflate expansion. The public header checks for `<zlib.h>` with `__has_include` when available. Tests and examples that include `xer/zip.h` are marked as the `zip` feature and should be linked with zlib, typically `-lz`.
+
+The initial ZIP implementation is read-only and supports ordinary non-ZIP64 archives with stored or deflated entries. ZIP archive creation and ZIP64 support are deferred.

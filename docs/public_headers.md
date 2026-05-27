@@ -37,6 +37,7 @@
 - `xer/bytes.h`
 - `xer/binary.h`
 - `xer/base64.h`
+- `xer/zip.h`
 - `xer/parse.h`
 - `xer/json.h`
 - `xer/ini.h`
@@ -153,6 +154,23 @@ This keeps the API boundary clear:
 
 - `base64_encode` converts bytes into UTF-8 text
 - `base64_decode` converts UTF-8 Base64 text back into bytes
+
+
+### Why `zip.h` Is Independent
+
+ZIP archive reading is treated as a compression and archive utility rather than as ordinary file I/O or a structured text format.
+It is useful together with serialization and binary data handling, but it has its own container format, compression methods, entry metadata, and sequential read model.
+
+For that reason, ZIP functionality is not absorbed into `xer/stdio.h`, `xer/path.h`, or `xer/base64.h`, but is provided as the independent public header `xer/zip.h`.
+
+At the current stage, this keeps the responsibility clear:
+
+- `zip_open` opens a ZIP archive for reading
+- `zip_read` reads entry metadata sequentially from the central directory
+- `zip_entry_*` functions obtain metadata and expanded entry data through `xer::result`
+- reaching the end of the entry stream is reported as `error_t::end_of_file`
+
+The initial implementation focuses on reading ordinary non-ZIP64 archives. Writing archives, extraction helpers, name lookup, and ZIP64 support are deferred.
 
 ### Why `braille.h` Is Independent
 

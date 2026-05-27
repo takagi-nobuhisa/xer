@@ -771,6 +771,10 @@ function detect_source_features(string $sourceFile): array
         $features[] = 'icu';
     }
 
+    if (preg_match('/#\s*include\s*[<"]xer\/zip\.h[>"]/', $content)) {
+        $features[] = 'zip';
+    }
+
     $features = array_values(array_unique($features, SORT_STRING));
     sort($features, SORT_STRING);
 
@@ -948,6 +952,67 @@ function icu_option_candidates(array $options): array
     return $result;
 }
 
+
+/**
+ * @param array<string, mixed> $options
+ * @return list<array{cflags:list<string>, libs:list<string>, source:string}>
+ */
+function zlib_option_candidates(array $options): array
+{
+    $candidates = [];
+
+    if (find_executable('pkg-config') !== null) {
+        $output = [];
+        $exitCode = 0;
+        exec('pkg-config --cflags --libs zlib 2>/dev/null', $output, $exitCode);
+        if ($exitCode === 0 && $output !== []) {
+            $tokens = split_command_fragment(implode(' ', $output));
+            $cflags = [];
+            $libs = [];
+            foreach ($tokens as $token) {
+                if (str_starts_with($token, '-l') || str_starts_with($token, '-L') || str_starts_with($token, '-Wl,')) {
+                    $libs[] = $token;
+                } else {
+                    $cflags[] = $token;
+                }
+            }
+            $candidates[] = [
+                'cflags' => $cflags,
+                'libs' => $libs,
+                'source' => 'pkg-config zlib',
+            ];
+        }
+    }
+
+    $msys2Prefix = detect_msys2_prefix();
+    if ($msys2Prefix !== null) {
+        $candidates[] = [
+            'cflags' => ['-I' . $msys2Prefix . '/include'],
+            'libs' => ['-L' . $msys2Prefix . '/lib', '-lz'],
+            'source' => 'MSYS2 zlib under ' . $msys2Prefix,
+        ];
+    }
+
+    $candidates[] = [
+        'cflags' => [],
+        'libs' => ['-lz'],
+        'source' => 'default zlib library',
+    ];
+
+    $unique = [];
+    $result = [];
+    foreach ($candidates as $candidate) {
+        $key = implode("\0", $candidate['cflags']) . "\1" . implode("\0", $candidate['libs']);
+        if (isset($unique[$key])) {
+            continue;
+        }
+        $unique[$key] = true;
+        $result[] = $candidate;
+    }
+
+    return $result;
+}
+
 /**
  * @param array<string, mixed> $options
  * @param array{cflags:list<string>, libs:list<string>, source:string} $candidate
@@ -1026,6 +1091,46 @@ function probe_icu_candidate(array $options, array $candidate, string $scriptDir
     ];
 }
 
+
+/**
+ * @param array<string, mixed> $options
+ * @param array{cflags:list<string>, libs:list<string>, source:string} $candidate
+ * @return array{available:bool, output:string, command_line:string}
+ */
+function probe_zlib_candidate(array $options, array $candidate, string $scriptDir, string $buildRoot): array
+{
+    $probeDir = normalize_path($buildRoot . '/probe');
+    ensure_directory($probeDir);
+
+    $sourceFile = normalize_path($probeDir . '/zlib_probe.cpp');
+    $executable = normalize_path($probeDir . '/zlib_probe');
+    if (is_windows()) {
+        $executable .= '.exe';
+    }
+
+    write_text_file(
+        $sourceFile,
+        "#include <zlib.h>\nauto main() -> int { return zlibVersion() == nullptr; }\n"
+    );
+
+    $command = array_merge(
+        [$options['cxx'], '-std=gnu++23'],
+        $options['cxxflags'],
+        $candidate['cflags'],
+        [$sourceFile, '-o', $executable],
+        $candidate['libs'],
+        $options['ldflags']
+    );
+
+    $result = run_command($command, $scriptDir);
+
+    return [
+        'available' => $result['exit_code'] === 0,
+        'output' => $result['output'],
+        'command_line' => $result['command_line'],
+    ];
+}
+
 /**
  * @param array<string, mixed> $options
  * @return array<string, array<string, mixed>>
@@ -1052,6 +1157,13 @@ function detect_feature_options(array $options, string $scriptDir, string $build
             'cflags' => [],
             'libs' => [],
             'reason' => 'ICU development files were not found.',
+            'source' => '',
+        ],
+        'zip' => [
+            'available' => false,
+            'cflags' => [],
+            'libs' => [],
+            'reason' => 'zlib development files were not found.',
             'source' => '',
         ],
     ];
@@ -1109,6 +1221,35 @@ function detect_feature_options(array $options, string $scriptDir, string $build
         $features['icu']['reason'] = "ICU probe failed.\n" . $lastCommandLine;
         if ($lastOutput !== '') {
             $features['icu']['reason'] .= "\n" . $lastOutput;
+        }
+    }
+
+
+    $lastOutput = '';
+    $lastCommandLine = '';
+    foreach (zlib_option_candidates($options) as $candidate) {
+        $probe = probe_zlib_candidate($options, $candidate, $scriptDir, $buildRoot);
+        $lastOutput = $probe['output'];
+        $lastCommandLine = $probe['command_line'];
+
+        if (!$probe['available']) {
+            continue;
+        }
+
+        $features['zip'] = [
+            'available' => true,
+            'cflags' => $candidate['cflags'],
+            'libs' => $candidate['libs'],
+            'reason' => '',
+            'source' => $candidate['source'],
+        ];
+        break;
+    }
+
+    if (!$features['zip']['available'] && ($lastCommandLine !== '' || $lastOutput !== '')) {
+        $features['zip']['reason'] = "zlib probe failed.\n" . $lastCommandLine;
+        if ($lastOutput !== '') {
+            $features['zip']['reason'] .= "\n" . $lastOutput;
         }
     }
 

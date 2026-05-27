@@ -50,6 +50,9 @@ final class FeatureConfig
     public bool $icuAvailable = false;
     public string $icuCflags = '';
     public string $icuDetectionNote = '';
+    public bool $zlibAvailable = false;
+    public string $zlibCflags = '';
+    public string $zlibDetectionNote = '';
 }
 
 /**
@@ -86,6 +89,16 @@ function main(array $argv): int
 
     $changedHeaders = [];
     $changeReason = '';
+    echo "zlib        : " . ($features->zlibAvailable ? 'available' : 'unavailable') . "
+";
+    if ($features->zlibAvailable && $features->zlibCflags !== '') {
+        echo "zlib cflags: {$features->zlibCflags}
+";
+    }
+    if ($features->zlibDetectionNote !== '') {
+        echo "zlib detect: {$features->zlibDetectionNote}
+";
+    }
     if ($config->incremental) {
         if ($previousState === null) {
             $changedHeaders = $headers;
@@ -603,6 +616,13 @@ function detect_features(Config $config): FeatureConfig
         }
     }
 
+
+    $features->zlibAvailable = can_compile_zlib_probe($config, '');
+    $features->zlibCflags = '';
+    $features->zlibDetectionNote = $features->zlibAvailable
+        ? 'default zlib include configuration'
+        : 'no usable zlib include configuration was found';
+
     return $features;
 }
 
@@ -828,6 +848,56 @@ CPP;
     return $exitCode === 0;
 }
 
+
+function can_compile_zlib_probe(Config $config, string $cflags): bool
+{
+    $probeDir = $config->buildRoot . DIRECTORY_SEPARATOR . 'feature_probe';
+    ensure_directory($probeDir);
+
+    $sourcePath = $probeDir . DIRECTORY_SEPARATOR . 'zlib_probe.cpp';
+    $objectPath = $probeDir . DIRECTORY_SEPARATOR . 'zlib_probe.o';
+    $logPath = $probeDir . DIRECTORY_SEPARATOR . 'zlib_probe.log';
+
+    $source = <<<'CPP'
+#include <zlib.h>
+
+auto main() -> int
+{
+    return 0;
+}
+CPP;
+
+    if (file_put_contents($sourcePath, $source) === false) {
+        throw new RuntimeException("failed to write zlib probe source: {$sourcePath}");
+    }
+
+    $parts = [
+        escapeshellarg($config->compiler),
+        '-std=' . escapeshellarg($config->cppStd),
+    ];
+    if (trim($cflags) !== '') {
+        $parts[] = trim($cflags);
+    }
+    $parts[] = '-c';
+    $parts[] = escapeshellarg($sourcePath);
+    $parts[] = '-o';
+    $parts[] = escapeshellarg($objectPath);
+
+    $command = implode(' ', $parts);
+
+    $output = [];
+    $exitCode = 0;
+    exec($command . ' 2>&1', $output, $exitCode);
+
+    $log = "Command: {$command}" . PHP_EOL . PHP_EOL . implode(PHP_EOL, $output);
+    if (!str_ends_with($log, PHP_EOL)) {
+        $log .= PHP_EOL;
+    }
+    file_put_contents($logPath, $log);
+
+    return $exitCode === 0;
+}
+
 /**
  * @param array<int, string> $features
  */
@@ -850,6 +920,13 @@ function get_unavailable_feature_reason(
         return 'ICU headers are unavailable';
     }
 
+    if (in_array('zip', $features, true) && !$featureConfig->zlibAvailable) {
+        if (!$config->skipUnavailableFeatures) {
+            return null;
+        }
+        return 'zlib headers are unavailable';
+    }
+
     return null;
 }
 
@@ -864,6 +941,9 @@ function detect_pair_features(string $header1, string $header2): array
     }
     if ($header1 === 'xer/unicode.h' || $header2 === 'xer/unicode.h') {
         $features[] = 'icu';
+    }
+    if ($header1 === 'xer/zip.h' || $header2 === 'xer/zip.h') {
+        $features[] = 'zip';
     }
     return $features;
 }
@@ -1268,6 +1348,9 @@ function get_pair_extra_cflags(FeatureConfig $featureConfig, array $features): s
     }
     if (in_array('icu', $features, true) && $featureConfig->icuCflags !== '') {
         $cflags[] = $featureConfig->icuCflags;
+    }
+    if (in_array('zip', $features, true) && $featureConfig->zlibCflags !== '') {
+        $cflags[] = $featureConfig->zlibCflags;
     }
     return implode(' ', $cflags);
 }
