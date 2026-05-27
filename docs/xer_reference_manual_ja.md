@@ -7586,6 +7586,25 @@ The design is intentionally simple. It does not store type names, field names, s
 
 This header is intended to support generated `xfer` functions. A schema generator can emit one field-transfer function and use it for both output and input by passing either `binary_output_archive` or `binary_input_archive`.
 
+The recommended workflow is:
+
+1. define a fixed structure schema in PHP
+2. generate a C++ structure and its `xfer` function
+3. pass that structure to a binary output archive or binary input archive
+4. handle format versioning outside the low-level archive layer
+
+---
+
+## Design Model
+
+xer serialization is not a reflection-based serializer.
+
+C++23 has no standardized reflection facility that can enumerate the fields of an arbitrary user-defined structure. Instead of relying on macros, runtime registration, intrusive base classes, or heavy template metaprogramming, xer uses generated field-transfer functions.
+
+The low-level archive layer only knows how to transfer scalar values and selected standard containers. User-defined structures are handled by generated code that calls the archive once for each field in fixed order.
+
+This keeps the binary format compact and predictable.
+
 ---
 
 ## Binary Format Policy
@@ -7605,6 +7624,8 @@ The binary format is fixed as follows:
 
 No byte-order marker is written. Little-endian is part of the format.
 
+The format is suitable when both sides share the same schema or are generated from the same schema source. It is intentionally not a self-describing interchange format.
+
 ---
 
 ## Main Entities
@@ -7621,14 +7642,16 @@ template<class Archive>
 auto xfer(Archive& archive, sample& value) -> xer::result<void>
 {
     if (auto r = archive(value.id); !r) {
-        return std::unexpected(r.error());
+        return r;
     }
     if (auto r = archive(value.name); !r) {
-        return std::unexpected(r.error());
+        return r;
     }
     return {};
 }
 ```
+
+When `archive` is a `binary_output_archive`, the values are written. When it is a `binary_input_archive`, the values are read into the same fields.
 
 ---
 
@@ -7663,6 +7686,8 @@ std::map<K, V>
 The container element types must themselves be supported by the same archive.
 
 Environment-dependent integer types such as `int`, `long`, and `std::size_t` are intentionally not provided as direct serialization types. Fixed-width integer types should be used in serialized structures.
+
+Non-owning types such as `std::u8string_view` and `std::span` are not intended to be generated as structure fields. They may appear as output-side convenience arguments where explicitly supported, but serialized structures should use owning field types.
 
 ---
 
@@ -7746,9 +7771,9 @@ error_t::length_error
 
 ---
 
-## Generated `xfer` Functions
+## Hand-Written `xfer` Functions
 
-A typical generated transfer function should call the archive for each field in fixed order.
+A hand-written transfer function should call the archive for each field in fixed order.
 
 ```cpp
 struct sample {
@@ -7761,13 +7786,13 @@ template<class Archive>
 auto xfer(Archive& archive, sample& value) -> xer::result<void>
 {
     if (auto r = archive(value.id); !r) {
-        return std::unexpected(r.error());
+        return r;
     }
     if (auto r = archive(value.name); !r) {
-        return std::unexpected(r.error());
+        return r;
     }
     if (auto r = archive(value.flags); !r) {
-        return std::unexpected(r.error());
+        return r;
     }
     return {};
 }
@@ -7787,6 +7812,128 @@ xer::binary_input_archive in(data);
 xfer(in, restored);
 ```
 
+This pattern is demonstrated by `examples/example_serialize_basic.cpp`.
+
+---
+
+## Generated Structures and `xfer` Functions
+
+For ordinary use, xer recommends generating structures and `xfer` functions from a schema file instead of writing them by hand.
+
+The script is:
+
+```text
+php/generate_xfer_struct.php
+```
+
+A schema file is a PHP file that returns an array. The short type tokens are defined by the generator before the schema file is loaded.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+return [
+    'namespace' => 'demo',
+    'struct' => 'record',
+    'fields' => [
+        'id' => u32,
+        'name' => s,
+        'payload' => bin,
+        'scores' => [[s, f64], m],
+        'history' => [u16, v],
+        'fixed' => [u32, [a, 4]],
+    ],
+];
+```
+
+The generator command is:
+
+```text
+php php/generate_xfer_struct.php schema.php record.hpp
+```
+
+The generated header contains:
+
+- `struct record`
+- `template<class Archive> auto xfer(Archive& ar, record& value) -> xer::result<void>`
+- a generated-at schema timestamp constant
+
+The generated-at timestamp is embedded both in the file comment and in a C++ constant such as:
+
+```cpp
+inline constexpr char record_xfer_schema_generated_at[] = "2026-05-27T13:29:13+00:00";
+```
+
+This timestamp is not stored in the serialized binary payload. It identifies the generated schema source used to produce the header.
+
+This generated workflow is demonstrated by:
+
+```text
+examples/example_serialize_generated_schema.php
+examples/example_serialize_generated.hpp
+examples/example_serialize_generated.cpp
+```
+
+---
+
+## PHP Schema Type DSL
+
+`php/generate_xfer_struct.php` supports the following scalar tokens:
+
+```text
+b
+
+u8 u16 u32 u64
+
+i8 i16 i32 i64
+
+f32 f64
+
+s
+bin
+```
+
+They map to C++ types as follows:
+
+```text
+b   -> bool
+
+u8  -> std::uint8_t
+u16 -> std::uint16_t
+u32 -> std::uint32_t
+u64 -> std::uint64_t
+
+i8  -> std::int8_t
+i16 -> std::int16_t
+i32 -> std::int32_t
+i64 -> std::int64_t
+
+f32 -> float
+f64 -> double
+
+s   -> std::u8string
+bin -> std::vector<std::byte>
+```
+
+Container forms are written as type modifiers:
+
+```php
+[T, v]          // std::vector<T>
+[T, [a, N]]     // std::array<T, N>
+[[K, V], m]     // std::map<K, V>
+```
+
+For example:
+
+```php
+[u32, v]          // std::vector<std::uint32_t>
+[u32, [a, 16]]    // std::array<std::uint32_t, 16>
+[[s, f64], m]     // std::map<std::u8string, double>
+```
+
+`std::array<T, N>` does not store `N` in the binary payload. `std::vector<T>`, `std::map<K, V>`, `std::u8string`, and `std::vector<std::byte>` store a `uint64` length before their contents.
+
 ---
 
 ## Versioning Model
@@ -7799,8 +7946,17 @@ Common strategies include:
 - wrapping payloads in an outer versioned structure
 - generating separate `xfer` functions for old and new layouts
 - restricting additions to trailing fields when suitable
+- exchanging the schema-generated timestamp out-of-band when that is useful for diagnostics
 
 `<xer/serialize.h>` deliberately keeps this policy outside the low-level archive implementation.
+
+---
+
+## Relationship with ZIP
+
+`<xer/serialize.h>` produces and consumes byte sequences. Those byte sequences can be stored directly, sent over a stream, encoded with Base64, or placed into a ZIP archive.
+
+The serialization layer does not compress data by itself. Compression and archive handling belong to `<xer/zip.h>` or future compression utilities.
 
 ---
 

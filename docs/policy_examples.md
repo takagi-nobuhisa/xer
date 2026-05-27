@@ -457,3 +457,19 @@ The current example set includes examples for newly added areas such as:
 - stream rewinding
 
 These notes are descriptive rather than a fixed completeness requirement. The detailed list should continue to be inferred from the actual files under `examples/`.
+
+---
+
+## Generated-Code Examples
+
+Some facilities require code generation as part of their natural workflow.
+
+For such facilities, an example may consist of more than one file, such as:
+
+- a generator input file
+- a generated header
+- a C++ example source file that uses the generated header
+
+The C++ source file should still be independently compilable by the normal example runner. Supporting files should be placed in `examples/` and should be small enough to inspect directly.
+
+Serialization examples are an important case. A serialization example may include a PHP schema file and a generated header in addition to the C++ example source file, because the intended usage is schema-driven rather than purely hand-written.
