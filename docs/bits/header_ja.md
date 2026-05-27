@@ -57,6 +57,10 @@ xer::ja::mecab_parse(u8"私は猫です。");
 
 `xer::ja::is_japanese` checks whether a code point is kana, kanji, or Japanese punctuation.
 
+`xer::ja::is_all_hiragana`, `xer::ja::is_all_katakana`, and `xer::ja::is_all_kana` check whether all code points in a UTF-8 string belong to practical hiragana, katakana, or kana text. Empty input returns `false`. Invalid UTF-8 input returns `encoding_error`.
+
+The `is_all_*` kana predicates are intentionally practical rather than strictly block-only: they accept the prolonged sound mark and kana iteration marks. They do not accept spaces, punctuation, kanji, or Latin letters.
+
 ```cpp
 xer::ja::is_hiragana(U'あ'); // true
 xer::ja::is_katakana(U'ア'); // true
@@ -64,6 +68,12 @@ xer::ja::is_kana(U'ｱ'); // true
 xer::ja::is_kanji(U'漢'); // true
 xer::ja::is_japanese_punctuation(U'。'); // true
 xer::ja::is_japanese(U'日'); // true
+
+xer::ja::is_all_hiragana(u8"こんにちはー"); // true
+xer::ja::is_all_katakana(u8"コンニチハー"); // true
+xer::ja::is_all_kana(u8"こんにちはコンニチハー"); // true
+xer::ja::is_all_kana(u8""); // false
+xer::ja::is_all_kana(u8"こんにちは。"); // false
 ```
 
 These functions are defined in the internal implementation header `<xer/bits/ja_is.h>` and are available through `<xer/ja.h>`.

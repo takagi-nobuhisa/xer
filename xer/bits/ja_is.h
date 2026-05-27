@@ -8,6 +8,13 @@
 #ifndef XER_BITS_JA_IS_H_INCLUDED_
 #define XER_BITS_JA_IS_H_INCLUDED_
 
+#include <cstddef>
+#include <expected>
+#include <string_view>
+
+#include <xer/error.h>
+#include <xer/bits/unicode_code_point.h>
+
 namespace xer::ja::detail {
 
 [[nodiscard]] constexpr auto is_in_unicode_range(
@@ -16,6 +23,43 @@ namespace xer::ja::detail {
     const char32_t last) noexcept -> bool
 {
     return value >= first && value <= last;
+}
+
+[[nodiscard]] constexpr auto is_hiragana_prolonged_sound_mark(
+    const char32_t value) noexcept -> bool
+{
+    return value == U'ー';
+}
+
+[[nodiscard]] constexpr auto is_katakana_prolonged_sound_mark(
+    const char32_t value) noexcept -> bool
+{
+    return value == U'ー' || value == U'ｰ';
+}
+
+template<typename Predicate>
+[[nodiscard]] inline auto is_all_utf8_code_points(
+    const std::u8string_view text,
+    Predicate predicate) -> result<bool>
+{
+    if (text.empty()) {
+        return false;
+    }
+
+    for (std::size_t offset = 0; offset < text.size();) {
+        const auto decoded = xer::next_code_point(text, offset);
+        if (!decoded.has_value()) {
+            return std::unexpected(decoded.error());
+        }
+
+        if (!predicate(decoded->value)) {
+            return false;
+        }
+
+        offset += decoded->size;
+    }
+
+    return true;
 }
 
 } // namespace xer::ja::detail
@@ -117,6 +161,60 @@ namespace xer::ja {
     return is_kana(value)
         || is_kanji(value)
         || is_japanese_punctuation(value);
+}
+
+/**
+ * @brief Checks whether all UTF-8 code points are practical hiragana text.
+ *
+ * The accepted set is the Hiragana block plus the prolonged sound mark U+30FC.
+ * Empty input returns false. Invalid UTF-8 returns encoding_error.
+ */
+[[nodiscard]] inline auto is_all_hiragana(
+    const std::u8string_view text) -> result<bool>
+{
+    return detail::is_all_utf8_code_points(
+        text,
+        [](const char32_t value) noexcept {
+            return is_hiragana(value)
+                || detail::is_hiragana_prolonged_sound_mark(value);
+        });
+}
+
+/**
+ * @brief Checks whether all UTF-8 code points are practical katakana text.
+ *
+ * The accepted set is katakana, including fullwidth and halfwidth katakana,
+ * plus prolonged sound marks. Empty input returns false. Invalid UTF-8 returns
+ * encoding_error.
+ */
+[[nodiscard]] inline auto is_all_katakana(
+    const std::u8string_view text) -> result<bool>
+{
+    return detail::is_all_utf8_code_points(
+        text,
+        [](const char32_t value) noexcept {
+            return is_katakana(value)
+                || detail::is_katakana_prolonged_sound_mark(value);
+        });
+}
+
+/**
+ * @brief Checks whether all UTF-8 code points are practical kana text.
+ *
+ * The accepted set is hiragana, katakana, prolonged sound marks, and kana
+ * iteration marks covered by the Hiragana and Katakana blocks. Empty input
+ * returns false. Invalid UTF-8 returns encoding_error.
+ */
+[[nodiscard]] inline auto is_all_kana(
+    const std::u8string_view text) -> result<bool>
+{
+    return detail::is_all_utf8_code_points(
+        text,
+        [](const char32_t value) noexcept {
+            return is_kana(value)
+                || detail::is_hiragana_prolonged_sound_mark(value)
+                || detail::is_katakana_prolonged_sound_mark(value);
+        });
 }
 
 } // namespace xer::ja
