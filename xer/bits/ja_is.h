@@ -62,6 +62,31 @@ template<typename Predicate>
     return true;
 }
 
+template<typename Predicate>
+[[nodiscard]] inline auto contains_utf8_code_point(
+    const std::u8string_view text,
+    Predicate predicate) -> result<bool>
+{
+    if (text.empty()) {
+        return false;
+    }
+
+    for (std::size_t offset = 0; offset < text.size();) {
+        const auto decoded = xer::next_code_point(text, offset);
+        if (!decoded.has_value()) {
+            return std::unexpected(decoded.error());
+        }
+
+        if (predicate(decoded->value)) {
+            return true;
+        }
+
+        offset += decoded->size;
+    }
+
+    return false;
+}
+
 } // namespace xer::ja::detail
 
 namespace xer::ja {
@@ -168,6 +193,83 @@ namespace xer::ja {
     return is_kana(value)
         || is_kanji(value)
         || is_japanese_punctuation(value);
+}
+
+
+/**
+ * @brief Checks whether a UTF-8 string contains practical hiragana.
+ *
+ * Empty input returns false. Invalid UTF-8 returns encoding_error.
+ */
+[[nodiscard]] inline auto contains_hiragana(
+    const std::u8string_view text) -> result<bool>
+{
+    return detail::contains_utf8_code_point(
+        text,
+        [](const char32_t value) noexcept {
+            return is_hiragana(value);
+        });
+}
+
+/**
+ * @brief Checks whether a UTF-8 string contains practical katakana.
+ *
+ * Empty input returns false. Invalid UTF-8 returns encoding_error.
+ */
+[[nodiscard]] inline auto contains_katakana(
+    const std::u8string_view text) -> result<bool>
+{
+    return detail::contains_utf8_code_point(
+        text,
+        [](const char32_t value) noexcept {
+            return is_katakana(value);
+        });
+}
+
+/**
+ * @brief Checks whether a UTF-8 string contains practical kana.
+ *
+ * Empty input returns false. Invalid UTF-8 returns encoding_error.
+ */
+[[nodiscard]] inline auto contains_kana(
+    const std::u8string_view text) -> result<bool>
+{
+    return detail::contains_utf8_code_point(
+        text,
+        [](const char32_t value) noexcept {
+            return is_kana(value);
+        });
+}
+
+/**
+ * @brief Checks whether a UTF-8 string contains a CJK ideograph.
+ *
+ * Empty input returns false. Invalid UTF-8 returns encoding_error.
+ */
+[[nodiscard]] inline auto contains_kanji(
+    const std::u8string_view text) -> result<bool>
+{
+    return detail::contains_utf8_code_point(
+        text,
+        [](const char32_t value) noexcept {
+            return is_kanji(value);
+        });
+}
+
+/**
+ * @brief Checks whether a UTF-8 string contains Japanese text.
+ *
+ * The accepted set is the same as is_japanese. Empty input returns false.
+ * Invalid UTF-8 returns encoding_error.
+ */
+[[nodiscard]] inline auto contains_japanese(
+    const std::u8string_view text) -> result<bool>
+{
+    return detail::contains_utf8_code_point(
+        text,
+        [](const char32_t value) noexcept {
+            return is_japanese(value);
+        });
 }
 
 /**

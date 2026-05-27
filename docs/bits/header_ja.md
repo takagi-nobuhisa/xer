@@ -57,9 +57,11 @@ xer::ja::mecab_parse(u8"私は猫です。");
 
 `xer::ja::is_japanese` checks whether a code point is kana, kanji, or Japanese punctuation.
 
+`xer::ja::contains_hiragana`, `xer::ja::contains_katakana`, `xer::ja::contains_kana`, `xer::ja::contains_kanji`, and `xer::ja::contains_japanese` check whether a UTF-8 string contains at least one matching code point. Empty input returns `false`. Invalid UTF-8 input returns `encoding_error`.
+
 `xer::ja::is_all_hiragana`, `xer::ja::is_all_katakana`, and `xer::ja::is_all_kana` check whether all code points in a UTF-8 string belong to practical hiragana, katakana, or kana text. Empty input returns `false`. Invalid UTF-8 input returns `encoding_error`.
 
-The `is_all_*` kana predicates use the same practical character sets as `is_hiragana`, `is_katakana`, and `is_kana`. They do not accept spaces, punctuation, kanji, or Latin letters.
+The `contains_*` and `is_all_*` predicates use the same practical character sets as the corresponding code point predicates. The `is_all_*` kana predicates do not accept spaces, punctuation, kanji, or Latin letters.
 
 ```cpp
 xer::ja::is_hiragana(U'あ'); // true
@@ -68,6 +70,13 @@ xer::ja::is_kana(U'ｱ'); // true
 xer::ja::is_kanji(U'漢'); // true
 xer::ja::is_japanese_punctuation(U'。'); // true
 xer::ja::is_japanese(U'日'); // true
+
+xer::ja::contains_hiragana(u8"abcあ"); // true
+xer::ja::contains_katakana(u8"abcア"); // true
+xer::ja::contains_kana(u8"abcｱ"); // true
+xer::ja::contains_kanji(u8"abc漢"); // true
+xer::ja::contains_japanese(u8"hello日本語"); // true
+xer::ja::contains_japanese(u8""); // false
 
 xer::ja::is_all_hiragana(u8"こんにちはー"); // true
 xer::ja::is_all_katakana(u8"コンニチハー"); // true

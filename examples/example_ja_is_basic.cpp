@@ -3,13 +3,14 @@
 
 // XER_EXAMPLE_BEGIN: ja_is_basic
 //
-// This example classifies Japanese code points and UTF-8 kana strings.
+// This example classifies Japanese code points and UTF-8 strings.
 //
 // Expected output:
 // あ: hiragana
 // ア: katakana
 // 漢: kanji
 // 。: Japanese punctuation
+// hello日本語: contains Japanese
 // こんにちはー: all kana
 
 auto main() -> int
@@ -34,6 +35,17 @@ auto main() -> int
 
     if (xer::ja::is_japanese_punctuation(U'。')) {
         if (!xer::printf(u8"。: Japanese punctuation\n")) {
+            return 1;
+        }
+    }
+
+    const auto contains_japanese = xer::ja::contains_japanese(u8"hello日本語");
+    if (!contains_japanese.has_value()) {
+        return 1;
+    }
+
+    if (contains_japanese.value()) {
+        if (!xer::printf(u8"hello日本語: contains Japanese\n")) {
             return 1;
         }
     }

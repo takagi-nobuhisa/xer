@@ -73,6 +73,119 @@ void test_is_japanese()
     xer_assert_not(xer::ja::is_japanese(U'1'));
 }
 
+
+void test_contains_hiragana()
+{
+    const auto plain = xer::ja::contains_hiragana(u8"abcあいう");
+    xer_assert(plain.has_value());
+    xer_assert(plain.value());
+
+    const auto prolonged = xer::ja::contains_hiragana(u8"ABCー");
+    xer_assert(prolonged.has_value());
+    xer_assert(prolonged.value());
+
+    const auto none = xer::ja::contains_hiragana(u8"ABC漢字");
+    xer_assert(none.has_value());
+    xer_assert_not(none.value());
+
+    const auto empty = xer::ja::contains_hiragana(u8"");
+    xer_assert(empty.has_value());
+    xer_assert_not(empty.value());
+}
+
+void test_contains_katakana()
+{
+    const auto plain = xer::ja::contains_katakana(u8"abcアイウ");
+    xer_assert(plain.has_value());
+    xer_assert(plain.value());
+
+    const auto halfwidth = xer::ja::contains_katakana(u8"abcｶﾀｶﾅ");
+    xer_assert(halfwidth.has_value());
+    xer_assert(halfwidth.value());
+
+    const auto none = xer::ja::contains_katakana(u8"ABC漢字");
+    xer_assert(none.has_value());
+    xer_assert_not(none.value());
+
+    const auto empty = xer::ja::contains_katakana(u8"");
+    xer_assert(empty.has_value());
+    xer_assert_not(empty.value());
+}
+
+void test_contains_kana()
+{
+    const auto plain = xer::ja::contains_kana(u8"abcかな");
+    xer_assert(plain.has_value());
+    xer_assert(plain.value());
+
+    const auto katakana = xer::ja::contains_kana(u8"abcカナ");
+    xer_assert(katakana.has_value());
+    xer_assert(katakana.value());
+
+    const auto none = xer::ja::contains_kana(u8"ABC漢字");
+    xer_assert(none.has_value());
+    xer_assert_not(none.value());
+
+    const auto empty = xer::ja::contains_kana(u8"");
+    xer_assert(empty.has_value());
+    xer_assert_not(empty.value());
+}
+
+void test_contains_kanji()
+{
+    const auto plain = xer::ja::contains_kanji(u8"abc日本語");
+    xer_assert(plain.has_value());
+    xer_assert(plain.value());
+
+    const auto none = xer::ja::contains_kanji(u8"abcかなカナ。");
+    xer_assert(none.has_value());
+    xer_assert_not(none.value());
+
+    const auto empty = xer::ja::contains_kanji(u8"");
+    xer_assert(empty.has_value());
+    xer_assert_not(empty.value());
+}
+
+void test_contains_japanese()
+{
+    const auto hiragana = xer::ja::contains_japanese(u8"helloあ");
+    xer_assert(hiragana.has_value());
+    xer_assert(hiragana.value());
+
+    const auto katakana = xer::ja::contains_japanese(u8"helloア");
+    xer_assert(katakana.has_value());
+    xer_assert(katakana.value());
+
+    const auto kanji = xer::ja::contains_japanese(u8"hello漢");
+    xer_assert(kanji.has_value());
+    xer_assert(kanji.value());
+
+    const auto punctuation = xer::ja::contains_japanese(u8"hello。");
+    xer_assert(punctuation.has_value());
+    xer_assert(punctuation.value());
+
+    const auto none = xer::ja::contains_japanese(u8"hello😀");
+    xer_assert(none.has_value());
+    xer_assert_not(none.value());
+
+    const auto empty = xer::ja::contains_japanese(u8"");
+    xer_assert(empty.has_value());
+    xer_assert_not(empty.value());
+}
+
+void test_contains_japanese_invalid_utf8()
+{
+    const char8_t invalid_bytes[] = {
+        static_cast<char8_t>(0xE3),
+        static_cast<char8_t>(0x81),
+        u8'\0',
+    };
+
+    const auto result = xer::ja::contains_japanese(
+        std::u8string_view(invalid_bytes, 2));
+    xer_assert_not(result.has_value());
+}
+
 void test_is_all_hiragana()
 {
     const auto plain = xer::ja::is_all_hiragana(u8"こんにちは");
@@ -157,6 +270,12 @@ auto main() -> int
     test_is_kanji();
     test_is_japanese_punctuation();
     test_is_japanese();
+    test_contains_hiragana();
+    test_contains_katakana();
+    test_contains_kana();
+    test_contains_kanji();
+    test_contains_japanese();
+    test_contains_japanese_invalid_utf8();
     test_is_all_hiragana();
     test_is_all_katakana();
     test_is_all_kana();
