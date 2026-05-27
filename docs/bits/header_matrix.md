@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/matrix.h>` provides fixed-size matrix and affine transform helpers in XER.
+`<xer/matrix.h>` provides fixed-size matrix and affine transform helpers in xer.
 
 The initial purpose of this header is deliberately practical and limited.
 It is not intended to become a full linear algebra framework at the beginning.
@@ -177,7 +177,7 @@ This single operation covers:
 
 ### Transform Composition Order
 
-XER uses column vectors in this matrix facility.
+xer uses column vectors in this matrix facility.
 Therefore, in an expression such as:
 
 ```cpp
@@ -383,7 +383,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * represent points as homogeneous column vectors
 * compose transforms with matrix multiplication

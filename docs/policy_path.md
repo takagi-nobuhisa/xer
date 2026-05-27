@@ -2,8 +2,8 @@
 
 ## Basic Policy
 
-In XER, `std::filesystem::path` is not used.
-Instead, XER provides its own `path` class.
+In xer, `std::filesystem::path` is not used.
+Instead, xer provides its own `path` class.
 
 Path handling is unified on a UTF-8 basis, with priority given to simplicity and consistency of the internal representation.
 
@@ -41,7 +41,7 @@ However, the internal representation itself remains normalized with `/`.
 
 ## Member Functions and Free Functions
 
-In XER, anything that does not need to be a member function should be provided as a free function.
+In xer, anything that does not need to be a member function should be provided as a free function.
 
 This limits the responsibility of `path` to storing the internal representation and maintaining invariants, and strengthens encapsulation.
 
@@ -230,11 +230,11 @@ The following points are intentionally incompatible with PHP's `basename`:
 
 ## Error Policy
 
-When conversion to or from native paths fails because XER's own UTF-8 / UTF-16 validation or conversion fails, it may use `error_t::encoding_error`.
+When conversion to or from native paths fails because xer's own UTF-8 / UTF-16 validation or conversion fails, it may use `error_t::encoding_error`.
 
 On the other hand, if a failure directly reflects a platform-side conversion failure, it may continue to use an error code that reflects that lower-level cause as appropriate.
 
-The distinction should follow the same general idea as in XER's encoding policy:
+The distinction should follow the same general idea as in xer's encoding policy:
 
-- use `encoding_error` for failures detected by XER's own encoding logic
+- use `encoding_error` for failures detected by xer's own encoding logic
 - use a more direct system-side error representation when the failure directly reflects external behavior

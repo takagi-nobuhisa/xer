@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/base64.h>` provides Base64 encode and decode facilities in XER.
+`<xer/base64.h>` provides Base64 encode and decode facilities in xer.
 
 Base64 is treated as a small binary-to-text conversion facility. It is not a structured data format like JSON, INI, or TOML, and it is not ordinary string processing either. Its role is to convert binary byte sequences into UTF-8 text that can be embedded in text-based data and to convert that text representation back into bytes.
 
@@ -16,7 +16,7 @@ The main role of `<xer/base64.h>` is to make it possible to:
 
 - encode binary data into standard Base64 text
 - decode standard Base64 text back into binary data
-- handle invalid encoded text through XER's ordinary `xer::result` error model
+- handle invalid encoded text through xer's ordinary `xer::result` error model
 - provide a compact public API that can be extended later without changing its basic shape
 
 This makes the header useful for simple binary payload handling, text-based interchange, configuration data, diagnostics, and small utility programs.
@@ -171,7 +171,7 @@ Whitespace is ignored only while decoding. The encoder does not generate whitesp
 
 ## Error Handling
 
-`<xer/base64.h>` follows XER's ordinary failure model.
+`<xer/base64.h>` follows xer's ordinary failure model.
 
 That means:
 

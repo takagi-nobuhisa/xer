@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/mecab.h>` provides XER's initial MeCab-based Japanese text analysis API.
+`<xer/mecab.h>` provides xer's initial MeCab-based Japanese text analysis API.
 
 The current implementation focuses on the lowest-level public foundation:
 
@@ -26,11 +26,11 @@ Higher-level Japanese text processing such as ruby generation is planned to buil
 
 ## Main Role
 
-The main role of `<xer/mecab.h>` at the current stage is to expose MeCab's morphological analysis result in a form that XER users can inspect and reuse directly.
+The main role of `<xer/mecab.h>` at the current stage is to expose MeCab's morphological analysis result in a form that xer users can inspect and reuse directly.
 
-The raw feature string is preserved, and XER also splits it into `mecab_features` so that common items such as part of speech and reading can be accessed without reparsing the comma-separated feature string in user code.
+The raw feature string is preserved, and xer also splits it into `mecab_features` so that common items such as part of speech and reading can be accessed without reparsing the comma-separated feature string in user code.
 
-On top of the token layer, XER provides `mecab_split_phrases` to derive practical bunsetsu-like ranges and separate symbol ranges. MeCab itself does not return bunsetsu boundaries, so this layer is an XER rule-based approximation.
+On top of the token layer, xer provides `mecab_split_phrases` to derive practical bunsetsu-like ranges and separate symbol ranges. MeCab itself does not return bunsetsu boundaries, so this layer is an xer rule-based approximation.
 
 The kana layer uses `mecab_features::読み` where available and provides `mecab_to_kana` and `mecab_kana_wakati` as practical reading-based conversion helpers.
 
@@ -42,10 +42,10 @@ For callers that want to pass source text directly, `mecab_braille_translate` an
 
 The romaji layer builds on the kana layer and `strtoctrans`. It provides `mecab_romaji_wakati` as a practical romaji wakachi-gaki helper. Particle reading correction is performed before romanization, so particles such as `は`, `へ`, and `を` can become `wa`, `e`, and `o` in the final output.
 
-XER does not link against the MeCab library.
-Instead, it executes the `mecab` command as a child process using XER's process facilities.
+xer does not link against the MeCab library.
+Instead, it executes the `mecab` command as a child process using xer's process facilities.
 
-This keeps the integration compatible with XER's header-only model while making MeCab-derived analysis data available through ordinary `xer::result` APIs.
+This keeps the integration compatible with xer's header-only model while making MeCab-derived analysis data available through ordinary `xer::result` APIs.
 
 ---
 
@@ -60,7 +60,7 @@ The project has checked the ordinary target environments used for this feature:
 
 In both cases, `mecab -D` reported UTF-8 dictionary encoding during design verification.
 
-XER therefore:
+xer therefore:
 
 - sends UTF-8 input text to MeCab
 - validates MeCab output as UTF-8
@@ -189,13 +189,13 @@ struct mecab_options {
 };
 ```
 
-`mecab_options` controls how XER locates the MeCab executable.
+`mecab_options` controls how xer locates the MeCab executable.
 
 ### `program`
 
 `program` specifies the MeCab executable path explicitly.
 
-If `program` is empty, XER searches the `PATH` environment variable for the platform's ordinary executable name:
+If `program` is empty, xer searches the `PATH` environment variable for the platform's ordinary executable name:
 
 - Windows: `mecab.exe`
 - POSIX-like environments: `mecab`
@@ -248,10 +248,10 @@ The named members follow the ordinary MeCab/IPADIC-style feature order:
 `項目` stores all comma-separated fields in order, including dictionary-specific fields that do not have named members.
 If a field is missing, the corresponding named member is an empty string.
 
-For practical compatibility with dictionaries whose feature layout differs from IPADIC-style order, XER may supplement `読み` and `発音` by scanning the split `項目` fields for kana-only values when the direct IPADIC-style field is missing, `*`, or not kana-like. This is a convenience for higher-level helpers such as kana and romaji wakachi-gaki, not a complete dictionary-normalization layer.
+For practical compatibility with dictionaries whose feature layout differs from IPADIC-style order, xer may supplement `読み` and `発音` by scanning the split `項目` fields for kana-only values when the direct IPADIC-style field is missing, `*`, or not kana-like. This is a convenience for higher-level helpers such as kana and romaji wakachi-gaki, not a complete dictionary-normalization layer.
 
 The member names intentionally use Japanese identifiers because they correspond directly to MeCab feature terminology.
-XER does not restrict identifiers to ASCII.
+xer does not restrict identifiers to ASCII.
 Users are responsible for using a source-code environment that can handle these identifiers when they access the members directly.
 
 `mecab_features` owns its strings.
@@ -280,7 +280,7 @@ struct mecab_token {
 `feature` is the raw MeCab feature string emitted by MeCab's `%H` formatter.
 
 Its exact contents depend on the installed MeCab dictionary.
-XER preserves it as raw text for debugging and for users that need dictionary-specific data.
+xer preserves it as raw text for debugging and for users that need dictionary-specific data.
 
 ### `features`
 
@@ -342,7 +342,7 @@ auto mecab_split_phrases(
 
 `mecab_split_phrases` splits a MeCab token sequence into practical bunsetsu-like phrase ranges and symbol ranges.
 
-MeCab itself does not provide bunsetsu segmentation. XER therefore derives approximate phrase boundaries from the split feature fields in `mecab_token::features`.
+MeCab itself does not provide bunsetsu segmentation. xer therefore derives approximate phrase boundaries from the split feature fields in `mecab_token::features`.
 
 ### Basic Rules
 
@@ -430,7 +430,7 @@ The default is `mecab_kana_kind::mixed`.
 
 ### `particle_reading`
 
-When `particle_reading` is `true`, XER uses pronunciation-oriented readings for common particles:
+When `particle_reading` is `true`, xer uses pronunciation-oriented readings for common particles:
 
 | Surface | Condition | Hiragana output | Katakana output |
 |---|---|---|---|
@@ -716,7 +716,7 @@ auto mecab_parse(
 
 ### Output Format Used Internally
 
-XER explicitly asks MeCab to emit one token per line in this format:
+xer explicitly asks MeCab to emit one token per line in this format:
 
 ```text
 surface<TAB>feature
@@ -724,7 +724,7 @@ surface<TAB>feature
 
 The `EOS` marker is consumed internally and is not returned as a token.
 
-Conceptually, XER configures MeCab so that normal and unknown tokens use equivalent raw output structure:
+Conceptually, xer configures MeCab so that normal and unknown tokens use equivalent raw output structure:
 
 ```text
 %m<TAB>%H
@@ -822,7 +822,7 @@ This function is the convenient entry point for Japanese text that may contain c
 
 ## Executable Resolution
 
-If `mecab_options::program` is empty, XER:
+If `mecab_options::program` is empty, xer:
 
 1. reads `PATH`
 2. searches each path entry
@@ -850,7 +850,7 @@ The current implementation uses these errors:
 | automatic executable search cannot find MeCab | `error_t::not_found` |
 | MeCab cannot be executed, exits unsuccessfully, or emits unexpected output | `error_t::process_error` |
 
-Some lower-level process or stream failures may preserve their own XER error code when they arise before the final MeCab-level validation step.
+Some lower-level process or stream failures may preserve their own xer error code when they arise before the final MeCab-level validation step.
 
 ---
 
@@ -864,10 +864,10 @@ Different MeCab dictionaries may:
 - report different feature-column layouts
 - produce different readings or base-form fields
 
-XER splits the feature string according to the comma-separated structure emitted by `%H`, and fills named members using the ordinary MeCab/IPADIC-style field positions.
+xer splits the feature string according to the comma-separated structure emitted by `%H`, and fills named members using the ordinary MeCab/IPADIC-style field positions.
 This is a practical convenience, not a complete normalization layer for all possible dictionaries.
 
-Higher-level XER Japanese text processing facilities may later define their own supported interpretation strategy where needed.
+Higher-level xer Japanese text processing facilities may later define their own supported interpretation strategy where needed.
 
 ---
 

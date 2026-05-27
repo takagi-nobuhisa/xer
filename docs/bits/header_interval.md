@@ -558,7 +558,7 @@ auto y = -x;
 
 `interval` uses exceptions only for exceptional numeric conditions.
 
-This differs from ordinary XER APIs that return `xer::result` for normal recoverable failures.
+This differs from ordinary xer APIs that return `xer::result` for normal recoverable failures.
 
 The reason is that `interval` is a value type with a simple invariant.
 `NaN`, infinity, and division by zero are treated as invalid numeric states rather than ordinary input failures.
@@ -678,12 +678,12 @@ auto main() -> int
 }
 ```
 
-This example shows the basic XER style:
+This example shows the basic xer style:
 
 - use the public header
 - construct bounded values naturally
 - let finite out-of-range input clamp
-- use XER formatted output for examples
+- use xer formatted output for examples
 - check fallible output operations explicitly
 
 ---

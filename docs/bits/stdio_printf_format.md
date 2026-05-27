@@ -1,8 +1,8 @@
-# XER printf Format Specifiers
+# xer printf Format Specifiers
 
 ## Scope
 
-This document describes the format strings used by the XER printf family.
+This document describes the format strings used by the xer printf family.
 
 Target functions:
 
@@ -17,13 +17,13 @@ snprintf
 
 ## Basic Policy
 
-XER printf-style functions are inspired by C printf, but they are not strict source-compatible reimplementations.
+xer printf-style functions are inspired by C printf, but they are not strict source-compatible reimplementations.
 
 - format strings are UTF-8 strings
 - fixed text in the format string is copied as UTF-8
 - conversion specifications start with `%`
 - ordinary failure is reported through `xer::result`
-- XER-specific extensions may exist
+- xer-specific extensions may exist
 
 A format string may contain ordinary UTF-8 text and conversion specifications.
 Ordinary text is copied to the output as-is.
@@ -95,7 +95,7 @@ hh h l ll j z t L
 ```
 
 They are accepted as part of the printf-style grammar.
-The actual effect depends on the conversion and on XER's internal argument normalization.
+The actual effect depends on the conversion and on xer's internal argument normalization.
 
 For floating-point conversions, `L` is used when constructing the intermediate narrow format passed to `std::snprintf`.
 
@@ -124,9 +124,9 @@ The following C-style conversion specifiers are supported:
 
 ---
 
-## XER Generic Display Conversion: `%@`
+## xer Generic Display Conversion: `%@`
 
-`%@` is XER's generic display specifier.
+`%@` is xer's generic display specifier.
 
 It is intended for diagnostics, examples, tracing, and simple output where precise base, padding, or precision control is not the main concern.
 When precise formatting is required, ordinary printf-style conversions should be used instead.
@@ -146,9 +146,9 @@ Arguments passed to `%@` are normalized to UTF-8 text according to the following
 
 Invalid UTF-16 or UTF-32 scalar data may be represented by the replacement character in diagnostic-oriented conversions.
 
-### XER Types
+### xer Types
 
-The following XER types are intended to be printable through `%@`:
+The following xer types are intended to be printable through `%@`:
 
 ```cpp
 xer::error_t
@@ -160,9 +160,9 @@ These types provide stream insertion support so that `%@` can display them throu
 
 ### Notes on `std::ostringstream`
 
-XER does not use iostreams as its primary public I/O model.
+xer does not use iostreams as its primary public I/O model.
 However, `%@` may use `std::ostringstream` internally as a practical interoperability mechanism.
-This keeps user-facing XER formatted I/O based on `xer::printf` and related functions while allowing types that support `operator<<` to be displayed conveniently.
+This keeps user-facing xer formatted I/O based on `xer::printf` and related functions while allowing types that support `operator<<` to be displayed conveniently.
 
 ---
 

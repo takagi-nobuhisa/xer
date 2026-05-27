@@ -2,7 +2,7 @@
 
 ## Overview
 
-In XER, arithmetic and comparison are provided through dedicated functions rather than relying directly on C++ built-in operators.
+In xer, arithmetic and comparison are provided through dedicated functions rather than relying directly on C++ built-in operators.
 
 This is because built-in operators are prone to the following problems:
 
@@ -10,7 +10,7 @@ This is because built-in operators are prone to the following problems:
 - mixing signed and unsigned integer types often leads to undesirable behavior
 - for floating-point numbers and complex numbers, it is difficult to express cases such as non-comparability and `NaN` explicitly
 
-XER arithmetic functions do not simply follow the usual arithmetic conversions of the C++ standard.
+xer arithmetic functions do not simply follow the usual arithmetic conversions of the C++ standard.
 Instead, they are intended to return **mathematically straightforward and predictable results**.
 
 ---
@@ -69,9 +69,9 @@ As for comparison functions, they do not return `xer::result`, because returning
 
 ### Use `xer::lt`-Family Functions for Comparison
 
-Whenever arithmetic functions inside XER need ordering comparison, they should, as a rule, use `xer::lt` and related functions rather than the built-in `<`.
+Whenever arithmetic functions inside xer need ordering comparison, they should, as a rule, use `xer::lt` and related functions rather than the built-in `<`.
 
-This is to apply XER's comparison rules consistently, especially when signed and unsigned integer types are mixed.
+This is to apply xer's comparison rules consistently, especially when signed and unsigned integer types are mixed.
 
 Accordingly, internal comparisons in functions such as `min`, `max`, and `clamp` should also use `xer::lt`.
 
@@ -479,6 +479,6 @@ When converting from floating-point to an integer type, the check must confirm n
 
 ## Supplement
 
-`min`, `max`, `clamp`, `in_range`, `abs`, and `uabs` are positioned not as simple substitutes for ordinary operators, but as **helper functions for explicitly applying XER's comparison rules, type rules, and error rules**.
+`min`, `max`, `clamp`, `in_range`, `abs`, and `uabs` are positioned not as simple substitutes for ordinary operators, but as **helper functions for explicitly applying xer's comparison rules, type rules, and error rules**.
 
 In particular, priority is placed on returning mathematically straightforward and predictable results for mixed integer types, and on making failure explicit through `xer::result` when necessary.

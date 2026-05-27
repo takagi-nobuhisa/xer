@@ -2,11 +2,11 @@
 
 ## Purpose
 
-`<xer/iostream.h>` provides formatted iostream insertion and extraction operators for selected XER value types.
+`<xer/iostream.h>` provides formatted iostream insertion and extraction operators for selected xer value types.
 
-This header does not make iostreams the main input/output model of XER. XER's primary I/O model remains based on `binary_stream`, `text_stream`, and the functions provided by `<xer/stdio.h>`. The role of `<xer/iostream.h>` is narrower: it provides a bridge for diagnostics, tests, examples, and the implementation of generic `%@` formatting and scanning support.
+This header does not make iostreams the main input/output model of xer. xer's primary I/O model remains based on `binary_stream`, `text_stream`, and the functions provided by `<xer/stdio.h>`. The role of `<xer/iostream.h>` is narrower: it provides a bridge for diagnostics, tests, examples, and the implementation of generic `%@` formatting and scanning support.
 
-The header is intentionally opt-in. Users include it only when they want ordinary C++ iostream operators for XER value types.
+The header is intentionally opt-in. Users include it only when they want ordinary C++ iostream operators for xer value types.
 
 ---
 
@@ -60,17 +60,17 @@ Formatted extraction for matrices and color values is intentionally deferred bec
 
 ## Design Role
 
-The main design role of this header is to make XER-provided value types usable by generic stream-based formatting paths.
+The main design role of this header is to make xer-provided value types usable by generic stream-based formatting paths.
 
 In particular, it supports facilities that internally rely on stream insertion or extraction for default formatting, such as enhanced `%@` handling in the printf and scanf families.
 
-The operators are not intended to replace XER's own text I/O APIs.
+The operators are not intended to replace xer's own text I/O APIs.
 
 ---
 
 ## UTF-8 Handling
 
-XER uses `char8_t` and `std::u8string_view` for UTF-8 text. Ordinary iostreams use `char` streams.
+xer uses `char8_t` and `std::u8string_view` for UTF-8 text. Ordinary iostreams use `char` streams.
 
 For this reason, `<xer/iostream.h>` writes UTF-8 text to `std::ostream` by copying the underlying UTF-8 bytes to the stream without locale-dependent conversion. This applies to types such as `path` and `type_info`, whose display strings are UTF-8-oriented.
 
@@ -262,7 +262,7 @@ These types either need additional formatting policy or are not ordinary value t
 
 The rough boundary is:
 
-- `<xer/stdio.h>` remains the ordinary XER text I/O header
+- `<xer/stdio.h>` remains the ordinary xer text I/O header
 - `<xer/iostream.h>` provides opt-in compatibility with standard iostream formatting
 - individual value-type headers remain usable without pulling in iostream support
 

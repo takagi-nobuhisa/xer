@@ -2,8 +2,8 @@
 
 ## Overview
 
-The multibyte character conversion facilities in XER's `stdlib.h` are not intended to reproduce the locale-dependent mechanisms of the C standard library as they are.
-Instead, they are redesigned in accordance with XER's overall character encoding policy.
+The multibyte character conversion facilities in xer's `stdlib.h` are not intended to reproduce the locale-dependent mechanisms of the C standard library as they are.
+Instead, they are redesigned in accordance with xer's overall character encoding policy.
 
 The supported character encodings are limited to the following four:
 
@@ -18,9 +18,9 @@ State-dependent encodings with escape sequences or shift states are not supporte
 
 ## Basic Policy
 
-In XER's multibyte character conversion facilities, `char32_t` and `char16_t` are used as the internal reference character types.
+In xer's multibyte character conversion facilities, `char32_t` and `char16_t` are used as the internal reference character types.
 
-`char` and `wchar_t` are treated as interfaces to existing libraries and platform APIs, but they are not used as XER's internal reference types.
+`char` and `wchar_t` are treated as interfaces to existing libraries and platform APIs, but they are not used as xer's internal reference types.
 
 The default interpretation of `char` is defined per platform:
 
@@ -34,7 +34,7 @@ If necessary, this default may be made switchable by a macro.
 - on Windows, it is effectively an interface to UTF-16
 - on Linux, it is effectively an interface to UTF-32
 
-However, in either case, `wchar_t` itself is not used as XER's internal reference type.
+However, in either case, `wchar_t` itself is not used as xer's internal reference type.
 
 The following types are used as explicit multibyte input and output types:
 
@@ -197,13 +197,13 @@ xer::result<std::size_t>
 
 The returned size represents the number of source elements consumed or destination elements written, depending on the function.
 
-On failure, these functions return an error through `xer::result`. Encoding failures detected by XER's own conversion logic may use `error_t::encoding_error`. Failures that directly reflect an external implementation's `EILSEQ` may use `error_t::ilseq`.
+On failure, these functions return an error through `xer::result`. Encoding failures detected by xer's own conversion logic may use `error_t::encoding_error`. Failures that directly reflect an external implementation's `EILSEQ` may use `error_t::ilseq`.
 
 ---
 
 ## Summary
 
-- XER multibyte conversion is locale-independent.
+- xer multibyte conversion is locale-independent.
 - Supported encodings are limited to CP932, UTF-8, UTF-16, and UTF-32.
 - Conversion state is explicit through `xer::mbstate_t`.
 - No hidden internal static conversion state is used.

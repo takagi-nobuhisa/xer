@@ -2,9 +2,9 @@
 
 ## Purpose
 
-`<xer/zip.h>` provides ZIP archive reading and writing facilities in XER.
+`<xer/zip.h>` provides ZIP archive reading and writing facilities in xer.
 
-ZIP is technically an archive format, but in practical use it is also a familiar compression and expansion format. XER treats the initial ZIP API as a small compression-and-archive utility that can later support serialized data packages, bundled resources, and ordinary file exchange.
+ZIP is technically an archive format, but in practical use it is also a familiar compression and expansion format. xer treats the initial ZIP API as a small compression-and-archive utility that can later support serialized data packages, bundled resources, and ordinary file exchange.
 
 The initial API is intentionally small. It supports sequential reading, name lookup, simple archive creation, whole-entry reads, and simple extraction helpers. Comments and ZIP64 support are deferred.
 
@@ -33,7 +33,7 @@ The main role of `<xer/zip.h>` is to make it possible to:
 - create a ZIP archive
 - add in-memory bytes or a source file as deflated entries
 - explicitly commit the writer so finalization errors can be reported
-- report archive end through XER's ordinary error model
+- report archive end through xer's ordinary error model
 
 This design avoids returning `std::optional` for archive end. Reaching the end of the entry sequence is reported as:
 
@@ -41,7 +41,7 @@ This design avoids returning `std::optional` for archive end. Reaching the end o
 error_t::end_of_file
 ```
 
-This keeps `zip_read` consistent with other sequential input operations in XER.
+This keeps `zip_read` consistent with other sequential input operations in xer.
 
 ---
 
@@ -159,7 +159,7 @@ auto zip_open(std::u8string_view filename) -> xer::result<zip_archive>;
 
 ### Input Model
 
-The filename is a UTF-8 path string. Internally, it is converted through XER's path handling before the file is opened.
+The filename is a UTF-8 path string. Internally, it is converted through xer's path handling before the file is opened.
 
 ### Supported Archives
 
@@ -497,7 +497,7 @@ Calling write operations after `zip_commit` fails with `error_t::invalid_argumen
 
 ## Error Handling
 
-`<xer/zip.h>` follows XER's ordinary failure model.
+`<xer/zip.h>` follows xer's ordinary failure model.
 
 That means:
 
@@ -526,4 +526,4 @@ The following items are intentionally deferred:
 - CRC verification as a public option
 - streaming file-to-ZIP writes
 
-The first goal is a small, predictable, PHP-inspired ZIP reader and writer that fits XER's `xer::result` and sequential EOF model.
+The first goal is a small, predictable, PHP-inspired ZIP reader and writer that fits xer's `xer::result` and sequential EOF model.

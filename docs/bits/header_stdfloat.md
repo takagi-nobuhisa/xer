@@ -58,7 +58,7 @@ float128_t
 bfloat16_t
 ```
 
-`float32_t` and `float64_t` are always available in XER. If the standard `<stdfloat>` aliases are not available, they fall back to `float` and `double` respectively.
+`float32_t` and `float64_t` are always available in xer. If the standard `<stdfloat>` aliases are not available, they fall back to `float` and `double` respectively.
 
 `float80_t`, `float128_t`, and `bfloat16_t` are optional and are available only when the implementation provides a suitable underlying type.
 
@@ -92,13 +92,13 @@ float_fast128_t
 floatmax_t
 ```
 
-`floatmax_t` is selected from the widest practical binary floating-point type available to XER.
+`floatmax_t` is selected from the widest practical binary floating-point type available to xer.
 
 ---
 
 ## Decimal Floating-Point Aliases
 
-When the implementation provides `<decimal/decimal>`, XER exposes decimal floating-point aliases such as:
+When the implementation provides `<decimal/decimal>`, xer exposes decimal floating-point aliases such as:
 
 ```cpp
 decimal32_t

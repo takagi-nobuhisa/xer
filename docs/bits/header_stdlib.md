@@ -2,10 +2,10 @@
 
 ## Purpose
 
-`<xer/stdlib.h>` provides a collection of general-purpose utilities in XER.
+`<xer/stdlib.h>` provides a collection of general-purpose utilities in xer.
 
 Its role is similar in spirit to the C standard library `<stdlib.h>`, but it is not intended to be a literal reproduction.
-Instead, it gathers practical facilities that fit XER's design, especially in the following areas:
+Instead, it gathers practical facilities that fit xer's design, especially in the following areas:
 
 - numeric conversion
 - multibyte character conversion
@@ -36,7 +36,7 @@ In particular, it serves as the home for:
 - pseudo-random utilities
 - environment variable access
 
-This matches the broad and somewhat heterogeneous role traditionally associated with `<stdlib.h>`, while adapting the details to XER's own policies.
+This matches the broad and somewhat heterogeneous role traditionally associated with `<stdlib.h>`, while adapting the details to xer's own policies.
 
 ---
 
@@ -84,7 +84,7 @@ They are useful when a division-style helper should return both values in a stru
 
 ### Notes
 
-* exact naming and type coverage follow XER's own design
+* exact naming and type coverage follow xer's own design
 * this is related conceptually to arithmetic helpers, but the utility-structure side belongs naturally in `<xer/stdlib.h>`
 
 ---
@@ -104,11 +104,11 @@ These functions provide classic general-purpose search and sorting operations in
 
 ### Design Direction
 
-Although the names are familiar, they should be understood according to XER's broader style:
+Although the names are familiar, they should be understood according to xer's broader style:
 
 * practical usability is preferred over strict historical fidelity
 * the surrounding type and error model may differ from traditional C expectations
-* documentation should describe actual XER behavior rather than relying on user assumptions from C alone
+* documentation should describe actual xer behavior rather than relying on user assumptions from C alone
 
 ---
 
@@ -141,18 +141,18 @@ strtof64
 
 These functions convert text into numeric values.
 
-They are especially important because XER uses explicit text and encoding policies rather than relying on locale-driven interpretation.
+They are especially important because xer uses explicit text and encoding policies rather than relying on locale-driven interpretation.
 
 ### Design Direction
 
 These facilities are not intended to reproduce the standard library exactly.
-Instead, they are reconstructed to fit XER's model.
+Instead, they are reconstructed to fit xer's model.
 
 Important characteristics may include:
 
 * support for UTF-8-oriented public text handling
 * explicit failure reporting
-* practical parsing features such as binary prefixes where adopted by XER
+* practical parsing features such as binary prefixes where adopted by xer
 * consistent behavior across the library's supported environments
 
 ### Notes
@@ -168,7 +168,7 @@ Integer conversion may also support practical forms such as:
 * decimal
 * octal
 * hexadecimal
-* binary with `0b...` where adopted by XER
+* binary with `0b...` where adopted by xer
 
 The precise accepted grammar belongs in detailed API documentation.
 
@@ -176,7 +176,7 @@ The precise accepted grammar belongs in detailed API documentation.
 
 ## Multibyte Conversion
 
-One of the most important roles of `<xer/stdlib.h>` in XER is multibyte character conversion.
+One of the most important roles of `<xer/stdlib.h>` in xer is multibyte character conversion.
 
 At minimum, this header provides the following state type and related facilities:
 
@@ -199,11 +199,11 @@ tcstombs
 
 These functions provide conversion between multibyte text and character-oriented representations.
 
-This is one of the clearest places where XER deliberately redesigns a standard-library area according to its own encoding policy.
+This is one of the clearest places where xer deliberately redesigns a standard-library area according to its own encoding policy.
 
 ### Basic Design Direction
 
-The multibyte conversion model in XER is based on the following ideas:
+The multibyte conversion model in xer is based on the following ideas:
 
 * supported encodings are limited and explicit
 * locale is not the center of the design
@@ -251,7 +251,7 @@ This is necessary because incomplete multibyte input cannot be interpreted corre
 
 ### Notes
 
-* XER does not use hidden internal static conversion state
+* xer does not use hidden internal static conversion state
 * if the caller wants independent conversion calls, the caller omits the state argument
 * if the caller wants continued stateful conversion, the caller provides `xer::mbstate_t*`
 
@@ -309,7 +309,7 @@ Entries without `=` and entries whose name part is empty are ignored.
 
 ### Notes
 
-As with other facilities in XER, the exact argument and return conventions should be read from XER documentation rather than assumed from the C standard library alone.
+As with other facilities in xer, the exact argument and return conventions should be read from xer documentation rather than assumed from the C standard library alone.
 
 ---
 
@@ -330,7 +330,7 @@ These functions and types provide simple pseudo-random number generation facilit
 ### Design Direction
 
 The purpose here is not to compete with the full generality of `<random>`.
-Instead, the goal is to provide a lighter, easier-to-approach utility layer in the style of traditional C facilities, while still fitting XER's design.
+Instead, the goal is to provide a lighter, easier-to-approach utility layer in the style of traditional C facilities, while still fitting xer's design.
 
 ### `rand_context`
 
@@ -344,9 +344,9 @@ The exact API belongs in the detailed reference documentation.
 
 ---
 
-## Relationship to XER's Text Model
+## Relationship to xer's Text Model
 
-`<xer/stdlib.h>` is closely tied to XER's text and encoding model.
+`<xer/stdlib.h>` is closely tied to xer's text and encoding model.
 
 This is especially true for:
 
@@ -361,7 +361,7 @@ This is especially true for:
 * multibyte conversion distinguishes `char`, `unsigned char`, and `char8_t` explicitly
 
 This means that `<xer/stdlib.h>` is not just a miscellaneous utility header.
-In XER, it is also one of the key headers for explicit encoding-aware text handling.
+In xer, it is also one of the key headers for explicit encoding-aware text handling.
 
 ---
 
@@ -390,7 +390,7 @@ When this header is used in generated documentation, it is usually enough to exp
 
 * that it serves as a utility header rather than a narrowly scoped abstraction
 * that numeric conversion and multibyte conversion are the most important parts of the header
-* that multibyte conversion follows XER's own encoding policy rather than locale-centered C behavior
+* that multibyte conversion follows xer's own encoding policy rather than locale-centered C behavior
 * that overloads distinguish byte-oriented and character-oriented types explicitly
 
 Detailed per-function semantics should be described in the reference manual or generated API sections.
@@ -431,7 +431,7 @@ auto main() -> int
 }
 ```
 
-This example shows the general XER style:
+This example shows the general xer style:
 
 * call the conversion API with an ordinary value
 * check `xer::result` explicitly

@@ -2,10 +2,10 @@
 
 ## Purpose
 
-`<xer/time.h>` provides time-related facilities in XER.
+`<xer/time.h>` provides time-related facilities in xer.
 
 Its purpose is not to reproduce the C standard library `time.h` as it is, nor to center the public API on `std::chrono`.
-Instead, it provides a simpler time library that preserves the approachability of C-style time handling while aligning with XER's own design.
+Instead, it provides a simpler time library that preserves the approachability of C-style time handling while aligning with xer's own design.
 
 This header is intended for tasks such as:
 
@@ -70,7 +70,7 @@ The exact helper functions may expand in the future, but this is the current cor
 
 ## `xer::time_t`
 
-`xer::time_t` is the central scalar time type in XER.
+`xer::time_t` is the central scalar time type in xer.
 
 ### Basic Shape
 
@@ -104,7 +104,7 @@ The practical target is microsecond-level handling, but the public design does n
 
 ## Epoch
 
-XER fixes the epoch of `xer::time_t` to the POSIX epoch.
+xer fixes the epoch of `xer::time_t` to the POSIX epoch.
 
 ### Meaning
 
@@ -122,7 +122,7 @@ as a `xer::time_t` value.
 
 ### Why This Matters
 
-This avoids the implementation-defined ambiguity of traditional C `time_t` epoch interpretation and gives XER a stable project-wide rule.
+This avoids the implementation-defined ambiguity of traditional C `time_t` epoch interpretation and gives xer a stable project-wide rule.
 
 ---
 
@@ -142,7 +142,7 @@ This is a deliberate simplification in the initial stage.
 
 ## `xer::tm`
 
-`xer::tm` is XER's broken-down time structure.
+`xer::tm` is xer's broken-down time structure.
 
 ### Basic Shape
 
@@ -197,7 +197,7 @@ auto time() -> xer::result<time_t>;
 
 ### Design Direction
 
-Although failure is uncommon in practice, XER still treats it as an ordinary fallible operation and reports failure through `xer::result`.
+Although failure is uncommon in practice, xer still treats it as an ordinary fallible operation and reports failure through `xer::result`.
 
 This keeps the header consistent with the rest of the library.
 
@@ -215,7 +215,7 @@ auto clock() -> xer::result<clock_t>;
 
 ### Design Direction
 
-As with `time()`, XER treats this as an ordinary fallible operation and reports failure explicitly.
+As with `time()`, xer treats this as an ordinary fallible operation and reports failure explicitly.
 
 ---
 
@@ -306,7 +306,7 @@ This is the reverse conversion entry point from `tm` back to `time_t`.
 
 ## `ctime`
 
-XER provides `ctime` in two overloads:
+xer provides `ctime` in two overloads:
 
 ```cpp
 auto ctime(time_t value) -> std::u8string;
@@ -319,7 +319,7 @@ auto ctime(const tm& value) -> std::u8string;
 
 ### Design Direction
 
-In XER, the roles traditionally associated with C's `ctime` and `asctime` are unified under the `ctime` name.
+In xer, the roles traditionally associated with C's `ctime` and `asctime` are unified under the `ctime` name.
 
 That means:
 
@@ -332,7 +332,7 @@ That means:
 * no static internal buffer is used
 * the broken-down-time overload takes `const tm&`, not a raw pointer
 
-This reflects XER's C++-style redesign while keeping a familiar function name.
+This reflects xer's C++-style redesign while keeping a familiar function name.
 
 ---
 
@@ -379,9 +379,9 @@ std::u8string
 
 through `xer::result`.
 
-### XER-Specific Fractional-Second Extensions
+### xer-Specific Fractional-Second Extensions
 
-In addition to the conversion specifications delegated to the underlying C library, XER provides the following fractional-second extensions:
+In addition to the conversion specifications delegated to the underlying C library, xer provides the following fractional-second extensions:
 
 * `%f`: microseconds as exactly six decimal digits
 * `%L`: milliseconds as exactly three decimal digits
@@ -403,19 +403,19 @@ One important characteristic of `<xer/time.h>` is that formatting is designed ar
 
 ### Why This Matters
 
-This keeps the header aligned with XER's broader public text model:
+This keeps the header aligned with xer's broader public text model:
 
 * public text APIs are UTF-8 oriented
 * `std::u8string` is the standard owned text type
 * `std::u8string_view` is the standard non-owning text input type
 
-This distinguishes XER's design from more locale-centered or narrow-character-only interpretations.
+This distinguishes xer's design from more locale-centered or narrow-character-only interpretations.
 
 ---
 
 ## Error Handling
 
-`<xer/time.h>` follows XER's ordinary failure model.
+`<xer/time.h>` follows xer's ordinary failure model.
 
 ### Meaning
 
@@ -466,11 +466,11 @@ The rough boundary is:
 * `<xer/time.h>` handles time retrieval, time conversion, and time formatting
 * `<xer/error.h>` provides the error/result model used by fallible time operations
 
-This header is largely self-contained in its domain, but it depends directly on XER's ordinary error model.
+This header is largely self-contained in its domain, but it depends directly on xer's ordinary error model.
 
 ---
 
-## Relationship to XER's General Design
+## Relationship to xer's General Design
 
 `<xer/time.h>` reflects several important project-wide design decisions:
 
@@ -480,7 +480,7 @@ This header is largely self-contained in its domain, but it depends directly on 
 * use UTF-8 for public text output
 * avoid centering the public design on `std::chrono`
 
-This makes the header one of the clearest examples of XER's general philosophy.
+This makes the header one of the clearest examples of xer's general philosophy.
 
 ---
 
@@ -538,7 +538,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * retrieve time explicitly
 * convert explicitly

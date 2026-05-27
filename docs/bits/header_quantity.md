@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/quantity.h>` provides physical quantity and unit facilities in XER.
+`<xer/quantity.h>` provides physical quantity and unit facilities in xer.
 
 Its purpose is to allow quantities with dimensions to be handled in a type-safe and practical way.
 This includes:
@@ -13,7 +13,7 @@ This includes:
 - keeping the design lightweight and easy to understand
 
 This header is not intended to reproduce an existing quantity library as it is.
-Instead, it follows XER's own design priorities.
+Instead, it follows xer's own design priorities.
 
 ---
 
@@ -511,7 +511,7 @@ The exact set belongs to the detailed unit reference, but these are the main int
 
 ## Angular Units
 
-`<xer/quantity.h>` also covers angle-related units in coordination with the broader XER design.
+`<xer/quantity.h>` also covers angle-related units in coordination with the broader xer design.
 
 ### Important Units
 
@@ -529,7 +529,7 @@ At minimum:
 
 ### Why This Matters
 
-This keeps angle quantities compatible with XER's design where one full turn corresponds naturally to the `cyclic` model.
+This keeps angle quantities compatible with xer's design where one full turn corresponds naturally to the `cyclic` model.
 
 ---
 
@@ -584,7 +584,7 @@ This keeps the notation:
 
 * explicit
 * easy to read
-* consistent with the rest of XER
+* consistent with the rest of xer
 * easier to extend without creating many special literal forms
 
 ---
@@ -662,7 +662,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * use unit objects from `xer::units`
 * construct quantities with scalar × unit

@@ -37,7 +37,7 @@ At present, `<xer/unicode.h>` includes the ICU-based normalization implementatio
 
 The normalization implementation uses ICU C API functions such as `u_strFromUTF8`, `u_strToUTF8`, `unorm2_getNFCInstance`, `unorm2_normalize`, and `unorm2_isNormalized`.
 
-XER does not manage application build-system settings. Users must provide suitable include paths and link options for their environment.
+xer does not manage application build-system settings. Users must provide suitable include paths and link options for their environment.
 
 For example, on many Unix-like environments, the required link options are obtained through `pkg-config`:
 
@@ -57,7 +57,7 @@ On MSYS2 environments, the ICU data library may be named `icudt` rather than `ic
 g++ -std=c++23 -I. example.cpp -licuuc -licudt
 ```
 
-The XER test runner handles known environments separately.
+The xer test runner handles known environments separately.
 
 ---
 
@@ -582,7 +582,7 @@ auto grapheme_length(std::wstring_view text)
 
 `grapheme_length` counts extended grapheme clusters in the source string view.
 
-This is different from `text.size()`, which counts source code units. For UTF-8 Japanese text, `text.size()` is a byte count. `grapheme_length` is intended for user-visible character counts based on XER's practical grapheme cluster rules.
+This is different from `text.size()`, which counts source code units. For UTF-8 Japanese text, `text.size()` is a byte count. `grapheme_length` is intended for user-visible character counts based on xer's practical grapheme cluster rules.
 
 ### Return Model
 
@@ -711,7 +711,7 @@ auto is_emoji(std::wstring_view text)
 
 `is_emoji` provides practical emoji detection for English/Japanese user-facing text.
 
-The `char32_t` overload checks whether a Unicode scalar value is treated as an emoji base by XER. It is intended for quick code point classification.
+The `char32_t` overload checks whether a Unicode scalar value is treated as an emoji base by xer. It is intended for quick code point classification.
 
 The string-view overloads check whether the whole input is one emoji grapheme cluster. This is the overload to use for sequences such as flags, keycap emoji, emoji with variation selectors, skin-tone modifiers, and ZWJ emoji sequences.
 
@@ -733,7 +733,7 @@ They can fail when the input contains malformed UTF-8, UTF-16, or wide text.
 
 ### Scope
 
-This is a compact practical detector, not a complete generated implementation of every Unicode emoji property. It reuses XER's existing grapheme cluster handling and covers common emoji used in English/Japanese text, including pictographic emoji, flags, keycap emoji, variation-selector forms, emoji modifiers, and ZWJ sequences.
+This is a compact practical detector, not a complete generated implementation of every Unicode emoji property. It reuses xer's existing grapheme cluster handling and covers common emoji used in English/Japanese text, including pictographic emoji, flags, keycap emoji, variation-selector forms, emoji modifiers, and ZWJ sequences.
 
 ### Example
 
@@ -901,9 +901,9 @@ The code point traversal layer is small and table-free. It validates UTF-8 and U
 
 The grapheme cluster traversal layer is built on top of the code point layer. It is intended for practical user-visible character traversal while still returning source spans instead of copying text. The grapheme-cluster-based string operations provide convenient length and substring helpers while returning views into the original text. Emoji detection is also built on the same code point and grapheme cluster layers so that multi-code-point emoji sequences can be checked as one user-visible unit.
 
-The default language scope of this layer is English and Japanese text. It handles common sequences needed for practical English/Japanese user-facing text, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences. It is not a full Unicode text-boundary engine for every script and does not provide language-specific tailoring. Users who need broader script coverage can extend XER's public source code or use a dedicated Unicode boundary service.
+The default language scope of this layer is English and Japanese text. It handles common sequences needed for practical English/Japanese user-facing text, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences. It is not a full Unicode text-boundary engine for every script and does not provide language-specific tailoring. Users who need broader script coverage can extend xer's public source code or use a dedicated Unicode boundary service.
 
-Unicode normalization is heavier than simple UTF-8 string utilities because it requires Unicode normalization data. XER delegates this responsibility to ICU instead of embedding a large generated Unicode table in the header-only library.
+Unicode normalization is heavier than simple UTF-8 string utilities because it requires Unicode normalization data. xer delegates this responsibility to ICU instead of embedding a large generated Unicode table in the header-only library.
 
 The initial normalization API exposes only NFC because NFC is the most practical normalization form for many file-name, search-key, dictionary, and text-cleanup use cases. Other normalization forms can be added later without changing the basic API shape.
 

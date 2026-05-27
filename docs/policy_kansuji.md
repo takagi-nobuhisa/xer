@@ -2,7 +2,7 @@
 
 ## Overview
 
-XER provides Kansuji handling as part of its practical Japanese text-processing facilities.
+xer provides Kansuji handling as part of its practical Japanese text-processing facilities.
 
 The initial goal is to support non-negative integer conversion between ordinary numeric values and commonly used Japanese numeric notations.
 This facility should prioritize:

@@ -2,7 +2,7 @@
 
 ## Overview
 
-XER places reference manuals, policy documents, operational documents, code examples, and development helper scripts in different locations according to their roles.
+xer places reference manuals, policy documents, operational documents, code examples, and development helper scripts in different locations according to their roles.
 
 If these materials are placed without clear structure, the following problems are likely to occur:
 
@@ -11,7 +11,7 @@ If these materials are placed without clear structure, the following problems ar
 - assumptions for automatic generation and extraction become fragile
 - future reorganization and relocation become unnecessarily difficult
 
-For this reason, XER separates documents and auxiliary assets according to their roles.
+For this reason, xer separates documents and auxiliary assets according to their roles.
 
 This policy document primarily defines placement rules for the following locations:
 
@@ -52,7 +52,7 @@ A file should be placed according to its role, not according to its extension or
 
 ### Basic position
 
-`docs/` is the primary directory for XER documentation.
+`docs/` is the primary directory for xer documentation.
 
 This directory should contain documents that satisfy at least one of the following:
 
@@ -76,7 +76,7 @@ The following kinds of documents should be placed directly under `docs/`:
 ### Why these documents belong directly under `docs/`
 
 These documents are not limited to one specific header or one isolated feature.
-They affect XER as a whole.
+They affect xer as a whole.
 
 For that reason, they should remain easy to find directly under `docs/` rather than being buried in deeper hierarchy.
 
@@ -183,7 +183,7 @@ In other words, examples in the reference manual or tutorials should preferably 
 
 ### Basic position
 
-`php/` is the place for PHP scripts used as development-only tools in XER.
+`php/` is the place for PHP scripts used as development-only tools in xer.
 
 It may contain at least the following kinds of files:
 
@@ -210,14 +210,14 @@ As a rule, the following should not be placed in `php/`:
 - major user-facing documents
 - canonical code examples
 - policy documents mainly intended for human reading
-- public headers of XER itself
+- public headers of xer itself
 
 ### Positioning
 
-`php/` is not part of the XER library itself.
+`php/` is not part of the xer library itself.
 It is a dedicated area for development-time support.
 
-Accordingly, XER must not require end users to use PHP merely to use the library.
+Accordingly, xer must not require end users to use PHP merely to use the library.
 
 ---
 

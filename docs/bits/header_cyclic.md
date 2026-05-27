@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/cyclic.h>` provides the `cyclic` type and related helpers for handling circular values in XER.
+`<xer/cyclic.h>` provides the `cyclic` type and related helpers for handling circular values in xer.
 
 This header is intended for values such as:
 
@@ -301,7 +301,7 @@ This design makes it clear that equality is tolerance-based rather than strict.
 
 If ordinary comparison operators were used for approximate equality, it would be too easy to misread them as strict equality.
 
-XER therefore prefers explicit named functions.
+xer therefore prefers explicit named functions.
 
 ### Default Tolerance
 
@@ -402,7 +402,7 @@ These functions translate between:
 
 Radian conversion naturally depends on π.
 
-In XER's design, mathematical constants such as π are not embedded directly into `cyclic<T>` as members.
+In xer's design, mathematical constants such as π are not embedded directly into `cyclic<T>` as members.
 Instead, they are treated as separate supporting facilities, conceptually associated with dedicated internal constant support.
 
 This keeps `cyclic<T>` itself focused on circular value handling rather than on general constant provision.
@@ -423,13 +423,13 @@ The rough boundary is:
 * `<xer/quantity.h>` handles physical quantities and units
 * angular quantities may be represented as ordinary quantities, while `cyclic` is used when circular semantics are needed explicitly
 
-This distinction is important in XER's design.
+This distinction is important in xer's design.
 
 ---
 
 ## Relationship to Angle Quantities
 
-A central point in XER's design is that `cyclic<T>` is **not** the universal storage model for all angle quantities.
+A central point in xer's design is that `cyclic<T>` is **not** the universal storage model for all angle quantities.
 
 ### Meaning
 
@@ -494,7 +494,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * create circular values through free conversion helpers
 * use circular operations explicitly

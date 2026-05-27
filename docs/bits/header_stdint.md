@@ -2,10 +2,10 @@
 
 ## Purpose
 
-`<xer/stdint.h>` provides fixed-width integer facilities and closely related numeric utilities in XER.
+`<xer/stdint.h>` provides fixed-width integer facilities and closely related numeric utilities in xer.
 
 Its role is similar in spirit to the C standard library `<stdint.h>`, but it is not limited to merely re-exporting integer typedefs.
-Instead, it also serves as the home for practical integer-oriented helpers that fit XER's overall design.
+Instead, it also serves as the home for practical integer-oriented helpers that fit xer's overall design.
 
 This header is especially important because it provides:
 
@@ -19,13 +19,13 @@ This header is especially important because it provides:
 
 ## Main Role
 
-The main role of `<xer/stdint.h>` is to provide a stable and explicit integer vocabulary for the rest of XER.
+The main role of `<xer/stdint.h>` is to provide a stable and explicit integer vocabulary for the rest of xer.
 
 In particular, it exists to make the following easy and clear:
 
 - writing code with explicitly sized integer types
 - referring to implementation-sized integer types such as pointer-sized integers
-- expressing integer limits and bit widths in a unified XER style
+- expressing integer limits and bit widths in a unified xer style
 - writing typed integer literals directly in source code
 
 This makes the header useful both as a foundational type header and as a practical utility header for integer-heavy code.
@@ -110,7 +110,7 @@ These types are especially useful in low-level code and implementation-support c
 
 ## Optional 128-Bit Integer Types
 
-Where the implementation supports `__int128`, XER may provide:
+Where the implementation supports `__int128`, xer may provide:
 
 ```cpp
 int128_t
@@ -159,7 +159,7 @@ bit_width_of<T>
 
 ### Role of These Helpers
 
-These helpers exist so that integer-type metadata can be referred to in a compact, readable, and XER-consistent way.
+These helpers exist so that integer-type metadata can be referred to in a compact, readable, and xer-consistent way.
 
 They are especially useful in:
 
@@ -178,7 +178,7 @@ These helpers are intended to be simple compile-time facilities, not large abstr
 
 One of the most visible user-facing features of `<xer/stdint.h>` is the integer literal suffix set.
 
-At minimum, XER may provide literal suffixes such as:
+At minimum, xer may provide literal suffixes such as:
 
 ```cpp
 _i8   _i16   _i32   _i64
@@ -216,7 +216,7 @@ These literal suffixes are intended to be:
 * convenient in tests and examples
 * useful in compile-time contexts
 
-They are especially attractive in a project like XER, which emphasizes explicitness and type clarity.
+They are especially attractive in a project like xer, which emphasizes explicitness and type clarity.
 
 ---
 
@@ -265,7 +265,7 @@ If it does not fit, the program should fail to compile rather than silently narr
 
 This makes typed integer literals trustworthy and avoids hidden truncation.
 
-It also aligns with XER's broader design preference for explicit failure over surprising implicit behavior.
+It also aligns with xer's broader design preference for explicit failure over surprising implicit behavior.
 
 ---
 
@@ -285,9 +285,9 @@ This makes `<xer/stdint.h>` foundational, while `<xer/arithmetic.h>` handles hig
 
 ---
 
-## Relationship to XER's Numeric Design
+## Relationship to xer's Numeric Design
 
-Although `<xer/stdint.h>` looks like a basic type header, it plays an important role in XER's numeric design.
+Although `<xer/stdint.h>` looks like a basic type header, it plays an important role in xer's numeric design.
 
 In particular, it helps make the following explicit:
 
@@ -347,7 +347,7 @@ auto main() -> int
 
 This example shows the normal style:
 
-* use explicit XER integer types
+* use explicit xer integer types
 * use typed integer literal suffixes
 * keep integer width visible in the code itself
 

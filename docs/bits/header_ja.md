@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/ja.h>` is a convenience umbrella header for Japanese-specific XER facilities.
+`<xer/ja.h>` is a convenience umbrella header for Japanese-specific xer facilities.
 
 It includes:
 
@@ -23,7 +23,7 @@ The APIs provided by these headers are placed under `xer::ja`.
 
 Japanese-specific APIs are collected under `xer::ja`.
 
-This keeps the main `xer` namespace focused on language-neutral utilities, while allowing XER to provide deeper Japanese support before v1.0.0.
+This keeps the main `xer` namespace focused on language-neutral utilities, while allowing xer to provide deeper Japanese support before v1.0.0.
 
 Examples:
 

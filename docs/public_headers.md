@@ -4,7 +4,7 @@
 
 - Public headers are placed directly under `xer/`.
 - Headers under `xer/bits/` are for internal implementation and are not treated as public headers.
-- The goal is not to mirror the names of C standard library headers exactly, but to reorganize them into units that are meaningful for XER.
+- The goal is not to mirror the names of C standard library headers exactly, but to reorganize them into units that are meaningful for xer.
 - `wchar.h` and `wctype.h` are not provided as independent headers; their related functionality is absorbed into other headers.
 - `math.h` is reserved for future consideration and is not included among the public headers at this time.
 
@@ -94,7 +94,7 @@ Their necessary functionality is absorbed into existing headers.
 
 ## Headers Currently Out of Scope for Reimplementation
 
-At least at the current stage, XER does not reimplement the following headers:
+At least at the current stage, xer does not reimplement the following headers:
 
 - `complex.h`
 - `fenv.h`
@@ -120,12 +120,12 @@ Notes:
 
 ### Why `locale.h` Is Not Provided
 
-XER minimizes locale dependence as much as possible and handles character classification, character conversion, and character encoding conversion according to its own library policy.
+xer minimizes locale dependence as much as possible and handles character classification, character conversion, and character encoding conversion according to its own library policy.
 For that reason, `locale.h` is not placed at the core of the public API.
 
 ### Why `wchar.h` and `wctype.h` Are Not Separated
 
-XER does not attempt to mimic the header structure of the C standard library as it is.
+xer does not attempt to mimic the header structure of the C standard library as it is.
 Instead, it reorganizes APIs by use case.
 
 Accordingly, functionality related to `wchar_t` and wide-character classification is integrated into existing headers as follows:
@@ -220,7 +220,7 @@ It includes the public headers whose primary purpose is Japanese text processing
 - `xer/mecab.h`
 
 The APIs provided by these headers are placed under `xer::ja`. This keeps the
-main `xer` namespace focused on language-neutral utilities while allowing XER
+main `xer` namespace focused on language-neutral utilities while allowing xer
 to deepen Japanese support before v1.0.0.
 
 ---
@@ -322,9 +322,9 @@ For that reason, they are provided through the independent public header `xer/di
 
 ### Why `iostream.h` Is Independent
 
-`xer/iostream.h` provides opt-in iostream insertion and extraction operators for selected XER value types.
+`xer/iostream.h` provides opt-in iostream insertion and extraction operators for selected xer value types.
 
-XER's ordinary input/output model remains based on `xer/stdio.h`, `binary_stream`, and `text_stream`. However, iostream operators are useful as a bridge for diagnostics, tests, examples, and generic `%@` formatting and scanning support.
+xer's ordinary input/output model remains based on `xer/stdio.h`, `binary_stream`, and `text_stream`. However, iostream operators are useful as a bridge for diagnostics, tests, examples, and generic `%@` formatting and scanning support.
 
 For that reason, iostream support is provided through the independent public header `xer/iostream.h` rather than being included automatically from each value-type header.
 

@@ -4,7 +4,7 @@
 
 `<xer/parse.h>` provides common structured detail types for parsed input errors.
 
-The header is intentionally independent from JSON, INI, TOML, XBF bitmap-font data, and other individual parsers or loaders. A parse-failure position and a parse-failure reason are useful across multiple structured-input APIs, so XER provides a shared vocabulary rather than format-specific detail types.
+The header is intentionally independent from JSON, INI, TOML, XBF bitmap-font data, and other individual parsers or loaders. A parse-failure position and a parse-failure reason are useful across multiple structured-input APIs, so xer provides a shared vocabulary rather than format-specific detail types.
 
 ---
 
@@ -96,7 +96,7 @@ struct parse_error_detail {
 
 `column` is the one-based column number when column information is available. For UTF-8 text formats, it is counted in UTF-8 code units, not display cells, Unicode scalar values, or grapheme clusters. It is `0` when column information is not available.
 
-This rule keeps parser diagnostics aligned with XER's `char8_t`-based text model while also allowing binary loaders to report exact byte positions without inventing fake line or column values.
+This rule keeps parser diagnostics aligned with xer's `char8_t`-based text model while also allowing binary loaders to report exact byte positions without inventing fake line or column values.
 
 ---
 

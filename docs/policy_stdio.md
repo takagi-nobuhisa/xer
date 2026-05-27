@@ -2,7 +2,7 @@
 
 ## Basic Policy
 
-XER input and output is designed on top of C standard-library `FILE`-based functions.
+xer input and output is designed on top of C standard-library `FILE`-based functions.
 
 However, the public API is redesigned as a C++ library and does not aim for full source-level compatibility with C.
 
@@ -365,7 +365,7 @@ For I/O-originated failures that are not mapped in detail to a specific `errno`,
 
 ## Supplement
 
-Although XER input/output is built on C `FILE`, its public design is reconstructed as a C++ library.
+Although xer input/output is built on C `FILE`, its public design is reconstructed as a C++ library.
 
 Accordingly, the following priorities are emphasized:
 
@@ -373,4 +373,4 @@ Accordingly, the following priorities are emphasized:
 - use type-safe stream types
 - manage lifetime by RAII
 - represent ordinary failure with `xer::result` rather than with special values
-- handle character encoding according to XER's own policy rather than locale
+- handle character encoding according to xer's own policy rather than locale

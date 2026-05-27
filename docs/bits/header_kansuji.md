@@ -23,7 +23,7 @@ The main role of `<xer/kansuji.h>` is to make it possible to:
 - write large integers in Japanese large-unit notation
 - choose a readable output style explicitly
 - parse common Japanese numeric text without requiring callers to manually normalize it
-- report malformed text and overflow through XER's ordinary `xer::result` error model
+- report malformed text and overflow through xer's ordinary `xer::result` error model
 
 This facility is especially useful for Japanese text generation, parsing of user-facing text, vertical-writing-oriented notation, and practical Daiji-style output.
 
@@ -357,7 +357,7 @@ xer::ja::from_kansuji(u8"1844京6744兆737億955万1616");
 
 ## Error Model
 
-`from_kansuji` follows XER's ordinary failure model.
+`from_kansuji` follows xer's ordinary failure model.
 
 ```cpp
 const auto parsed = xer::ja::from_kansuji(u8"十二億三十四万五");

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/scope.h>` provides small scope-based utility facilities for XER.
+`<xer/scope.h>` provides small scope-based utility facilities for xer.
 
 At present, this header provides `xer::scope_exit`, a lightweight scope guard that invokes a registered callable when the guard object is destroyed.
 
@@ -124,12 +124,12 @@ If the cleanup action can fail in a meaningful way, callers should normally hand
 
 ## Relationship to Standard and Experimental Facilities
 
-XER provides its own `scope_exit`.
+xer provides its own `scope_exit`.
 
 This is not a wrapper around a standard C++ `<scope>` header.
 Standard C++ does not currently provide such a header as part of the ordinary standard library.
 
-Some similar facilities exist in experimental or library-extension contexts, but XER keeps this utility small and self-contained so that it fits the library's header-only and GCC-oriented portability policy.
+Some similar facilities exist in experimental or library-extension contexts, but xer keeps this utility small and self-contained so that it fits the library's header-only and GCC-oriented portability policy.
 
 ---
 
@@ -149,9 +149,9 @@ The initial purpose is only to support the common “run this cleanup action whe
 
 ---
 
-## Relationship to XER's Error Model
+## Relationship to xer's Error Model
 
-XER generally represents ordinary fallible operations through `xer::result`.
+xer generally represents ordinary fallible operations through `xer::result`.
 
 However, `scope_exit` itself does not return a result from its destructor.
 
@@ -198,7 +198,7 @@ auto main() -> int
 }
 ```
 
-This example shows the typical XER style:
+This example shows the typical xer style:
 
 * acquire or record state explicitly
 * register cleanup with `scope_exit`

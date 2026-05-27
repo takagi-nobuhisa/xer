@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/arithmetic.h>` provides arithmetic and comparison helper functions in XER.
+`<xer/arithmetic.h>` provides arithmetic and comparison helper functions in xer.
 
 Its purpose is not merely to wrap built-in operators with different names.
 Instead, it provides a numeric utility layer designed to avoid common problems of ordinary C++ arithmetic, especially in cases such as:
@@ -10,9 +10,9 @@ Instead, it provides a numeric utility layer designed to avoid common problems o
 - mixing signed and unsigned integer types
 - integrating arithmetic with explicit failure handling
 - making range failure visible
-- expressing comparisons in a way that follows XER's own numeric rules
+- expressing comparisons in a way that follows xer's own numeric rules
 
-This header is therefore a central part of XER's numeric design.
+This header is therefore a central part of xer's numeric design.
 
 ---
 
@@ -23,7 +23,7 @@ The main role of `<xer/arithmetic.h>` is to provide arithmetic and comparison op
 - explicit
 - predictable
 - easier to chain safely than raw built-in operators
-- better aligned with XER's error model
+- better aligned with xer's error model
 
 In particular, it exists to make the following easier:
 
@@ -191,7 +191,7 @@ For integer input:
 
 ### Why These Matter
 
-These helpers make quotient/remainder behavior explicit and keep it aligned with XER's own arithmetic policy rather than leaving everything to built-in operator behavior.
+These helpers make quotient/remainder behavior explicit and keep it aligned with xer's own arithmetic policy rather than leaving everything to built-in operator behavior.
 
 ---
 
@@ -210,7 +210,7 @@ ge
 
 ### Role of This Group
 
-These functions provide explicit comparison in a way that fits XER's numeric rules.
+These functions provide explicit comparison in a way that fits xer's numeric rules.
 
 They are especially useful when:
 
@@ -362,7 +362,7 @@ When a `xer::result` argument contains an error, the result overload returns `fa
 
 ### `min` and `max`
 
-`min` and `max` return the smaller or larger of two arithmetic values according to XER's comparison rules.
+`min` and `max` return the smaller or larger of two arithmetic values according to xer's comparison rules.
 
 ```cpp
 template<typename A, typename B>
@@ -373,9 +373,9 @@ auto max(A lhs, B rhs) -> xer::result<result-type>;
 ```
 
 They are not intended to be mere clones of the standard library forms.
-Instead, they are designed for mixed-type use under XER's own numeric policy.
+Instead, they are designed for mixed-type use under xer's own numeric policy.
 
-For integer operands, the result type follows XER's promoted integer result rules.
+For integer operands, the result type follows xer's promoted integer result rules.
 For non-integer arithmetic combinations, the result type is based on `std::common_type_t`.
 If the selected value cannot be represented in the selected result type, the function returns `error_t::out_of_range`.
 
@@ -396,7 +396,7 @@ If the selected value or selected bound cannot be represented in the first-argum
 
 As part of `<xer/arithmetic.h>`, this helper also accepts a `xer::result` value argument and propagates existing errors.
 
-Its purpose is to provide an explicit and predictable clamping helper that works consistently with XER's comparison model.
+Its purpose is to provide an explicit and predictable clamping helper that works consistently with xer's comparison model.
 
 ---
 
@@ -437,7 +437,7 @@ and reports failure if the result cannot be represented.
 
 These helpers are important because even "simple" absolute-value operations can fail in fixed-width signed integer domains.
 
-XER therefore makes that failure explicit.
+xer therefore makes that failure explicit.
 
 ---
 
@@ -489,7 +489,7 @@ One of the most important design points of `<xer/arithmetic.h>` is that arithmet
 
 ### Why This Header Is Special
 
-In the general XER API policy, ordinary public APIs are not supposed to take `xer::result` as an argument.
+In the general xer API policy, ordinary public APIs are not supposed to take `xer::result` as an argument.
 
 However, `<xer/arithmetic.h>` is the main exception.
 
@@ -525,7 +525,7 @@ For floating-point input:
 
 ### Why This Matters
 
-This allows XER arithmetic helpers to remain usable across both integer and floating-point code while keeping a unified design direction.
+This allows xer arithmetic helpers to remain usable across both integer and floating-point code while keeping a unified design direction.
 
 ---
 
@@ -550,7 +550,7 @@ For that reason, the comparison helper family does not extend mechanically to co
 
 ## Relationship Between Arithmetic and Comparison
 
-A central design principle of this header is that arithmetic helpers should use XER's comparison helpers internally where ordering matters.
+A central design principle of this header is that arithmetic helpers should use xer's comparison helpers internally where ordering matters.
 
 ### Meaning
 
@@ -641,7 +641,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * use explicit arithmetic helpers instead of raw operators where policy matters
 * check `xer::result` explicitly

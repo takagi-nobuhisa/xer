@@ -4,7 +4,7 @@
 
 `<xer/color.h>` provides color-system value types and color conversion functions.
 
-The purpose of this header is to support practical formula-based color representation and conversion in a lightweight XER style.
+The purpose of this header is to support practical formula-based color representation and conversion in a lightweight xer style.
 
 The initial supported color systems are:
 
@@ -201,7 +201,7 @@ struct basic_cmy {
 
 Each component is represented by `interval<T>` and is therefore kept in `[0, 1]`.
 
-CMY in XER is the simple complement model of RGB.
+CMY in xer is the simple complement model of RGB.
 
 Conceptually:
 
@@ -595,7 +595,7 @@ The initial supported color systems are:
 
 ### Unsupported
 
-The following systems are outside the scope of XER:
+The following systems are outside the scope of xer:
 
 - Munsell color system
 - PCCS
@@ -604,9 +604,9 @@ The following systems are outside the scope of XER:
 - ABC tone system
 
 This is not merely a temporary omission.
-Unless there is a major reason to reconsider, these systems should remain outside the scope of XER.
+Unless there is a major reason to reconsider, these systems should remain outside the scope of xer.
 
-The main reason is that they are color-order, color-notation, perceptual, or tone-classification systems rather than lightweight formula-based numeric color spaces suitable for XER's core API.
+The main reason is that they are color-order, color-notation, perceptual, or tone-classification systems rather than lightweight formula-based numeric color spaces suitable for xer's core API.
 
 ---
 
@@ -721,7 +721,7 @@ auto main() -> int
 }
 ```
 
-This example shows the basic XER style:
+This example shows the basic xer style:
 
 - use the public header
 - construct an `rgb` value directly

@@ -19,9 +19,9 @@ The recommended workflow is:
 
 ## Design Model
 
-XER serialization is not a reflection-based serializer.
+xer serialization is not a reflection-based serializer.
 
-C++23 has no standardized reflection facility that can enumerate the fields of an arbitrary user-defined structure. Instead of relying on macros, runtime registration, intrusive base classes, or heavy template metaprogramming, XER uses generated field-transfer functions.
+C++23 has no standardized reflection facility that can enumerate the fields of an arbitrary user-defined structure. Instead of relying on macros, runtime registration, intrusive base classes, or heavy template metaprogramming, xer uses generated field-transfer functions.
 
 The low-level archive layer only knows how to transfer scalar values and selected standard containers. User-defined structures are handled by generated code that calls the archive once for each field in fixed order.
 
@@ -240,7 +240,7 @@ This pattern is demonstrated by `examples/example_serialize_basic.cpp`.
 
 ## Generated Structures and `xfer` Functions
 
-For ordinary use, XER recommends generating structures and `xfer` functions from a schema file instead of writing them by hand.
+For ordinary use, xer recommends generating structures and `xfer` functions from a schema file instead of writing them by hand.
 
 The script is:
 

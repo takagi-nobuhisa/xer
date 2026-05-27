@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/string.h>` provides string-related utilities in XER.
+`<xer/string.h>` provides string-related utilities in xer.
 
 This header brings together several kinds of functionality:
 
@@ -15,13 +15,13 @@ This header brings together several kinds of functionality:
 - error text helpers
 
 The goal is not to reproduce the C standard library exactly.
-Instead, this header reorganizes practical string-related functionality into a form that fits XER's overall design.
+Instead, this header reorganizes practical string-related functionality into a form that fits xer's overall design.
 
 ---
 
 ## Main Role
 
-The main role of `<xer/string.h>` is to provide a practical collection of text and memory helpers centered on XER's UTF-8-oriented public string model.
+The main role of `<xer/string.h>` is to provide a practical collection of text and memory helpers centered on xer's UTF-8-oriented public string model.
 
 In particular, it serves the following purposes:
 
@@ -71,14 +71,14 @@ strcspn
 
 ### Role of This Group
 
-These functions provide familiar string-search and comparison operations in a form adapted to XER's public string model.
+These functions provide familiar string-search and comparison operations in a form adapted to xer's public string model.
 
 Some are close in spirit to C standard-library functions, while others are influenced more by PHP-style utility naming.
 
 ### Notes
 
 * not all functions are exact source-compatible reimplementations of their C or PHP namesakes
-* accepted argument forms are designed according to XER's own API policy
+* accepted argument forms are designed according to xer's own API policy
 * ordinary public APIs are documented in terms of ordinary values rather than `xer::result` arguments
 
 ---
@@ -131,11 +131,11 @@ strncat
 
 ### Role of This Group
 
-These functions provide familiar copy and concatenation operations, but their exact behavior follows XER's design rather than attempting perfect C compatibility.
+These functions provide familiar copy and concatenation operations, but their exact behavior follows xer's design rather than attempting perfect C compatibility.
 
 ### Notes
 
-* XER's design gives priority to natural and practical use in C++ code
+* xer's design gives priority to natural and practical use in C++ code
 * overloads may exist for arrays, pointers, and container-like targets
 * when automatic capacity growth is appropriate for dynamic containers, the design may favor that behavior over stricter historical C behavior
 
@@ -189,7 +189,7 @@ auto trim_view(std::u8string_view value, std::u8string_view characters = {})
 The owning forms return a new `std::u8string`.
 The `*_view` forms return a view into the original storage and do not allocate.
 
-When `characters` is empty, XER uses the PHP-compatible default trim set:
+When `characters` is empty, xer uses the PHP-compatible default trim set:
 
 ```text
 space, horizontal tab, line feed, carriage return, vertical tab, NUL
@@ -270,7 +270,7 @@ memset
 
 ### Role of This Group
 
-Although raw memory operations are not text operations in the narrow sense, XER groups them together with string-oriented helpers for practical convenience.
+Although raw memory operations are not text operations in the narrow sense, xer groups them together with string-oriented helpers for practical convenience.
 
 This reflects the historical closeness of string and memory functions in C-style programming, while still keeping the public-header structure compact.
 
@@ -278,7 +278,7 @@ This reflects the historical closeness of string and memory functions in C-style
 
 * these functions are low-level helpers
 * they are still part of the public surface when exposed through `<xer/string.h>`
-* their semantics should be read according to XER's own design and test coverage, not assumed solely from the standard library
+* their semantics should be read according to xer's own design and test coverage, not assumed solely from the standard library
 
 ---
 
@@ -300,14 +300,14 @@ They are useful in diagnostics, debugging output, and user-facing reporting when
 
 ### Notes
 
-* the exact mapping policy depends on XER's own error model
+* the exact mapping policy depends on xer's own error model
 * `get_error_name` and `get_errno_name` are especially useful where symbolic names are preferable to free-form text
 
 ---
 
 ## UTF-Oriented Public String Model
 
-`<xer/string.h>` should be understood in the context of XER's general text model.
+`<xer/string.h>` should be understood in the context of xer's general text model.
 
 ### Basic Expectations
 
@@ -351,10 +351,10 @@ The exact boundary is as follows:
 
 When this header is used as part of generated documentation, it is usually enough to explain:
 
-* that it combines C-style string utilities with XER-specific UTF-8-oriented helpers
+* that it combines C-style string utilities with xer-specific UTF-8-oriented helpers
 * that it includes both low-level and higher-level practical utilities
 * that trim/split/join helpers are an important user-facing part of the header
-* that accepted argument forms follow XER's own API policy
+* that accepted argument forms follow xer's own API policy
 
 Detailed per-function semantics should be described in the reference manual or generated API sections.
 
@@ -368,7 +368,7 @@ The following kinds of examples are especially suitable for this header:
 * splitting and joining text with `explode` / `implode`
 * replacing text with `str_replace`
 * searching for a Unicode scalar value in UTF-8 text
-* performing familiar C-style comparison or copying in XER style
+* performing familiar C-style comparison or copying in xer style
 
 This aligns well with the project direction that executable examples should become the canonical source for user-facing code snippets.
 
@@ -397,7 +397,7 @@ auto main() -> int
 }
 ```
 
-This example shows a typical XER style:
+This example shows a typical xer style:
 
 * use UTF-8-oriented string input
 * call an ordinary public API with an ordinary value

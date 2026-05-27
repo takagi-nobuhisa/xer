@@ -2,11 +2,11 @@
 
 ## Purpose
 
-`<xer/assert.h>` provides XER's assertion facilities.
+`<xer/assert.h>` provides xer's assertion facilities.
 
-These facilities are used primarily by XER's own test programs, but they may also be exposed to library users for lightweight checks.
+These facilities are used primarily by xer's own test programs, but they may also be exposed to library users for lightweight checks.
 
-Unlike the standard C `assert`, XER assertions do not terminate the process immediately.
+Unlike the standard C `assert`, xer assertions do not terminate the process immediately.
 Instead, they report failure by throwing an exception.
 
 ---
@@ -50,7 +50,7 @@ This makes the assertion facilities suitable for automated test execution and fo
 
 The standard C and C++ `assert` facility typically aborts the process when a condition fails.
 
-XER deliberately uses a different design.
+xer deliberately uses a different design.
 
 ### Standard `assert`
 
@@ -58,7 +58,7 @@ XER deliberately uses a different design.
 * is mainly intended for debugging internal assumptions
 * is not well suited to a test framework that wants structured failure reporting
 
-### XER Assertions
+### xer Assertions
 
 * report failure by throwing `xer::assertion_error`
 * are suitable for execution tests
@@ -71,7 +71,7 @@ This difference is intentional.
 
 ## `xer::assertion_error`
 
-`xer::assertion_error` is the exception type thrown when an XER assertion fails.
+`xer::assertion_error` is the exception type thrown when an xer assertion fails.
 
 ### Purpose
 
@@ -251,7 +251,7 @@ However, the assertion facilities are not intended to guarantee perfect formatti
 
 This point is important:
 
-* they are primarily for XER development and lightweight testing
+* they are primarily for xer development and lightweight testing
 * they should remain practical and readable
 * they should not accumulate excessive special handling for every conceivable output case
 
@@ -261,7 +261,7 @@ This point is important:
 
 These assertion macros are primarily intended for:
 
-* XER execution tests
+* xer execution tests
 * small utility checks during development
 * lightweight user-side verification when convenient
 
@@ -277,7 +277,7 @@ They are not intended to replace a full-featured external test framework in ever
 * `policy_testing_and_php.md`
 
 The project outline explains why assertion failure is treated separately from ordinary runtime failure.
-The testing policy explains the role of XER assertions in execution tests.
+The testing policy explains the role of xer assertions in execution tests.
 
 ---
 
@@ -285,7 +285,7 @@ The testing policy explains the role of XER assertions in execution tests.
 
 When this header is referenced from a generated manual, it is usually enough to explain:
 
-* that XER assertions throw instead of aborting
+* that xer assertions throw instead of aborting
 * the available macro names
 * the intended role of these macros in tests and lightweight verification
 

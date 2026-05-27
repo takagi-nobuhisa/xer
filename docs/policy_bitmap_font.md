@@ -2,10 +2,10 @@
 
 ## Overview
 
-XER provides bitmap-font facilities for drawing text on `xer::image::canvas`.
+xer provides bitmap-font facilities for drawing text on `xer::image::canvas`.
 
 The purpose of this facility is not to implement a general-purpose font engine.
-Instead, XER focuses on a small and predictable model that is sufficient for framebuffer-style text rendering, simple GUI labels, and generated bitmap fonts.
+Instead, xer focuses on a small and predictable model that is sufficient for framebuffer-style text rendering, simple GUI labels, and generated bitmap fonts.
 
 The bitmap-font facility should therefore keep the following priorities:
 
@@ -41,7 +41,7 @@ The following are outside the initial scope:
 - OpenType, TrueType, and other complex font formats
 - baseline-based text layout
 - general-purpose text shaping
-- BDF parsing in the public XER API
+- BDF parsing in the public xer API
 
 BDF files and rasterized font images may be used as input to converter tools, but the runtime image API operates on XBF data.
 
@@ -222,7 +222,7 @@ The in-memory representation intentionally follows the XBF file structure closel
 
 ### Purpose
 
-XBF is the binary external font format used by XER's bitmap-font facility.
+XBF is the binary external font format used by xer's bitmap-font facility.
 
 It is designed for:
 
@@ -686,7 +686,7 @@ Drawing rules:
 
 ## Summary
 
-XER bitmap fonts use a deliberately small and predictable model:
+xer bitmap fonts use a deliberately small and predictable model:
 
 - runtime-loaded external binary data
 - XBF format with little-endian fields

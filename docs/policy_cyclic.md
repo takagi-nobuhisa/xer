@@ -2,7 +2,7 @@
 
 ## Overview
 
-XER provides the `cyclic` type and related functionality in order to handle **circular values** such as angles, phases, directions, and times of day.
+xer provides the `cyclic` type and related functionality in order to handle **circular values** such as angles, phases, directions, and times of day.
 
 This facility is intended not merely to support modular arithmetic, but also to make the notions of **clockwise** (`cw`) and **counterclockwise** (`ccw`) explicit.
 
@@ -120,7 +120,7 @@ This invariant must be maintained by every operation that can modify the interna
 
 ### Positive Direction
 
-In XER, the positive direction of `cyclic` follows mathematical convention and is **counterclockwise**.
+In xer, the positive direction of `cyclic` follows mathematical convention and is **counterclockwise**.
 
 * positive direction: `ccw`
 * negative direction: `cw`

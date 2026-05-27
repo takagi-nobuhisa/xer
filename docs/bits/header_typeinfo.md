@@ -2,10 +2,10 @@
 
 ## Purpose
 
-`<xer/typeinfo.h>` provides lightweight type information helpers for XER.
+`<xer/typeinfo.h>` provides lightweight type information helpers for xer.
 
 Its main purpose is to make type names usable in diagnostics, tracing, and other development-oriented output.
-The header wraps standard C++ type information in a form that fits XER's UTF-8-oriented text model.
+The header wraps standard C++ type information in a form that fits xer's UTF-8-oriented text model.
 
 ---
 

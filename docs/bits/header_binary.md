@@ -4,7 +4,7 @@
 
 `<xer/binary.h>` provides small binary-data utility functions.
 
-The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for XER's 128-bit unsigned integer type, simple checksum calculation, CRC calculation, binary-to-hex conversion, hex-to-binary conversion, and practical hash calculation for byte sequences and files.
+The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for xer's 128-bit unsigned integer type, simple checksum calculation, CRC calculation, binary-to-hex conversion, hex-to-binary conversion, and practical hash calculation for byte sequences and files.
 
 These functions treat input values as fixed-width binary values. They do not depend on the CPU's native endian setting.
 
@@ -109,7 +109,7 @@ using std::byteswap;
 
 This makes standard C++23 byte swapping available as `xer::byteswap` for the standard unsigned integer types supported by `std::byteswap`.
 
-When `xer::uint128_t` is available, XER also provides a 128-bit overload:
+When `xer::uint128_t` is available, xer also provides a 128-bit overload:
 
 ```cpp
 auto byteswap(xer::uint128_t value) noexcept -> xer::uint128_t;
@@ -127,7 +127,7 @@ is byte-swapped to:
 0xffeeddccbbaa9988_7766554433221100
 ```
 
-The 128-bit overload is provided because C++23 `std::byteswap` does not cover XER's extended `uint128_t` type.
+The 128-bit overload is provided because C++23 `std::byteswap` does not cover xer's extended `uint128_t` type.
 
 ---
 

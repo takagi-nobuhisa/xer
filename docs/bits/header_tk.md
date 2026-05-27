@@ -2,11 +2,11 @@
 
 ## Purpose
 
-`<xer/tk.h>` provides the initial Tcl/Tk integration layer for XER.
+`<xer/tk.h>` provides the initial Tcl/Tk integration layer for xer.
 
 The first purpose of this header is to make it possible to create and control a Tcl interpreter from C++ code, register C++ callables as Tcl commands, and then use that foundation for Tk-based GUI facilities.
 
-The design deliberately avoids `Tk_Main`. `Tk_Main` owns too much of the process lifetime and may terminate the whole process when the main function exits. XER instead exposes interpreter creation, initialization, script evaluation, command registration, variable access, and event-loop helpers as ordinary C++ APIs.
+The design deliberately avoids `Tk_Main`. `Tk_Main` owns too much of the process lifetime and may terminate the whole process when the main function exits. xer instead exposes interpreter creation, initialization, script evaluation, command registration, variable access, and event-loop helpers as ordinary C++ APIs.
 
 ---
 
@@ -194,7 +194,7 @@ If a future version provides a public Tcl-only header, a separate namespace may 
 
 Tcl exposes result codes and flags through C macros such as `TCL_OK`, `TCL_ERROR`, and `TCL_GLOBAL_ONLY`.
 
-XER does not require ordinary users to refer to those macros directly. Instead, `<xer/tk.h>` provides XER-named constants such as:
+xer does not require ordinary users to refer to those macros directly. Instead, `<xer/tk.h>` provides xer-named constants such as:
 
 ```cpp
 xer::tk::result_ok
@@ -277,7 +277,7 @@ auto init(interpreter& interp) -> xer::result<void, error_detail>;
 
 `init` initializes both Tcl and Tk for the specified interpreter.
 
-It calls `Tcl_Init` and then `Tk_Init`. XER intentionally does not provide a public API that calls only `Tcl_Init` in the `xer::tk` layer.
+It calls `Tcl_Init` and then `Tk_Init`. xer intentionally does not provide a public API that calls only `Tcl_Init` in the `xer::tk` layer.
 
 If a caller needs direct Tcl-only initialization behavior, the native handle can be obtained through `to_native_handle` and the Tcl C API can be called explicitly.
 
@@ -291,7 +291,7 @@ auto to_native_handle(interpreter& interp) noexcept -> Tcl_Interp*;
 
 `to_native_handle` returns the underlying `Tcl_Interp*`.
 
-This function is an escape hatch for direct Tcl/Tk C API use. It is intentionally not named like an ordinary accessor such as `get`, because using the native handle bypasses part of XER's abstraction.
+This function is an escape hatch for direct Tcl/Tk C API use. It is intentionally not named like an ordinary accessor such as `get`, because using the native handle bypasses part of xer's abstraction.
 
 There is no overload for `const interpreter&`. Tcl interpreter handles are commonly used for state-changing operations, and a const overload would not provide meaningful const safety.
 
@@ -311,7 +311,7 @@ class photo_image;
 
 `photo_image` is a non-owning handle for an existing Tk photo image.
 
-A `photo_image` value cannot be default-constructed. It is created only by `find_photo`, so it does not represent a null photo handle in ordinary XER code.
+A `photo_image` value cannot be default-constructed. It is created only by `find_photo`, so it does not represent a null photo handle in ordinary xer code.
 
 The type does not own the underlying Tk image. The caller must ensure that the Tcl/Tk photo image outlives any `photo_image` handle referring to it. If the image is deleted on the Tcl/Tk side, an existing `photo_image` becomes invalid by the native Tk lifetime rules.
 
@@ -408,11 +408,11 @@ auto photo_put_zoomed_block(interpreter& interp,
 
 The block pointer must not be null. Coordinates, width, and height must not be negative. Zoom and subsample factors must be positive. Invalid arguments are rejected before calling Tk.
 
-### Relationship to XER Image Facilities
+### Relationship to xer Image Facilities
 
 The photo block helpers are low-level Tk wrappers. They intentionally expose `Tk_PhotoImageBlock` through the alias `photo_image_block` so that code can use the native Tk block layout when needed.
 
-Higher-level conversion between Tk photo images and XER image or framebuffer types should be built separately on top of these helpers. The ordinary image-processing algorithms themselves should not depend on Tcl/Tk.
+Higher-level conversion between Tk photo images and xer image or framebuffer types should be built separately on top of these helpers. The ordinary image-processing algorithms themselves should not depend on Tcl/Tk.
 
 ---
 
@@ -610,7 +610,7 @@ The view is valid only while the callback is running.
 
 If the value must be stored, captured, returned later, or otherwise used after the callback returns, the callback must copy it into an owning object such as `std::u8string`.
 
-Returning `std::u8string_view` from a callback is different: XER copies the referenced text into the Tcl interpreter result before the command handler returns.
+Returning `std::u8string_view` from a callback is different: xer copies the referenced text into the Tcl interpreter result before the command handler returns.
 The returned view only needs to remain valid until the command handler has finished setting the Tcl result.
 
 ---
@@ -654,23 +654,23 @@ auto do_one_event(event_flag_t flags = event_all) -> int;
 
 `do_one_event` processes one event through `Tcl_DoOneEvent`.
 
-XER does not use `Tk_Main`, because `Tk_Main` controls too much of the process lifetime. Programs should create and initialize an interpreter explicitly, then run the event loop in the desired thread.
+xer does not use `Tk_Main`, because `Tk_Main` controls too much of the process lifetime. Programs should create and initialize an interpreter explicitly, then run the event loop in the desired thread.
 
 ---
 
 ## Threading Policy
 
-XER aims to allow Tcl/Tk to run on a thread chosen by the user.
+xer aims to allow Tcl/Tk to run on a thread chosen by the user.
 
 However, an interpreter is treated as thread-affine. It should normally be created, initialized, used, and destroyed on the same thread.
 
 This rule applies to ordinary operations such as evaluation, variable access, command registration, event-loop use related to that interpreter, and destruction.
 
-This means XER supports the idea of running Tcl/Tk on a non-main thread, but it does not make one interpreter freely callable from arbitrary threads.
+This means xer supports the idea of running Tcl/Tk on a non-main thread, but it does not make one interpreter freely callable from arbitrary threads.
 
 A safe pattern is to create an interpreter inside a worker thread, use it only inside that worker thread, and let it be destroyed before that thread exits.
 
-XER does not currently provide cross-thread invocation helpers, event posting helpers, or a thread-safe dispatch queue for Tcl/Tk.
+xer does not currently provide cross-thread invocation helpers, event posting helpers, or a thread-safe dispatch queue for Tcl/Tk.
 
 ---
 

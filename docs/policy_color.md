@@ -2,10 +2,10 @@
 
 ## Overview
 
-XER provides color-system facilities in order to handle practical color values and color-space conversion in a lightweight and C++-friendly form.
+xer provides color-system facilities in order to handle practical color values and color-space conversion in a lightweight and C++-friendly form.
 
 The purpose of this facility is not to cover every historical or perceptual color classification system.
-Instead, XER focuses on color systems that can be handled as numeric value types and converted through clear formulas.
+Instead, xer focuses on color systems that can be handled as numeric value types and converted through clear formulas.
 
 The initial supported color systems are:
 
@@ -17,7 +17,7 @@ The initial supported color systems are:
 - CIE 1976 L*a*b*
 - CIE 1976 L*u*v*
 
-The following systems are outside the scope of XER, unless there is a major reason to reconsider in the future:
+The following systems are outside the scope of xer, unless there is a major reason to reconsider in the future:
 
 - Munsell color system
 - PCCS
@@ -57,7 +57,7 @@ The following are not the purpose of this facility:
 - spectral color representation
 - complete color management system functionality
 
-XER's color facility is intended to remain small and practical.
+xer's color facility is intended to remain small and practical.
 
 ---
 
@@ -134,7 +134,7 @@ Therefore, `rgb`, `cmy`, `hsv`, `xyz`, `lab`, and `luv` are provided as `float` 
 
 In color science, RGB-to-XYZ conversion depends on the specific RGB color space.
 
-XER's RGB-to-XYZ conversion assumes sRGB with the D65 white point.
+xer's RGB-to-XYZ conversion assumes sRGB with the D65 white point.
 
 However, in the public API, the code notation is simply `rgb` and `basic_rgb`.
 The names `srgb` and `basic_srgb` are not used in the initial API.
@@ -153,7 +153,7 @@ The documentation must clearly state that conversion between RGB and XYZ uses th
 
 `basic_rgb<T>` represents an RGB color using normalized red, green, and blue components.
 
-In XER, RGB is treated as sRGB when converting to or from XYZ.
+In xer, RGB is treated as sRGB when converting to or from XYZ.
 
 ### Components
 
@@ -205,7 +205,7 @@ struct basic_gray {
 using gray = basic_gray<float>;
 ```
 
-XER provides both simple luma grayscale and luminance-based grayscale.
+xer provides both simple luma grayscale and luminance-based grayscale.
 
 - `to_luma_gray(rgb)` computes `0.2126 R' + 0.7152 G' + 0.0722 B'` directly from nonlinear sRGB components.
 - `to_luminance_gray(rgb)` decodes sRGB to linear RGB, computes relative luminance, and encodes the result back to a nonlinear display grayscale value.
@@ -307,7 +307,7 @@ using hsv = basic_hsv<float>;
 Hue is circular.
 For that reason, it should use `cyclic<T>` rather than `interval<T>`.
 
-This keeps wraparound behavior explicit and matches the existing XER model for circular values.
+This keeps wraparound behavior explicit and matches the existing xer model for circular values.
 
 ---
 
@@ -585,7 +585,7 @@ Therefore:
 - `to_xyz(rgb)` decodes sRGB components to linear RGB before matrix conversion
 - `to_rgb(xyz)` applies the sRGB transfer function after matrix conversion
 
-XER does not introduce a separate linear RGB type in the initial design.
+xer does not introduce a separate linear RGB type in the initial design.
 
 If linear RGB becomes necessary, it should be introduced as a separate type rather than overloading the meaning of `rgb`.
 
@@ -663,7 +663,7 @@ The first implementation may keep those types as simple aggregate-like values.
 
 Color value types should be simple structs with public data members.
 
-This follows XER's general preference for simple, understandable value types.
+This follows xer's general preference for simple, understandable value types.
 
 Examples:
 
@@ -693,10 +693,10 @@ For raw colorimetric types such as XYZ, Lab, and Luv, the initial implementation
 
 ## Non-Supported Color Systems
 
-The following systems are not supported by XER's color facility.
+The following systems are not supported by xer's color facility.
 
 This is not merely a temporary omission.
-Unless there is a major reason to reconsider, they should remain outside the scope of XER.
+Unless there is a major reason to reconsider, they should remain outside the scope of xer.
 
 ### Munsell Color System
 
@@ -704,31 +704,31 @@ The Munsell color system is a color-order system based on hue, value, and chroma
 
 It is useful as a color notation and color-ordering system, but practical conversion to numeric RGB or XYZ values depends on color tables, interpolation, and reference data.
 
-XER does not include it in the initial or planned scope.
+xer does not include it in the initial or planned scope.
 
 ### PCCS
 
 PCCS is the Practical Color Co-ordinate System / Japanese Color Research Institute color system.
 
-It is useful for hue-tone organization and color planning, but it is not a simple formula-based color space suitable for XER's lightweight numeric conversion API.
+It is useful for hue-tone organization and color planning, but it is not a simple formula-based color space suitable for xer's lightweight numeric conversion API.
 
-XER does not include it in the initial or planned scope.
+xer does not include it in the initial or planned scope.
 
 ### Ostwald Color System
 
 The Ostwald color system is a historical color-order system based on pure color, white, and black components.
 
-It is not adopted as part of XER's practical numeric color conversion layer.
+It is not adopted as part of xer's practical numeric color conversion layer.
 
 ### NCS
 
 NCS is a perceptual natural color system.
 
-It is useful as a color notation and specification system, but it is not adopted as part of XER's lightweight formula-based color facility.
+It is useful as a color notation and specification system, but it is not adopted as part of xer's lightweight formula-based color facility.
 
 ### ABC Tone System
 
-The ABC tone system is outside the scope of XER.
+The ABC tone system is outside the scope of xer.
 
 It appears closer to tone classification or applied color planning than to a numeric color space suitable for the core library.
 
@@ -788,14 +788,14 @@ Documentation should explicitly state the following:
 - HSV hue uses `cyclic<T>`
 - XYZ, Lab, and Luv use raw floating-point members
 - alpha is not part of RGB
-- unsupported color systems are outside the scope of XER
-- XER's color facility is not a full color management system
+- unsupported color systems are outside the scope of xer
+- xer's color facility is not a full color management system
 
 ---
 
 ## Summary
 
-- XER supports RGB, grayscale, CMY, HSV, XYZ, Lab, and Luv color values
+- xer supports RGB, grayscale, CMY, HSV, XYZ, Lab, and Luv color values
 - ordinary aliases use `float`
 - `rgb` means the practical sRGB-based RGB model for conversion purposes
 - code uses `rgb`, not `srgb`

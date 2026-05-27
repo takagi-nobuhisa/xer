@@ -833,7 +833,7 @@ Negative spacing values are permitted and may produce overlapping glyph cells.
 
 `bitmap_font_load` reads an XBF bitmap-font file and returns a validated `bitmap_font`.
 
-XBF is XER's compact binary bitmap-font format. It stores:
+XBF is xer's compact binary bitmap-font format. It stores:
 
 - little-endian numeric fields
 - monospaced half-width and full-width glyph cells
@@ -1469,7 +1469,7 @@ auto main() -> int
     img.clear();
 
     // This line intentionally starts outside the canvas.
-    // XER clips it to the framebuffer boundary.
+    // xer clips it to the framebuffer boundary.
     xer::image::draw_hline(
         img,
         -2,

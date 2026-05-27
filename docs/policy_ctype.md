@@ -2,7 +2,7 @@
 
 ## Basic Policy
 
-In XER, `is` functions and `to` functions are locale-independent, and the basic individual functions operate only on the ASCII range.
+In xer, `is` functions and `to` functions are locale-independent, and the basic individual functions operate only on the ASCII range.
 
 The criteria for classification and conversion correspond to the `"C"` locale.
 
@@ -48,11 +48,11 @@ At least the following functions are provided:
 - `toupper`
 
 `toascii` is often understood in C-family libraries as a function that extracts the lower 7 bits.
-Because that does not fit well with XER's character handling policy, it is not adopted at this time.
+Because that does not fit well with xer's character handling policy, it is not adopted at this time.
 
 ## Dynamic Character Classification and Dynamic Character Conversion
 
-In addition to individual `is` functions and `to` functions, XER provides a dynamic character classification function `isctype` and a dynamic character conversion function `toctrans`.
+In addition to individual `is` functions and `to` functions, xer provides a dynamic character classification function `isctype` and a dynamic character conversion function `toctrans`.
 
 These functions take a character class specifier `ctype_id` and a conversion kind specifier `ctrans_id`, respectively.
 
@@ -154,7 +154,7 @@ The conversion should correctly handle at least:
 
 ## Unicode Scalar and BMP Classification
 
-XER provides code-point validity checks as part of `isctype` and as individual helper functions.
+xer provides code-point validity checks as part of `isctype` and as individual helper functions.
 
 - `is_unicode_scalar_value` checks whether a `char32_t` value is a valid Unicode scalar value
 - `is_unicode_bmp_scalar_value` checks whether it is both a valid Unicode scalar value and in the Basic Multilingual Plane

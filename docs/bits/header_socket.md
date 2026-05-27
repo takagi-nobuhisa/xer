@@ -16,7 +16,7 @@ This header provides:
 - IPv4 and IPv6 socket creation
 - TCP connection, bind, listen, and accept operations
 - UDP send/receive operations
-- conversion of sockets to XER binary or text streams
+- conversion of sockets to xer binary or text streams
 
 ---
 
@@ -98,7 +98,7 @@ auto socket_recvfrom(socket& s, std::span<std::byte> data) noexcept -> xer::resu
 
 ## Stream Conversion
 
-Sockets can be converted into XER streams:
+Sockets can be converted into xer streams:
 
 ```cpp
 auto socket_open(socket&& s) noexcept -> xer::result<binary_stream>;

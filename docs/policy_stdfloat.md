@@ -2,7 +2,7 @@
 
 ## Overview
 
-XER provides `<xer/stdfloat.h>` as a floating-point counterpart to `<xer/stdint.h>`.
+xer provides `<xer/stdfloat.h>` as a floating-point counterpart to `<xer/stdint.h>`.
 
 The purpose is not to promise that every implementation supports every floating-point format, but to provide a clear and testable vocabulary for the formats that are available.
 
@@ -10,7 +10,7 @@ The purpose is not to promise that every implementation supports every floating-
 
 ## Basic Policy
 
-- `float32_t` and `float64_t` are always available in XER.
+- `float32_t` and `float64_t` are always available in xer.
 - Optional formats such as `float16_t`, `float80_t`, `float128_t`, and `bfloat16_t` are exposed only when supported.
 - Availability is expressed through `XER_HAS_...` macros.
 - Least-width and fast-width aliases are provided where meaningful.
@@ -20,9 +20,9 @@ The purpose is not to promise that every implementation supports every floating-
 
 ## Relationship to `<stdfloat>`
 
-When the implementation provides the standard `<stdfloat>` header and the corresponding feature macros, XER reuses the standard aliases.
+When the implementation provides the standard `<stdfloat>` header and the corresponding feature macros, xer reuses the standard aliases.
 
-When the standard aliases are not available, XER provides practical fallbacks only where the meaning is clear.
+When the standard aliases are not available, xer provides practical fallbacks only where the meaning is clear.
 For example, `float32_t` may fall back to `float`, and `float64_t` may fall back to `double`.
 
 ---
@@ -40,7 +40,7 @@ If `float80_t` is unavailable but `float128_t` is available, `float_least80_t` m
 
 ## Decimal Floating-Point Types
 
-If the implementation provides decimal floating-point support through `<decimal/decimal>`, XER exposes decimal aliases.
+If the implementation provides decimal floating-point support through `<decimal/decimal>`, xer exposes decimal aliases.
 
 Decimal floating-point support is optional and must be guarded by the corresponding availability macros.
 

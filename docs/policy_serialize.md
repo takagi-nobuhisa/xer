@@ -2,7 +2,7 @@
 
 ## Overview
 
-XER provides a compact binary serialization layer through `<xer/serialize.h>`.
+xer provides a compact binary serialization layer through `<xer/serialize.h>`.
 
 The serialization design is based on fixed schemas and generated field-transfer functions. It is intentionally not a reflection-based or self-describing serialization framework.
 
@@ -18,7 +18,7 @@ The primary goals are:
 
 ## Responsibility Split
 
-### Low-Level XER Layer
+### Low-Level xer Layer
 
 `<xer/serialize.h>` is responsible for transferring supported scalar and standard container types.
 

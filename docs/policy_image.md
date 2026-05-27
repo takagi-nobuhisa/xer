@@ -2,7 +2,7 @@
 
 ## Overview
 
-XER provides image and framebuffer facilities in order to support lightweight image processing, drawing, and integration with Tcl/Tk photo images.
+xer provides image and framebuffer facilities in order to support lightweight image processing, drawing, and integration with Tcl/Tk photo images.
 
 The initial motivation is not general-purpose photo editing, but practical framebuffer-style handling such as VRAM emulation, simple GUI image manipulation, and small image-processing utilities.
 
@@ -37,7 +37,7 @@ Tcl/Tk photo integration remains in:
 xer/tk.h
 ```
 
-Only the bridge between Tk photo images and XER images belongs in `xer/tk.h`.
+Only the bridge between Tk photo images and xer images belongs in `xer/tk.h`.
 Pure image processing, drawing, and framebuffer manipulation belong in `xer/image.h`.
 
 ---
@@ -466,7 +466,7 @@ Tk_PhotoGetImage
 Tk_PhotoPutBlock
 ```
 
-The public XER API should avoid exposing Tcl/Tk photo block details unless necessary.
+The public xer API should avoid exposing Tcl/Tk photo block details unless necessary.
 
 Conceptually, the bridge may provide functions such as:
 

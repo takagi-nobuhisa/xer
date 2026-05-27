@@ -2,9 +2,9 @@
 
 ## Purpose
 
-`<xer/error.h>` provides the core error and result facilities used throughout XER.
+`<xer/error.h>` provides the core error and result facilities used throughout xer.
 
-In XER, ordinary failure is represented explicitly rather than by exceptions or special sentinel values wherever practical.
+In xer, ordinary failure is represented explicitly rather than by exceptions or special sentinel values wherever practical.
 This header defines the common vocabulary used for that purpose.
 
 ---
@@ -41,7 +41,7 @@ The exact set of enumerators in `error_t` may grow as the library evolves, but t
 
 ## Design Role
 
-This header defines the basic error-reporting model for XER.
+This header defines the basic error-reporting model for xer.
 
 Its role is to make the following possible:
 
@@ -50,13 +50,13 @@ Its role is to make the following possible:
 * attach optional structured detail when needed
 * preserve source-location information for diagnostics
 
-In other words, `<xer/error.h>` is the foundation for XER-style failure handling.
+In other words, `<xer/error.h>` is the foundation for xer-style failure handling.
 
 ---
 
 ## `xer::result`
 
-`xer::result<T, Detail>` is the standard result type in XER.
+`xer::result<T, Detail>` is the standard result type in xer.
 
 For the common case:
 
@@ -84,7 +84,7 @@ std::expected<T, xer::error<Detail>>
 
 ### Basic Policy
 
-As a rule, fallible public APIs in XER return `xer::result`.
+As a rule, fallible public APIs in xer return `xer::result`.
 
 This keeps normal success and normal failure explicit in the type system.
 
@@ -150,22 +150,22 @@ The important point is not the internal representation itself, but that the extr
 
 ## `xer::error_t`
 
-`xer::error_t` is the common error-code enumeration used across XER.
+`xer::error_t` is the common error-code enumeration used across xer.
 
 ### Basic Direction
 
 Its design is guided primarily by the following ideas:
 
 * preserve practical compatibility with `errno`-style categories where useful
-* allow XER-specific error categories where necessary
+* allow xer-specific error categories where necessary
 * avoid using a success enumerator inside the error type itself
 
 ### General Interpretation
 
 * positive values correspond, where practical, to target-environment `errno`-style meanings
-* negative values are reserved for XER-specific categories
+* negative values are reserved for xer-specific categories
 
-Examples of XER-specific categories may include things such as:
+Examples of xer-specific categories may include things such as:
 
 * `logic_error`
 * `invalid_argument`
@@ -183,7 +183,7 @@ Sequential input operations use `end_of_file` when the next item cannot be read 
 
 ## `xer::make_error`
 
-`make_error` is the standard helper for constructing XER error objects.
+`make_error` is the standard helper for constructing xer error objects.
 
 ### Why `make_error` Exists
 
@@ -261,7 +261,7 @@ auto parse_positive(int value) -> xer::result<int>
 }
 ```
 
-This example shows the normal XER pattern:
+This example shows the normal xer pattern:
 
 * return a success value directly on success
 * return `std::unexpected(xer::make_error(...))` on failure

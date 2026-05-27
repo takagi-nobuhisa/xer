@@ -2,7 +2,7 @@
 
 ## Overview
 
-XER provides the `interval` type in order to handle real values that must stay within a fixed closed interval.
+xer provides the `interval` type in order to handle real values that must stay within a fixed closed interval.
 
 This facility is intended for values such as color components, alpha values, gain values, normalized ratios, grayscale values, and other bounded scalar values.
 
@@ -185,7 +185,7 @@ The implementation may throw `std::domain_error`.
 
 ### Rationale
 
-XER normally represents ordinary recoverable failures with `xer::result`.
+xer normally represents ordinary recoverable failures with `xer::result`.
 
 However, for `interval`, `NaN`, infinity, and division by zero are treated as exceptional cases that break the numeric invariant of the value type.
 They do not normally occur unless the caller explicitly produces such values or an earlier calculation has already gone wrong.
@@ -513,7 +513,7 @@ The implementation may be placed in:
 xer/bits/interval.h
 ```
 
-This follows the general XER header organization in which public headers are placed directly under `xer/`, while subdivided implementation headers are placed under `xer/bits/`.
+This follows the general xer header organization in which public headers are placed directly under `xer/`, while subdivided implementation headers are placed under `xer/bits/`.
 
 `interval` belongs to the numeric and arithmetic-related group, but it is not merely an arithmetic helper.
 It is a small value type with its own invariant, so an independent public header is appropriate.

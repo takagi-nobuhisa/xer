@@ -2,7 +2,7 @@
 
 ## Overview
 
-XER provides child process handling through `<xer/process.h>`.
+xer provides child process handling through `<xer/process.h>`.
 
 The initial goal is to provide direct process spawning and standard stream control without introducing a shell-oriented API.
 

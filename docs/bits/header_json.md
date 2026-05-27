@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/json.h>` provides JSON value handling and JSON encode/decode facilities in XER.
+`<xer/json.h>` provides JSON value handling and JSON encode/decode facilities in xer.
 
 Its purpose is not merely to treat JSON as a string-processing convenience.
 Instead, it provides a structured representation of JSON data together with parsing and serialization functions.
@@ -15,7 +15,7 @@ This header is therefore positioned as a data-format facility rather than as par
 
 The main role of `<xer/json.h>` is to make it possible to:
 
-- parse JSON text into a structured XER value model
+- parse JSON text into a structured xer value model
 - inspect and manipulate JSON values in memory
 - serialize structured JSON values back into text
 
@@ -43,7 +43,7 @@ The exact helper members and constructors of `json_value` may evolve, but this i
 
 ## `json_value`
 
-`json_value` is the central value type for JSON in XER.
+`json_value` is the central value type for JSON in xer.
 
 It stores one JSON value in structured form.
 
@@ -75,7 +75,7 @@ This means that objects preserve insertion order rather than being normalized in
 
 This design keeps the JSON model lightweight and practical:
 
-* strings fit naturally into XER's UTF-8-oriented text model
+* strings fit naturally into xer's UTF-8-oriented text model
 * numbers use `double`
 * arrays remain straightforward recursive containers
 * objects preserve source order naturally
@@ -140,7 +140,7 @@ The input text is provided as:
 std::u8string_view
 ```
 
-This matches XER's general UTF-8-oriented public text policy.
+This matches xer's general UTF-8-oriented public text policy.
 
 ### Return Model
 
@@ -244,7 +244,7 @@ std::u8string
 
 ### Why This Matters
 
-This matches XER's broader text model:
+This matches xer's broader text model:
 
 * public text APIs are UTF-8 oriented
 * `char8_t`-based strings are the normal representation
@@ -273,7 +273,7 @@ Documentation should make clear that object behavior is based on ordered pairs, 
 
 ## Error Handling
 
-`<xer/json.h>` follows XER's ordinary failure model.
+`<xer/json.h>` follows xer's ordinary failure model.
 
 That means:
 
@@ -283,7 +283,7 @@ That means:
 
 ### Design Direction
 
-This keeps JSON processing aligned with the rest of XER's public APIs.
+This keeps JSON processing aligned with the rest of xer's public APIs.
 
 ---
 

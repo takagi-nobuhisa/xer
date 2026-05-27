@@ -2,13 +2,13 @@
 
 ## Overview
 
-XER provides a quantity system with units and dimensions in order to handle physical quantities in a type-safe manner.
+xer provides a quantity system with units and dimensions in order to handle physical quantities in a type-safe manner.
 
 The purpose of this facility is not to follow existing C++ libraries or future standardization proposals as they are.
-Instead, in line with XER's overall policy, it aims to provide **physical quantity and unit facilities that are lightweight, easy to understand, and convenient for everyday use**.
+Instead, in line with xer's overall policy, it aims to provide **physical quantity and unit facilities that are lightweight, easy to understand, and convenient for everyday use**.
 
-XER already adopts original designs for time handling and circular values rather than matching the standard library exactly.
-Physical quantities and units follow the same approach and adopt a concise design suited to XER.
+xer already adopts original designs for time handling and circular values rather than matching the standard library exactly.
+Physical quantities and units follow the same approach and adopt a concise design suited to xer.
 
 This document is the **initial policy document** for physical quantity and unit facilities.
 Implementation details will be examined separately and fed back into this document when necessary.
@@ -229,14 +229,14 @@ For example, the following units are naturally expressible by rational scale fac
 On the other hand, when the angular unit `rad` is handled relative to `taurad`, its scale is `1 / τ`.
 This cannot be represented as a rational number.
 
-Accordingly, XER's unit system does **not** fix unit scales to a rational-number representation equivalent to `std::ratio`.
+Accordingly, xer's unit system does **not** fix unit scales to a rational-number representation equivalent to `std::ratio`.
 
 ### Scale Representation
 
 At least in the initial stage, the representation of unit scales should use a **`std::ratio`-like rational representation as the default**.
 
 At the same time, there are units such as `rad`, handled relative to `taurad`, whose scales cannot be represented rationally.
-For that reason, XER should use a design that **treats `std::ratio` as the default while also allowing floating-point-based scale representations when necessary**.
+For that reason, xer should use a design that **treats `std::ratio` as the default while also allowing floating-point-based scale representations when necessary**.
 
 At minimum, the initial organization is:
 
@@ -384,7 +384,7 @@ The following aliases may also be provided when needed:
 * `μsec`
 * `μA`
 
-Although `u` is often used as an ASCII substitute, XER does not adopt that as the formal notation.
+Although `u` is often used as an ASCII substitute, xer does not adopt that as the formal notation.
 
 ### Representation of `L`
 
@@ -494,14 +494,14 @@ Units provided by default in the initial stage should prioritize those that sati
 * units frequently used in software and electronic engineering
 * units frequently appearing in ordinary books, news, and practical technical documents
 
-On the other hand, at least in the initial stage, XER does not rush to provide unit groups such as the following:
+On the other hand, at least in the initial stage, xer does not rush to provide unit groups such as the following:
 
 * units strongly tied to specific fields
 * units whose user base is limited
 * units whose symbolic names are short and prone to collision with other identifiers
 * unit groups that become awkward unless the whole system is prepared consistently
 
-For example, XER recognizes that CGS units are used in some fields, but at least in the initial stage they should not be broadly incorporated into XER itself.
+For example, xer recognizes that CGS units are used in some fields, but at least in the initial stage they should not be broadly incorporated into xer itself.
 Instead, they should be defined by users or by domain-specific extensions when needed.
 
 ---
@@ -654,7 +654,7 @@ For angles, the roles of ordinary physical quantities and circular values are se
 * ordinary angular quantities including whole turns are handled as **simple real values plus units**
 * circular operations are handled by **`cyclic`** when needed
 
-XER's `cyclic` is a type for circular values where one full turn is `1`.
+xer's `cyclic` is a type for circular values where one full turn is `1`.
 Accordingly, it is more natural **not** to store every angle quantity directly as `cyclic`, but to use `cyclic` only when circular operations are required.
 
 ### Examples
@@ -686,7 +686,7 @@ Accordingly, when `rad` is introduced in the physical quantity and unit framewor
 
 ### `taurad` / `τrad`
 
-Since `cyclic` in XER uses the design where one full turn is `1`, XER adopts **`taurad`** as the base unit for angles and provides **`τrad`** as an alias.
+Since `cyclic` in xer uses the design where one full turn is `1`, xer adopts **`taurad`** as the base unit for angles and provides **`τrad`** as an alias.
 
 * `1 taurad` = 1 turn
 * `0.5 taurad` = half a turn
@@ -752,12 +752,12 @@ The current standard library provides time-interval facilities such as `std::chr
 
 At the same time, standardization proposals for quantity and unit libraries are progressing.
 
-However, XER does not simply follow them wholesale.
+However, xer does not simply follow them wholesale.
 Instead, in the initial stage it prioritizes the following:
 
 * lightweight design
 * ease of understanding
-* consistency with XER's overall design
+* consistency with xer's overall design
 * avoiding the introduction of an excessively large metamodel
 
 Accordingly, advanced concepts such as the following may be deferred in the initial stage:
@@ -788,7 +788,7 @@ class quantity;
 
 Here, `Scale = std::ratio<1>` should be understood only as a convenient default for ordinary rational-scale units.
 
-It is **not** intended to mean that XER permanently restricts all unit scales to `std::ratio`-expressible values.
+It is **not** intended to mean that xer permanently restricts all unit scales to `std::ratio`-expressible values.
 Special units such as `rad`, whose scale relative to the base unit is non-rational, may require a different internal representation strategy.
 
 In other words, this tentative API sketch shows the default direction for the common case, while the exact scale-representation mechanism remains open to refinement during implementation.

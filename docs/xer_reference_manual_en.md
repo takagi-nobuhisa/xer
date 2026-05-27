@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v0.6.0b1**
+Target version: **v0.6.0**
 
 ---
 
@@ -10661,7 +10661,7 @@ A scanf format string consists of the following kinds of items:
 ordinary UTF-8 literal text
 ASCII whitespace
 conversion specifications beginning with %
-XER control tokens such as %@
+xer control tokens such as %@
 ```
 
 Ordinary literal text must match the input exactly.
@@ -11428,7 +11428,7 @@ if (!stream.has_value()) {
 
 const auto written = xer::stream_put_contents(
     *stream,
-    std::u8string_view(u8"hello XER"));
+    std::u8string_view(u8"hello xer"));
 
 if (!written.has_value()) {
     return 1;
@@ -19747,7 +19747,7 @@ auto main() -> int
     img.clear();
 
     // This line intentionally starts outside the canvas.
-    // XER clips it to the framebuffer boundary.
+    // xer clips it to the framebuffer boundary.
     xer::image::draw_hline(
         img,
         -2,

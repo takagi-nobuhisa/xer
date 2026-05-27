@@ -3,12 +3,12 @@
 ## 1. Basic Policy
 
 `xer/time.h` is not intended to mimic the C standard library `time.h` as it is.
-Instead, it is redesigned as a C++ library in a way that preserves the simplicity associated with C while aligning with XER's overall policy.
+Instead, it is redesigned as a C++ library in a way that preserves the simplicity associated with C while aligning with xer's overall policy.
 
 C++ `std::chrono` is powerful, but its expressions often become heavy, and it can be awkward in situations where simple C-style time handling is desired.
-For that reason, XER does not place `chrono` at the center of the public API, and instead reconstructs `time.h` as a simple time library derived from C.
+For that reason, xer does not place `chrono` at the center of the public API, and instead reconstructs `time.h` as a simple time library derived from C.
 
-Error handling follows XER's general policy and is expressed with `xer::result` and `error<void>` rather than with special values.
+Error handling follows xer's general policy and is expressed with `xer::result` and `error<void>` rather than with special values.
 
 ---
 
@@ -41,7 +41,7 @@ However, the internal representation is still `double`, and strict fixed-point s
 ## 3. Epoch Policy
 
 In the C standard, the epoch of `time_t` is implementation-defined.
-In XER, the epoch is fixed to the POSIX epoch:
+In xer, the epoch is fixed to the POSIX epoch:
 
 * 1970-01-01 00:00:00 UTC
 
@@ -182,7 +182,7 @@ auto mktime(const tm& value) -> xer::result<time_t>;
 
 ## 7.5 `ctime`
 
-In XER, `asctime` and `ctime` are unified as `ctime`.
+In xer, `asctime` and `ctime` are unified as `ctime`.
 Differences in input type are represented by overloading.
 
 ```cpp
@@ -198,7 +198,7 @@ auto ctime(const tm& value) -> std::u8string;
 * do not use a static internal buffer as in C
 
 There is no need to take `tm` by pointer.
-Because XER redesigns this as a C++ library, `const tm&` is adopted to make it explicit that the argument is input-only.
+Because xer redesigns this as a C++ library, `const tm&` is adopted to make it explicit that the argument is input-only.
 
 ---
 
@@ -234,7 +234,7 @@ All other UTF-8 text is treated as fixed text and copied as is.
 
 The implementation may use the implementation's `std::strftime` or `wcsftime` for ordinary C-style specifiers where appropriate.
 
-XER also supports small XER-specific sub-second extensions based on `tm_microsec`:
+xer also supports small xer-specific sub-second extensions based on `tm_microsec`:
 
 * `%f`: microseconds as exactly six decimal digits
 * `%L`: milliseconds as exactly three decimal digits
@@ -251,7 +251,7 @@ In practice, it is uncommon to modify `LC_TIME` explicitly, so excessive strictn
 
 ## 8. Handling of `asctime`
 
-C has `asctime`, but XER does not provide it as an independent function and instead integrates it into `ctime(const tm&)`.
+C has `asctime`, but xer does not provide it as an independent function and instead integrates it into `ctime(const tm&)`.
 
 That is, the function that converts broken-down time to a string is handled by `ctime(const tm&)`.
 
@@ -366,4 +366,4 @@ The following extensions may be considered in the future:
 * `xer::tm` extends C's `struct tm` with `tm_microsec`
 * `ctime` unifies the roles of C's `ctime` and `asctime`
 * `strftime` accepts UTF-8 format strings and returns `std::u8string`
-* `%f` and `%L` are supported as XER-specific `strftime` extensions
+* `%f` and `%L` are supported as xer-specific `strftime` extensions

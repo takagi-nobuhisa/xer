@@ -2,10 +2,10 @@
 
 ## Purpose
 
-`<xer/toml.h>` provides TOML decode and encode facilities in XER.
+`<xer/toml.h>` provides TOML decode and encode facilities in xer.
 
 TOML is treated as a typed configuration data format.
-The purpose of this header is to support practical reading and writing of simple UTF-8 TOML text while keeping the implementation small enough to fit XER's incremental development policy.
+The purpose of this header is to support practical reading and writing of simple UTF-8 TOML text while keeping the implementation small enough to fit xer's incremental development policy.
 
 The current implementation supports a practical subset of TOML.
 It does not claim complete TOML v1.0.0 compatibility.
@@ -16,7 +16,7 @@ It does not claim complete TOML v1.0.0 compatibility.
 
 The main role of `<xer/toml.h>` is to make it possible to:
 
-- parse UTF-8 TOML text into a structured XER value model
+- parse UTF-8 TOML text into a structured xer value model
 - inspect booleans, integers, floating-point numbers, strings, arrays, and tables
 - serialize the supported value model back into UTF-8 TOML text
 - use TOML as a typed configuration format distinct from INI
@@ -46,7 +46,7 @@ The exact helper functions and supported TOML syntax may expand later, but these
 
 ## `toml_value`
 
-`toml_value` is the central value type for TOML in XER.
+`toml_value` is the central value type for TOML in xer.
 
 It stores one TOML value in structured form.
 
@@ -127,7 +127,7 @@ Tables are represented as ordered key-value pairs rather than as a map-like cont
 
 This representation keeps the value model simple and preserves source order.
 
-It also matches the general XER tendency to avoid prematurely committing public data-format models to hash-map or tree-map semantics.
+It also matches the general xer tendency to avoid prematurely committing public data-format models to hash-map or tree-map semantics.
 
 ### Duplicate Keys
 
@@ -510,7 +510,7 @@ The input text is provided as:
 std::u8string_view
 ```
 
-This follows XER's UTF-8-oriented public text model.
+This follows xer's UTF-8-oriented public text model.
 
 ### Return Model
 
@@ -540,7 +540,7 @@ Malformed TOML structure is treated as an invalid argument.
 
 `toml_decode` returns `xer::result<toml_value, parse_error_detail>`.
 
-On parse failure, the error object contains the ordinary XER error code together with `offset`, `line`, `column`, and `reason` fields from `<xer/parse.h>`.
+On parse failure, the error object contains the ordinary xer error code together with `offset`, `line`, `column`, and `reason` fields from `<xer/parse.h>`.
 
 The position fields are counted in UTF-8 code units. `line` and `column` are one-based, while `offset` is zero-based.
 
@@ -604,7 +604,7 @@ For example, it rejects:
 
 ## Error Handling
 
-`<xer/toml.h>` follows XER's ordinary failure model.
+`<xer/toml.h>` follows xer's ordinary failure model.
 
 That means:
 
@@ -621,7 +621,7 @@ if (!decoded.has_value()) {
 }
 ```
 
-This follows XER's general policy that fallible public APIs return `xer::result`, while ordinary public APIs should accept ordinary values rather than `xer::result` arguments.
+This follows xer's general policy that fallible public APIs return `xer::result`, while ordinary public APIs should accept ordinary values rather than `xer::result` arguments.
 
 ---
 

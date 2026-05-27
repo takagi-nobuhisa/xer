@@ -90,7 +90,7 @@ If `index` is out of range, it returns an error through `xer::result`.
 auto parse_arg(std::u8string_view value) noexcept -> cmdline_arg;
 ```
 
-`parse_arg` parses one raw command-line argument according to XER's simple command-line rule.
+`parse_arg` parses one raw command-line argument according to xer's simple command-line rule.
 
 The return value is a pair:
 
@@ -108,7 +108,7 @@ The meaning is:
 
 ## Supported Argument Forms
 
-XER recognizes only simple long-option forms.
+xer recognizes only simple long-option forms.
 
 Supported option forms are:
 
@@ -140,7 +140,7 @@ value         -> { "", "value" }
 
 `--name` and `--name=` are intentionally treated the same.
 
-Distinguishing “no value” from “empty value” would require a more complex representation, and XER's initial command-line helper deliberately avoids that complexity.
+Distinguishing “no value” from “empty value” would require a more complex representation, and xer's initial command-line helper deliberately avoids that complexity.
 
 ---
 
@@ -212,7 +212,7 @@ On Linux, the implementation reads:
 
 This file contains the current process command-line arguments as NUL-separated byte strings.
 
-The byte strings are interpreted as UTF-8 according to XER's Linux text assumptions.
+The byte strings are interpreted as UTF-8 according to xer's Linux text assumptions.
 If an argument is not valid UTF-8, `get_cmdline` fails.
 
 Reading `/proc/self/cmdline` can theoretically fail in unusual environments.
@@ -250,14 +250,14 @@ Here, `parsed.first` and `parsed.second` refer to the string owned by `line`.
 
 ## Error Handling
 
-`<xer/cmdline.h>` follows XER's ordinary failure model.
+`<xer/cmdline.h>` follows xer's ordinary failure model.
 
 `parse_arg` itself does not fail.
 It is a simple view-based parser and returns an ordinary `cmdline_arg`.
 
 `cmdline::at` can fail when the requested index is out of range.
 
-`get_cmdline` can fail when the platform-specific command-line retrieval fails or when command-line data cannot be converted to XER's UTF-8 representation.
+`get_cmdline` can fail when the platform-specific command-line retrieval fails or when command-line data cannot be converted to xer's UTF-8 representation.
 
 Typical failure conditions include:
 
@@ -277,7 +277,7 @@ The ordinary C and C++ way to receive command-line arguments is through `main`.
 auto main(int argc, char** argv) -> int;
 ```
 
-XER does not reject that approach.
+xer does not reject that approach.
 
 However, `<xer/cmdline.h>` exists for cases where explicit `argc` / `argv` propagation is inconvenient or unavailable.
 

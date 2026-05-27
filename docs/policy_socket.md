@@ -2,9 +2,9 @@
 
 ## Overview
 
-XER provides socket handling through `<xer/socket.h>`.
+xer provides socket handling through `<xer/socket.h>`.
 
-The purpose is to offer a small, practical networking layer that fits XER's error-handling and stream model without attempting to become a full networking framework.
+The purpose is to offer a small, practical networking layer that fits xer's error-handling and stream model without attempting to become a full networking framework.
 
 ---
 
@@ -26,7 +26,7 @@ The initial socket API covers:
 - TCP connect, bind, listen, and accept
 - UDP send-to and receive-from
 - socket address reporting
-- conversion of sockets to XER streams
+- conversion of sockets to xer streams
 
 Advanced networking features are deferred.
 
@@ -61,5 +61,5 @@ At least the following are deferred:
 - `<xer/socket.h>` provides a small socket layer
 - it uses RAII and `xer::result`
 - it supports TCP, UDP, IPv4, and IPv6
-- it integrates with XER streams
+- it integrates with xer streams
 - it does not attempt to become a complete networking framework in the initial stage

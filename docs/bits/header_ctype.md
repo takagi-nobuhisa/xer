@@ -2,20 +2,20 @@
 
 ## Purpose
 
-`<xer/ctype.h>` provides character classification and character conversion facilities in XER.
+`<xer/ctype.h>` provides character classification and character conversion facilities in xer.
 
 This header covers two closely related areas:
 
 - classification of characters into categories such as alphabetic, digit, space, and printable
 - conversion of characters such as uppercase/lowercase conversion and related transformations
 
-Its role is similar in spirit to C's `<ctype.h>` and `<wctype.h>`, but the design follows XER's own text model and API policy rather than reproducing the standard library structure exactly.
+Its role is similar in spirit to C's `<ctype.h>` and `<wctype.h>`, but the design follows xer's own text model and API policy rather than reproducing the standard library structure exactly.
 
 ---
 
 ## Main Role
 
-The main role of `<xer/ctype.h>` is to provide a simple and explicit character-handling model that fits the rest of XER.
+The main role of `<xer/ctype.h>` is to provide a simple and explicit character-handling model that fits the rest of xer.
 
 In particular, it aims to provide:
 
@@ -36,13 +36,13 @@ The basic `is` functions and `to` functions are locale-independent.
 
 Their behavior corresponds to the `"C"` locale rather than to environment-dependent locale rules.
 
-This is important because XER's broader design tries to minimize dependence on locale.
+This is important because xer's broader design tries to minimize dependence on locale.
 
 ### Character Type
 
 The argument type for individual character classification and conversion functions is unified to `char32_t`.
 
-This matches XER's general policy that individual Unicode scalar values are handled as `char32_t`.
+This matches xer's general policy that individual Unicode scalar values are handled as `char32_t`.
 
 ### ASCII as the Basic Scope
 
@@ -140,13 +140,13 @@ Their behavior is:
 
 A traditional C-family `toascii` is not adopted at present.
 
-This is because `toascii` is often understood as a low-level bit-masking operation that extracts the lower 7 bits, and that does not fit naturally with XER's character-handling policy.
+This is because `toascii` is often understood as a low-level bit-masking operation that extracts the lower 7 bits, and that does not fit naturally with xer's character-handling policy.
 
 ---
 
 ## Dynamic Character Classification
 
-In addition to fixed `is` functions, XER provides a dynamic classifier:
+In addition to fixed `is` functions, xer provides a dynamic classifier:
 
 ```cpp
 enum class ctype_id;
@@ -184,7 +184,7 @@ This makes it possible, for example, to keep `isdigit` simple while still suppor
 
 ## Dynamic Character Conversion
 
-XER also provides a dynamic conversion function:
+xer also provides a dynamic conversion function:
 
 ```cpp
 enum class ctrans_id;

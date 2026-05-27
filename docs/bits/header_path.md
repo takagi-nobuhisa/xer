@@ -2,17 +2,17 @@
 
 ## Purpose
 
-`<xer/path.h>` provides XER's lexical path type and related path utilities.
+`<xer/path.h>` provides xer's lexical path type and related path utilities.
 
 Its role is not to wrap `std::filesystem::path`.
-Instead, XER provides its own UTF-8-based path model designed around the following ideas:
+Instead, xer provides its own UTF-8-based path model designed around the following ideas:
 
 - keep the internal representation simple and consistent
 - treat path handling primarily as a lexical operation
 - preserve important Windows-specific path distinctions
 - separate lexical path handling from actual filesystem-dependent resolution
 
-This header is therefore the public entry point for path representation and path-oriented utility functions in XER.
+This header is therefore the public entry point for path representation and path-oriented utility functions in xer.
 
 ---
 
@@ -61,7 +61,7 @@ The exact overload set may expand, but this is the core public shape.
 
 `path` is the central type of the header.
 
-It represents a path in XER's own lexical UTF-8 model.
+It represents a path in xer's own lexical UTF-8 model.
 
 ### Basic Shape
 
@@ -139,7 +139,7 @@ auto str() const noexcept -> std::u8string_view;
 * it is not a display-oriented native path string
 
 This distinction is important.
-`str()` returns the XER path representation, not a platform display form.
+`str()` returns the xer path representation, not a platform display form.
 
 ---
 
@@ -176,7 +176,7 @@ This keeps the basic semantics centralized.
 
 ## Lexical Path Operations
 
-Most path utilities in XER are free functions.
+Most path utilities in xer are free functions.
 
 At minimum, these include:
 
@@ -189,7 +189,7 @@ At minimum, these include:
 
 ### Why Free Functions
 
-XER prefers free functions for operations that do not need direct mutation or privileged internal control.
+xer prefers free functions for operations that do not need direct mutation or privileged internal control.
 
 This keeps the responsibility of `path` itself small and focused.
 
@@ -207,7 +207,7 @@ auto basename(const path& value) noexcept -> std::u8string_view;
 
 ### Design Direction
 
-Its behavior is intentionally close to PHP's `basename`, while still following XER's own path model.
+Its behavior is intentionally close to PHP's `basename`, while still following xer's own path model.
 
 ### Important Notes
 
@@ -228,9 +228,9 @@ auto extension(const path& value) noexcept -> std::u8string_view;
 
 `extension` returns the extension-like suffix of the basename.
 
-### XER Rule
+### xer Rule
 
-In XER, `extension` returns the part of `basename(path)` beginning with the **first** `.`.
+In xer, `extension` returns the part of `basename(path)` beginning with the **first** `.`.
 
 This means, for example:
 
@@ -254,7 +254,7 @@ auto stem(const path& value) noexcept -> std::u8string_view;
 
 ### Purpose
 
-`stem` returns the leading part of the basename after removing the extension as defined by XER.
+`stem` returns the leading part of the basename after removing the extension as defined by xer.
 
 ### Examples
 
@@ -263,7 +263,7 @@ auto stem(const path& value) noexcept -> std::u8string_view;
 * `.foo` -> empty string
 * `foo.` -> `foo`
 
-Its exact behavior should therefore always be interpreted together with XER's `extension` rule.
+Its exact behavior should therefore always be interpreted together with xer's `extension` rule.
 
 ---
 
@@ -308,7 +308,7 @@ auto is_relative(const path& value) noexcept -> bool;
 
 ### Purpose
 
-These functions classify the path according to XER's path rules.
+These functions classify the path according to xer's path rules.
 
 ### Windows-Specific Importance
 
@@ -321,13 +321,13 @@ For example:
 * `/foo` is absolute
 * `//server/share/foo` is absolute
 
-This is one of the reasons XER uses its own path model instead of simply delegating public semantics to another library.
+This is one of the reasons xer uses its own path model instead of simply delegating public semantics to another library.
 
 ---
 
 ## Native Path Conversion
 
-`<xer/path.h>` also provides conversion between XER paths and native platform path representations.
+`<xer/path.h>` also provides conversion between xer paths and native platform path representations.
 
 At minimum, this includes:
 
@@ -339,7 +339,7 @@ auto from_native_path(const native_path_char_t* value) -> std::expected<path, er
 
 ### Purpose
 
-These functions exist so that XER's internal UTF-8 lexical model can interoperate with platform-native path strings.
+These functions exist so that xer's internal UTF-8 lexical model can interoperate with platform-native path strings.
 
 ### Role of the Native Types
 
@@ -410,7 +410,7 @@ This makes `<xer/path.h>` a foundational header for path-aware APIs elsewhere in
 
 When this header is used in generated documentation, it is usually enough to explain:
 
-* that XER uses its own UTF-8 lexical path type
+* that xer uses its own UTF-8 lexical path type
 * that separators are normalized to `/`
 * that Windows lexical distinctions are preserved
 * that most path utilities are free functions
@@ -457,7 +457,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * construct paths from UTF-8 text
 * use lexical path composition

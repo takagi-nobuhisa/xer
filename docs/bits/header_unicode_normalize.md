@@ -22,7 +22,7 @@ This header depends on external ICU development headers and ICU libraries. If th
 
 The implementation uses ICU C API functions such as `u_strFromUTF8`, `u_strToUTF8`, `unorm2_getNFCInstance`, `unorm2_normalize`, and `unorm2_isNormalized`.
 
-XER does not manage application build-system settings. Users must provide suitable include paths and link options for their environment.
+xer does not manage application build-system settings. Users must provide suitable include paths and link options for their environment.
 
 For example, on many Unix-like environments, the required link options are obtained through `pkg-config`:
 
@@ -42,7 +42,7 @@ On MSYS2 environments, the ICU data library may be named `icudt` rather than `ic
 g++ -std=c++23 -I. example.cpp -licuuc -licudt
 ```
 
-The XER test runner handles known environments separately.
+The xer test runner handles known environments separately.
 
 ---
 
@@ -212,7 +212,7 @@ In this example, `before` is expected to contain `false`, while `after` is expec
 
 `<xer/unicode_normalize.h>` is intentionally independent from ordinary string-processing headers such as `<xer/string.h>`.
 
-Unicode normalization is heavier than simple UTF-8 string utilities because it requires Unicode normalization data. XER delegates this responsibility to ICU instead of embedding a large generated Unicode table in the header-only library.
+Unicode normalization is heavier than simple UTF-8 string utilities because it requires Unicode normalization data. xer delegates this responsibility to ICU instead of embedding a large generated Unicode table in the header-only library.
 
 The initial API exposes only NFC because NFC is the most practical normalization form for many file-name, search-key, dictionary, and text-cleanup use cases. Other normalization forms can be added later without changing the basic API shape.
 

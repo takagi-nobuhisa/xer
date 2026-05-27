@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/version.h>` provides compile-time version information for XER.
+`<xer/version.h>` provides compile-time version information for xer.
 
 Its purpose is to make the library version available in a simple and explicit form for:
 
@@ -17,7 +17,7 @@ This header is intentionally small and focused.
 
 ## Main Role
 
-The main role of `<xer/version.h>` is to provide a stable public way to query the version of the XER library.
+The main role of `<xer/version.h>` is to provide a stable public way to query the version of the xer library.
 
 In particular, it exists to make the following easy:
 
@@ -126,7 +126,7 @@ This dual provision of macros and constants is useful because:
 
 ## Version Components
 
-The XER version is divided into several components.
+The xer version is divided into several components.
 
 ### Major Version
 
@@ -185,7 +185,7 @@ The main goal is simply to expose the library version clearly.
 
 Typical uses of `<xer/version.h>` include:
 
-* displaying the current XER version in logs or diagnostics
+* displaying the current xer version in logs or diagnostics
 * embedding the version into generated documentation
 * checking the library version in test code
 * simple conditional handling in source code

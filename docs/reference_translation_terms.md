@@ -1,6 +1,6 @@
 # リファレンスマニュアル対訳表
 
-対象バージョン: **v0.5.0b1**
+対象バージョン: **v0.6.0b1**
 
 この文書は、`docs/xer_reference_manual_en.md` と `docs/xer_reference_manual_ja.md` の表記ゆれを抑えるための対訳表です。
 
@@ -10,7 +10,7 @@
 |---|---|---|
 | xer C++ Utility Library | xer C++ Utility Library | 正式名称。 |
 | xer | xer | 略称。常に小文字。 |
-| XER | 使用しない | マクロ名や `XER_INCLUDE` など、コード上の識別子は除く。 |
+| xer | 使用しない | マクロ名や `XER_INCLUDE` など、コード上の識別子は除く。 |
 
 ## 基本用語
 

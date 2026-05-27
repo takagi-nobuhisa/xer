@@ -2,12 +2,12 @@
 
 ## Purpose
 
-`<xer/dirent.h>` provides directory stream operations in XER.
+`<xer/dirent.h>` provides directory stream operations in xer.
 
 This header covers PHP/POSIX-style directory traversal facilities such as opening a directory, reading entry names, rewinding the directory stream, and closing it.
 
 The purpose is not to reproduce POSIX `dirent.h` exactly.
-Instead, XER provides a small C++23-friendly directory stream API that uses:
+Instead, xer provides a small C++23-friendly directory stream API that uses:
 
 - `xer::path` for path names
 - UTF-8 strings for directory entry names
@@ -36,7 +36,7 @@ auto xer::rewinddir(dir& directory) noexcept -> result<void>;
 This header exists for directory stream traversal.
 
 It is separated from `<xer/stdio.h>` because directory streams are stateful traversal handles rather than ordinary file streams.
-Although the names are familiar from POSIX and PHP, the API is adapted to XER's own path, string, and error-handling model.
+Although the names are familiar from POSIX and PHP, the API is adapted to xer's own path, string, and error-handling model.
 
 ---
 
@@ -73,7 +73,7 @@ auto opendir(const path& dirname) noexcept -> result<dir>;
 
 `opendir` opens a directory stream for the specified path.
 
-The path is converted from XER's UTF-8 `xer::path` representation to the platform-native path representation before the underlying directory API is called.
+The path is converted from xer's UTF-8 `xer::path` representation to the platform-native path representation before the underlying directory API is called.
 
 ### Return Value
 
@@ -186,13 +186,13 @@ On failure, it returns `xer::result` failure.
 ### Notes
 
 The order after rewinding is still platform- and filesystem-dependent.
-XER does not guarantee a stable ordering of directory entries.
+xer does not guarantee a stable ordering of directory entries.
 
 ---
 
 ## End-of-Directory Handling
 
-In XER, reaching the end of a directory stream is represented as:
+In xer, reaching the end of a directory stream is represented as:
 
 ```cpp
 error_t::end_of_file
@@ -223,7 +223,7 @@ This keeps end-of-directory separate from ordinary successful reads while still 
 
 `<xer/dirent.h>` uses `xer::path` for directory paths.
 
-The `path` object stores a UTF-8 path in XER's normalized internal form.
+The `path` object stores a UTF-8 path in xer's normalized internal form.
 When `opendir` is called, the path is converted to the platform-native representation before being passed to the underlying directory API.
 
 The names returned by `readdir` are converted back into UTF-8 strings.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-In XER, public APIs should, as a rule, **not** take `xer::result` as a function argument.
+In xer, public APIs should, as a rule, **not** take `xer::result` as a function argument.
 
 Previously, functions that directly accepted `xer::result` were also allowed, with the intention of making error propagation easier to write.
 However, it became clear that this policy could work against the clarity and usability of public APIs.
@@ -10,7 +10,7 @@ However, it became clear that this policy could work against the clarity and usa
 In particular, when overloads that accept ordinary values coexist with overloads that accept `xer::result`, type deduction and overload resolution can become unnatural at the call site.
 As a result, behavior may become harder for users to predict, such as string literals or temporary objects not being accepted naturally.
 
-For this reason, XER limits the use of `xer::result` arguments and aims to make public APIs simpler and easier to understand.
+For this reason, xer limits the use of `xer::result` arguments and aims to make public APIs simpler and easier to understand.
 
 ---
 
@@ -88,7 +88,7 @@ It should not be expanded to APIs such as string processing, path handling, inpu
 Among existing public APIs, any functions outside `xer/arithmetic.h` that currently accept `xer::result` as an argument should be deprecated or removed step by step.
 
 If necessary, temporary migration measures may be introduced with compatibility in mind.
-However, because XER is still in the alpha stage, unnecessary compatibility layers should be avoided as much as possible.
+However, because xer is still in the alpha stage, unnecessary compatibility layers should be avoided as much as possible.
 
 ---
 

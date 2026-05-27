@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/ini.h>` provides INI decode and encode facilities in XER.
+`<xer/ini.h>` provides INI decode and encode facilities in xer.
 
 INI is treated as a small configuration-file format rather than as a general structured data language.
 The purpose of this header is to support practical reading and writing of simple UTF-8 INI text while preserving the parts of the format that are important for ordinary configuration files.
@@ -105,7 +105,7 @@ Sectioned entries are stored in `sections`.
 ### Why Global Entries Are Separate
 
 Many INI files allow key-value entries before the first section.
-XER represents these entries explicitly instead of inventing an artificial section name.
+xer represents these entries explicitly instead of inventing an artificial section name.
 
 ### Preservation Policy
 
@@ -285,7 +285,7 @@ including the quote characters.
 
 This is intentional.
 INI dialects differ widely in quoting and escaping behavior.
-XER keeps the initial INI feature small and predictable, and leaves typed or strongly escaped configuration syntax to formats such as TOML.
+xer keeps the initial INI feature small and predictable, and leaves typed or strongly escaped configuration syntax to formats such as TOML.
 
 ---
 
@@ -307,7 +307,7 @@ The input text is provided as:
 std::u8string_view
 ```
 
-This follows XER's UTF-8-oriented public text model.
+This follows xer's UTF-8-oriented public text model.
 
 ### Return Model
 
@@ -393,7 +393,7 @@ This keeps `ini_encode` honest and avoids silently emitting ambiguous INI text.
 
 ## Error Handling
 
-`<xer/ini.h>` follows XER's ordinary failure model.
+`<xer/ini.h>` follows xer's ordinary failure model.
 
 That means:
 

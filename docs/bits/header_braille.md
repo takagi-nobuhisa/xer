@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`<xer/braille.h>` provides low-level braille-related building blocks for XER.
+`<xer/braille.h>` provides low-level braille-related building blocks for xer.
 
 At the current stage, this header provides:
 

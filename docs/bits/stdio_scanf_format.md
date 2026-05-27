@@ -1,8 +1,8 @@
-# XER scanf Format Specifiers
+# xer scanf Format Specifiers
 
 ## Scope
 
-This document describes the format strings used by the XER scanf family.
+This document describes the format strings used by the xer scanf family.
 
 Target functions:
 
@@ -18,16 +18,16 @@ The printf family is documented separately in `stdio_printf_format.md`.
 
 ## Basic Policy
 
-XER scanf-style functions are inspired by C scanf, but they are not strict source-compatible reimplementations.
+xer scanf-style functions are inspired by C scanf, but they are not strict source-compatible reimplementations.
 
 - format strings are UTF-8 strings
-- input text is read as XER text and is processed as Unicode scalar values where appropriate
+- input text is read as xer text and is processed as Unicode scalar values where appropriate
 - ordinary fixed text in the format string must match the input
 - ASCII whitespace in the format string matches zero or more ASCII whitespace characters in the input
 - conversion specifications start with `%`
 - ordinary failure is reported through `xer::result`
 - match failure returns the number of successful assignments already completed
-- XER-specific extensions may exist
+- xer-specific extensions may exist
 
 A format string may contain ordinary UTF-8 text, whitespace, control tokens, and conversion specifications.
 
@@ -58,7 +58,7 @@ A scanf format string consists of the following kinds of items:
 ordinary UTF-8 literal text
 ASCII whitespace
 conversion specifications beginning with %
-XER control tokens such as %@
+xer control tokens such as %@
 ```
 
 Ordinary literal text must match the input exactly.
@@ -102,7 +102,7 @@ A conversion may specify an output argument position:
 Argument positions are one-based.
 
 When positional arguments are used, the format string is treated as positional.
-Sequential and positional argument selection must not be mixed in the same format string, except through the XER `%@` control token rules described below.
+Sequential and positional argument selection must not be mixed in the same format string, except through the xer `%@` control token rules described below.
 
 Examples:
 
@@ -216,7 +216,7 @@ The following conversion specifiers are supported:
 %%
 ```
 
-The `%@` token is also supported as an XER-specific control token.
+The `%@` token is also supported as an xer-specific control token.
 It is described separately below.
 
 ---
@@ -317,7 +317,7 @@ std::u32string
 std::wstring
 ```
 
-The input text is UTF-8 in the XER text model.
+The input text is UTF-8 in the xer text model.
 When the destination is `std::u16string`, `std::u32string`, or `std::wstring`, the collected UTF-8 text is converted to the corresponding character-string representation.
 
 For `std::wstring`, conversion follows the width of `wchar_t`:
@@ -393,9 +393,9 @@ It does not assign to an output argument and does not increment the assignment c
 
 ---
 
-## XER Control Token: `%@`
+## xer Control Token: `%@`
 
-`%@` is an XER-specific scanf control token.
+`%@` is an xer-specific scanf control token.
 
 It does not read input by itself.
 Instead, it controls argument selection for the following conversion specification.
@@ -497,7 +497,7 @@ This allows callers to ignore selected values without changing the input-matchin
 
 ## Match Failure vs Error
 
-XER scanf-style functions distinguish ordinary match failure from errors.
+xer scanf-style functions distinguish ordinary match failure from errors.
 
 ### Match Failure
 
@@ -532,10 +532,10 @@ Typical error cases include:
 
 ## Encoding Notes
 
-XER scanf-style input works in XER's text model.
+xer scanf-style input works in xer's text model.
 
 For `sscanf`, the input is a UTF-8 string.
-For `fscanf` and `scanf`, the source is a `text_stream`, whose external encoding is handled by the stream layer and whose characters are read as XER text characters.
+For `fscanf` and `scanf`, the source is a `text_stream`, whose external encoding is handled by the stream layer and whose characters are read as xer text characters.
 
 Collected string values are stored internally as UTF-8 before being assigned to the destination string type.
 

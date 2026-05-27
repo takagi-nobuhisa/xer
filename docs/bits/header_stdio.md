@@ -2,12 +2,12 @@
 
 ## Purpose
 
-`<xer/stdio.h>` provides stream-based input and output facilities in XER.
+`<xer/stdio.h>` provides stream-based input and output facilities in xer.
 
 Its role is similar in spirit to the C standard library `<stdio.h>`, but it is not intended to be a literal reproduction.
-Instead, it reconstructs practical I/O around explicit stream types, explicit encodings, and XER's ordinary failure model.
+Instead, it reconstructs practical I/O around explicit stream types, explicit encodings, and xer's ordinary failure model.
 
-This header is one of the most important public headers in XER because it provides the main user-facing path for:
+This header is one of the most important public headers in xer because it provides the main user-facing path for:
 
 - binary stream I/O
 - text stream I/O
@@ -73,7 +73,7 @@ It is used for:
 
 These two stream types are intentionally separate.
 
-XER does not model them as one stream class with a mode switch.
+xer does not model them as one stream class with a mode switch.
 Instead, the distinction between binary and text I/O is made explicit at the type level.
 
 ---
@@ -95,7 +95,7 @@ This implies at least the following:
 
 This makes stream ownership explicit and avoids many ambiguities associated with raw handle sharing.
 
-It also fits XER's broader design preference for explicit ownership and explicit failure handling.
+It also fits xer's broader design preference for explicit ownership and explicit failure handling.
 
 ---
 
@@ -156,7 +156,7 @@ enum class encoding_t {
 
 ### Important Notes
 
-* text I/O in XER is not locale-centered
+* text I/O in xer is not locale-centered
 * encoding is part of the stream-opening model
 * `auto_detect` is intended for input, not for general write-side behavior
 
@@ -190,7 +190,7 @@ These functions provide:
 Binary data is handled as raw byte-oriented data rather than as text.
 
 `fgetc` and `fputc` are therefore not the single-byte binary I/O interface.
-Instead, XER uses `fgetb` and `fputb` for that role.
+Instead, xer uses `fgetb` and `fputb` for that role.
 
 ### EOF Handling
 
@@ -234,7 +234,7 @@ These functions provide:
 
 ### Design Direction
 
-Text streams are normalized internally around XER's text model.
+Text streams are normalized internally around xer's text model.
 
 In particular:
 
@@ -267,12 +267,12 @@ These functions provide familiar formatted I/O in a style approachable to users 
 
 ### Design Direction
 
-Although the naming resembles the standard library, the surrounding design is XER's own:
+Although the naming resembles the standard library, the surrounding design is xer's own:
 
 * stream types are explicit
 * text model is UTF-8-oriented
-* ordinary failure is reported through XER-style result handling where applicable
-* integration with XER stream abstractions takes priority over strict source-level emulation of C
+* ordinary failure is reported through xer-style result handling where applicable
+* integration with xer stream abstractions takes priority over strict source-level emulation of C
 
 ### printf Format Details
 
@@ -295,7 +295,7 @@ fputcsv
 
 ### Role of This Group
 
-These functions provide convenient CSV input and output on top of XER streams.
+These functions provide convenient CSV input and output on top of xer streams.
 
 They are particularly useful because CSV is a text-oriented format that benefits from integration with:
 
@@ -360,7 +360,7 @@ auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
 auto rewind(text_stream& stream) noexcept -> xer::result<void>;
 ```
 
-Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
+Unlike the C standard-library function, xer's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
 
 For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
 
@@ -392,11 +392,11 @@ auto stream_put_contents(
 
 ### Purpose
 
-`stream_get_contents` and `stream_put_contents` provide compact helpers for reading from and writing to an already-open XER stream.
+`stream_get_contents` and `stream_put_contents` provide compact helpers for reading from and writing to an already-open xer stream.
 
 They are the stream-level counterparts of `file_get_contents` and `file_put_contents`.
 
-Because they operate on streams rather than file names, they can be used with any stream source or destination supported by XER, including files, temporary files, memory streams, string streams, process pipes, and socket-derived streams where applicable.
+Because they operate on streams rather than file names, they can be used with any stream source or destination supported by xer, including files, temporary files, memory streams, string streams, process pipes, and socket-derived streams where applicable.
 
 ### Binary `stream_get_contents`
 
@@ -415,13 +415,13 @@ If `length` is zero, the function succeeds and returns an empty byte vector.
 
 ### No Offset Argument
 
-XER intentionally does not provide an offset parameter for `stream_get_contents`.
+xer intentionally does not provide an offset parameter for `stream_get_contents`.
 
 A stream already has a current position. If the caller needs to choose the starting position, the caller should use `fseek`, `fsetpos`, or another appropriate positioning function explicitly before calling `stream_get_contents`.
 
 This also avoids the confusing argument-order difference found in PHP, where `file_get_contents` and `stream_get_contents` place offset and length differently.
 
-In XER, the rule is simple:
+In xer, the rule is simple:
 
 * `file_get_contents` may take an offset because it opens the file internally
 * `stream_get_contents` reads from the stream's current position
@@ -491,7 +491,7 @@ The stream-level functions contain the reusable read/write logic, while the file
 
 ### Error Handling
 
-These functions follow XER's ordinary failure model.
+These functions follow xer's ordinary failure model.
 
 On success:
 
@@ -519,7 +519,7 @@ if (!stream.has_value()) {
 
 const auto written = xer::stream_put_contents(
     *stream,
-    std::u8string_view(u8"hello XER"));
+    std::u8string_view(u8"hello xer"));
 
 if (!written.has_value()) {
     return 1;
@@ -610,7 +610,7 @@ These functions are intentionally separate from stream objects themselves.
 
 They typically operate on `xer::path`, not on raw native path strings.
 
-This aligns them with XER's own path model, where path values are represented internally as UTF-8 strings with `/` as the normalized separator.
+This aligns them with xer's own path model, where path values are represented internally as UTF-8 strings with `/` as the normalized separator.
 
 Some functions in this group are simple predicates, while others perform actual filesystem operations.
 
@@ -679,7 +679,7 @@ auto getcwd() -> xer::result<path>;
 
 The returned value is a `xer::path`.
 
-The path is converted into XER's internal UTF-8 representation and uses `/` as the normalized separator.
+The path is converted into xer's internal UTF-8 representation and uses `/` as the normalized separator.
 
 The result is a snapshot of the process-wide current working directory at the time of the call.
 
@@ -705,7 +705,7 @@ Relative path components are resolved.
 Symbolic links and other filesystem-level indirections are resolved according to the behavior of the underlying platform.
 
 On POSIX-like environments, the behavior follows the platform `realpath` facility.
-On Windows, the implementation uses Windows path canonicalization facilities and converts the result back into XER's path representation.
+On Windows, the implementation uses Windows path canonicalization facilities and converts the result back into xer's path representation.
 
 ### Return Value
 
@@ -715,7 +715,7 @@ The returned path:
 
 * is absolute
 * refers to an existing filesystem entry
-* is converted to XER's UTF-8 path representation
+* is converted to xer's UTF-8 path representation
 * uses `/` as the internal separator
 
 On failure, it returns an error through `xer::result`.
@@ -782,7 +782,7 @@ auto file_put_contents(
 
 They are file-opening convenience wrappers around `stream_get_contents` and `stream_put_contents`. The reusable read/write behavior belongs to the stream-level helpers, while the file-level helpers additionally open the target file and apply file-specific options.
 
-They are inspired by PHP functions of the same names, but their behavior follows XER's stream and encoding model.
+They are inspired by PHP functions of the same names, but their behavior follows xer's stream and encoding model.
 
 ### Binary and Text Selection
 
@@ -859,7 +859,7 @@ This overload opens the file as text and writes the UTF-8 text in `contents` usi
 
 ### Why PHP-Style Flags Are Not Provided
 
-XER intentionally does not provide PHP-style `flags` arguments for these functions.
+xer intentionally does not provide PHP-style `flags` arguments for these functions.
 
 In particular, append behavior and locking behavior are not hidden inside `file_put_contents`.
 
@@ -871,7 +871,7 @@ If append-style output is required, the caller should use stream APIs directly, 
 
 ### Error Handling
 
-These functions follow XER's ordinary failure model.
+These functions follow xer's ordinary failure model.
 
 On success:
 
@@ -918,7 +918,7 @@ The header may also expose support related to native-handle access.
 
 ### Role
 
-This exists for cases where callers need to bridge XER stream abstractions to lower-level platform or runtime facilities.
+This exists for cases where callers need to bridge xer stream abstractions to lower-level platform or runtime facilities.
 
 ### Design Direction
 
@@ -940,9 +940,9 @@ These implementation ideas are important to understand the shape of the public A
 
 ---
 
-## Relationship to XER's Text Model
+## Relationship to xer's Text Model
 
-`<xer/stdio.h>` is one of the headers most tightly coupled to XER's overall text model.
+`<xer/stdio.h>` is one of the headers most tightly coupled to xer's overall text model.
 
 In particular:
 
@@ -978,7 +978,7 @@ The rough boundary is:
 
 When this header is used in generated documentation, it is usually enough to explain:
 
-* that XER distinguishes `binary_stream` and `text_stream`
+* that xer distinguishes `binary_stream` and `text_stream`
 * that text encodings are explicit rather than locale-driven
 * that stream objects are move-only RAII types
 * that both low-level I/O and higher-level facilities such as formatted I/O and CSV are included
@@ -1027,9 +1027,9 @@ auto main() -> int
 }
 ```
 
-This example shows the basic XER style:
+This example shows the basic xer style:
 
-* use XER text I/O directly
+* use xer text I/O directly
 * work with UTF-8-oriented text
 * check `xer::result` explicitly
 

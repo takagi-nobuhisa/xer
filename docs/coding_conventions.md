@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The purpose of these conventions is to ensure readability, consistency, and maintainability in the XER source code.
+The purpose of these conventions is to ensure readability, consistency, and maintainability in the xer source code.
 
 These conventions do not attempt to over-document minute formatting rules of the kind often compared to trivial etiquette.
 Formatting matters that can be unified mechanically by automatic formatting should, as far as possible, be delegated to `clang-format` and `.editorconfig`.
@@ -50,5 +50,5 @@ Formatting matters that can be unified mechanically by automatic formatting shou
 ## Operational Policy
 
 - Formatting variation should be absorbed by automatic formatting as much as possible, rather than by review.
-- In the main body of the conventions, priority is given to matters related to XER's design policy and implementation precautions.
+- In the main body of the conventions, priority is given to matters related to xer's design policy and implementation precautions.
 - Even when adding or revising a convention, automatic solutions should be considered first.

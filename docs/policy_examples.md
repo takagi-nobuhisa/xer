@@ -2,7 +2,7 @@
 
 ## Overview
 
-XER places user-facing code examples in the `examples/` directory.
+xer places user-facing code examples in the `examples/` directory.
 
 The purpose of a code example is not merely to show a fragment that happens to compile, but to present a **minimal and natural usage example that users can actually try as it is**.
 
@@ -11,7 +11,7 @@ Accordingly, code examples should satisfy the following properties:
 - they can be compiled independently
 - they can be run independently
 - their intended behavior is understandable to the reader
-- they show natural usage of XER's public API
+- they show natural usage of xer's public API
 - they can be verified by automatic execution
 
 Code examples are different from test programs.
@@ -75,7 +75,7 @@ As a rule, a code example source file contains a `main` function.
 auto main() -> int;
 ````
 
-The return type should be written in trailing form, in accordance with XER's overall policy.
+The return type should be written in trailing form, in accordance with xer's overall policy.
 
 ### Exit Status
 
@@ -104,7 +104,7 @@ Instead, improvement of the public API design should be considered.
 
 ### Handling of `xer::result`
 
-Code examples follow XER's overall policy that ordinary public APIs do not take `xer::result` as a function argument.
+Code examples follow xer's overall policy that ordinary public APIs do not take `xer::result` as a function argument.
 
 Accordingly, if a code example holds a `xer::result`, it should explicitly extract the success value at the call site before passing it to the next function.
 
@@ -118,14 +118,14 @@ A code example should show this explicit flow of error handling in a natural way
 
 When displaying strings or characters in code examples, the public APIs in `xer/stdio.h` should generally be used instead of `std::cout`.
 
-This is to match XER's policy for string handling and text input/output.
+This is to match xer's policy for string handling and text input/output.
 
 ### Reason
 
-XER uses `char8_t`-based UTF-8 strings as its primary string representation, and uses `char32_t` for characters where appropriate.
+xer uses `char8_t`-based UTF-8 strings as its primary string representation, and uses `char32_t` for characters where appropriate.
 These do not always fit naturally with `std::cout`.
 
-For that reason, it is more natural for code examples to use XER's own text I/O APIs.
+For that reason, it is more natural for code examples to use xer's own text I/O APIs.
 
 ### Recommended Functions
 
@@ -148,7 +148,7 @@ If examples that require input are introduced, it is assumed that standard input
 
 ### Comments Are Written in English
 
-Comments inside code examples are written in English, in accordance with XER's overall coding conventions.
+Comments inside code examples are written in English, in accordance with xer's overall coding conventions.
 
 ### Purpose of Comments
 

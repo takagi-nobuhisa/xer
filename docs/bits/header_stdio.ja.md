@@ -512,7 +512,7 @@ if (!stream.has_value()) {
 
 const auto written = xer::stream_put_contents(
     *stream,
-    std::u8string_view(u8"hello XER"));
+    std::u8string_view(u8"hello xer"));
 
 if (!written.has_value()) {
     return 1;
