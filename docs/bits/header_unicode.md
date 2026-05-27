@@ -15,10 +15,11 @@ The current scope includes:
 - grapheme-cluster-based string operations for `std::u8string_view`
 - grapheme-cluster-based string operations for `std::u16string_view`
 - grapheme-cluster-based string operations for `std::wstring_view`
+- practical emoji detection for code points and single grapheme clusters
 - NFC normalization for UTF-8 text
 - NFC status checking for UTF-8 text
 
-Code point traversal, grapheme cluster traversal, and grapheme-cluster-based string operations themselves do not use ICU. NFC normalization uses the ICU C API.
+Code point traversal, grapheme cluster traversal, grapheme-cluster-based string operations, and emoji detection themselves do not use ICU. NFC normalization uses the ICU C API.
 
 At present, `<xer/unicode.h>` includes the ICU-based normalization implementation, so including this public header requires the ICU development headers to be available.
 
@@ -197,6 +198,23 @@ auto grapheme_right(std::u8string_view text, std::size_t count)
 ```
 
 `std::u16string_view` and `std::wstring_view` overloads are also provided. The returned substring values are views into the original text.
+
+The header also provides practical emoji detection:
+
+```cpp
+auto is_emoji(char32_t value) noexcept -> bool;
+
+auto is_emoji(std::u8string_view text)
+    -> xer::result<bool>;
+
+auto is_emoji(std::u16string_view text)
+    -> xer::result<bool>;
+
+auto is_emoji(std::wstring_view text)
+    -> xer::result<bool>;
+```
+
+The string-view overloads return `true` only when the whole input is one practical emoji grapheme cluster. Empty input returns `false`. Malformed UTF-8, UTF-16, or wide text is reported as an error.
 
 The header also provides NFC utilities:
 
@@ -674,6 +692,61 @@ const auto right = xer::grapheme_right(text, 2);
 
 ---
 
+## `is_emoji`
+
+```cpp
+auto is_emoji(char32_t value) noexcept -> bool;
+
+auto is_emoji(std::u8string_view text)
+    -> xer::result<bool>;
+
+auto is_emoji(std::u16string_view text)
+    -> xer::result<bool>;
+
+auto is_emoji(std::wstring_view text)
+    -> xer::result<bool>;
+```
+
+### Purpose
+
+`is_emoji` provides practical emoji detection for English/Japanese user-facing text.
+
+The `char32_t` overload checks whether a Unicode scalar value is treated as an emoji base by XER. It is intended for quick code point classification.
+
+The string-view overloads check whether the whole input is one emoji grapheme cluster. This is the overload to use for sequences such as flags, keycap emoji, emoji with variation selectors, skin-tone modifiers, and ZWJ emoji sequences.
+
+### Input Model
+
+The string-view overloads accept UTF-8, UTF-16, or wide text. The input must contain exactly one grapheme cluster to return `true`. Empty input returns `false`.
+
+### Return Model
+
+The `char32_t` overload returns `bool` and never reports an error.
+
+The string-view overloads return:
+
+```cpp
+xer::result<bool>
+```
+
+They can fail when the input contains malformed UTF-8, UTF-16, or wide text.
+
+### Scope
+
+This is a compact practical detector, not a complete generated implementation of every Unicode emoji property. It reuses XER's existing grapheme cluster handling and covers common emoji used in English/Japanese text, including pictographic emoji, flags, keycap emoji, variation-selector forms, emoji modifiers, and ZWJ sequences.
+
+### Example
+
+```cpp
+const auto face = xer::is_emoji(std::u8string_view{u8"😀"});
+const auto worker = xer::is_emoji(std::u8string_view{u8"👩‍💻"});
+const auto letter = xer::is_emoji(std::u8string_view{u8"A"});
+```
+
+In this example, `face` and `worker` are expected to contain `true`, while `letter` is expected to contain `false`.
+
+---
+
 ## `normalize_nfc`
 
 ```cpp
@@ -826,7 +899,7 @@ In this example, `before` is expected to contain `false`, while `after` is expec
 
 The code point traversal layer is small and table-free. It validates UTF-8 and UTF-16 structure, reports malformed input through `xer::result`, and records source spans in code units.
 
-The grapheme cluster traversal layer is built on top of the code point layer. It is intended for practical user-visible character traversal while still returning source spans instead of copying text. The grapheme-cluster-based string operations provide convenient length and substring helpers while returning views into the original text.
+The grapheme cluster traversal layer is built on top of the code point layer. It is intended for practical user-visible character traversal while still returning source spans instead of copying text. The grapheme-cluster-based string operations provide convenient length and substring helpers while returning views into the original text. Emoji detection is also built on the same code point and grapheme cluster layers so that multi-code-point emoji sequences can be checked as one user-visible unit.
 
 The default language scope of this layer is English and Japanese text. It handles common sequences needed for practical English/Japanese user-facing text, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences. It is not a full Unicode text-boundary engine for every script and does not provide language-specific tailoring. Users who need broader script coverage can extend XER's public source code or use a dedicated Unicode boundary service.
 

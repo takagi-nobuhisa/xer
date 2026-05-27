@@ -10,10 +10,11 @@ The current public scope is intentionally incremental:
 code point traversal for UTF-8, UTF-16, and wide string views
 extended grapheme cluster traversal for UTF-8, UTF-16, and wide string views
 grapheme-cluster-based string operations for UTF-8, UTF-16, and wide string views
+practical emoji detection for code points and single grapheme clusters
 NFC normalization for UTF-8 text
 ```
 
-Code point traversal is a small table-free layer. Grapheme cluster traversal is built on that layer and uses compact rule helpers for practical extended grapheme cluster boundaries. Unicode normalization is provided as a practical external-component feature based on the ICU C API.
+Code point traversal is a small table-free layer. Grapheme cluster traversal is built on that layer and uses compact rule helpers for practical extended grapheme cluster boundaries. Emoji detection reuses those layers and remains compact. Unicode normalization is provided as a practical external-component feature based on the ICU C API.
 
 This gives XER a useful and standards-based normalization facility without embedding large Unicode normalization tables into the header-only library.
 
@@ -50,10 +51,11 @@ The internal implementation may be placed under:
 xer/bits/unicode_code_point.h
 xer/bits/unicode_grapheme_cluster.h
 xer/bits/unicode_grapheme_string.h
+xer/bits/unicode_emoji.h
 xer/bits/unicode_normalize.h
 ```
 
-The feature is not absorbed into `<xer/string.h>` or `<xer/ctype.h>`. Code point traversal, grapheme cluster traversal, and grapheme-cluster-based string operations are Unicode-specific text facilities, and normalization depends on ICU and is much heavier than ordinary string utilities or character classification.
+The feature is not absorbed into `<xer/string.h>` or `<xer/ctype.h>`. Code point traversal, grapheme cluster traversal, grapheme-cluster-based string operations, and emoji detection are Unicode-specific text facilities, and normalization depends on ICU and is much heavier than ordinary string utilities or character classification.
 
 ---
 
@@ -199,6 +201,23 @@ auto grapheme_right(std::u8string_view text, std::size_t count)
 
 These functions take grapheme cluster counts, not source code-unit counts. They return views into the original text and do not allocate.
 
+The emoji detection API is:
+
+```cpp
+auto is_emoji(char32_t value) noexcept -> bool;
+
+auto is_emoji(std::u8string_view text)
+    -> xer::result<bool>;
+
+auto is_emoji(std::u16string_view text)
+    -> xer::result<bool>;
+
+auto is_emoji(std::wstring_view text)
+    -> xer::result<bool>;
+```
+
+The `char32_t` overload is a compact code point classifier. The string-view overloads check whether the whole input is one practical emoji grapheme cluster and should be used for flags, keycap emoji, emoji with modifiers, and ZWJ sequences. Empty input returns `false`.
+
 The normalization API is:
 
 ```cpp
@@ -211,7 +230,7 @@ auto is_normalized_nfc(std::u8string_view text)
 
 All return types follow the ordinary XER error policy.
 Code point decoding can fail when the offset is outside the view or when the input is malformed.
-Grapheme cluster traversal can fail when the offset is outside the view, when `prev_grapheme_cluster` is given a non-boundary offset, or when the input is malformed. Grapheme-cluster-based string operations can fail when the requested offset is outside the grapheme cluster length or when malformed input is encountered while traversing the required part of the source view.
+Grapheme cluster traversal can fail when the offset is outside the view, when `prev_grapheme_cluster` is given a non-boundary offset, or when the input is malformed. Grapheme-cluster-based string operations can fail when the requested offset is outside the grapheme cluster length or when malformed input is encountered while traversing the required part of the source view. Emoji string-view detection can fail when malformed input is encountered.
 The normalization functions can fail when the input is invalid UTF-8, when a size is outside ICU's supported range, or when ICU reports an error.
 
 Function return types should use trailing return type syntax.
