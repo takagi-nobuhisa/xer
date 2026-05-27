@@ -2,11 +2,11 @@
 
 ## Purpose
 
-`<xer/zip.h>` provides ZIP archive reading facilities in XER.
+`<xer/zip.h>` provides ZIP archive reading and writing facilities in XER.
 
 ZIP is technically an archive format, but in practical use it is also a familiar compression and expansion format. XER treats the initial ZIP API as a small compression-and-archive utility that can later support serialized data packages, bundled resources, and ordinary file exchange.
 
-The first implementation is intentionally read-only and sequential. Archive creation, extraction helpers, name lookup, comments, and ZIP64 support are deferred.
+The initial API is intentionally small. It supports sequential reading and simple archive creation. Extraction helpers, name lookup, comments, and ZIP64 support are deferred.
 
 ---
 
@@ -28,6 +28,9 @@ The main role of `<xer/zip.h>` is to make it possible to:
 - read entry metadata sequentially
 - obtain entry names, sizes, and compression method names
 - read and expand entry data
+- create a ZIP archive
+- add in-memory bytes or a source file as deflated entries
+- explicitly commit the writer so finalization errors can be reported
 - report archive end through XER's ordinary error model
 
 This design avoids returning `std::optional` for archive end. Reaching the end of the entry sequence is reported as:
@@ -50,6 +53,8 @@ class zip_entry;
 
 auto zip_open(std::u8string_view filename) -> xer::result<zip_archive>;
 
+auto zip_create(std::u8string_view filename) -> xer::result<zip_archive>;
+
 auto zip_read(zip_archive& archive) -> xer::result<zip_entry>;
 
 auto zip_entry_name(const zip_entry& entry) -> xer::result<std::u8string>;
@@ -64,6 +69,18 @@ auto zip_entry_compression_method(const zip_entry& entry)
 
 auto zip_entry_read(zip_archive& archive, const zip_entry& entry)
     -> xer::result<std::vector<std::byte>>;
+
+auto zip_add_from_bytes(
+    zip_archive& archive,
+    std::u8string_view entry_name,
+    std::span<const std::byte> data) -> xer::result<void>;
+
+auto zip_add_file(
+    zip_archive& archive,
+    std::u8string_view source_path,
+    std::u8string_view entry_name) -> xer::result<void>;
+
+auto zip_commit(zip_archive& archive) -> xer::result<void>;
 ```
 
 All public operations return `xer::result`, including metadata accessors that are not expected to fail in ordinary cases. This preserves API symmetry and leaves room for future validation, conversion, or backend changes.
@@ -76,11 +93,13 @@ All public operations return `xer::result`, including metadata accessors that ar
 class zip_archive;
 ```
 
-`zip_archive` is a move-only archive reader.
+`zip_archive` is a move-only archive handle.
 
-It owns the underlying binary stream and the central-directory read position. Destruction closes the underlying stream automatically. Copying is disabled.
+For reading, it owns the underlying binary stream and the central-directory read position. For writing, it owns the output stream and the pending central-directory records. Destruction closes the underlying stream automatically. Copying is disabled.
 
-Callers normally obtain this object through `zip_open`.
+Callers normally obtain this object through `zip_open` for reading or `zip_create` for writing.
+
+When using a writer, callers should explicitly call `zip_commit`. Destruction can close the stream, but it cannot report finalization errors through `xer::result`.
 
 ---
 
@@ -136,6 +155,24 @@ The following are rejected as `error_t::invalid_argument`:
 On success, the function returns an open `zip_archive`.
 
 On failure, it returns `xer::result` error information. File-opening failures are reported using the ordinary file error model. Format-level failures are generally reported as `error_t::invalid_argument`.
+
+---
+
+## `zip_create`
+
+```cpp
+auto zip_create(std::u8string_view filename) -> xer::result<zip_archive>;
+```
+
+### Purpose
+
+`zip_create` opens a ZIP archive for writing.
+
+The returned archive is a writer. It is not a complete ZIP file until `zip_commit` writes the central directory and closes the stream.
+
+### Output Model
+
+The initial writer creates ordinary non-ZIP64 single-disk archives. Entry names are stored as UTF-8 names with the ZIP UTF-8 flag set.
 
 ---
 
@@ -248,6 +285,18 @@ Reading data for an unsupported method fails with `error_t::invalid_argument`.
 ```cpp
 auto zip_entry_read(zip_archive& archive, const zip_entry& entry)
     -> xer::result<std::vector<std::byte>>;
+
+auto zip_add_from_bytes(
+    zip_archive& archive,
+    std::u8string_view entry_name,
+    std::span<const std::byte> data) -> xer::result<void>;
+
+auto zip_add_file(
+    zip_archive& archive,
+    std::u8string_view source_path,
+    std::u8string_view entry_name) -> xer::result<void>;
+
+auto zip_commit(zip_archive& archive) -> xer::result<void>;
 ```
 
 ### Purpose
@@ -273,6 +322,62 @@ This is intentionally an owning byte vector. Streaming entry reads can be added 
 
 ---
 
+## `zip_add_from_bytes`
+
+```cpp
+auto zip_add_from_bytes(
+    zip_archive& archive,
+    std::u8string_view entry_name,
+    std::span<const std::byte> data) -> xer::result<void>;
+```
+
+### Purpose
+
+`zip_add_from_bytes` adds one in-memory byte sequence to a ZIP archive writer.
+
+The entry is compressed with raw deflate and written with a local file header. The central-directory record is retained in memory until `zip_commit` is called.
+
+### Limits
+
+The initial writer does not support ZIP64. Therefore the entry name, compressed size, uncompressed size, local header offset, and entry count must fit ordinary ZIP fields.
+
+Entry names must be non-empty valid UTF-8 strings. Non-UTF-8 names fail with `error_t::encoding_error`.
+
+---
+
+## `zip_add_file`
+
+```cpp
+auto zip_add_file(
+    zip_archive& archive,
+    std::u8string_view source_path,
+    std::u8string_view entry_name) -> xer::result<void>;
+```
+
+### Purpose
+
+`zip_add_file` reads a source file and adds its contents as one ZIP entry.
+
+This is a convenience wrapper around `file_get_contents` and `zip_add_from_bytes`. The initial implementation reads the whole source file into memory before compression. Streaming file-to-ZIP output can be added later if large-file use cases require it.
+
+---
+
+## `zip_commit`
+
+```cpp
+auto zip_commit(zip_archive& archive) -> xer::result<void>;
+```
+
+### Purpose
+
+`zip_commit` finalizes a ZIP archive writer.
+
+It writes the central directory and the end-of-central-directory record, flushes the stream, and closes it. Because errors can occur at finalization time, callers should treat this as a required step for writer archives.
+
+Calling write operations after `zip_commit` fails with `error_t::invalid_argument`.
+
+---
+
 ## Error Handling
 
 `<xer/zip.h>` follows XER's ordinary failure model.
@@ -281,7 +386,7 @@ That means:
 
 - normal failure is reported through `xer::result`
 - archive end is reported as `error_t::end_of_file`
-- malformed archives are reported as `error_t::invalid_argument`
+- malformed archives and invalid operation order are reported as `error_t::invalid_argument`
 - invalid entry-name encoding is reported as `error_t::encoding_error`
 - stream failures are reported through ordinary file or I/O errors
 
@@ -293,7 +398,6 @@ The initial implementation does not provide detailed ZIP parse positions. If pos
 
 The following items are intentionally deferred:
 
-- ZIP archive creation
 - file extraction helpers
 - name lookup
 - entry comments and archive comments
@@ -302,7 +406,9 @@ The following items are intentionally deferred:
 - encrypted entries
 - CP437 filename conversion
 - streaming entry-body reads
+- stored-entry write option
 - data-descriptor-oriented write support
 - CRC verification as a public option
+- streaming file-to-ZIP writes
 
-The first goal is a small, predictable, PHP-inspired ZIP reader that fits XER's `xer::result` and sequential EOF model.
+The first goal is a small, predictable, PHP-inspired ZIP reader and writer that fits XER's `xer::result` and sequential EOF model.

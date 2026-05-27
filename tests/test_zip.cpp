@@ -226,6 +226,72 @@ void test_zip_read_store_and_deflate()
     xer_assert_eq(end.error().code, xer::error_t::end_of_file);
 }
 
+
+void test_zip_create_add_bytes_and_file()
+{
+    const auto first_data = bytes("created from memory\n");
+    const auto second_data = bytes("created from source file\n");
+    write_file("source.txt", second_data);
+
+    auto writer = xer::zip_create(u8"created.zip");
+    xer_assert(writer.has_value());
+
+    const auto add_memory = xer::zip_add_from_bytes(*writer, u8"memory.txt", first_data);
+    xer_assert(add_memory.has_value());
+
+    const auto add_file = xer::zip_add_file(*writer, u8"source.txt", u8"files/source.txt");
+    xer_assert(add_file.has_value());
+
+    const auto commit = xer::zip_commit(*writer);
+    xer_assert(commit.has_value());
+
+    const auto add_after_commit = xer::zip_add_from_bytes(*writer, u8"late.txt", first_data);
+    xer_assert_not(add_after_commit.has_value());
+    xer_assert_eq(add_after_commit.error().code, xer::error_t::invalid_argument);
+
+    auto reader = xer::zip_open(u8"created.zip");
+    xer_assert(reader.has_value());
+
+    auto first = xer::zip_read(*reader);
+    xer_assert(first.has_value());
+    auto first_name = xer::zip_entry_name(*first);
+    auto first_method = xer::zip_entry_compression_method(*first);
+    auto first_body = xer::zip_entry_read(*reader, *first);
+    xer_assert(first_name.has_value());
+    xer_assert(first_method.has_value());
+    xer_assert(first_body.has_value());
+    xer_assert_eq(*first_name, u8"memory.txt");
+    xer_assert_eq(*first_method, u8"deflate");
+    assert_bytes_eq(*first_body, first_data);
+
+    auto second = xer::zip_read(*reader);
+    xer_assert(second.has_value());
+    auto second_name = xer::zip_entry_name(*second);
+    auto second_body = xer::zip_entry_read(*reader, *second);
+    xer_assert(second_name.has_value());
+    xer_assert(second_body.has_value());
+    xer_assert_eq(*second_name, u8"files/source.txt");
+    assert_bytes_eq(*second_body, second_data);
+
+    const auto end = xer::zip_read(*reader);
+    xer_assert_not(end.has_value());
+    xer_assert_eq(end.error().code, xer::error_t::end_of_file);
+}
+
+void test_zip_create_empty_archive()
+{
+    auto writer = xer::zip_create(u8"empty.zip");
+    xer_assert(writer.has_value());
+    const auto commit = xer::zip_commit(*writer);
+    xer_assert(commit.has_value());
+
+    auto reader = xer::zip_open(u8"empty.zip");
+    xer_assert(reader.has_value());
+    const auto entry = xer::zip_read(*reader);
+    xer_assert_not(entry.has_value());
+    xer_assert_eq(entry.error().code, xer::error_t::end_of_file);
+}
+
 void test_zip_open_rejects_invalid_file()
 {
     write_file("not-a-zip.zip", bytes("not a zip file"));
@@ -240,5 +306,7 @@ void test_zip_open_rejects_invalid_file()
 auto main() -> int
 {
     test_zip_read_store_and_deflate();
+    test_zip_create_add_bytes_and_file();
+    test_zip_create_empty_archive();
     test_zip_open_rejects_invalid_file();
 }
