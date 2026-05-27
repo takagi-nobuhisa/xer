@@ -7248,62 +7248,56 @@ int main()
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/zip.h`
-> Reason: Japanese fragment is missing.
-
 # `<xer/zip.h>`
 
-## Purpose
+## 目的
 
-`<xer/zip.h>` provides ZIP archive reading and writing facilities in xer.
+`<xer/zip.h>` は xer の ZIP アーカイブ読み書き機能を提供します。
 
-ZIP is technically an archive format, but in practical use it is also a familiar compression and expansion format. xer treats the initial ZIP API as a small compression-and-archive utility that can later support serialized data packages, bundled resources, and ordinary file exchange.
+ZIP は技術的にはアーカイブ形式ですが、実用上は馴染みのある圧縮・展開形式でもあります。xer では、初期 ZIP API を、将来シリアライズ済みデータパッケージ、同梱リソース、通常のファイル交換を支えられる小さな圧縮・アーカイブユーティリティとして扱います。
 
-The initial API is intentionally small. It supports sequential reading, name lookup, simple archive creation, whole-entry reads, and simple extraction helpers. Comments and ZIP64 support are deferred.
-
----
-
-## External Dependency
-
-`<xer/zip.h>` requires zlib development headers and the zlib library.
-
-The public header checks for `<zlib.h>` with `__has_include` when available and emits a compile-time diagnostic if the header is missing. Programs using this header must also link with zlib, for example `-lz` on typical Unix-like environments.
-
-The project test runner detects `xer/zip.h` as the `zip` feature and links matching tests and examples with zlib when it is available.
+初期 API は意図的に小さくしています。逐次読み取り、名前検索、単純なアーカイブ作成、エントリ全体の読み取り、単純な展開ヘルパーをサポートします。コメントと ZIP64 対応は後回しです。
 
 ---
 
-## Main Role
+## 外部依存
 
-The main role of `<xer/zip.h>` is to make it possible to:
+`<xer/zip.h>` は zlib の開発用ヘッダーと zlib ライブラリを必要とします。
 
-- open a ZIP archive
-- read entry metadata sequentially
-- locate entries by exact name
-- obtain entry names, sizes, and compression method names
-- read and expand entry data
-- extract one entry or all entries to the file system
-- create a ZIP archive
-- add in-memory bytes or a source file as deflated entries
-- explicitly commit the writer so finalization errors can be reported
-- report archive end through xer's ordinary error model
+公開ヘッダーは、利用可能な場合に `__has_include` で `<zlib.h>` を確認し、ヘッダーが見つからなければコンパイル時診断を出します。このヘッダーを使うプログラムは、典型的な Unix 系環境での `-lz` のように、zlib とリンクする必要もあります。
 
-This design avoids returning `std::optional` for archive end. Reaching the end of the entry sequence is reported as:
+プロジェクトのテストランナーは `xer/zip.h` を `zip` feature として検出し、zlib が利用可能な場合には対応するテストとコード例を zlib とリンクします。
+
+---
+
+## 主な役割
+
+`<xer/zip.h>` の主な役割は、次のことを可能にすることです。
+
+- ZIP アーカイブを開く
+- エントリのメタデータを逐次読む
+- 正確な名前でエントリを検索する
+- エントリ名、サイズ、圧縮方式名を取得する
+- エントリデータを読んで展開する
+- 1つのエントリまたはすべてのエントリをファイルシステムへ展開する
+- ZIP アーカイブを作成する
+- メモリ上のバイト列または元ファイルを deflate エントリとして追加する
+- 書き込み側を明示的に確定し、最終化エラーを報告できるようにする
+- アーカイブ終端を xer の通常のエラーモデルで報告する
+
+この設計では、アーカイブ終端に `std::optional` を返すことを避けています。エントリ列の末尾に到達したことは、次のように報告されます。
 
 ```cpp
 error_t::end_of_file
 ```
 
-This keeps `zip_read` consistent with other sequential input operations in xer.
+これにより、`zip_read` は xer のほかの逐次入力操作と整合します。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/zip.h>` provides the following types and functions:
+少なくとも、`<xer/zip.h>` は次の型と関数を提供します。
 
 ```cpp
 class zip_archive;
@@ -7362,7 +7356,7 @@ auto zip_add_file(
 auto zip_commit(zip_archive& archive) -> xer::result<void>;
 ```
 
-All public operations return `xer::result`, including metadata accessors that are not expected to fail in ordinary cases. This preserves API symmetry and leaves room for future validation, conversion, or backend changes.
+通常のケースでは失敗が想定されないメタデータアクセサーを含め、すべての公開操作は `xer::result` を返します。これにより API の対称性を保ち、将来の検証、変換、バックエンド変更の余地を残します。
 
 ---
 
@@ -7372,13 +7366,13 @@ All public operations return `xer::result`, including metadata accessors that ar
 class zip_archive;
 ```
 
-`zip_archive` is a move-only archive handle.
+`zip_archive` はムーブ専用のアーカイブハンドルです。
 
-For reading, it owns the underlying binary stream and the central-directory read position. For writing, it owns the output stream and the pending central-directory records. Destruction closes the underlying stream automatically. Copying is disabled.
+読み取り時には、基盤となるバイナリストリームと中央ディレクトリの読み取り位置を所有します。書き込み時には、出力ストリームと保留中の中央ディレクトリレコードを所有します。破棄時には基盤ストリームを自動的に閉じます。コピーは無効です。
 
-Callers normally obtain this object through `zip_open` for reading or `zip_create` for writing.
+呼び出し側は通常、読み取りには `zip_open`、書き込みには `zip_create` を使ってこのオブジェクトを取得します。
 
-When using a writer, callers should explicitly call `zip_commit`. Destruction can close the stream, but it cannot report finalization errors through `xer::result`.
+書き込み側を使う場合、呼び出し側は明示的に `zip_commit` を呼び出すべきです。破棄時にストリームを閉じることはできますが、最終化エラーを `xer::result` として報告することはできません。
 
 ---
 
@@ -7388,18 +7382,18 @@ When using a writer, callers should explicitly call `zip_commit`. Destruction ca
 class zip_entry;
 ```
 
-`zip_entry` stores metadata for one archive entry read from the central directory.
+`zip_entry` は、中央ディレクトリから読まれた1つのアーカイブエントリのメタデータを格納します。
 
-It is a lightweight value object containing at least:
+これは少なくとも次の情報を含む軽量な値オブジェクトです。
 
-- entry name
-- uncompressed size
-- compressed size
-- compression method identifier
-- flags
-- local header offset
+- エントリ名
+- 非圧縮サイズ
+- 圧縮サイズ
+- 圧縮方式識別子
+- フラグ
+- ローカルヘッダーオフセット
 
-Callers should use the public `zip_entry_*` functions rather than depending on internal representation details.
+呼び出し側は内部表現の詳細に依存せず、公開されている `zip_entry_*` 関数を使うべきです。
 
 ---
 
@@ -7409,31 +7403,31 @@ Callers should use the public `zip_entry_*` functions rather than depending on i
 auto zip_open(std::u8string_view filename) -> xer::result<zip_archive>;
 ```
 
-### Purpose
+### 目的
 
-`zip_open` opens a ZIP archive for reading.
+`zip_open` は ZIP アーカイブを読み取り用に開きます。
 
-### Input Model
+### 入力モデル
 
-The filename is a UTF-8 path string. Internally, it is converted through xer's path handling before the file is opened.
+ファイル名は UTF-8 パス文字列です。内部では、ファイルを開く前に xer のパス処理を通して変換されます。
 
-### Supported Archives
+### 対応するアーカイブ
 
-The initial implementation supports ordinary non-ZIP64 archives with a single-disk central directory.
+初期実装は、単一ディスク中央ディレクトリを持つ通常の非 ZIP64 アーカイブに対応します。
 
-The following are rejected as `error_t::invalid_argument`:
+次のものは `error_t::invalid_argument` として拒否されます。
 
-- invalid ZIP files
-- missing end-of-central-directory record
-- multi-disk archives
-- ZIP64 archives
-- inconsistent central-directory ranges
+- 不正な ZIP ファイル
+- end-of-central-directory レコードの欠落
+- マルチディスクアーカイブ
+- ZIP64 アーカイブ
+- 整合しない中央ディレクトリ範囲
 
-### Return Model
+### 戻り値モデル
 
-On success, the function returns an open `zip_archive`.
+成功すると、開かれた `zip_archive` を返します。
 
-On failure, it returns `xer::result` error information. File-opening failures are reported using the ordinary file error model. Format-level failures are generally reported as `error_t::invalid_argument`.
+失敗すると、`xer::result` のエラー情報を返します。ファイルを開く際の失敗は通常のファイルエラーモデルで報告されます。形式レベルの失敗は、一般に `error_t::invalid_argument` として報告されます。
 
 ---
 
@@ -7443,15 +7437,15 @@ On failure, it returns `xer::result` error information. File-opening failures ar
 auto zip_create(std::u8string_view filename) -> xer::result<zip_archive>;
 ```
 
-### Purpose
+### 目的
 
-`zip_create` opens a ZIP archive for writing.
+`zip_create` は ZIP アーカイブを書き込み用に開きます。
 
-The returned archive is a writer. It is not a complete ZIP file until `zip_commit` writes the central directory and closes the stream.
+返されたアーカイブは書き込み側です。`zip_commit` が中央ディレクトリを書き込んでストリームを閉じるまで、完全な ZIP ファイルではありません。
 
-### Output Model
+### 出力モデル
 
-The initial writer creates ordinary non-ZIP64 single-disk archives. Entry names are stored as UTF-8 names with the ZIP UTF-8 flag set.
+初期の書き込み側は、通常の非 ZIP64 単一ディスクアーカイブを作成します。エントリ名は ZIP の UTF-8 フラグを設定した UTF-8 名として格納されます。
 
 ---
 
@@ -7461,29 +7455,29 @@ The initial writer creates ordinary non-ZIP64 single-disk archives. Entry names 
 auto zip_read(zip_archive& archive) -> xer::result<zip_entry>;
 ```
 
-### Purpose
+### 目的
 
-`zip_read` reads the next entry metadata from the archive's central directory.
+`zip_read` は、アーカイブの中央ディレクトリから次のエントリメタデータを読みます。
 
-### Sequential Model
+### 逐次モデル
 
-The archive stores a current central-directory position. Each successful call advances that position to the next entry.
+アーカイブは現在の中央ディレクトリ位置を保持します。各成功呼び出しは、その位置を次のエントリへ進めます。
 
-This avoids building a full entry list in memory. That is important for large archives with many entries.
+これにより、エントリ一覧全体をメモリ上に構築せずに済みます。これは多数のエントリを持つ大きなアーカイブで重要です。
 
-### End of Archive
+### アーカイブ終端
 
-When there are no more entries, the function returns:
+それ以上エントリがない場合、この関数は次を返します。
 
 ```cpp
 error_t::end_of_file
 ```
 
-This is an error result, not an empty optional value.
+これは空の optional 値ではなく、エラー結果です。
 
-### Unsupported Entry Metadata
+### 未対応のエントリメタデータ
 
-The initial implementation rejects encrypted entries, multi-disk entry references, and ZIP64-sized entries as `error_t::invalid_argument`.
+初期実装は、暗号化エントリ、マルチディスクエントリ参照、ZIP64 サイズのエントリを `error_t::invalid_argument` として拒否します。
 
 ---
 
@@ -7493,11 +7487,11 @@ The initial implementation rejects encrypted entries, multi-disk entry reference
 auto zip_entry_name(const zip_entry& entry) -> xer::result<std::u8string>;
 ```
 
-`zip_entry_name` returns the entry name as a UTF-8 string.
+`zip_entry_name` はエントリ名を UTF-8 文字列として返します。
 
-The initial implementation accepts entry names that are valid UTF-8. When the ZIP UTF-8 name flag is set and the stored name is not valid UTF-8, the operation fails with `error_t::encoding_error` during `zip_read`.
+初期実装は、有効な UTF-8 であるエントリ名を受け入れます。ZIP の UTF-8 名フラグが設定されていて、格納された名前が有効な UTF-8 でない場合、その操作は `zip_read` の実行中に `error_t::encoding_error` で失敗します。
 
-CP437 name conversion is not implemented yet. Non-UTF-8 names are therefore rejected rather than guessed.
+CP437 名変換はまだ実装されていません。そのため、非 UTF-8 名は推測されずに拒否されます。
 
 ---
 
@@ -7507,9 +7501,9 @@ CP437 name conversion is not implemented yet. Non-UTF-8 names are therefore reje
 auto zip_entry_filesize(const zip_entry& entry) -> xer::result<std::uint64_t>;
 ```
 
-`zip_entry_filesize` returns the uncompressed entry size in bytes.
+`zip_entry_filesize` は、エントリの非圧縮サイズをバイト単位で返します。
 
-The name follows PHP's `zip_entry_filesize` vocabulary while still returning a C++ integer type through `xer::result`.
+この名前は PHP の `zip_entry_filesize` の語彙に従いつつ、C++ 整数型を `xer::result` 経由で返します。
 
 ---
 
@@ -7520,9 +7514,9 @@ auto zip_entry_compressed_size(const zip_entry& entry)
     -> xer::result<std::uint64_t>;
 ```
 
-`zip_entry_compressed_size` returns the compressed entry size in bytes.
+`zip_entry_compressed_size` は、エントリの圧縮サイズをバイト単位で返します。
 
-The function name uses snake_case rather than PHP's `zip_entry_compressedsize` spelling because this is a C++ API and readability is preferred where compatibility is not exact.
+この関数名は PHP の `zip_entry_compressedsize` という綴りではなく snake_case を使います。これは C++ API であり、正確な互換性が必要ない箇所では読みやすさを優先するためです。
 
 ---
 
@@ -7533,29 +7527,27 @@ auto zip_entry_compression_method(const zip_entry& entry)
     -> xer::result<std::u8string>;
 ```
 
-`zip_entry_compression_method` returns a textual compression method name.
+`zip_entry_compression_method` は、圧縮方式名の文字列を返します。
 
-The initial implementation returns:
+初期実装は、stored エントリに対して次を返します。
 
 ```text
 store
 ```
 
-for stored entries and:
+また、deflated エントリに対して次を返します。
 
 ```text
 deflate
 ```
 
-for deflated entries.
-
-Other method identifiers are returned as:
+その他の方式識別子に対しては次を返します。
 
 ```text
 unknown
 ```
 
-Reading data for an unsupported method fails with `error_t::invalid_argument`.
+未対応方式のデータ読み取りは `error_t::invalid_argument` で失敗します。
 
 ---
 
@@ -7566,26 +7558,26 @@ auto zip_entry_read(zip_archive& archive, const zip_entry& entry)
     -> xer::result<std::vector<std::byte>>;
 ```
 
-### Purpose
+### 目的
 
-`zip_entry_read` reads and expands one entry body.
+`zip_entry_read` は1つのエントリ本体を読んで展開します。
 
-The entry must have been obtained from the same archive. The initial API does not attempt to validate cross-archive use.
+そのエントリは、同じアーカイブから取得されたものでなければなりません。初期 API は、別アーカイブ由来の使用を検証しようとはしません。
 
-### Supported Compression Methods
+### 対応する圧縮方式
 
-The initial implementation supports:
+初期実装は次に対応します。
 
-- stored entries
-- deflated entries
+- stored エントリ
+- deflated エントリ
 
-Stored entries are returned as-is. Deflated entries are expanded with raw deflate through zlib.
+stored エントリはそのまま返されます。deflated エントリは zlib による raw deflate で展開されます。
 
-### Output Model
+### 出力モデル
 
-On success, the function returns a `std::vector<std::byte>` containing the uncompressed entry bytes.
+成功すると、この関数は展開済みのエントリバイト列を含む `std::vector<std::byte>` を返します。
 
-This is intentionally an owning byte vector. Streaming entry reads can be added later if large-entry use cases require them.
+これは意図的に所有権を持つバイトベクターです。大きなエントリを扱う用途が必要になれば、ストリーミング形式のエントリ読み取りを後で追加できます。
 
 ---
 
@@ -7596,21 +7588,21 @@ auto zip_locate_name(zip_archive& archive, std::u8string_view entry_name)
     -> xer::result<zip_entry>;
 ```
 
-### Purpose
+### 目的
 
-`zip_locate_name` searches the archive central directory for an entry whose name exactly matches `entry_name`.
+`zip_locate_name` は、名前が `entry_name` と正確に一致するエントリをアーカイブ中央ディレクトリから検索します。
 
-The function scans the central directory and returns the first matching entry. It does not change the sequential position used by `zip_read`, so callers may mix direct lookup with later sequential reads.
+この関数は中央ディレクトリを走査し、最初に一致したエントリを返します。`zip_read` が使う逐次位置は変更しないため、呼び出し側は直接検索と後続の逐次読み取りを混在できます。
 
-### Failure Model
+### 失敗モデル
 
-If no entry has the requested name, the function returns:
+要求された名前を持つエントリが存在しない場合、この関数は次を返します。
 
 ```cpp
 error_t::not_found
 ```
 
-Malformed central-directory data is reported as `error_t::invalid_argument`, matching `zip_read`.
+不正な中央ディレクトリデータは、`zip_read` と同様に `error_t::invalid_argument` として報告されます。
 
 ---
 
@@ -7622,18 +7614,18 @@ auto zip_entry_read_by_name(
     std::u8string_view entry_name) -> xer::result<std::vector<std::byte>>;
 ```
 
-### Purpose
+### 目的
 
-`zip_entry_read_by_name` locates an entry by name and reads its expanded body.
+`zip_entry_read_by_name` は、名前でエントリを見つけ、展開済みの本体を読みます。
 
-It is a convenience wrapper around:
+これは次の処理を行う便利関数です。
 
 ```cpp
 auto entry = zip_locate_name(archive, entry_name);
 auto body = zip_entry_read(archive, *entry);
 ```
 
-Missing entries are reported as `error_t::not_found`. Unsupported compression methods and malformed entry data are reported the same way as `zip_entry_read`.
+見つからないエントリは `error_t::not_found` として報告されます。未対応の圧縮方式や不正なエントリデータは、`zip_entry_read` と同じ方法で報告されます。
 
 ---
 
@@ -7646,13 +7638,13 @@ auto zip_entry_extract(
     std::u8string_view target_filename) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_entry_extract` reads one entry body and writes it to the specified file-system path.
+`zip_entry_extract` は1つのエントリ本体を読み、指定されたファイルシステムパスへ書き込みます。
 
-Parent directories of `target_filename` are created as needed. If the entry name ends with `/`, the target path is created as a directory instead of a file.
+`target_filename` の親ディレクトリは必要に応じて作成されます。エントリ名が `/` で終わる場合、対象パスはファイルではなくディレクトリとして作成されます。
 
-This function does not interpret the entry name as a destination path. It is suitable when the caller has already chosen an exact output filename.
+この関数は、エントリ名を展開先パスとして解釈しません。呼び出し側が正確な出力ファイル名をすでに選んでいる場合に適しています。
 
 ---
 
@@ -7665,15 +7657,15 @@ auto zip_entry_extract_to(
     std::u8string_view destination_dir) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_entry_extract_to` extracts one entry below a destination directory using the entry name as a relative path.
+`zip_entry_extract_to` は、エントリ名を相対パスとして使い、1つのエントリを展開先ディレクトリ配下へ展開します。
 
-### Path Safety
+### パス安全性
 
-The entry name is rejected as `error_t::invalid_argument` if it is empty, absolute, drive-relative, contains a NUL code unit, contains an empty interior component, or contains `.` or `..` components. This prevents ordinary path-traversal cases such as `../outside.txt` and `/tmp/outside.txt`.
+エントリ名が空、絶対パス、ドライブ相対、NUL コード単位を含む、中間に空の要素を含む、または `.` / `..` 要素を含む場合、そのエントリ名は `error_t::invalid_argument` として拒否されます。これにより、`../outside.txt` や `/tmp/outside.txt` のような通常のパストラバーサルを防ぎます。
 
-Directory entries whose names end with `/` create directories. File entries create missing parent directories and then write the expanded bytes.
+名前が `/` で終わるディレクトリエントリはディレクトリを作成します。ファイルエントリは不足している親ディレクトリを作成し、その後に展開済みバイト列を書き込みます。
 
 ---
 
@@ -7685,13 +7677,13 @@ auto zip_extract_to(
     std::u8string_view destination_dir) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_extract_to` extracts all entries below a destination directory.
+`zip_extract_to` は、すべてのエントリを展開先ディレクトリ配下へ展開します。
 
-It scans the central directory directly and does not change the sequential position used by `zip_read`. This lets callers extract the archive and still perform a later sequential scan from the same position.
+この関数は中央ディレクトリを直接走査し、`zip_read` が使う逐次位置を変更しません。これにより、呼び出し側はアーカイブを展開した後でも、同じ位置から後続の逐次走査を行えます。
 
-The same path-safety rules as `zip_entry_extract_to` are applied to every entry name. If any entry is unsafe or cannot be extracted, the function returns an error. Entries already written before that error are not rolled back.
+すべてのエントリ名には、`zip_entry_extract_to` と同じパス安全性規則が適用されます。いずれかのエントリが安全でない、または展開できない場合、この関数はエラーを返します。そのエラーより前に書き込まれたエントリはロールバックされません。
 
 ---
 
@@ -7704,17 +7696,17 @@ auto zip_add_from_bytes(
     std::span<const std::byte> data) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_add_from_bytes` adds one in-memory byte sequence to a ZIP archive writer.
+`zip_add_from_bytes` は、メモリ上の1つのバイト列を ZIP アーカイブ書き込み側へ追加します。
 
-The entry is compressed with raw deflate and written with a local file header. The central-directory record is retained in memory until `zip_commit` is called.
+エントリは raw deflate で圧縮され、ローカルファイルヘッダーとともに書き込まれます。中央ディレクトリレコードは `zip_commit` が呼ばれるまでメモリ上に保持されます。
 
-### Limits
+### 制限
 
-The initial writer does not support ZIP64. Therefore the entry name, compressed size, uncompressed size, local header offset, and entry count must fit ordinary ZIP fields.
+初期の書き込み側は ZIP64 に対応しません。そのため、エントリ名、圧縮サイズ、非圧縮サイズ、ローカルヘッダーオフセット、エントリ数は、通常の ZIP フィールドに収まらなければなりません。
 
-Entry names must be non-empty valid UTF-8 strings. Non-UTF-8 names fail with `error_t::encoding_error`.
+エントリ名は空でない有効な UTF-8 文字列でなければなりません。非 UTF-8 名は `error_t::encoding_error` で失敗します。
 
 ---
 
@@ -7727,11 +7719,11 @@ auto zip_add_file(
     std::u8string_view entry_name) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_add_file` reads a source file and adds its contents as one ZIP entry.
+`zip_add_file` は元ファイルを読み、その内容を1つの ZIP エントリとして追加します。
 
-This is a convenience wrapper around `file_get_contents` and `zip_add_from_bytes`. The initial implementation reads the whole source file into memory before compression. Streaming file-to-ZIP output can be added later if large-file use cases require it.
+これは `file_get_contents` と `zip_add_from_bytes` の便利ラッパーです。初期実装は、圧縮前に元ファイル全体をメモリへ読み込みます。大きなファイルを扱う用途が必要になれば、ストリーミング形式の file-to-ZIP 出力を後で追加できます。
 
 ---
 
@@ -7741,117 +7733,111 @@ This is a convenience wrapper around `file_get_contents` and `zip_add_from_bytes
 auto zip_commit(zip_archive& archive) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_commit` finalizes a ZIP archive writer.
+`zip_commit` は ZIP アーカイブ書き込み側を最終化します。
 
-It writes the central directory and the end-of-central-directory record, flushes the stream, and closes it. Because errors can occur at finalization time, callers should treat this as a required step for writer archives.
+中央ディレクトリと end-of-central-directory レコードを書き込み、ストリームを flush して閉じます。最終化時にエラーが発生する可能性があるため、呼び出し側は書き込み側アーカイブではこれを必須手順として扱うべきです。
 
-Calling write operations after `zip_commit` fails with `error_t::invalid_argument`.
-
----
-
-## Error Handling
-
-`<xer/zip.h>` follows xer's ordinary failure model.
-
-That means:
-
-- normal failure is reported through `xer::result`
-- archive end is reported as `error_t::end_of_file`
-- malformed archives and invalid operation order are reported as `error_t::invalid_argument`
-- invalid entry-name encoding is reported as `error_t::encoding_error`
-- stream failures are reported through ordinary file or I/O errors
-
-The initial implementation does not provide detailed ZIP parse positions. If position-aware diagnostics become useful later, an error-detail type can be added separately.
+`zip_commit` 後に書き込み操作を呼び出すと、`error_t::invalid_argument` で失敗します。
 
 ---
 
-## Deferred Items and Limitations
+## エラー処理
 
-The following items are intentionally deferred:
+`<xer/zip.h>` は xer の通常の失敗モデルに従います。
 
-- entry comments and archive comments
+つまり、次のようになります。
+
+- 通常の失敗は `xer::result` で報告される
+- アーカイブ終端は `error_t::end_of_file` として報告される
+- 不正なアーカイブと不正な操作順序は `error_t::invalid_argument` として報告される
+- 不正なエントリ名エンコーディングは `error_t::encoding_error` として報告される
+- ストリーム失敗は通常のファイルエラーまたは I/O エラーを通じて報告される
+
+初期実装は、詳細な ZIP 解析位置を提供しません。位置付き診断が後で有用になれば、エラー詳細型を別途追加できます。
+
+---
+
+## 後回しにしている項目と制限事項
+
+次の項目は意図的に後回しにしています。
+
+- エントリコメントとアーカイブコメント
 - ZIP64
-- multi-disk archives
-- encrypted entries
-- CP437 filename conversion
-- streaming entry-body reads
-- stored-entry write option
-- data-descriptor-oriented write support
-- CRC verification as a public option
-- streaming file-to-ZIP writes
+- マルチディスクアーカイブ
+- 暗号化エントリ
+- CP437 ファイル名変換
+- ストリーミング形式のエントリ本体読み取り
+- stored エントリ書き込みオプション
+- データ記述子指向の書き込み対応
+- 公開オプションとしての CRC 検証
+- ストリーミング形式の file-to-ZIP 書き込み
 
-The first goal is a small, predictable, PHP-inspired ZIP reader and writer that fits xer's `xer::result` and sequential EOF model.
+最初の目標は、xer の `xer::result` と逐次 EOF モデルに合う、小さく予測しやすい PHP 風の ZIP リーダー・ライターです。
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/serialize.h`
-> Reason: Japanese fragment is missing.
 
 # `<xer/serialize.h>`
 
-## Purpose
+## 目的
 
-`<xer/serialize.h>` provides low-level binary transfer archives for fixed-schema data.
+`<xer/serialize.h>` は、固定スキーマのデータを扱うための低水準バイナリ転送アーカイブを提供します。
 
-The design is intentionally simple. It does not store type names, field names, schema information, object identifiers, or version metadata. Callers and generated code are expected to know the exact field order and field types.
+この設計は意図的に単純です。型名、フィールド名、スキーマ情報、オブジェクト識別子、バージョンメタデータは保存しません。呼び出し側と生成コードは、正確なフィールド順序とフィールド型を知っていることを前提にします。
 
-This header is intended to support generated `xfer` functions. A schema generator can emit one field-transfer function and use it for both output and input by passing either `binary_output_archive` or `binary_input_archive`.
+このヘッダーは、生成された `xfer` 関数を支えることを目的としています。スキーマジェネレータは、1つのフィールド転送関数を出力し、`binary_output_archive` または `binary_input_archive` のどちらを渡すかによって、出力と入力の両方に同じ関数を使用できます。
 
-The recommended workflow is:
+推奨される作業手順は次のとおりです。
 
-1. define a fixed structure schema in PHP
-2. generate a C++ structure and its `xfer` function
-3. pass that structure to a binary output archive or binary input archive
-4. handle format versioning outside the low-level archive layer
-
----
-
-## Design Model
-
-xer serialization is not a reflection-based serializer.
-
-C++23 has no standardized reflection facility that can enumerate the fields of an arbitrary user-defined structure. Instead of relying on macros, runtime registration, intrusive base classes, or heavy template metaprogramming, xer uses generated field-transfer functions.
-
-The low-level archive layer only knows how to transfer scalar values and selected standard containers. User-defined structures are handled by generated code that calls the archive once for each field in fixed order.
-
-This keeps the binary format compact and predictable.
+1. PHP で固定構造スキーマを定義する
+2. C++ 構造体とその `xfer` 関数を生成する
+3. その構造体をバイナリ出力アーカイブまたはバイナリ入力アーカイブに渡す
+4. 形式のバージョン管理は低水準アーカイブ層の外側で扱う
 
 ---
 
-## Binary Format Policy
+## 設計モデル
 
-The binary format is fixed as follows:
+xer のシリアライズは、リフレクションベースのシリアライザではありません。
 
-- scalar values are stored directly
-- multi-byte scalar values are little-endian
-- `float` is stored as IEEE 754 binary32 bytes
-- `double` is stored as IEEE 754 binary64 bytes
-- `bool` is stored as one byte, `0` or `1`
-- `std::u8string` is stored as `uint64 byte_size` followed by UTF-8 bytes
-- `std::vector<std::byte>` is stored as `uint64 byte_size` followed by raw bytes
-- `std::array<T, N>` stores only its elements; the array size is not stored
-- `std::vector<T>` stores `uint64 element_count` followed by elements
-- `std::map<K, V>` stores `uint64 element_count` followed by key/value pairs in map iteration order
+C++23 には、任意のユーザー定義構造体のフィールドを列挙できる標準リフレクション機能がありません。マクロ、実行時登録、侵入的な基底クラス、重いテンプレートメタプログラミングに頼る代わりに、xer は生成されたフィールド転送関数を使用します。
 
-No byte-order marker is written. Little-endian is part of the format.
+低水準アーカイブ層が知っているのは、スカラ値と一部の標準コンテナの転送方法だけです。ユーザー定義構造体は、固定順序で各フィールドごとにアーカイブを1回呼び出す生成コードによって扱います。
 
-The format is suitable when both sides share the same schema or are generated from the same schema source. It is intentionally not a self-describing interchange format.
+これにより、バイナリ形式をコンパクトで予測しやすいものに保てます。
 
 ---
 
-## Main Entities
+## バイナリ形式の方針
+
+バイナリ形式は次のように固定されています。
+
+- スカラ値は直接格納します
+- 複数バイトのスカラ値はリトルエンディアンです
+- `float` は IEEE 754 binary32 のバイト列として格納します
+- `double` は IEEE 754 binary64 のバイト列として格納します
+- `bool` は1バイトで、`0` または `1` として格納します
+- `std::u8string` は `uint64 byte_size` に続けて UTF-8 バイト列を格納します
+- `std::vector<std::byte>` は `uint64 byte_size` に続けて生バイト列を格納します
+- `std::array<T, N>` は要素だけを格納し、配列サイズは格納しません
+- `std::vector<T>` は `uint64 element_count` に続けて要素を格納します
+- `std::map<K, V>` は `uint64 element_count` に続けて map の反復順で key/value ペアを格納します
+
+バイトオーダーマーカーは書き込みません。リトルエンディアンであることは形式の一部です。
+
+この形式は、双方が同じスキーマを共有している場合、または同じスキーマソースから生成されている場合に適しています。意図的に自己記述型の交換形式にはしていません。
+
+---
+
+## 主なエンティティ
 
 ```cpp
 class binary_output_archive;
 class binary_input_archive;
 ```
 
-The archive objects expose `operator()` instead of separate `write` and `read` function names. This allows generated code to use a single transfer function for both directions.
+アーカイブオブジェクトは、個別の `write` / `read` 関数名ではなく `operator()` を公開します。これにより、生成コードは入出力の両方向に対して1つの転送関数を使用できます。
 
 ```cpp
 template<class Archive>
@@ -7867,13 +7853,13 @@ auto xfer(Archive& archive, sample& value) -> xer::result<void>
 }
 ```
 
-When `archive` is a `binary_output_archive`, the values are written. When it is a `binary_input_archive`, the values are read into the same fields.
+`archive` が `binary_output_archive` の場合、値は書き込まれます。`binary_input_archive` の場合、同じフィールドに値が読み込まれます。
 
 ---
 
-## Supported Types
+## 対応型
 
-The initial low-level implementation directly supports the following types:
+初期の低水準実装は、次の型に直接対応します。
 
 ```cpp
 bool
@@ -7899,11 +7885,11 @@ std::vector<T>
 std::map<K, V>
 ```
 
-The container element types must themselves be supported by the same archive.
+コンテナの要素型も、同じアーカイブで対応している型でなければなりません。
 
-Environment-dependent integer types such as `int`, `long`, and `std::size_t` are intentionally not provided as direct serialization types. Fixed-width integer types should be used in serialized structures.
+`int`、`long`、`std::size_t` のような環境依存の整数型は、直接のシリアライズ対象型として意図的に提供していません。シリアライズされる構造体では、固定幅整数型を使用してください。
 
-Non-owning types such as `std::u8string_view` and `std::span` are not intended to be generated as structure fields. They may appear as output-side convenience arguments where explicitly supported, but serialized structures should use owning field types.
+`std::u8string_view` や `std::span` のような非所有型は、生成される構造体のフィールド型として使うことを想定していません。明示的に対応している箇所では出力側の便宜的な引数として現れることはありますが、シリアライズされる構造体では所有型のフィールドを使うべきです。
 
 ---
 
@@ -7913,18 +7899,18 @@ Non-owning types such as `std::u8string_view` and `std::span` are not intended t
 class binary_output_archive;
 ```
 
-`binary_output_archive` owns an internal byte buffer and appends serialized data to it.
+`binary_output_archive` は内部バイトバッファを所有し、シリアライズされたデータを末尾に追加します。
 
 ```cpp
 auto bytes() const noexcept -> std::span<const std::byte>;
 auto release() noexcept -> std::vector<std::byte>;
 ```
 
-`bytes` returns a non-owning view of the current buffer. The view is invalidated by later writes or by `release`.
+`bytes` は現在のバッファに対する非所有ビューを返します。このビューは、その後の書き込みや `release` によって無効になります。
 
-`release` moves out the accumulated byte sequence and clears the archive.
+`release` は蓄積されたバイト列をムーブして取り出し、アーカイブを空にします。
 
-The archive provides `operator()` overloads for supported output types.
+アーカイブは、対応する出力型に対して `operator()` のオーバーロードを提供します。
 
 ```cpp
 xer::binary_output_archive out;
@@ -7935,7 +7921,7 @@ out(id);
 out(name);
 ```
 
-Output functions return `xer::result<void>` for symmetry and to report allocation or size-related failures.
+出力関数は、対称性を保ち、アロケーションやサイズに関する失敗を報告するために `xer::result<void>` を返します。
 
 ---
 
@@ -7945,7 +7931,7 @@ Output functions return `xer::result<void>` for symmetry and to report allocatio
 class binary_input_archive;
 ```
 
-`binary_input_archive` reads serialized data from a byte span.
+`binary_input_archive` は、バイト span からシリアライズされたデータを読み取ります。
 
 ```cpp
 explicit binary_input_archive(std::span<const std::byte> data) noexcept;
@@ -7954,7 +7940,7 @@ auto remaining_size() const noexcept -> std::size_t;
 auto empty() const noexcept -> bool;
 ```
 
-The archive provides `operator()` overloads for supported input types.
+アーカイブは、対応する入力型に対して `operator()` のオーバーロードを提供します。
 
 ```cpp
 xer::binary_input_archive in(bytes);
@@ -7965,21 +7951,21 @@ in(id);
 in(name);
 ```
 
-Input functions store the result into the supplied reference and return `xer::result<void>`.
+入力関数は、与えられた参照に結果を格納し、`xer::result<void>` を返します。
 
-When the input does not contain enough bytes for the requested value, the function returns:
+要求された値を読むのに十分なバイトが入力に含まれていない場合、関数は次を返します。
 
 ```cpp
 error_t::end_of_file
 ```
 
-Invalid bool values and duplicate map keys in serialized input are reported as:
+シリアライズ入力中の不正な bool 値や重複した map キーは、次として報告されます。
 
 ```cpp
 error_t::invalid_argument
 ```
 
-Excessively large length values are reported as:
+過度に大きな長さ値は、次として報告されます。
 
 ```cpp
 error_t::length_error
@@ -7987,9 +7973,9 @@ error_t::length_error
 
 ---
 
-## Hand-Written `xfer` Functions
+## 手書きの `xfer` 関数
 
-A hand-written transfer function should call the archive for each field in fixed order.
+手書きの転送関数は、固定順序で各フィールドに対してアーカイブを呼び出すべきです。
 
 ```cpp
 struct sample {
@@ -8014,7 +8000,7 @@ auto xfer(Archive& archive, sample& value) -> xer::result<void>
 }
 ```
 
-The same function is used for output and input:
+同じ関数を出力と入力の両方に使用します。
 
 ```cpp
 sample source{};
@@ -8028,21 +8014,21 @@ xer::binary_input_archive in(data);
 xfer(in, restored);
 ```
 
-This pattern is demonstrated by `examples/example_serialize_basic.cpp`.
+このパターンは `examples/example_serialize_basic.cpp` で示しています。
 
 ---
 
-## Generated Structures and `xfer` Functions
+## 生成された構造体と `xfer` 関数
 
-For ordinary use, xer recommends generating structures and `xfer` functions from a schema file instead of writing them by hand.
+通常の用途では、xer は構造体と `xfer` 関数を手書きするのではなく、スキーマファイルから生成することを推奨します。
 
-The script is:
+スクリプトは次のとおりです。
 
 ```text
 php/generate_xfer_struct.php
 ```
 
-A schema file is a PHP file that returns an array. The short type tokens are defined by the generator before the schema file is loaded.
+スキーマファイルは、配列を返す PHP ファイルです。短い型トークンは、スキーマファイルが読み込まれる前にジェネレータによって定義されます。
 
 ```php
 <?php
@@ -8063,35 +8049,35 @@ return [
 ];
 ```
 
-The generator command is:
+ジェネレータのコマンドは次のとおりです。
 
 ```text
 php php/generate_xfer_struct.php schema.php record.hpp
 ```
 
-For reproducible generated examples or tests, the timestamp can be supplied explicitly:
+再現可能な生成例やテストのために、タイムスタンプを明示的に指定できます。
 
 ```text
 php php/generate_xfer_struct.php schema.php record.hpp --generated-at=2026-05-27T00:00:00+00:00
 ```
 
-If `--generated-at` is omitted, the current time is embedded in ISO 8601 format.
+`--generated-at` を省略した場合は、現在時刻が ISO 8601 形式で埋め込まれます。
 
-The generated header contains:
+生成されるヘッダーには次が含まれます。
 
 - `struct record`
 - `template<class Archive> auto xfer(Archive& ar, record& value) -> xer::result<void>`
-- a generated-at schema timestamp constant
+- 生成時スキーマタイムスタンプ定数
 
-The generated-at timestamp is embedded both in the file comment and in a C++ constant such as:
+生成時タイムスタンプは、ファイルコメントと、次のような C++ 定数の両方に埋め込まれます。
 
 ```cpp
 inline constexpr char record_xfer_schema_generated_at[] = "2026-05-27T13:29:13+00:00";
 ```
 
-This timestamp is not stored in the serialized binary payload. It identifies the generated schema source used to produce the header.
+このタイムスタンプは、シリアライズされたバイナリペイロードには保存されません。ヘッダーの生成に使われたスキーマソースを識別するためのものです。
 
-This generated workflow is demonstrated by:
+この生成ワークフローは、次のファイルで示しています。
 
 ```text
 examples/example_serialize_generated_schema.php
@@ -8099,7 +8085,7 @@ examples/example_serialize_generated.hpp
 examples/example_serialize_generated.cpp
 ```
 
-A schema can also generate multiple structures at once:
+1つのスキーマから複数の構造体をまとめて生成することもできます。
 
 ```php
 <?php
@@ -8125,7 +8111,7 @@ return [
 ];
 ```
 
-This emits both structures and one `xfer` function for each structure. The generated header includes only the standard headers required by the selected field types. The multi-structure workflow is demonstrated by:
+これは両方の構造体と、それぞれの構造体に対応する `xfer` 関数を1つずつ出力します。生成されるヘッダーは、選択されたフィールド型に必要な標準ヘッダーだけをインクルードします。複数構造体のワークフローは、次のファイルで示しています。
 
 ```text
 examples/example_serialize_generated_multi_schema.php
@@ -8135,9 +8121,9 @@ examples/example_serialize_generated_multi.cpp
 
 ---
 
-## PHP Schema Type DSL
+## PHP スキーマ型 DSL
 
-`php/generate_xfer_struct.php` supports the following scalar tokens:
+`php/generate_xfer_struct.php` は、次のスカラトークンに対応しています。
 
 ```text
 b
@@ -8152,7 +8138,7 @@ s
 bin
 ```
 
-They map to C++ types as follows:
+これらは C++ 型に次のように対応します。
 
 ```text
 b   -> bool
@@ -8174,7 +8160,7 @@ s   -> std::u8string
 bin -> std::vector<std::byte>
 ```
 
-Container forms are written as type modifiers:
+コンテナ形式は、型修飾子として記述します。
 
 ```php
 [T, v]          // std::vector<T>
@@ -8182,7 +8168,7 @@ Container forms are written as type modifiers:
 [[K, V], m]     // std::map<K, V>
 ```
 
-For example:
+例:
 
 ```php
 [u32, v]          // std::vector<std::uint32_t>
@@ -8190,31 +8176,31 @@ For example:
 [[s, f64], m]     // std::map<std::u8string, double>
 ```
 
-`std::array<T, N>` does not store `N` in the binary payload. `std::vector<T>`, `std::map<K, V>`, `std::u8string`, and `std::vector<std::byte>` store a `uint64` length before their contents.
+`std::array<T, N>` は、バイナリペイロードに `N` を保存しません。`std::vector<T>`、`std::map<K, V>`、`std::u8string`、`std::vector<std::byte>` は、内容の前に `uint64` の長さを保存します。
 
 ---
 
-## Versioning Model
+## バージョニングモデル
 
-This format is not self-describing. If a structure changes across versions, callers should handle compatibility outside the low-level archive layer.
+この形式は自己記述型ではありません。構造体がバージョン間で変わる場合、呼び出し側は低水準アーカイブ層の外側で互換性を扱うべきです。
 
-Common strategies include:
+一般的な戦略には、次のようなものがあります。
 
-- placing a version field at the start of the structure
-- wrapping payloads in an outer versioned structure
-- generating separate `xfer` functions for old and new layouts
-- restricting additions to trailing fields when suitable
-- exchanging the schema-generated timestamp out-of-band when that is useful for diagnostics
+- 構造体の先頭にバージョンフィールドを置く
+- ペイロードを外側のバージョン付き構造体で包む
+- 古いレイアウトと新しいレイアウトに対して別々の `xfer` 関数を生成する
+- 適している場合は、追加を末尾フィールドに限定する
+- 診断に有用な場合は、スキーマ生成時タイムスタンプを帯域外で交換する
 
-`<xer/serialize.h>` deliberately keeps this policy outside the low-level archive implementation.
+`<xer/serialize.h>` は、この方針を意図的に低水準アーカイブ実装の外側に置いています。
 
 ---
 
-## Relationship with ZIP
+## ZIP との関係
 
-`<xer/serialize.h>` produces and consumes byte sequences. Those byte sequences can be stored directly, sent over a stream, encoded with Base64, or placed into a ZIP archive.
+`<xer/serialize.h>` はバイト列を生成し、消費します。それらのバイト列は、そのまま保存したり、ストリームで送信したり、Base64 でエンコードしたり、ZIP アーカイブに入れたりできます。
 
-The serialization layer does not compress data by itself. Compression and archive handling belong to `<xer/zip.h>` or future compression utilities.
+シリアライズ層は、それ自体ではデータを圧縮しません。圧縮とアーカイブ処理は `<xer/zip.h>` または将来の圧縮ユーティリティの担当です。
 
 ---
 
