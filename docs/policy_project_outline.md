@@ -25,36 +25,43 @@ Such facilities should:
 - prefer a robust practical baseline over endlessly pursuing exceptional cases
 
 This principle does **not** weaken the expectations for deterministic low-level APIs.
-Where exact behavior is reasonably definable, XER should define it clearly and implement it faithfully.
+Where exact behavior is reasonably definable, xer should define it clearly and implement it faithfully.
 
 ---
 
 ## 2. Supported Environment
 
-### 2.1 Supported Compilers
+### 2.1 Supported Compiler
 
 - The primary officially supported compiler is **GCC 13.3.0 or later**
 - Support for Visual C++ and Clang may be considered in the future
 - At present, only GCC is treated as an officially supported compiler
 
-### 2.2 Supported Platforms
+### 2.2 Supported and Tested Environments
 
-- **Windows**
-- **Linux**
+The primary supported and tested environments are:
 
-### 2.3 Supported Windows Environments
+- **Ubuntu**
+- **MSYS2 UCRT64**
 
-- Command Prompt
-- PowerShell
-- MSYS2
+### 2.3 Platform Scope
 
-Under MSYS2, at least the following environments are supported:
+The current platform scope is:
 
-- `msys`
-- `mingw64`
-- `ucrt64`
+- Linux through Ubuntu
+- Windows through MSYS2 UCRT64
 
-### 2.4 Windows Version
+### 2.4 Unsupported MSYS2 Environments
+
+The following MSYS2 environments are not supported targets:
+
+- **MSYS2 MSYS**
+- **MSYS2 MINGW64**
+
+They are not included in the current or planned test matrix.
+If a clear need appears in the future, support for those environments may be reconsidered at that time.
+
+### 2.5 Windows Version
 
 - On Windows, the target baseline is **Windows 11 or later**
 

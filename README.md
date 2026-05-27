@@ -52,24 +52,30 @@ This project does **not** aim at full source-level compatibility with the C stan
 
 ## Supported environments
 
-Current official target:
+Current official compiler target:
 
 - GCC 13.3.0 or later
 
-Target platforms:
+Current supported and tested environments:
 
-- Windows
-- Linux
+- Ubuntu
+- MSYS2 UCRT64
 
-Current Windows scope:
+Current platform scope:
 
-- Command Prompt
-- PowerShell
-- MSYS2 (`msys`, `mingw64`, `ucrt64`)
+- Linux through Ubuntu
+- Windows through MSYS2 UCRT64
 
 Current Windows version target:
 
 - Windows 11 or later
+
+Unsupported environments:
+
+- MSYS2 MSYS
+- MSYS2 MINGW64
+
+MSYS2 MSYS and MSYS2 MINGW64 are not included in the current or planned test matrix. If a clear need appears in the future, support for those environments may be reconsidered at that time.
 
 Visual C++ and Clang may be considered later, but they are not official targets yet.
 
