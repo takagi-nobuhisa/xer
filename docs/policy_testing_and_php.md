@@ -4,7 +4,7 @@
 
 xer uses PHP for code generation and test support.
 
-Its intended uses include generation of conversion tables, generation of test cases, build and execution control for test programs, and result aggregation.
+Its intended uses include generation of conversion tables, generation of test cases, schema-based generation of serialization structures, build and execution control for test programs, and result aggregation.
 
 PHP is often recognized as a language for web application development, but in this project it is used as a general-purpose scripting language.
 Particular importance is placed on the fact that its syntax is relatively familiar to C programmers.
@@ -26,6 +26,7 @@ Its main uses are as follows:
 - generation of conversion tables
 - generation of test cases
 - generation of test programs
+- generation of fixed-schema serialization structures and `xfer` functions
 - build and execution control for test programs
 - aggregation of test results
 
@@ -170,6 +171,7 @@ xer_assert_throw(expr, exception_type)
 ## Summary
 
 * xer uses PHP for code generation and test support
+* PHP also generates fixed-schema serialization structures and `xfer` functions from schema arrays
 * PHP is treated as a development-only tool, not as part of the library itself
 * xer users are not required to use PHP merely to use the library
 * the repository may include PHP scripts and generation data, while a library-only distribution normally does not

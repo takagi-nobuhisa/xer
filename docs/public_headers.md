@@ -167,11 +167,15 @@ For that reason, ZIP functionality is not absorbed into `xer/stdio.h`, `xer/path
 At the current stage, this keeps the responsibility clear:
 
 - `zip_open` opens a ZIP archive for reading
+- `zip_create` opens a ZIP archive for writing
 - `zip_read` reads entry metadata sequentially from the central directory
-- `zip_entry_*` functions obtain metadata and expanded entry data through `xer::result`
+- `zip_locate_name` and `zip_entry_read_by_name` provide exact-name lookup helpers
+- `zip_entry_*` functions obtain metadata, expanded entry data, and extraction behavior through `xer::result`
+- `zip_add_from_bytes` and `zip_add_file` add deflated entries to a writer
+- `zip_commit` finalizes a writer so finalization errors can be reported
 - reaching the end of the entry stream is reported as `error_t::end_of_file`
 
-The initial implementation focuses on reading ordinary non-ZIP64 archives. Writing archives, extraction helpers, name lookup, and ZIP64 support are deferred.
+The initial implementation focuses on ordinary non-ZIP64 single-disk archives. ZIP64, encrypted entries, archive comments, and streaming large-entry I/O are deferred.
 
 ### Why `serialize.h` Is Independent
 

@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v0.6.0a2**
+Target version: **v0.6.0b1**
 
 ---
 
@@ -179,10 +179,11 @@ Examples of xer-specific categories may include things such as:
 * `encoding_error`
 * `not_found`
 * `end_of_file`
-* `end_of_file`
 * `divide_by_zero`
 
 The exact enumerator set is defined by the implementation.
+
+Sequential input operations use `end_of_file` when the next item cannot be read because the input is exhausted. Lookup operations use `not_found` when a named or keyed target does not exist.
 
 ---
 

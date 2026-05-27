@@ -103,6 +103,7 @@ Examples of external components that fit this policy include:
 - **Tcl/Tk** for lightweight GUI integration
 - **MeCab** for Japanese morphological analysis
 - **ICU** for Unicode normalization
+- **zlib** for ZIP deflate compression and expansion
 
 These components are old, well-established, and sufficiently stable that xer can build practical facilities around them without expecting constant breakage from upstream changes.
 
@@ -537,6 +538,36 @@ Details follow this document:
 
 ---
 
+### 17.12 ZIP Archive Utilities
+
+ZIP archive utilities are provided through `xer/zip.h`.
+They are treated as compression-and-archive facilities rather than ordinary file I/O.
+
+The current scope covers ordinary non-ZIP64 single-disk archives: sequential reading, exact-name lookup, whole-entry reads, archive creation, deflated entry writing, explicit commit, and extraction helpers with path-safety checks.
+
+ZIP64, encrypted entries, archive comments, multi-disk archives, and streaming large-entry I/O are deferred until there is a clear practical need.
+
+Details follow these documents:
+
+- `policy_external_components.md`
+- `docs/bits/header_zip.md`
+
+### 17.13 Fixed-Schema Binary Serialization
+
+Fixed-schema binary serialization is provided through `xer/serialize.h`.
+
+The design deliberately avoids reflection-based or self-describing serialization.
+The low-level archive layer transfers supported scalar values and selected standard containers, while PHP-generated C++ code defines user structures and one `xfer` function per structure.
+
+The binary format stores only data in a fixed field order.
+Type names, field names, schema descriptions, object identifiers, byte-order markers, and version records are not written by the low-level archive layer.
+
+Details follow this document:
+
+- `policy_serialize.md`
+
+---
+
 ## 18. Summary
 
 - xer is a C++23 library designed for programmers familiar with C
@@ -552,5 +583,5 @@ Details follow this document:
 - It avoids unstable external dependencies and prefers mature, stable external components when integration is worthwhile
 - It isolates external-component features behind dedicated public headers and uses compile-time detection where appropriate
 - It organizes documentation, examples, and development scripts by role
-- It includes additional practical facilities such as process handling, socket support, value-domain utilities, Tcl/Tk integration, image/canvas APIs, bitmap-font-based text rendering, MeCab-based Japanese text processing, and Unicode code point traversal, grapheme cluster traversal, and ICU-based Unicode NFC normalization
+- It includes additional practical facilities such as process handling, socket support, ZIP archive utilities, fixed-schema binary serialization, value-domain utilities, Tcl/Tk integration, image/canvas APIs, bitmap-font-based text rendering, MeCab-based Japanese text processing, and Unicode code point traversal, grapheme cluster traversal, and ICU-based Unicode NFC normalization
 - It continues to evolve incrementally, starting from the facilities most needed in practice

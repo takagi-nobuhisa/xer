@@ -455,6 +455,8 @@ The current example set includes examples for newly added areas such as:
 - socket creation and socket stream conversion
 - child process spawning, waiting, pipes, and null standard streams
 - stream rewinding
+- ZIP reading, writing, lookup, and extraction
+- hand-written and generated fixed-schema serialization workflows
 
 These notes are descriptive rather than a fixed completeness requirement. The detailed list should continue to be inferred from the actual files under `examples/`.
 

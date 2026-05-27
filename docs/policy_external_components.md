@@ -182,6 +182,6 @@ The ICU-dependent public scope is NFC normalization and NFC status checking. The
 
 ## zlib / ZIP
 
-`xer/zip.h` uses zlib for deflate expansion. The public header checks for `<zlib.h>` with `__has_include` when available. Tests and examples that include `xer/zip.h` are marked as the `zip` feature and should be linked with zlib, typically `-lz`.
+`xer/zip.h` uses zlib for deflate compression and expansion. The public header checks for `<zlib.h>` with `__has_include` when available. Tests and examples that include `xer/zip.h` are marked as the `zip` feature and should be linked with zlib, typically `-lz`.
 
-The initial ZIP implementation is read-only and supports ordinary non-ZIP64 archives with stored or deflated entries. ZIP archive creation and ZIP64 support are deferred.
+The current ZIP implementation supports ordinary non-ZIP64 single-disk archives with stored or deflated entries. It provides sequential reading, exact-name lookup, whole-entry reads, archive creation, deflated entry writing, explicit commit, and extraction helpers. ZIP64, encrypted entries, archive comments, multi-disk archives, and streaming large-entry I/O are deferred.

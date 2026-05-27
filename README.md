@@ -28,7 +28,7 @@ It keeps the spirit of the C standard library where that style is still practica
 
 xer is under active development.
 
-The project began by rebuilding practical parts of the C standard library in a way that fits its design goals. It now also covers adjacent areas that benefit from the same approach, including structured data handling, process and socket utilities, Tcl/Tk integration, a lightweight image/canvas subsystem, and Japanese text-processing helpers such as MeCab-based wakachi-gaki, furigana formatting, kansuji conversion, and braille conversion.
+The project began by rebuilding practical parts of the C standard library in a way that fits its design goals. It now also covers adjacent areas that benefit from the same approach, including structured data handling, ZIP archive utilities, fixed-schema binary serialization, process and socket utilities, Tcl/Tk integration, a lightweight image/canvas subsystem, and Japanese text-processing helpers such as MeCab-based wakachi-gaki, furigana formatting, kansuji conversion, and braille conversion.
 
 The current library scope includes:
 
@@ -36,6 +36,8 @@ The current library scope includes:
 - Unicode code point traversal, grapheme cluster traversal, grapheme-cluster-based string operations, practical emoji detection, and NFC normalization
 - I/O and filesystem-oriented utilities
 - binary data helpers, including checksums, CRC, hex conversion, MD5, SHA-1, and SHA-256
+- ZIP archive reading, writing, lookup, and extraction
+- fixed-schema binary serialization with generated `xfer` structures
 - path handling
 - arithmetic helpers and numeric utility types
 - time utilities
@@ -168,6 +170,8 @@ Current public headers:
 - `xer/bytes.h`
 - `xer/base64.h`
 - `xer/binary.h`
+- `xer/zip.h`
+- `xer/serialize.h`
 - `xer/parse.h`
 - `xer/json.h`
 - `xer/ini.h`
@@ -272,6 +276,8 @@ These documents describe the current direction of the project, including:
 - image/canvas and bitmap-font policy
 - coding conventions
 - test and code-generation policy
+- serialization policy
+- external-component policy
 
 ## License
 
