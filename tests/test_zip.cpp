@@ -91,6 +91,21 @@ void write_file(std::string_view filename, std::span<const std::byte> data)
     xer_assert(out.good());
 }
 
+[[nodiscard]] auto read_file(std::string_view filename) -> std::vector<std::byte>
+{
+    std::ifstream in(std::string(filename), std::ios::binary);
+    xer_assert(in.good());
+
+    std::vector<std::byte> result;
+    char ch = 0;
+    while (in.get(ch)) {
+        result.push_back(static_cast<std::byte>(static_cast<unsigned char>(ch)));
+    }
+
+    xer_assert(in.eof());
+    return result;
+}
+
 void make_zip(std::string_view filename, std::span<const sample_entry> entries)
 {
     struct central_record {
@@ -329,6 +344,53 @@ void test_zip_create_empty_archive()
     xer_assert_eq(entry.error().code, xer::error_t::end_of_file);
 }
 
+void test_zip_extract_to_and_entry_extract()
+{
+    const std::array entries = {
+        sample_entry{u8"dir/", bytes(""), 0u},
+        sample_entry{u8"dir/nested.txt", bytes("nested extracted body\n"), 8u},
+        sample_entry{u8"root.txt", bytes("root extracted body\n"), 0u},
+    };
+    make_zip("extract.zip", entries);
+
+    auto archive = xer::zip_open(u8"extract.zip");
+    xer_assert(archive.has_value());
+
+    const auto extract_all = xer::zip_extract_to(*archive, u8"zip_extract_out");
+    xer_assert(extract_all.has_value());
+
+    assert_bytes_eq(read_file("zip_extract_out/dir/nested.txt"), entries[1].data);
+    assert_bytes_eq(read_file("zip_extract_out/root.txt"), entries[2].data);
+
+    auto first = xer::zip_read(*archive);
+    xer_assert(first.has_value());
+    auto first_name = xer::zip_entry_name(*first);
+    xer_assert(first_name.has_value());
+    xer_assert_eq(*first_name, u8"dir/");
+
+    auto root = xer::zip_locate_name(*archive, u8"root.txt");
+    xer_assert(root.has_value());
+
+    const auto extract_one = xer::zip_entry_extract(*archive, *root, u8"zip_extract_single/copy.txt");
+    xer_assert(extract_one.has_value());
+    assert_bytes_eq(read_file("zip_extract_single/copy.txt"), entries[2].data);
+}
+
+void test_zip_extract_rejects_unsafe_entry_name()
+{
+    const std::array entries = {
+        sample_entry{u8"../escape.txt", bytes("must not escape\n"), 0u},
+    };
+    make_zip("unsafe.zip", entries);
+
+    auto archive = xer::zip_open(u8"unsafe.zip");
+    xer_assert(archive.has_value());
+
+    const auto extracted = xer::zip_extract_to(*archive, u8"zip_extract_safe_root");
+    xer_assert_not(extracted.has_value());
+    xer_assert_eq(extracted.error().code, xer::error_t::invalid_argument);
+}
+
 void test_zip_open_rejects_invalid_file()
 {
     write_file("not-a-zip.zip", bytes("not a zip file"));
@@ -346,5 +408,7 @@ auto main() -> int
     test_zip_create_add_bytes_and_file();
     test_zip_locate_name_and_read_by_name();
     test_zip_create_empty_archive();
+    test_zip_extract_to_and_entry_extract();
+    test_zip_extract_rejects_unsafe_entry_name();
     test_zip_open_rejects_invalid_file();
 }

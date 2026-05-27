@@ -6,7 +6,7 @@
 
 ZIP is technically an archive format, but in practical use it is also a familiar compression and expansion format. XER treats the initial ZIP API as a small compression-and-archive utility that can later support serialized data packages, bundled resources, and ordinary file exchange.
 
-The initial API is intentionally small. It supports sequential reading, name lookup, simple archive creation, and whole-entry reads. Extraction helpers, comments, and ZIP64 support are deferred.
+The initial API is intentionally small. It supports sequential reading, name lookup, simple archive creation, whole-entry reads, and simple extraction helpers. Comments and ZIP64 support are deferred.
 
 ---
 
@@ -29,6 +29,7 @@ The main role of `<xer/zip.h>` is to make it possible to:
 - locate entries by exact name
 - obtain entry names, sizes, and compression method names
 - read and expand entry data
+- extract one entry or all entries to the file system
 - create a ZIP archive
 - add in-memory bytes or a source file as deflated entries
 - explicitly commit the writer so finalization errors can be reported
@@ -77,6 +78,20 @@ auto zip_locate_name(zip_archive& archive, std::u8string_view entry_name)
 auto zip_entry_read_by_name(
     zip_archive& archive,
     std::u8string_view entry_name) -> xer::result<std::vector<std::byte>>;
+
+auto zip_entry_extract(
+    zip_archive& archive,
+    const zip_entry& entry,
+    std::u8string_view target_filename) -> xer::result<void>;
+
+auto zip_entry_extract_to(
+    zip_archive& archive,
+    const zip_entry& entry,
+    std::u8string_view destination_dir) -> xer::result<void>;
+
+auto zip_extract_to(
+    zip_archive& archive,
+    std::u8string_view destination_dir) -> xer::result<void>;
 
 auto zip_add_from_bytes(
     zip_archive& archive,
@@ -293,25 +308,6 @@ Reading data for an unsupported method fails with `error_t::invalid_argument`.
 ```cpp
 auto zip_entry_read(zip_archive& archive, const zip_entry& entry)
     -> xer::result<std::vector<std::byte>>;
-
-auto zip_locate_name(zip_archive& archive, std::u8string_view entry_name)
-    -> xer::result<zip_entry>;
-
-auto zip_entry_read_by_name(
-    zip_archive& archive,
-    std::u8string_view entry_name) -> xer::result<std::vector<std::byte>>;
-
-auto zip_add_from_bytes(
-    zip_archive& archive,
-    std::u8string_view entry_name,
-    std::span<const std::byte> data) -> xer::result<void>;
-
-auto zip_add_file(
-    zip_archive& archive,
-    std::u8string_view source_path,
-    std::u8string_view entry_name) -> xer::result<void>;
-
-auto zip_commit(zip_archive& archive) -> xer::result<void>;
 ```
 
 ### Purpose
@@ -383,6 +379,63 @@ auto body = zip_entry_read(archive, *entry);
 
 Missing entries are reported as `error_t::not_found`. Unsupported compression methods and malformed entry data are reported the same way as `zip_entry_read`.
 
+---
+
+## `zip_entry_extract`
+
+```cpp
+auto zip_entry_extract(
+    zip_archive& archive,
+    const zip_entry& entry,
+    std::u8string_view target_filename) -> xer::result<void>;
+```
+
+### Purpose
+
+`zip_entry_extract` reads one entry body and writes it to the specified file-system path.
+
+Parent directories of `target_filename` are created as needed. If the entry name ends with `/`, the target path is created as a directory instead of a file.
+
+This function does not interpret the entry name as a destination path. It is suitable when the caller has already chosen an exact output filename.
+
+---
+
+## `zip_entry_extract_to`
+
+```cpp
+auto zip_entry_extract_to(
+    zip_archive& archive,
+    const zip_entry& entry,
+    std::u8string_view destination_dir) -> xer::result<void>;
+```
+
+### Purpose
+
+`zip_entry_extract_to` extracts one entry below a destination directory using the entry name as a relative path.
+
+### Path Safety
+
+The entry name is rejected as `error_t::invalid_argument` if it is empty, absolute, drive-relative, contains a NUL code unit, contains an empty interior component, or contains `.` or `..` components. This prevents ordinary path-traversal cases such as `../outside.txt` and `/tmp/outside.txt`.
+
+Directory entries whose names end with `/` create directories. File entries create missing parent directories and then write the expanded bytes.
+
+---
+
+## `zip_extract_to`
+
+```cpp
+auto zip_extract_to(
+    zip_archive& archive,
+    std::u8string_view destination_dir) -> xer::result<void>;
+```
+
+### Purpose
+
+`zip_extract_to` extracts all entries below a destination directory.
+
+It scans the central directory directly and does not change the sequential position used by `zip_read`. This lets callers extract the archive and still perform a later sequential scan from the same position.
+
+The same path-safety rules as `zip_entry_extract_to` are applied to every entry name. If any entry is unsafe or cannot be extracted, the function returns an error. Entries already written before that error are not rolled back.
 
 ---
 
@@ -462,7 +515,6 @@ The initial implementation does not provide detailed ZIP parse positions. If pos
 
 The following items are intentionally deferred:
 
-- file extraction helpers
 - entry comments and archive comments
 - ZIP64
 - multi-disk archives

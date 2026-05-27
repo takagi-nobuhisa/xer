@@ -28,6 +28,7 @@
 #include <xer/bits/fclose.h>
 #include <xer/bits/fflush.h>
 #include <xer/bits/file_contents.h>
+#include <xer/bits/file_entry.h>
 #include <xer/bits/fopen.h>
 #include <xer/bits/stream_position.h>
 #include <xer/bits/stream_position_io.h>
@@ -195,6 +196,106 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
     }
 
     return to_u8string(narrow);
+}
+
+[[nodiscard]] inline auto zip_is_directory_name(std::u8string_view entry_name) noexcept -> bool
+{
+    return !entry_name.empty() && entry_name.back() == u8'/';
+}
+
+[[nodiscard]] inline auto zip_is_safe_entry_name(std::u8string_view entry_name) noexcept -> bool
+{
+    if (entry_name.empty()) {
+        return false;
+    }
+
+    for (const char8_t ch : entry_name) {
+        if (ch == u8'\0') {
+            return false;
+        }
+    }
+
+    path normalized(entry_name);
+    const std::u8string_view value = normalized.str();
+    if (value.empty() || is_absolute(normalized) || is_drive_relative_path(value)) {
+        return false;
+    }
+
+    std::size_t offset = 0;
+    while (offset < value.size()) {
+        const std::size_t next = value.find(u8'/', offset);
+        const std::u8string_view component = next == std::u8string_view::npos
+            ? value.substr(offset)
+            : value.substr(offset, next - offset);
+
+        if (component.empty()) {
+            return false;
+        }
+
+        if (component == u8"." || component == u8"..") {
+            return false;
+        }
+
+        if (next == std::u8string_view::npos) {
+            break;
+        }
+
+        offset = next + 1u;
+    }
+
+    return true;
+}
+
+[[nodiscard]] inline auto zip_make_directories(const path& directory) -> result<void>
+{
+    if (directory.str().empty() || is_dir(directory)) {
+        return {};
+    }
+
+    const auto parent = parent_path(directory);
+    if (parent.has_value()) {
+        const auto parent_result = zip_make_directories(*parent);
+        if (!parent_result.has_value()) {
+            return std::unexpected(parent_result.error());
+        }
+    } else if (parent.error().code != error_t::not_found) {
+        return std::unexpected(parent.error());
+    }
+
+    const auto created = mkdir(directory);
+    if (!created.has_value() && !is_dir(directory)) {
+        return std::unexpected(created.error());
+    }
+
+    return {};
+}
+
+[[nodiscard]] inline auto zip_make_parent_directories(const path& filename) -> result<void>
+{
+    const auto parent = parent_path(filename);
+    if (!parent.has_value()) {
+        return parent.error().code == error_t::not_found
+            ? result<void>()
+            : std::unexpected(parent.error());
+    }
+
+    return zip_make_directories(*parent);
+}
+
+[[nodiscard]] inline auto zip_join_safe_entry_path(
+    const path& destination_dir,
+    std::u8string_view entry_name) -> result<path>
+{
+    if (!zip_is_safe_entry_name(entry_name)) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    auto result = destination_dir / path(entry_name);
+    if (!result.has_value()) {
+        return std::unexpected(result.error());
+    }
+
+    return *result;
 }
 
 [[nodiscard]] inline auto zip_inflate_raw(
@@ -417,6 +518,22 @@ private:
     std::uint16_t flags_ = 0;
     std::uint64_t local_header_offset_ = 0;
 };
+
+namespace detail {
+
+[[nodiscard]] inline auto zip_entry_from_central_entry(
+    const zip_central_entry& central_entry) -> zip_entry
+{
+    return zip_entry(
+        central_entry.name,
+        central_entry.uncompressed_size,
+        central_entry.compressed_size,
+        central_entry.compression_method,
+        central_entry.flags,
+        central_entry.local_header_offset);
+}
+
+} // namespace detail
 
 /**
  * @brief Move-only ZIP archive handle.
@@ -694,13 +811,7 @@ namespace detail {
     archive.set_next_entry_offset(central_entry->next_offset);
     archive.increment_next_entry_index();
 
-    return zip_entry(
-        central_entry->name,
-        central_entry->uncompressed_size,
-        central_entry->compressed_size,
-        central_entry->compression_method,
-        central_entry->flags,
-        central_entry->local_header_offset);
+    return detail::zip_entry_from_central_entry(*central_entry);
 }
 
 [[nodiscard]] inline auto zip_entry_name(const zip_entry& entry) -> result<std::u8string>
@@ -820,13 +931,7 @@ namespace detail {
         }
 
         if (central_entry->name == entry_name) {
-            return zip_entry(
-                central_entry->name,
-                central_entry->uncompressed_size,
-                central_entry->compressed_size,
-                central_entry->compression_method,
-                central_entry->flags,
-                central_entry->local_header_offset);
+            return detail::zip_entry_from_central_entry(*central_entry);
         }
 
         offset = central_entry->next_offset;
@@ -855,6 +960,116 @@ namespace detail {
     }
 
     return zip_entry_read(archive, *entry);
+}
+
+/**
+ * @brief Extracts one ZIP entry to a specified path.
+ *
+ * Parent directories of @p target_filename are created as needed. If @p entry
+ * is a directory entry, @p target_filename is created as a directory.
+ *
+ * @param archive ZIP archive.
+ * @param entry Entry metadata.
+ * @param target_filename Destination path.
+ * @return Empty success value on success.
+ */
+[[nodiscard]] inline auto zip_entry_extract(
+    zip_archive& archive,
+    const zip_entry& entry,
+    std::u8string_view target_filename) -> result<void>
+{
+    if (!archive.is_reading()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const path target(target_filename);
+    if (detail::zip_is_directory_name(entry.name())) {
+        return detail::zip_make_directories(target);
+    }
+
+    const auto parent_result = detail::zip_make_parent_directories(target);
+    if (!parent_result.has_value()) {
+        return std::unexpected(parent_result.error());
+    }
+
+    const auto data = zip_entry_read(archive, entry);
+    if (!data.has_value()) {
+        return std::unexpected(data.error());
+    }
+
+    return file_put_contents(target, *data);
+}
+
+/**
+ * @brief Extracts one ZIP entry below a destination directory.
+ *
+ * The entry name is treated as a relative path inside the destination
+ * directory. Absolute paths, drive-relative paths, empty components, `.`
+ * components, and `..` components are rejected as `error_t::invalid_argument`.
+ *
+ * @param archive ZIP archive.
+ * @param entry Entry metadata.
+ * @param destination_dir Destination directory.
+ * @return Empty success value on success.
+ */
+[[nodiscard]] inline auto zip_entry_extract_to(
+    zip_archive& archive,
+    const zip_entry& entry,
+    std::u8string_view destination_dir) -> result<void>
+{
+    if (!archive.is_reading()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const auto destination = detail::zip_join_safe_entry_path(path(destination_dir), entry.name());
+    if (!destination.has_value()) {
+        return std::unexpected(destination.error());
+    }
+
+    return zip_entry_extract(archive, entry, destination->str());
+}
+
+/**
+ * @brief Extracts all ZIP entries below a destination directory.
+ *
+ * This function scans the central directory directly and does not change the
+ * sequential position used by `zip_read`. Entry names are checked with the same
+ * path-safety rules as `zip_entry_extract_to`.
+ *
+ * @param archive ZIP archive.
+ * @param destination_dir Destination directory.
+ * @return Empty success value on success.
+ */
+[[nodiscard]] inline auto zip_extract_to(
+    zip_archive& archive,
+    std::u8string_view destination_dir) -> result<void>
+{
+    if (!archive.is_reading()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const auto root_result = detail::zip_make_directories(path(destination_dir));
+    if (!root_result.has_value()) {
+        return std::unexpected(root_result.error());
+    }
+
+    std::uint64_t offset = archive.central_directory_offset();
+    for (std::uint64_t i = 0; i < archive.entry_count(); ++i) {
+        const auto central_entry = detail::zip_read_central_entry_at(archive, offset);
+        if (!central_entry.has_value()) {
+            return std::unexpected(central_entry.error());
+        }
+
+        const auto entry = detail::zip_entry_from_central_entry(*central_entry);
+        const auto extracted = zip_entry_extract_to(archive, entry, destination_dir);
+        if (!extracted.has_value()) {
+            return std::unexpected(extracted.error());
+        }
+
+        offset = central_entry->next_offset;
+    }
+
+    return {};
 }
 
 /**
