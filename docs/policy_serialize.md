@@ -40,6 +40,8 @@ The generator emits:
 - one `xfer` function per structure
 - a generated-at schema timestamp constant
 
+A schema file may define one structure or multiple structures. For generated examples and reproducible tests, the generation timestamp may be supplied explicitly by the generator command.
+
 The generated `xfer` function calls the archive once for each field in fixed order.
 
 ---
@@ -137,3 +139,5 @@ At minimum, examples should cover:
 - binary output and binary input through the same `xfer` function
 
 The reference manual for `<xer/serialize.h>` should describe this workflow directly rather than only listing low-level functions.
+
+When the generator is changed, at least one generated-code example should be regenerated and compiled so that the documented schema DSL remains executable.

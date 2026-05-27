@@ -275,6 +275,14 @@ The generator command is:
 php php/generate_xfer_struct.php schema.php record.hpp
 ```
 
+For reproducible generated examples or tests, the timestamp can be supplied explicitly:
+
+```text
+php php/generate_xfer_struct.php schema.php record.hpp --generated-at=2026-05-27T00:00:00+00:00
+```
+
+If `--generated-at` is omitted, the current time is embedded in ISO 8601 format.
+
 The generated header contains:
 
 - `struct record`
@@ -295,6 +303,40 @@ This generated workflow is demonstrated by:
 examples/example_serialize_generated_schema.php
 examples/example_serialize_generated.hpp
 examples/example_serialize_generated.cpp
+```
+
+A schema can also generate multiple structures at once:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+return [
+    'namespace' => 'demo',
+    'structs' => [
+        'packet_header' => [
+            'version' => u16,
+            'kind' => u16,
+            'sequence' => u32,
+        ],
+        'sensor_sample' => [
+            'id' => u32,
+            'name' => s,
+            'values' => [f32, v],
+            'calibration' => [[s, f64], m],
+            'raw' => [u8, [a, 8]],
+        ],
+    ],
+];
+```
+
+This emits both structures and one `xfer` function for each structure. The generated header includes only the standard headers required by the selected field types. The multi-structure workflow is demonstrated by:
+
+```text
+examples/example_serialize_generated_multi_schema.php
+examples/example_serialize_generated_multi.hpp
+examples/example_serialize_generated_multi.cpp
 ```
 
 ---

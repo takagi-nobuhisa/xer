@@ -57,12 +57,14 @@ Usage:
   php generate_xfer_struct.php <schema.php> <output.hpp> [options]
 
 Options:
-  --struct=<name>       Struct name for a schema file that returns a field map.
-                        When the schema contains a "structs" map, this filters
-                        generation to one struct.
-  --namespace=<name>    C++ namespace, for example "demo" or "demo::wire".
-                        This overrides a schema-level "namespace" entry.
-  --help                Show this help.
+  --struct=<name>          Struct name for a schema file that returns a field
+                           map. When the schema contains a "structs" map, this
+                           filters generation to one struct.
+  --namespace=<name>       C++ namespace, for example "demo" or "demo::wire".
+                           This overrides a schema-level "namespace" entry.
+  --generated-at=<text>    Override the generated-at schema version string.
+                           The default is the current time in ISO 8601 format.
+  --help                   Show this help.
 
 Schema examples:
 
@@ -86,9 +88,13 @@ Schema examples:
   return [
       'namespace' => 'demo',
       'structs' => [
-          'sample' => [
+          'sample_header' => [
               'id' => u32,
               'name' => s,
+          ],
+          'sample_packet' => [
+              'header' => bin,
+              'values' => [f64, v],
           ],
       ],
   ];
@@ -189,6 +195,21 @@ function is_list_array(array $array): bool
 }
 
 /**
+ * @param array<string, mixed> $array
+ * @param list<string> $allowedKeys
+ * @return void
+ */
+function require_only_keys(array $array, array $allowedKeys, string $label): void
+{
+    $allowed = array_fill_keys($allowedKeys, true);
+    foreach (array_keys($array) as $key) {
+        if (!is_string($key) || !isset($allowed[$key])) {
+            fail('Unknown ' . $label . ' entry: ' . (string)$key);
+        }
+    }
+}
+
+/**
  * @param mixed $type
  * @return string
  */
@@ -265,6 +286,50 @@ function cpp_type(mixed $type): string
 }
 
 /**
+ * @param mixed $type
+ * @param array<string, bool> $includes
+ * @return void
+ */
+function collect_includes(mixed $type, array &$includes): void
+{
+    if (is_string($type)) {
+        match ($type) {
+            b, f32, f64 => null,
+            u8, u16, u32, u64, i8, i16, i32, i64 => $includes['<cstdint>'] = true,
+            s => $includes['<string>'] = true,
+            bin => [$includes['<cstddef>'] = true, $includes['<vector>'] = true],
+            default => null,
+        };
+        return;
+    }
+
+    if (!is_array($type) || !is_list_array($type) || count($type) !== 2) {
+        return;
+    }
+
+    [$base, $modifier] = $type;
+    if ($modifier === v) {
+        $includes['<vector>'] = true;
+        collect_includes($base, $includes);
+        return;
+    }
+
+    if ($modifier === m) {
+        $includes['<map>'] = true;
+        if (is_array($base) && is_list_array($base) && count($base) === 2) {
+            collect_includes($base[0], $includes);
+            collect_includes($base[1], $includes);
+        }
+        return;
+    }
+
+    if (is_array($modifier) && is_list_array($modifier) && count($modifier) === 2 && $modifier[0] === a) {
+        $includes['<array>'] = true;
+        collect_includes($base, $includes);
+    }
+}
+
+/**
  * @param array<string, mixed> $fields
  * @return void
  */
@@ -297,6 +362,8 @@ function normalize_schema(array $schema, ?string $structOption, ?string $namespa
     $structs = [];
 
     if (isset($schema['structs'])) {
+        require_only_keys($schema, ['namespace', 'structs'], 'schema');
+
         if (!is_array($schema['structs'])) {
             fail('Schema entry "structs" must be an array.');
         }
@@ -311,6 +378,7 @@ function normalize_schema(array $schema, ?string $structOption, ?string $namespa
             require_cpp_identifier($structName, 'struct name');
 
             if (is_array($definition) && isset($definition['fields'])) {
+                require_only_keys($definition, ['fields'], 'struct ' . $structName);
                 if (!is_array($definition['fields'])) {
                     fail('Struct entry "fields" must be an array: ' . $structName);
                 }
@@ -333,6 +401,8 @@ function normalize_schema(array $schema, ?string $structOption, ?string $namespa
     }
 
     if (isset($schema['fields'])) {
+        require_only_keys($schema, ['namespace', 'struct', 'fields'], 'schema');
+
         if (!is_array($schema['fields'])) {
             fail('Schema entry "fields" must be an array.');
         }
@@ -362,22 +432,6 @@ function normalize_schema(array $schema, ?string $structOption, ?string $namespa
     validate_fields($schema, $structOption);
     $structs[$structOption] = $schema;
     return ['namespace' => $namespace, 'structs' => $structs];
-}
-
-/**
- * @return string
- */
-function indent(string $text, string $prefix): string
-{
-    $lines = explode("\n", $text);
-    foreach ($lines as &$line) {
-        if ($line !== '') {
-            $line = $prefix . $line;
-        }
-    }
-    unset($line);
-
-    return implode("\n", $lines);
 }
 
 /**
@@ -412,6 +466,30 @@ function generate_struct(string $structName, array $fields, string $generatedAt)
 }
 
 /**
+ * @param array<string, array<string, mixed>> $structs
+ * @return list<string>
+ */
+function required_includes(array $structs): array
+{
+    $includes = [];
+    foreach ($structs as $fields) {
+        foreach ($fields as $type) {
+            collect_includes($type, $includes);
+        }
+    }
+
+    $order = ['<array>', '<cstddef>', '<cstdint>', '<map>', '<string>', '<vector>'];
+    $result = [];
+    foreach ($order as $header) {
+        if (isset($includes[$header])) {
+            $result[] = $header;
+        }
+    }
+
+    return $result;
+}
+
+/**
  * @param array{namespace:string, structs:array<string, array<string, mixed>>} $normalized
  * @return string
  */
@@ -427,12 +505,13 @@ function generate_header(array $normalized, string $schemaPath, string $generate
     $out .= " * Schema version: " . $generatedAt . "\n";
     $out .= " */\n\n";
     $out .= "#pragma once\n\n";
-    $out .= "#include <array>\n";
-    $out .= "#include <cstddef>\n";
-    $out .= "#include <cstdint>\n";
-    $out .= "#include <map>\n";
-    $out .= "#include <string>\n";
-    $out .= "#include <vector>\n\n";
+
+    foreach (required_includes($normalized['structs']) as $header) {
+        $out .= '#include ' . $header . "\n";
+    }
+    if (required_includes($normalized['structs']) !== []) {
+        $out .= "\n";
+    }
     $out .= "#include <xer/serialize.h>\n\n";
 
     $namespace = $normalized['namespace'];
@@ -455,7 +534,7 @@ function generate_header(array $normalized, string $schemaPath, string $generate
 
 /**
  * @param list<string> $argv
- * @return array{schema:string, output:string, struct:?string, namespace:?string}
+ * @return array{schema:string, output:string, struct:?string, namespace:?string, generated_at:?string}
  */
 function parse_arguments(array $argv): array
 {
@@ -463,6 +542,7 @@ function parse_arguments(array $argv): array
     $output = null;
     $struct = null;
     $namespace = null;
+    $generatedAt = null;
 
     for ($i = 1; $i < count($argv); ++$i) {
         $arg = $argv[$i];
@@ -479,6 +559,11 @@ function parse_arguments(array $argv): array
 
         if (str_starts_with($arg, '--namespace=')) {
             $namespace = substr($arg, strlen('--namespace='));
+            continue;
+        }
+
+        if (str_starts_with($arg, '--generated-at=')) {
+            $generatedAt = substr($arg, strlen('--generated-at='));
             continue;
         }
 
@@ -509,6 +594,7 @@ function parse_arguments(array $argv): array
         'output' => $output,
         'struct' => $struct,
         'namespace' => $namespace,
+        'generated_at' => $generatedAt,
     ];
 }
 
@@ -529,7 +615,11 @@ if ($normalized['structs'] === []) {
     fail('No structs to generate.');
 }
 
-$generatedAt = (new DateTimeImmutable('now'))->format(DateTimeInterface::ATOM);
+$generatedAt = $args['generated_at'] ?? (new DateTimeImmutable('now'))->format(DateTimeInterface::ATOM);
+if ($generatedAt === '') {
+    fail('Generated-at string must not be empty.');
+}
+
 $header = generate_header($normalized, $schemaPath, $generatedAt);
 
 $outputPath = $args['output'];
