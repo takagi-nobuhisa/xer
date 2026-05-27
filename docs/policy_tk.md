@@ -2,12 +2,12 @@
 
 ## Overview
 
-XER provides Tcl/Tk support through `<xer/tk.h>` in order to add a lightweight GUI facility that fits the rest of the library.
+xer provides Tcl/Tk support through `<xer/tk.h>` in order to add a lightweight GUI facility that fits the rest of the library.
 
 The purpose of this facility is not to wrap every Tcl/Tk feature with a large C++ framework.
-Instead, XER uses Tcl/Tk as a practical GUI backend and exposes a small C++ interface that handles executable initialization, interpreter lifetime, command evaluation, command registration, variable access, and the event loop.
+Instead, xer uses Tcl/Tk as a practical GUI backend and exposes a small C++ interface that handles executable initialization, interpreter lifetime, command evaluation, command registration, variable access, and the event loop.
 
-The initial goal is to make Tcl/Tk usable from XER programs while preserving the ability to fall back to the native Tcl/Tk C API when necessary.
+The initial goal is to make Tcl/Tk usable from xer programs while preserving the ability to fall back to the native Tcl/Tk C API when necessary.
 
 ---
 
@@ -73,7 +73,7 @@ if (!xer::tk::init(*interp).has_value()) {
     return 1;
 }
 
-if (!xer::tk::eval(*interp, u8"wm title . XER").has_value()) {
+if (!xer::tk::eval(*interp, u8"wm title . xer").has_value()) {
     return 1;
 }
 ```
@@ -86,9 +86,9 @@ The namespace already provides the Tcl/Tk context.
 ## Public Integer Vocabulary
 
 Tcl/Tk uses integer macros such as `TCL_OK`, `TCL_ERROR`, `TCL_GLOBAL_ONLY`, and `TCL_ALL_EVENTS`.
-XER should not require users to write those macros directly in ordinary XER code.
+xer should not require users to write those macros directly in ordinary xer code.
 
-For that reason, `<xer/tk.h>` defines XER-side integer aliases and constants.
+For that reason, `<xer/tk.h>` defines xer-side integer aliases and constants.
 
 ```cpp
 namespace xer::tk {
@@ -131,7 +131,7 @@ This preserves interoperability while keeping the ordinary public API vocabulary
 ## Error Detail
 
 Tcl/Tk operations often return a Tcl result code.
-For XER, a failure detail should preserve this code without forcing users to use Tcl macros directly.
+For xer, a failure detail should preserve this code without forcing users to use Tcl macros directly.
 
 ```cpp
 namespace xer::tk {
@@ -165,7 +165,7 @@ auto reset_result(interpreter& interp) noexcept -> void;
 
 ## Relationship Between Tcl and Tk
 
-Although Tcl and Tk are separate technologies, XER initially treats them as one GUI facility.
+Although Tcl and Tk are separate technologies, xer initially treats them as one GUI facility.
 
 The public initialization function:
 
@@ -192,15 +192,15 @@ This keeps the ordinary public API focused on Tcl/Tk GUI usage.
 
 ## Avoiding `Tk_Main`
 
-XER does not use `Tk_Main` as the foundation of the public API.
+xer does not use `Tk_Main` as the foundation of the public API.
 
 `Tk_Main` is unsuitable because it owns too much of the program startup and shutdown flow.
 In particular, returning from the callback passed to `Tk_Main` can terminate the process.
 That behavior does not fit a library that should be usable from ordinary functions, tests, and user-managed threads.
 
-Instead, XER constructs and initializes the Tcl/Tk interpreter explicitly and exposes event-loop related operations separately.
+Instead, xer constructs and initializes the Tcl/Tk interpreter explicitly and exposes event-loop related operations separately.
 
-At minimum, XER provides:
+At minimum, xer provides:
 
 ```cpp
 auto main_loop() -> void;
@@ -214,7 +214,7 @@ auto do_one_event(event_flag_t flags = event_all) -> int;
 
 ## Thread Policy
 
-XER aims to allow Tcl/Tk to run on a user-chosen thread.
+xer aims to allow Tcl/Tk to run on a user-chosen thread.
 
 This does not mean that one interpreter may be freely used from arbitrary threads.
 A Tcl/Tk interpreter is treated as a thread-affine object.
@@ -235,13 +235,13 @@ This rule applies to ordinary operations such as:
 - `create_command`
 - interpreter destruction
 
-XER may allow the thread to be a non-main thread, but it does not make a single interpreter safely callable from any thread.
+xer may allow the thread to be a non-main thread, but it does not make a single interpreter safely callable from any thread.
 
 Implementation comments should describe `interpreter` as a thread-affine RAII handle.
 The initial tests should verify only the safe pattern: creating an interpreter inside a worker thread, using it inside that same thread, and destroying it before the worker thread exits.
 
 Tests should not intentionally access the same interpreter from another thread.
-Such a test would suggest a guarantee that XER does not provide and may also depend on Tcl/Tk build options and platform behavior.
+Such a test would suggest a guarantee that xer does not provide and may also depend on Tcl/Tk build options and platform behavior.
 
 Cross-thread notification, event posting, thread-safe dispatch, and invocation helpers may be considered later as separate features.
 They are not part of the initial Tcl/Tk API.
@@ -252,17 +252,17 @@ They are not part of the initial Tcl/Tk API.
 
 Tcl requires `Tcl_FindExecutable` to be called in ordinary embedding scenarios.
 
-XER provides an initialization helper:
+xer provides an initialization helper:
 
 ```cpp
 auto find_executable() -> xer::result<void, error_detail>;
 ```
 
-This function should use XER's command-line support to obtain the executable path.
-The intended source is `xer::cmdline`, because it already provides XER's platform-specific command-line handling.
+This function should use xer's command-line support to obtain the executable path.
+The intended source is `xer::cmdline`, because it already provides xer's platform-specific command-line handling.
 
 The function should be safe to call multiple times.
-If necessary, XER may internally guard the call so that the Tcl executable path is initialized once per process.
+If necessary, xer may internally guard the call so that the Tcl executable path is initialized once per process.
 
 Ordinary users normally do not need to call this function directly if `interpreter::create()` already calls it internally.
 The function remains public for cases where explicit control is useful.
@@ -334,7 +334,7 @@ private:
 The public `interpreter` type does not provide a casual `get()` member function.
 
 Retrieving the raw `Tcl_Interp*` breaks the normal abstraction boundary and should look like an explicit escape hatch.
-For that reason, XER follows the same general style as native-handle access for stream-like facilities and provides a free function:
+For that reason, xer follows the same general style as native-handle access for stream-like facilities and provides a free function:
 
 ```cpp
 auto to_native_handle(interpreter& interp) noexcept -> Tcl_Interp*;
@@ -351,7 +351,7 @@ Users who call `to_native_handle` are responsible for respecting Tcl/Tk lifetime
 
 Script evaluation is based on Tcl object APIs rather than string-only APIs.
 
-XER uses:
+xer uses:
 
 ```text
 Tcl_EvalObjEx
@@ -418,7 +418,7 @@ This design allows callers to retrieve diagnostic text only when they need it.
 
 Tcl objects are represented by `Tcl_Obj*` and managed by Tcl reference counts.
 
-XER may use a small internal RAII helper:
+xer may use a small internal RAII helper:
 
 ```cpp
 namespace xer::tk::detail {
@@ -451,10 +451,10 @@ If users later need first-class Tcl object handling, the type may be promoted or
 
 ## String Conversion Policy
 
-XER's public text model uses UTF-8 strings based on `char8_t`.
+xer's public text model uses UTF-8 strings based on `char8_t`.
 Tcl/Tk C APIs use `char*` strings that are conventionally UTF-8 in modern Tcl.
 
-XER converts between these representations at API boundaries.
+xer converts between these representations at API boundaries.
 
 The ordinary public string forms are:
 
@@ -464,10 +464,10 @@ std::u8string_view
 const char8_t*
 ```
 
-When passing text to Tcl, XER converts from UTF-8 code units to the `const char*` pointer expected by Tcl.
-When receiving text from Tcl, XER copies the returned bytes into `std::u8string`.
+When passing text to Tcl, xer converts from UTF-8 code units to the `const char*` pointer expected by Tcl.
+When receiving text from Tcl, xer copies the returned bytes into `std::u8string`.
 
-XER should validate sizes before passing lengths to Tcl APIs that require `int` lengths.
+xer should validate sizes before passing lengths to Tcl APIs that require `int` lengths.
 If a string is too large to be represented by Tcl's `int` length parameter, the function should fail rather than truncate.
 
 ---
@@ -476,7 +476,7 @@ If a string is too large to be represented by Tcl's `int` length parameter, the 
 
 Tcl variable access should use Tcl object APIs.
 
-XER uses:
+xer uses:
 
 ```text
 Tcl_ObjSetVar2
@@ -524,7 +524,7 @@ Callers may pass `var_none` or another `var_*` constant when they need Tcl's ord
 
 ## Command Registration
 
-XER provides a wrapper around Tcl command registration.
+xer provides a wrapper around Tcl command registration.
 
 The underlying Tcl function is:
 
@@ -588,10 +588,10 @@ The initial supported return types are:
 - `std::u8string_view`
 - `const char8_t*`
 - `Tcl_Obj*`
-- `xer::result<T, error_detail>` or an equivalent XER result form
+- `xer::result<T, error_detail>` or an equivalent xer result form
 - `xer::tk::result_code_t` for commands that intentionally return Tcl control result codes
 
-When a callback returns `std::u8string_view`, XER copies the referenced text into the Tcl interpreter result before the callback returns.
+When a callback returns `std::u8string_view`, xer copies the referenced text into the Tcl interpreter result before the callback returns.
 The returned view therefore does not need to remain valid after `create_command`'s internal command handler has finished setting the Tcl result.
 
 The exact supported type set may grow incrementally.
@@ -601,14 +601,14 @@ Unsupported parameter or return types should fail at compile time where practica
 
 ## Command Callback Result Policy
 
-When a registered C++ command returns an ordinary value, XER converts that value into the Tcl interpreter result and returns `result_ok` to Tcl.
+When a registered C++ command returns an ordinary value, xer converts that value into the Tcl interpreter result and returns `result_ok` to Tcl.
 
 When a registered C++ command returns `xer::result<T, error_detail>`:
 
 - success is handled like an ordinary `T` result
 - failure returns the contained `error_detail::result_code` to Tcl
 
-When a command intentionally returns `result_code_t`, XER returns that Tcl result code directly.
+When a command intentionally returns `result_code_t`, xer returns that Tcl result code directly.
 This allows commands to participate in Tcl control flow such as `break` and `continue` when used inside Tcl constructs that understand those result codes.
 
 Top-level Tcl evaluation may still normalize some control result codes into errors according to Tcl's own semantics.
@@ -629,7 +629,7 @@ It should not be mixed into the first command-registration implementation.
 
 ## Callback Lifetime Management
 
-When a C++ callable is registered as a Tcl command, XER owns the stored callable object until Tcl deletes the command.
+When a C++ callable is registered as a Tcl command, xer owns the stored callable object until Tcl deletes the command.
 
 The callable may be allocated dynamically and passed to Tcl through `ClientData`.
 The delete callback supplied to `Tcl_CreateObjCommand` releases that stored callable.
@@ -643,7 +643,7 @@ Users should not need to manually manage the lifetime of the registered callable
 
 The event-loop API should avoid taking over the entire process.
 
-At minimum, XER exposes:
+At minimum, xer exposes:
 
 ```cpp
 auto main_loop() -> void;
@@ -666,7 +666,7 @@ The initial Tcl/Tk support should focus on the following:
 
 - public header `<xer/tk.h>`
 - namespace `xer::tk`
-- XER-side `result_*`, `eval_*`, `var_*`, and `event_*` constants
+- xer-side `result_*`, `eval_*`, `var_*`, and `event_*` constants
 - `interpreter` RAII wrapper
 - explicit executable initialization through `find_executable`
 - interpreter creation through `interpreter::create`
@@ -721,7 +721,7 @@ This does not mean that `<xer/tk.h>` provides a runtime fallback.
 When `<xer/tk.h>` is included in an ordinary build, missing Tcl/Tk headers are compile-time errors.
 The skip behavior is only a test-runner policy for environments where the optional external component is not installed.
 
-MSYS2 and Debian-family Linux systems may require different include-path handling.
+MSYS2 UCRT64 and Debian-family Linux systems may require different include-path handling.
 Debian-family systems may need paths such as:
 
 ```text
@@ -729,13 +729,13 @@ Debian-family systems may need paths such as:
 /usr/include/tk
 ```
 
-MSYS2 should normally rely on its ordinary compiler include paths or `pkg-config` rather than Debian-specific include directories.
+MSYS2 UCRT64 should normally rely on its ordinary compiler include paths or `pkg-config` rather than Debian-specific include directories. MSYS2 MSYS and MSYS2 MINGW64 are not supported Tcl/Tk test targets.
 
 ---
 
 ## Documentation and Examples
 
-Tcl/Tk examples should be placed under `examples/` like other XER examples.
+Tcl/Tk examples should be placed under `examples/` like other xer examples.
 
 Initial examples should be small and should avoid depending on complex user interaction.
 Good initial examples include:

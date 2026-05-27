@@ -2,11 +2,11 @@
 
 ## Overview
 
-XER is header-only, but some practical facilities intentionally depend on external components.
+xer is header-only, but some practical facilities intentionally depend on external components.
 Examples include Tcl/Tk, MeCab, and ICU.
 
 This policy defines how such dependencies are introduced, detected, tested, and documented.
-The goal is to keep ordinary headers lightweight while allowing mature external components to provide capabilities that would be unrealistic or undesirable to reimplement inside XER.
+The goal is to keep ordinary headers lightweight while allowing mature external components to provide capabilities that would be unrealistic or undesirable to reimplement inside xer.
 
 ---
 
@@ -20,7 +20,7 @@ External components may be used when they are:
 - more practical than maintaining a large in-house implementation
 - clearly isolated behind a dedicated public header or feature boundary
 
-XER should not depend on fast-moving ecosystems for core functionality.
+xer should not depend on fast-moving ecosystems for core functionality.
 External integration should be added only when it provides clear practical value.
 
 ---
@@ -67,13 +67,13 @@ Typical pattern:
 ```
 
 The fallback branch for compilers without `__has_include` should include the required headers directly.
-XER's primary compiler target supports `__has_include`, but the fallback keeps the code simple and conventional.
+xer's primary compiler target supports `__has_include`, but the fallback keeps the code simple and conventional.
 
 ---
 
 ## Link-Time Responsibility
 
-XER does not try to manage user build-system settings.
+xer does not try to manage user build-system settings.
 
 Users are responsible for providing appropriate link options in their own build system, such as CMake, Makefiles, shell scripts, IDE settings, or manual compiler commands.
 
@@ -86,9 +86,12 @@ Documentation for each external-component header should mention typical link opt
 
 ## Test Runner Responsibility
 
-Although XER does not manage the user's build system, XER's own PHP test runner should know how to build and run tests for supported environments.
+Although xer does not manage the user's build system, xer's own PHP test runner should know how to build and run tests for supported environments.
 
-For known environments, the test runner may add include paths and link options needed for external-component tests.
+The primary supported and tested environments are Ubuntu and MSYS2 UCRT64.
+MSYS2 MSYS and MSYS2 MINGW64 are not supported targets and are not part of the current or planned test matrix.
+
+For known supported environments, the test runner may add include paths and link options needed for external-component tests.
 
 Examples:
 
@@ -118,12 +121,12 @@ This distinction is important:
 
 ## C API Preference
 
-When an external component provides both C and C++ APIs, XER should prefer the C API unless there is a strong reason not to.
+When an external component provides both C and C++ APIs, xer should prefer the C API unless there is a strong reason not to.
 
 Reasons include:
 
 - C APIs are usually more stable across C++ standard library boundaries.
-- C APIs fit XER's C-oriented design style.
+- C APIs fit xer's C-oriented design style.
 - Platform-provided integrations may expose only C APIs.
 
 ICU is an important example: Unicode normalization should use ICU's C API, not ICU's C++ API.
@@ -172,6 +175,6 @@ The ICU-dependent public scope is NFC normalization and NFC status checking. The
 - External-component APIs should be isolated behind dedicated public headers.
 - Missing library headers should be detected with `__has_include` and reported with `#error`.
 - User build-system link settings remain the user's responsibility.
-- XER's own test runner should handle known environments for tests and examples.
+- xer's own test runner should handle known environments for tests and examples.
 - Command-line integrations, such as MeCab, are runtime dependencies and should report runtime errors through `xer::result`.
 - C APIs are preferred for external libraries when available.

@@ -2,10 +2,10 @@
 
 ## Overview
 
-XER provides practical Japanese text-processing facilities based on MeCab.
+xer provides practical Japanese text-processing facilities based on MeCab.
 
 The goal is not to expose MeCab merely as a thin command wrapper.
-Instead, XER should use MeCab as the analysis foundation for higher-level Japanese text processing that is often needed in applications but is difficult for ordinary programmers to implement correctly from scratch.
+Instead, xer should use MeCab as the analysis foundation for higher-level Japanese text processing that is often needed in applications but is difficult for ordinary programmers to implement correctly from scratch.
 
 The intended direction is:
 
@@ -15,7 +15,7 @@ The intended direction is:
 
 The core design principle is:
 
-> XER should aim for results that are **not perfect, but sufficiently good** for practical use.
+> xer should aim for results that are **not perfect, but sufficiently good** for practical use.
 
 ---
 
@@ -33,7 +33,7 @@ Many applications benefit from Japanese text processing such as:
 These needs appear frequently, but reliable implementation requires knowledge of Japanese morphology, readings, segmentation, and notation conventions.
 A typical application programmer should not need to rebuild all of that logic independently.
 
-XER should provide a practical foundation that makes such processing accessible.
+xer should provide a practical foundation that makes such processing accessible.
 
 ---
 
@@ -41,11 +41,11 @@ XER should provide a practical foundation that makes such processing accessible.
 
 ### Execution Model
 
-XER invokes MeCab as a child process rather than linking against the MeCab library.
+xer invokes MeCab as a child process rather than linking against the MeCab library.
 
-This choice keeps XER consistent with its header-only design and avoids introducing a direct binary-library dependency into ordinary builds.
+This choice keeps xer consistent with its header-only design and avoids introducing a direct binary-library dependency into ordinary builds.
 
-The process is launched directly through XER's process facilities, not through a shell.
+The process is launched directly through xer's process facilities, not through a shell.
 
 ### Current Public Foundation
 
@@ -177,22 +177,25 @@ auto mecab_parse(
 `mecab_romaji_wakati` builds on the same phrase ranges. It converts bunsetsu ranges to kana, romanizes them through `strtoctrans`, and preserves symbol ranges as surface text.
 
 The raw `feature` text and parsed `features` data are intentionally dictionary-dependent at this layer.
-XER preserves raw feature text and also provides practical parsed access because higher-level Japanese processing needs part-of-speech information, conjugation form, and readings.
+xer preserves raw feature text and also provides practical parsed access because higher-level Japanese processing needs part-of-speech information, conjugation form, and readings.
 
 ---
 
 ## Encoding Policy
 
-XER treats MeCab standard input, standard output, and standard error as UTF-8.
+xer treats MeCab standard input, standard output, and standard error as UTF-8.
 
 This assumption is based on the target standard environments checked for the project:
 
 - Ubuntu with MeCab installed through the ordinary package flow
 - MSYS2 UCRT64 with the ordinary MeCab packages
 
-In both checked environments, `mecab -D` reported UTF-8 dictionary encoding.
+MSYS2 MSYS and MSYS2 MINGW64 are not supported MeCab test targets.
+In particular, MeCab availability in those environments is not part of xer's current or planned test matrix.
 
-The initial XER implementation therefore proceeds on a UTF-8 basis and does not attempt character-set conversion around MeCab I/O.
+In both checked supported environments, `mecab -D` reported UTF-8 dictionary encoding.
+
+The initial xer implementation therefore proceeds on a UTF-8 basis and does not attempt character-set conversion around MeCab I/O.
 
 Invalid UTF-8 input or invalid UTF-8 output is reported as:
 
@@ -204,7 +207,7 @@ error_t::encoding_error
 
 ## Executable Resolution
 
-If the caller leaves `mecab_options::program` empty, XER searches the `PATH` environment variable for the ordinary platform-specific MeCab executable name.
+If the caller leaves `mecab_options::program` empty, xer searches the `PATH` environment variable for the ordinary platform-specific MeCab executable name.
 
 - Windows: `mecab.exe`
 - POSIX-like environments: `mecab`
@@ -221,7 +224,7 @@ Callers may specify an explicit executable path through `mecab_options::program`
 
 ## Raw Output Contract
 
-XER requests a stable process-output structure from MeCab rather than parsing MeCab's ordinary human-readable default display.
+xer requests a stable process-output structure from MeCab rather than parsing MeCab's ordinary human-readable default display.
 
 The implementation asks MeCab to emit token lines equivalent to:
 
@@ -245,7 +248,7 @@ error_t::process_error
 ## Feature Field Policy
 
 `mecab_token::feature` remains the authoritative raw feature text emitted by MeCab's `%H` formatter.
-It is preserved because dictionaries may expose additional fields or layouts that XER cannot fully normalize at this layer.
+It is preserved because dictionaries may expose additional fields or layouts that xer cannot fully normalize at this layer.
 
 `mecab_token::features` is a practical parsed representation derived from that raw text.
 The named members follow the ordinary MeCab/IPADIC-style field order: `品詞`, `品詞細分類1`, `品詞細分類2`, `品詞細分類3`, `活用型`, `活用形`, `原形`, `読み`, and `発音`.
@@ -253,7 +256,7 @@ All comma-separated fields are also stored in `項目` so that dictionary-specif
 
 The `mecab_features` members intentionally use Japanese identifiers.
 These names correspond directly to MeCab feature terminology and avoid unclear English approximations.
-XER already permits non-ASCII identifiers where they improve clarity; user source environments that cannot handle such identifiers are outside the scope of this API decision.
+xer already permits non-ASCII identifiers where they improve clarity; user source environments that cannot handle such identifiers are outside the scope of this API decision.
 
 `mecab_features` owns its strings.
 It must not store `std::u8string_view` into `mecab_token::feature`, because `mecab_token` is returned in `std::vector` and must remain safely copyable and movable.
@@ -273,7 +276,7 @@ The MeCab-based Japanese processing facility should support, or provide the foun
 - bunsetsu counting
 - access to raw morphological analysis data
 
-Raw morphological data is important because it lets users build their own higher-level processing on top of XER when the built-in helpers do not match their needs.
+Raw morphological data is important because it lets users build their own higher-level processing on top of xer when the built-in helpers do not match their needs.
 
 The raw-data portion is implemented through `mecab_parse`.
 It preserves both the raw MeCab feature string and an owned split representation in `mecab_features`.
@@ -290,7 +293,7 @@ They provide practical kana conversion and kana wakachi-gaki based on MeCab-deri
 
 Bunsetsu segmentation is essential, not optional.
 
-XER derives bunsetsu-like groups from MeCab morphological analysis results and uses them as the main unit for human-readable Japanese processing.
+xer derives bunsetsu-like groups from MeCab morphological analysis results and uses them as the main unit for human-readable Japanese processing.
 
 At minimum, bunsetsu are needed for:
 
@@ -440,9 +443,9 @@ Examples include:
 - dictionary-dependent tokenization
 - cases where the intended bunsetsu boundary depends on context
 
-XER should not claim to solve these perfectly.
+xer should not claim to solve these perfectly.
 
-Instead, XER should:
+Instead, xer should:
 
 - use MeCab analysis as a strong baseline
 - apply practical, documented grouping rules
@@ -456,7 +459,7 @@ The target is **not perfect, but sufficiently good** behavior.
 
 ## Wakati Policy
 
-XER's high-level Japanese spacing facility should use bunsetsu boundaries, not morphological token boundaries.
+xer's high-level Japanese spacing facility should use bunsetsu boundaries, not morphological token boundaries.
 
 Token-level spacing is useful for machine analysis, but it is not the right default for human readability.
 
@@ -563,7 +566,7 @@ The kana kind policy is:
 
 ### Particle Reading Policy
 
-When `mecab_kana_options::particle_reading` is `true`, XER uses pronunciation-oriented readings for common particles:
+When `mecab_kana_options::particle_reading` is `true`, xer uses pronunciation-oriented readings for common particles:
 
 | Surface | Condition | Hiragana reading | Katakana reading |
 |---|---|---|---|
@@ -642,7 +645,7 @@ This design keeps the kana-to-braille logic reusable without MeCab while allowin
 
 At the current stage, punctuation handling covers the supported Japanese punctuation marks exposed by `<xer/braille.h>`. ASCII fragments are converted either by ordinary braille mode switching or information-processing braille mode switching, depending on the selected helper. Unsupported symbols still produce an error instead of being silently dropped or guessed.
 
-The result remains dictionary-dependent. Different MeCab dictionaries may produce different readings, token boundaries, and feature layouts. XER therefore treats this helper as practical braille-oriented wakachi-gaki, not as complete Japanese braille translation.
+The result remains dictionary-dependent. Different MeCab dictionaries may produce different readings, token boundaries, and feature layouts. xer therefore treats this helper as practical braille-oriented wakachi-gaki, not as complete Japanese braille translation.
 
 ---
 
@@ -690,19 +693,19 @@ Particle reading correction is performed by the kana conversion stage. With the 
 - `へ` -> `e`
 - `を` -> `o`
 
-The result remains dictionary-dependent. Different MeCab dictionaries may produce different readings, token boundaries, and feature layouts. XER therefore treats this helper as practical romanization, not as a strict linguistic or publishing standard.
+The result remains dictionary-dependent. Different MeCab dictionaries may produce different readings, token boundaries, and feature layouts. xer therefore treats this helper as practical romanization, not as a strict linguistic or publishing standard.
 
 ---
 
 ## Counts
 
-XER should distinguish between:
+xer should distinguish between:
 
 - word count
 - bunsetsu count
 
 Word count may be based on morphological tokens.
-Bunsetsu count should be based on XER's derived bunsetsu groups.
+Bunsetsu count should be based on xer's derived bunsetsu groups.
 
 Both are useful, but they serve different purposes.
 
@@ -754,7 +757,7 @@ The raw-analysis layer currently uses:
 | automatic MeCab executable lookup fails | `error_t::not_found` |
 | process execution fails, MeCab exits unsuccessfully, or output is malformed | `error_t::process_error` |
 
-Underlying process or stream failures may retain their own XER error code when they occur before the final MeCab-specific validation step.
+Underlying process or stream failures may retain their own xer error code when they occur before the final MeCab-specific validation step.
 
 ---
 
@@ -773,7 +776,7 @@ The following items require later API or algorithm design:
 
 ## Summary
 
-XER's MeCab-based Japanese text processing should:
+xer's MeCab-based Japanese text processing should:
 
 - invoke MeCab as a UTF-8 child process
 - expose raw morphological analysis data and split feature fields through `mecab_parse`

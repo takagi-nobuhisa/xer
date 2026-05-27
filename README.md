@@ -88,7 +88,7 @@ xer is intended to be usable by including headers only.
 ### 2. Error handling based on `std::expected`
 
 Normal failures are represented with `std::expected` through `xer::result`.
-Internal invariant violations are handled separately through XER's assert mechanism.
+Internal invariant violations are handled separately through xer's assert mechanism.
 
 ### 3. Clear separation of API layers
 

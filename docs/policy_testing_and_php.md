@@ -2,15 +2,15 @@
 
 ## Overview
 
-XER uses PHP for code generation and test support.
+xer uses PHP for code generation and test support.
 
 Its intended uses include generation of conversion tables, generation of test cases, build and execution control for test programs, and result aggregation.
 
 PHP is often recognized as a language for web application development, but in this project it is used as a general-purpose scripting language.
 Particular importance is placed on the fact that its syntax is relatively familiar to C programmers.
 
-PHP is an auxiliary tool used during XER development, and XER users are not required to use PHP.
-To use XER itself, an ordinary C++ compiler and build environment are sufficient.
+PHP is an auxiliary tool used during xer development, and xer users are not required to use PHP.
+To use xer itself, an ordinary C++ compiler and build environment are sufficient.
 
 The repository includes PHP scripts and the related data used for generation.
 On the other hand, a distribution of the library by itself will not normally include them.
@@ -19,7 +19,7 @@ On the other hand, a distribution of the library by itself will not normally inc
 
 ## Role of PHP
 
-PHP is used not as part of XER itself, but as a development-only tool.
+PHP is used not as part of xer itself, but as a development-only tool.
 
 Its main uses are as follows:
 
@@ -31,9 +31,26 @@ Its main uses are as follows:
 
 ---
 
+
+## Supported Test Environments
+
+The primary supported and tested environments are:
+
+- Ubuntu
+- MSYS2 UCRT64
+
+MSYS2 MSYS and MSYS2 MINGW64 are not supported targets.
+They are not included in the current or planned test matrix.
+If a clear need appears in the future, support for those environments may be reconsidered at that time.
+
+Optional external-component tests, such as Tcl/Tk, ICU, and MeCab tests, may be skipped when the required component is not available in a supported test environment.
+A skipped optional-component test means that the component is unavailable in that environment; it does not mean that the corresponding public header provides a runtime fallback.
+
+---
+
 ## Classification of Tests
 
-XER tests are classified into at least the following categories:
+xer tests are classified into at least the following categories:
 
 - successful compilation tests
 - expected-failure compilation tests
@@ -57,10 +74,10 @@ The method for defining test cases and the method for embedding metadata into so
 
 ### Execution Tests
 
-Execution tests are written using XER-specific assertion macros.
+Execution tests are written using xer-specific assertion macros.
 
 These assertion macros do not terminate the process like the standard `assert`.
-Instead, they throw an XER-specific exception type on failure.
+Instead, they throw an xer-specific exception type on failure.
 
 Checks covered by execution tests include at least the following:
 
@@ -75,7 +92,7 @@ Checks covered by execution tests include at least the following:
 
 ## Placement of Public Headers
 
-Public headers of XER are placed directly under the `xer/` directory.
+Public headers of xer are placed directly under the `xer/` directory.
 
 Headers located under subdirectories of `xer/` are not treated as public headers, but as implementation details or internal support headers.
 
@@ -119,9 +136,9 @@ The `--all` option disables incremental filtering and tests every ordered pair r
 
 ### Position
 
-XER assertion macros may be exposed not only for execution tests inside the library, but also to XER users.
+xer assertion macros may be exposed not only for execution tests inside the library, but also to xer users.
 
-However, these assertion macros are intended mainly for XER's own development and for lightweight testing.
+However, these assertion macros are intended mainly for xer's own development and for lightweight testing.
 They are not intended to guarantee complete convenience for every type, output environment, and string representation.
 
 Usage restrictions and limitations related to value reporting should be stated explicitly in documentation and comments.
@@ -152,13 +169,13 @@ xer_assert_throw(expr, exception_type)
 
 ## Summary
 
-* XER uses PHP for code generation and test support
+* xer uses PHP for code generation and test support
 * PHP is treated as a development-only tool, not as part of the library itself
-* XER users are not required to use PHP merely to use the library
+* xer users are not required to use PHP merely to use the library
 * the repository may include PHP scripts and generation data, while a library-only distribution normally does not
-* XER tests are classified into successful compilation tests, expected-failure compilation tests, and execution tests
+* xer tests are classified into successful compilation tests, expected-failure compilation tests, and execution tests
 * expected-failure compilation tests rely mainly on `static_assert` and diagnostic-message matching
-* execution tests are written using XER-specific assertion macros that throw exceptions on failure
+* execution tests are written using xer-specific assertion macros that throw exceptions on failure
 * public headers are defined by placement directly under `xer/`
 * ordered two-header combination tests are generated automatically for public headers
-* XER assertion macros may also be exposed to users, but they are intended mainly for development and lightweight testing
+* xer assertion macros may also be exposed to users, but they are intended mainly for development and lightweight testing

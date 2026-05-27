@@ -2,7 +2,7 @@
 
 ## Overview
 
-Unicode utilities in XER are provided through `<xer/unicode.h>`.
+Unicode utilities in xer are provided through `<xer/unicode.h>`.
 
 The current public scope is intentionally incremental:
 
@@ -16,13 +16,13 @@ NFC normalization for UTF-8 text
 
 Code point traversal is a small table-free layer. Grapheme cluster traversal is built on that layer and uses compact rule helpers for practical extended grapheme cluster boundaries. Emoji detection reuses those layers and remains compact. Unicode normalization is provided as a practical external-component feature based on the ICU C API.
 
-This gives XER a useful and standards-based normalization facility without embedding large Unicode normalization tables into the header-only library.
+This gives xer a useful and standards-based normalization facility without embedding large Unicode normalization tables into the header-only library.
 
 ---
 
 ## Language Scope
 
-XER primarily targets practical text handling for English and Japanese.
+xer primarily targets practical text handling for English and Japanese.
 
 The Unicode APIs should therefore provide reliable building blocks for:
 
@@ -31,9 +31,9 @@ The Unicode APIs should therefore provide reliable building blocks for:
 - Japanese text that needs NFC normalization, such as kana with combining dakuten or handakuten
 - common emoji and symbol sequences that appear in Japanese or English user-facing text
 
-The grapheme cluster implementation is not intended to be a complete implementation of every language-specific writing-system rule in Unicode. In particular, complex script behavior outside the ordinary English/Japanese scope, such as Indic conjunct handling and other script-specific tailoring, is outside XER's default scope unless a clear project need appears.
+The grapheme cluster implementation is not intended to be a complete implementation of every language-specific writing-system rule in Unicode. In particular, complex script behavior outside the ordinary English/Japanese scope, such as Indic conjunct handling and other script-specific tailoring, is outside xer's default scope unless a clear project need appears.
 
-Users who need more complete handling for other languages or scripts may extend XER, add generated Unicode property tables, or use ICU text-boundary services directly in their own code. XER is publicly available as source code, so such extensions should remain possible without forcing the base header-only library to embed large Unicode data tables.
+Users who need more complete handling for other languages or scripts may extend xer, add generated Unicode property tables, or use ICU text-boundary services directly in their own code. xer is publicly available as source code, so such extensions should remain possible without forcing the base header-only library to embed large Unicode data tables.
 
 ---
 
@@ -75,22 +75,22 @@ If these headers are not available, including `<xer/unicode.h>` should fail at c
 
 This is intentional. A program that explicitly includes this header is requesting ICU-based Unicode normalization, so missing ICU development headers should be detected statically.
 
-Link settings are the user's build-system responsibility. XER may document typical link options, and XER's own test runner should add the required libraries for known environments.
+Link settings are the user's build-system responsibility. xer may document typical link options, and xer's own test runner should add the required libraries for known environments.
 
 ---
 
 ## C API Only
 
-XER uses ICU's C API for this feature.
+xer uses ICU's C API for this feature.
 
 The public API must not expose ICU C++ API types.
 It also should not expose ICU C API handles unless a future low-level advanced API has a clear need for them.
 
 Reasons:
 
-- The C API is stable and fits XER's C-oriented design.
+- The C API is stable and fits xer's C-oriented design.
 - Some platforms expose ICU through the C API only.
-- Public XER APIs should remain simple UTF-8-based functions returning `xer::result`.
+- Public xer APIs should remain simple UTF-8-based functions returning `xer::result`.
 
 ---
 
@@ -228,7 +228,7 @@ auto is_normalized_nfc(std::u8string_view text)
     -> xer::result<bool>;
 ```
 
-All return types follow the ordinary XER error policy.
+All return types follow the ordinary xer error policy.
 Code point decoding can fail when the offset is outside the view or when the input is malformed.
 Grapheme cluster traversal can fail when the offset is outside the view, when `prev_grapheme_cluster` is given a non-boundary offset, or when the input is malformed. Grapheme-cluster-based string operations can fail when the requested offset is outside the grapheme cluster length or when malformed input is encountered while traversing the required part of the source view. Emoji string-view detection can fail when malformed input is encountered.
 The normalization functions can fail when the input is invalid UTF-8, when a size is outside ICU's supported range, or when ICU reports an error.
@@ -265,7 +265,7 @@ std::u8string_view
   -> std::u8string
 ```
 
-The internal use of UTF-16 does not change XER's public UTF-8-first policy.
+The internal use of UTF-16 does not change xer's public UTF-8-first policy.
 
 ---
 
@@ -273,7 +273,7 @@ The internal use of UTF-16 does not change XER's public UTF-8-first policy.
 
 The first supported normalization form is NFC.
 
-NFC is the most practical initial form for XER because it is widely useful for:
+NFC is the most practical initial form for xer because it is widely useful for:
 
 - file names
 - search keys
@@ -281,7 +281,7 @@ NFC is the most practical initial form for XER because it is widely useful for:
 - Japanese text containing combining dakuten or handakuten
 - text cleanup before comparison or storage
 
-XER does not initially expose NFD, NFKC, or NFKD.
+xer does not initially expose NFD, NFKC, or NFKD.
 Those may be added later if there is a clear need.
 
 ---
@@ -317,7 +317,7 @@ may normalize to:
 U+00C5 LATIN CAPITAL LETTER A WITH RING ABOVE
 ```
 
-XER delegates the exact Unicode normalization behavior to ICU.
+xer delegates the exact Unicode normalization behavior to ICU.
 
 ---
 
@@ -331,7 +331,7 @@ Invalid UTF-8 passed to ICU-based normalization should be reported as an encodin
 
 Input or output sizes that cannot be represented by the ICU C API length type should be reported as a length error.
 
-Other ICU failures should be reported as runtime errors unless a more precise existing XER error category is appropriate.
+Other ICU failures should be reported as runtime errors unless a more precise existing xer error category is appropriate.
 
 The API should not throw exceptions for ordinary ICU failures.
 It should return `xer::result` errors.
@@ -340,7 +340,7 @@ It should return `xer::result` errors.
 
 ## No Fallback Normalizer
 
-XER should not maintain a partial fallback NFC implementation.
+xer should not maintain a partial fallback NFC implementation.
 
 A partial or outdated Unicode normalization table would be worse than an explicit dependency because it could silently produce incorrect results.
 For this feature, ICU is the normalization engine.
@@ -401,8 +401,9 @@ Tests should cover at least:
 - `is_normalized_nfc` for both normalized and non-normalized inputs
 - invalid UTF-8 input
 
-The PHP test runner should link ICU for known supported environments.
-If ICU is not available in the test environment, ICU-dependent tests may be skipped.
+The PHP test runner should link ICU for known supported environments, currently Ubuntu and MSYS2 UCRT64.
+MSYS2 MSYS and MSYS2 MINGW64 are not supported ICU test targets.
+If ICU is not available in a supported test environment, ICU-dependent tests may be skipped.
 
 ---
 
@@ -434,6 +435,6 @@ Examples should remain small and should not introduce unrelated ICU features.
 - The current normalization scope is NFC and `is_normalized_nfc`.
 - Public input and output are UTF-8.
 - Missing ICU headers are compile-time errors.
-- User link settings are outside XER's responsibility.
-- XER does not provide a partial fallback normalizer.
+- User link settings are outside xer's responsibility.
+- xer does not provide a partial fallback normalizer.
 - Future ICU-based features should be added only with explicit need and separate design consideration.

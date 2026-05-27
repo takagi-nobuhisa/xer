@@ -1,17 +1,17 @@
-# XER Project Outline
+# xer Project Outline
 
 ## 1. Purpose
 
-XER is designed as a **C++23 library for programmers of the X generation who are deeply familiar with C**.
+xer is designed as a **C++23 library for programmers of the X generation who are deeply familiar with C**.
 
 It values the clarity inherited from C while adopting the type safety and expressive power of C++23.
 It avoids excessive C++-style abstraction and gives priority to being **easy for C programmers to understand and use**.
 
 ### 1.1 Practical Quality Target
 
-XER values practical usefulness over theoretical perfection.
+xer values practical usefulness over theoretical perfection.
 
-For domains where complete correctness is impossible, excessively costly, or dependent on information unavailable to the library, XER should aim for behavior that is:
+For domains where complete correctness is impossible, excessively costly, or dependent on information unavailable to the library, xer should aim for behavior that is:
 
 > **not perfect, but sufficiently good**
 
@@ -71,7 +71,7 @@ If a clear need appears in the future, support for those environments may be rec
 
 ### 3.1 Basic Policy
 
-- XER is **header-only**
+- xer is **header-only**
 - It should be usable simply by including the headers
 
 ### 3.2 Directory Structure
@@ -86,15 +86,15 @@ If a clear need appears in the future, support for those environments may be rec
 
 ### 3.4 External Component Policy
 
-XER avoids being driven by unstable external dependencies.
+xer avoids being driven by unstable external dependencies.
 
-When XER intentionally integrates an external component, it should prefer components that are:
+When xer intentionally integrates an external component, it should prefer components that are:
 
 - mature
 - widely used
 - operationally simple
 - stable in behavior and interface
-- unlikely to impose frequent disruptive changes on XER
+- unlikely to impose frequent disruptive changes on xer
 
 The goal is to gain practical capability without being forced to chase fast-moving external ecosystems.
 
@@ -104,7 +104,7 @@ Examples of external components that fit this policy include:
 - **MeCab** for Japanese morphological analysis
 - **ICU** for Unicode normalization
 
-These components are old, well-established, and sufficiently stable that XER can build practical facilities around them without expecting constant breakage from upstream changes.
+These components are old, well-established, and sufficiently stable that xer can build practical facilities around them without expecting constant breakage from upstream changes.
 
 External-component details follow this document:
 
@@ -158,14 +158,14 @@ At least in the initial stage, the following are out of scope:
 
 ### 6.1 Supported Encodings
 
-The character encodings handled by XER are limited to the following four:
+The character encodings handled by xer are limited to the following four:
 
 - **CP932**
 - **UTF-8**
 - **UTF-16**
 - **UTF-32**
 
-XER does not depend on locale.
+xer does not depend on locale.
 
 ### 6.2 Characters and Strings
 
@@ -246,7 +246,7 @@ Details of input/output follow this document:
 
 ### 9.1 Basic Policy
 
-- XER does not rely directly on built-in C++ operators alone, and instead provides **dedicated functions**
+- xer does not rely directly on built-in C++ operators alone, and instead provides **dedicated functions**
 - The goal is to make error handling easier to incorporate and to return mathematically straightforward and predictable results
 
 ### 9.2 Detailed Reference
@@ -268,11 +268,11 @@ Details of arithmetic and comparison follow this document:
 
 ### 10.2 Result Type
 
-- The standard result type in XER is `xer::result<T, Detail = void>`
+- The standard result type in xer is `xer::result<T, Detail = void>`
 - `xer::result<T>` is an alias of `std::expected<T, error<void>>`
 - `xer::result<T, Detail>` is an alias of `std::expected<T, error<Detail>>`
 - As a rule, public APIs and internal implementations that can fail should use `xer::result` as their return type
-- This keeps XER return type notation concise and improves readability and consistency
+- This keeps xer return type notation concise and improves readability and consistency
 
 ### 10.3 Error Type
 
@@ -306,7 +306,7 @@ Details of arithmetic and comparison follow this document:
 ### 10.6 Assertion Facilities
 
 - Code bugs and violations of internal invariants are treated separately from ordinary I/O or runtime failures
-- For that reason, XER provides its own **assertion mechanism**
+- For that reason, xer provides its own **assertion mechanism**
 - Unlike the standard `assert`, it does not terminate the process immediately; instead, **it throws an exception on failure**
 
 ---
@@ -340,12 +340,12 @@ The common header is responsible for the following:
 
 ### 12.1 Position of PHP
 
-- XER uses **PHP for code generation and test support**
-- PHP is not part of XER itself, but is treated as a **development-only tool**
+- xer uses **PHP for code generation and test support**
+- PHP is not part of xer itself, but is treated as a **development-only tool**
 
 ### 12.2 Classification of Tests
 
-XER tests are classified into at least the following categories:
+xer tests are classified into at least the following categories:
 
 - successful compilation tests
 - expected-failure compilation tests
@@ -414,7 +414,7 @@ Details follow this document:
 
 ## 17. Additional Functional Areas
 
-The following functional areas are already part of XER's current design scope.
+The following functional areas are already part of xer's current design scope.
 They are organized as separate policy documents because they form independent groups of functionality rather than being mere extensions of a single header.
 
 ### 17.1 `cyclic`
@@ -469,7 +469,7 @@ Details follow this document:
 
 ### 17.7 Tcl/Tk Integration
 
-Tcl/Tk integration provides a lightweight GUI path for XER while preserving the library's explicit-error and low-abstraction style.
+Tcl/Tk integration provides a lightweight GUI path for xer while preserving the library's explicit-error and low-abstraction style.
 The design covers interpreter ownership, command registration, event-loop control, and practical interoperability with Tk objects.
 
 Details follow this document:
@@ -479,7 +479,7 @@ Details follow this document:
 ### 17.8 Image and Canvas Facilities
 
 Image and drawing facilities are organized around a lightweight canvas abstraction.
-They cover pixel access, basic drawing primitives, anti-aliased and thick strokes, simple image filters, and interoperability with other XER facilities where appropriate.
+They cover pixel access, basic drawing primitives, anti-aliased and thick strokes, simple image filters, and interoperability with other xer facilities where appropriate.
 
 Details follow this document:
 
@@ -518,7 +518,7 @@ The code point layer and grapheme cluster layer support traversal of:
 - `std::u16string_view`
 - `std::wstring_view`
 
-The normalization implementation uses ICU C API rather than embedding Unicode normalization tables into XER.
+The normalization implementation uses ICU C API rather than embedding Unicode normalization tables into xer.
 
 The current normalization scope is deliberately narrow:
 
@@ -527,7 +527,7 @@ The current normalization scope is deliberately narrow:
 
 Grapheme cluster traversal is built on top of the code point layer. It is intended for practical user-visible character traversal and keeps malformed input explicit through `xer::result`. Grapheme-cluster-based string operations such as length and substring helpers use that traversal layer and return views into the original text.
 
-The default Unicode text-handling scope is English and Japanese. The grapheme cluster implementation may handle common emoji and general Unicode sequences that appear in that scope, but XER does not try to cover every language-specific writing-system rule by default. Users who need broader script coverage can extend the public source code or use dedicated Unicode boundary services in their own programs.
+The default Unicode text-handling scope is English and Japanese. The grapheme cluster implementation may handle common emoji and general Unicode sequences that appear in that scope, but xer does not try to cover every language-specific writing-system rule by default. Users who need broader script coverage can extend the public source code or use dedicated Unicode boundary services in their own programs.
 
 Other normalization forms and ICU-based text services may be considered later only when there is a clear practical need.
 
@@ -539,7 +539,7 @@ Details follow this document:
 
 ## 18. Summary
 
-- XER is a C++23 library designed for programmers familiar with C
+- xer is a C++23 library designed for programmers familiar with C
 - It values clarity and practicality over excessive abstraction
 - In domains where perfect correctness is unrealistic or disproportionally costly, it aims for results that are **not perfect, but sufficiently good**
 - It is header-only, with public headers under `xer/` and implementation details under `xer/bits/`
