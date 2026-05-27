@@ -38,6 +38,7 @@
 - `xer/binary.h`
 - `xer/base64.h`
 - `xer/zip.h`
+- `xer/serialize.h`
 - `xer/parse.h`
 - `xer/json.h`
 - `xer/ini.h`
@@ -171,6 +172,22 @@ At the current stage, this keeps the responsibility clear:
 - reaching the end of the entry stream is reported as `error_t::end_of_file`
 
 The initial implementation focuses on reading ordinary non-ZIP64 archives. Writing archives, extraction helpers, name lookup, and ZIP64 support are deferred.
+
+### Why `serialize.h` Is Independent
+
+Binary serialization is related to byte sequences and ZIP archives, but it has a different responsibility.
+It defines a fixed-schema binary transfer format for scalar values and selected standard containers.
+
+For that reason, serialization is not absorbed into `xer/binary.h`, `xer/bytes.h`, or `xer/zip.h`, but is provided as the independent public header `xer/serialize.h`.
+
+At the current stage, this keeps the responsibility clear:
+
+- `binary_output_archive` appends fixed-schema binary data to an owned byte buffer
+- `binary_input_archive` reads fixed-schema binary data from a byte span
+- archive `operator()` overloads transfer supported scalar and container types
+- user-defined structures are handled by generated `xfer` functions rather than by reflection or runtime schemas
+
+The format stores only data. Type names, field names, schema information, object identifiers, and version metadata are intentionally not written by the low-level archive layer.
 
 ### Why `braille.h` Is Independent
 
