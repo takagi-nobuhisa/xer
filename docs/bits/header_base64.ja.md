@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 36c9e7ba65cf6eb2585559de5f24bfaa6b3546ac61c632b3692a05229e4daabf -->
+<!-- xer-reference-source-sha256: f05792f3da91af8fe5eb96cd93213a158b3c91a19311c7f3309976b637a960d5 -->
 
 # `<xer/base64.h>`
 

@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 8e0fa4c7d079edaf345644d7a6950162c8953c890de8c846ab713ceb9110e90f -->
+<!-- xer-reference-source-sha256: a3a9cd804e1df40fdd6fec9493bf14307e7786f737762eb422c686cdffd33383 -->
+
 # `<xer/unicode_normalize.h>`
 
 ## 目的

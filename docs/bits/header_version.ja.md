@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: b2b4068e7edc3ce702f3146b67ba71e8878aa38b48dc45c4ecc95ee8b1c4b5f8 -->
+<!-- xer-reference-source-sha256: e561f5ecffe03601b8a8f01719e34ca9a1cf844235fd028da14ffb474d9ef1e5 -->
+
 # `<xer/version.h>`
 
 ## 目的

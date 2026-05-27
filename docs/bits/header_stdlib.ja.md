@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 080e900089afaab92d79a16dc64fa981b6133d46ecfff504e0d242a9190f7663 -->
+<!-- xer-reference-source-sha256: 7c83e3b9186bf815ca06bd29bc9670556fd339f34835827c9d749bf7430ad0d8 -->
+
 # `<xer/stdlib.h>`
 
 ## 目的

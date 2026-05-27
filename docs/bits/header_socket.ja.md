@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: ff1d6c9433bc1926e14db86e78dd4cf98b51776f0797e1c34d8f674e74008f99 -->
+<!-- xer-reference-source-sha256: dab9dc9faee1ede4827f96322fb6658609cc8ecd5969f8f3a303e6224c5b1ee1 -->
+
 # `<xer/socket.h>`
 
 ## 目的

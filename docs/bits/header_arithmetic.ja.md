@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 1b7cf8b9e96701ad6a66e791689f055b92df7b293f0f49ef1771ddd906dd2e43 -->
+<!-- xer-reference-source-sha256: 4d32cc9f67405a99f1a820d15851ddf824cb582e977a9848f9463945f8360ba3 -->
+
 # `<xer/arithmetic.h>`
 
 ## 目的

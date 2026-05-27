@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 48833e505a9268d621443f040332f3baaff33d77057610574423534e1722828f -->
+<!-- xer-reference-source-sha256: b56eacb53fce13ff5fbf8b9e028ec48e2f8aa909ba2f20b1ebe972c30ec9a791 -->
+
 # `<xer/time.h>`
 
 ## 目的

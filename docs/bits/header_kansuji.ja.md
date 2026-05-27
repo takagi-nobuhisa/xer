@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 33637b2576af1e192d286c95ac251e738c91728a117e043659c92d9682752922 -->
+<!-- xer-reference-source-sha256: 25ed01a85022f529d9d7beeff28b55af197f21bf070a9a2b2cf556bcd71453ed -->
+
 # `<xer/kansuji.h>`
 
 ## 目的

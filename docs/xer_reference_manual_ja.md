@@ -4,26 +4,20 @@
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/error.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/error.h>`
 
-## Purpose
+## 目的
 
-`<xer/error.h>` provides the core error and result facilities used throughout xer.
+`<xer/error.h>` は、xer 全体で使う中核的なエラー機能と結果型の機能を提供します。
 
-In xer, ordinary failure is represented explicitly rather than by exceptions or special sentinel values wherever practical.
-This header defines the common vocabulary used for that purpose.
+xer では、実用的な範囲で、通常の失敗を例外や特別な番兵値ではなく明示的に表します。
+このヘッダーは、そのために使う共通の語彙を定義します。
 
 ---
 
-## Main Entities
+## 主な要素
 
-At minimum, `<xer/error.h>` provides the following entities:
+少なくとも、`<xer/error.h>` は次の要素を提供します。
 
 ```cpp
 enum class xer::error_t : std::int32_t;
@@ -47,60 +41,60 @@ constexpr auto xer::make_error(
     -> error<Detail>;
 ```
 
-The exact set of enumerators in `error_t` may grow as the library evolves, but the overall design is stable.
+`error_t` の列挙子の正確な集合は、ライブラリの発展に応じて増える可能性がありますが、全体の設計は安定しています。
 
 ---
 
-## Design Role
+## 設計上の役割
 
-This header defines the basic error-reporting model for xer.
+このヘッダーは、xer の基本的なエラー報告モデルを定義します。
 
-Its role is to make the following possible:
+このヘッダーの役割は、次のことを可能にすることです。
 
-* report normal failure explicitly
-* keep ordinary public APIs easy to understand
-* attach optional structured detail when needed
-* preserve source-location information for diagnostics
+* 通常の失敗を明示的に報告する
+* 通常の公開APIを理解しやすく保つ
+* 必要に応じて任意の構造化された詳細情報を付加する
+* 診断のためにソース位置情報を保持する
 
-In other words, `<xer/error.h>` is the foundation for xer-style failure handling.
+言い換えると、`<xer/error.h>` は xer 方式の失敗処理の基盤です。
 
 ---
 
 ## `xer::result`
 
-`xer::result<T, Detail>` is the standard result type in xer.
+`xer::result<T, Detail>` は、xer の標準的な結果型です。
 
-For the common case:
+一般的な場合、
 
 ```cpp
 xer::result<T>
 ```
 
-means:
+は、次の意味になります。
 
 ```cpp
 std::expected<T, xer::error<void>>
 ```
 
-When extra detail is needed, a second template argument may be supplied:
+追加の詳細情報が必要な場合は、第2テンプレート引数を指定できます。
 
 ```cpp
 xer::result<T, Detail>
 ```
 
-which means:
+これは次の意味になります。
 
 ```cpp
 std::expected<T, xer::error<Detail>>
 ```
 
-### Basic Policy
+### 基本方針
 
-As a rule, fallible public APIs in xer return `xer::result`.
+原則として、失敗しうる xer の公開APIは `xer::result` を返します。
 
-This keeps normal success and normal failure explicit in the type system.
+これにより、通常の成功と通常の失敗が型システム上で明示されます。
 
-### Typical Pattern
+### 典型的なパターン
 
 ```cpp
 const auto result = some_operation();
@@ -111,73 +105,73 @@ if (!result.has_value()) {
 const auto& value = *result;
 ```
 
-The exact style may vary, but explicit checking is the normal expectation.
+正確なスタイルは場合によって異なりますが、明示的に確認することが通常の前提です。
 
 ---
 
 ## `xer::error<void>`
 
-`xer::error<void>` is the common error type used when no additional payload is needed.
+`xer::error<void>` は、追加のペイロードが不要な場合に使う共通のエラー型です。
 
-It stores at least the following information:
+少なくとも次の情報を格納します。
 
-* the error code
-* the source location at which the error was created
+* エラーコード
+* エラーが作成されたソース位置
 
-This makes it lightweight while still preserving useful diagnostic context.
+これにより、軽量でありながら有用な診断用コンテキストを保持できます。
 
-### Purpose
+### 目的
 
-`error<void>` is suitable when:
+`error<void>` は、次のような場合に適しています。
 
-* only the error category matters
-* no extra structured data is necessary
-* the caller mainly needs to distinguish success from failure
+* エラーカテゴリだけが重要である
+* 追加の構造化データが不要である
+* 呼び出し側が主に成功と失敗を区別できればよい
 
 ---
 
 ## `xer::error<Detail>`
 
-`xer::error<Detail>` is used when an error needs additional structured information.
+`xer::error<Detail>` は、エラーに追加の構造化された情報が必要な場合に使います。
 
-The exact representation depends on the design of `Detail`, but the intent is:
+正確な表現は `Detail` の設計によって異なりますが、意図は次のとおりです。
 
-* preserve the common error code and source location
-* carry extra information specific to that failure
+* 共通のエラーコードとソース位置を保持する
+* その失敗に固有の追加情報を運ぶ
 
-This is useful for cases such as:
+これは、次のような場合に有用です。
 
-* attaching a position
-* attaching a problematic value
-* attaching structured context for later reporting
+* 位置を付加する
+* 問題のある値を付加する
+* 後で報告するための構造化されたコンテキストを付加する
 
-### Design Direction
+### 設計方針
 
-If `Detail` is a class type, `error<Detail>` may expose that detail naturally through inheritance or an equivalent mechanism.
-If `Detail` is not a class type, it may be stored as a member.
+`Detail` がクラス型である場合、`error<Detail>` は継承または同等の仕組みによって、その詳細情報を自然に公開しても構いません。
+`Detail` がクラス型でない場合は、メンバーとして格納しても構いません。
 
-The important point is not the internal representation itself, but that the extra detail remains explicit and type-safe.
+重要なのは内部表現そのものではなく、追加の詳細情報が明示的で型安全なままであることです。
 
 ---
 
 ## `xer::error_t`
 
-`xer::error_t` is the common error-code enumeration used across xer.
+`xer::error_t` は、xer 全体で使う共通のエラーコード列挙型です。
 
-### Basic Direction
+### 基本方針
 
-Its design is guided primarily by the following ideas:
+この設計は、主に次の考え方に基づいています。
 
-* preserve practical compatibility with `errno`-style categories where useful
-* allow xer-specific error categories where necessary
-* avoid using a success enumerator inside the error type itself
+* 有用な場合は `errno` 風のカテゴリとの実用的な互換性を保つ
+* 必要に応じて xer 固有のエラーカテゴリを許す
+* エラー型そのものの中には成功を表す列挙子を置かない
 
-### General Interpretation
+### 一般的な解釈
 
-* positive values correspond, where practical, to target-environment `errno`-style meanings
-* negative values are reserved for xer-specific categories
+* 正の値は、実用的な範囲で、対象環境の `errno` 風の意味に対応します
+* 負の値は、xer 固有のカテゴリ用に予約されます
 
-Examples of xer-specific categories may include things such as:
+xer 固有のカテゴリの例には、次のようなものがあります。
 
 * `logic_error`
 * `invalid_argument`
@@ -187,33 +181,33 @@ Examples of xer-specific categories may include things such as:
 * `end_of_file`
 * `divide_by_zero`
 
-The exact enumerator set is defined by the implementation.
+正確な列挙子の集合は実装で定義されます。
 
-Sequential input operations use `end_of_file` when the next item cannot be read because the input is exhausted. Lookup operations use `not_found` when a named or keyed target does not exist.
+逐次入力操作では、入力を使い切って次の項目を読めない場合に `end_of_file` を使用します。名前やキーで指定した対象が存在しない場合、検索操作では `not_found` を使用します。
 
 ---
 
 ## `xer::make_error`
 
-`make_error` is the standard helper for constructing xer error objects.
+`make_error` は、xer のエラーオブジェクトを構築する標準ヘルパーです。
 
-### Why `make_error` Exists
+### `make_error` が存在する理由
 
-The helper exists so that:
+このヘルパーが存在する理由は次のとおりです。
 
-* callers do not need to repeat `std::source_location::current()`
-* error construction stays uniform across the library
-* code remains concise and readable
+* 呼び出し側が `std::source_location::current()` を繰り返し書かなくてよい
+* ライブラリ全体でエラー構築を統一できる
+* コードを簡潔で読みやすく保てる
 
-### Basic Forms
+### 基本形
 
-Without extra detail:
+追加の詳細情報がない場合:
 
 ```cpp
 const auto error = xer::make_error(xer::error_t::invalid_argument);
 ```
 
-With extra detail:
+追加の詳細情報がある場合:
 
 ```cpp
 const auto error = xer::make_error<my_detail>(
@@ -222,42 +216,42 @@ const auto error = xer::make_error<my_detail>(
 );
 ```
 
-### Source Location
+### ソース位置
 
-The source location is captured at the call site through the default argument of `make_error`.
+ソース位置は、`make_error` のデフォルト引数を通じて呼び出し地点で取得されます。
 
-This is important because it records where the error was created, not merely where the type was defined.
+これは、単に型が定義された場所ではなく、エラーが作成された場所を記録するため重要です。
 
 ---
 
-## Relationship to Other Policies
+## 他の方針との関係
 
-`<xer/error.h>` is closely related to the following project-wide policies:
+`<xer/error.h>` は、次のプロジェクト全体の方針と密接に関係しています。
 
-* normal failure is represented by `xer::result`
-* ordinary public APIs generally take ordinary values rather than `xer::result` arguments
-* exceptions are reserved for cases where they are appropriate by design, such as assertion failures or fundamentally exceptional situations
+* 通常の失敗は `xer::result` で表す
+* 通常の公開APIは、一般に `xer::result` 引数ではなく通常の値を受け取る
+* 例外は、アサーション失敗や根本的に例外的な状況など、設計上適切な場合に予約する
 
-Accordingly, this header should be understood together with:
+したがって、このヘッダーは次の文書とあわせて理解する必要があります。
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
 
 ---
 
-## Documentation Notes
+## ドキュメント上の注意
 
-When documenting a fallible API that uses `xer::result`, it is usually enough to describe:
+`xer::result` を使う失敗しうるAPIを文書化するときは、通常、次の内容を説明すれば十分です。
 
-* the success value
-* the general failure condition
-* important error categories when they matter
+* 成功値
+* 一般的な失敗条件
+* 重要な場合の主なエラーカテゴリ
 
-It is not always necessary to enumerate every possible `error_t` value unless that distinction is important to users.
+その区別が利用者にとって重要でない限り、考えられるすべての `error_t` 値を列挙する必要は必ずしもありません。
 
 ---
 
-## Example
+## 例
 
 ```cpp
 #include <xer/error.h>
@@ -273,14 +267,14 @@ auto parse_positive(int value) -> xer::result<int>
 }
 ```
 
-This example shows the normal xer pattern:
+この例は、通常の xer パターンを示しています。
 
-* return a success value directly on success
-* return `std::unexpected(xer::make_error(...))` on failure
+* 成功時は成功値を直接返す
+* 失敗時は `std::unexpected(xer::make_error(...))` を返す
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
@@ -288,28 +282,22 @@ This example shows the normal xer pattern:
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/assert.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/assert.h>`
 
-## Purpose
+## 目的
 
-`<xer/assert.h>` provides xer's assertion facilities.
+`<xer/assert.h>` は、xer のアサーション機能を提供します。
 
-These facilities are used primarily by xer's own test programs, but they may also be exposed to library users for lightweight checks.
+これらの機能は主に xer 自身のテストプログラムで使いますが、軽量な確認用途としてライブラリ利用者に公開される場合もあります。
 
-Unlike the standard C `assert`, xer assertions do not terminate the process immediately.
-Instead, they report failure by throwing an exception.
+標準Cの `assert` とは異なり、xer のアサーションはプロセスを即座に終了しません。
+かわりに、例外を送出することで失敗を報告します。
 
 ---
 
-## Main Entities
+## 主な要素
 
-At minimum, `<xer/assert.h>` provides the following entities:
+少なくとも、`<xer/assert.h>` は次の要素を提供します。
 
 ```cpp
 xer_assert(expr)
@@ -323,69 +311,69 @@ xer_assert_nothrow(expr)
 class xer::assertion_error;
 ```
 
-The exact implementation details may vary, but these names form the core assertion interface.
+正確な実装詳細は変わる可能性がありますが、これらの名前が中核的なアサーションインターフェースを構成します。
 
 ---
 
-## Design Role
+## 設計上の役割
 
-This header exists to support explicit and readable checks in execution tests.
+このヘッダーは、実行テスト内で明示的で読みやすい確認を支えるために存在します。
 
-Its role is to make the following possible:
+このヘッダーの役割は、次のことを可能にすることです。
 
-* verify expected conditions in test code
-* stop the current test flow immediately on failure
-* preserve diagnostic information such as source location
-* avoid process termination as the default assertion behavior
+* テストコードで期待条件を確認する
+* 失敗時に現在のテストの流れを即座に停止する
+* ソース位置などの診断情報を保持する
+* 既定のアサーション動作としてプロセス終了を避ける
 
-This makes the assertion facilities suitable for automated test execution and for debugging library behavior.
+これにより、このアサーション機能は自動テストの実行やライブラリ動作のデバッグに適したものになります。
 
 ---
 
-## Difference from the Standard `assert`
+## 標準 `assert` との違い
 
-The standard C and C++ `assert` facility typically aborts the process when a condition fails.
+標準CおよびC++の `assert` 機能は、通常、条件が失敗するとプロセスを中断します。
 
-xer deliberately uses a different design.
+xer は意図的に別の設計を採用しています。
 
-### Standard `assert`
+### 標準 `assert`
 
-* reports failure by terminating the process
-* is mainly intended for debugging internal assumptions
-* is not well suited to a test framework that wants structured failure reporting
+* プロセスを終了することで失敗を報告する
+* 主に内部仮定をデバッグするためのもの
+* 構造化された失敗報告を求めるテストフレームワークにはあまり適していない
 
-### xer Assertions
+### xer のアサーション
 
-* report failure by throwing `xer::assertion_error`
-* are suitable for execution tests
-* preserve source-level diagnostic context
-* can also be used in lightweight user-side checks when appropriate
+* `xer::assertion_error` を送出することで失敗を報告する
+* 実行テストに適している
+* ソースレベルの診断用コンテキストを保持する
+* 適切な場合には、軽量な利用者側チェックにも使える
 
-This difference is intentional.
+この違いは意図的なものです。
 
 ---
 
 ## `xer::assertion_error`
 
-`xer::assertion_error` is the exception type thrown when an xer assertion fails.
+`xer::assertion_error` は、xer のアサーションが失敗したときに送出される例外型です。
 
-### Purpose
+### 目的
 
-Its purpose is to carry assertion-failure information in a form that can be caught and reported by test runners or surrounding code.
+この型の目的は、テストランナーや周辺コードが捕捉して報告できる形で、アサーション失敗情報を運ぶことです。
 
-### Expected Contents
+### 期待される内容
 
-At minimum, diagnostics for an assertion failure should make it possible to identify:
+少なくとも、アサーション失敗の診断情報から次のことを特定できる必要があります。
 
-* which assertion failed
-* where it failed
-* what expression or comparison was involved
+* どのアサーションが失敗したか
+* どこで失敗したか
+* どの式または比較が関係していたか
 
-Depending on the assertion macro, additional value-oriented information may also be included.
+アサーションマクロによっては、値に関する追加情報が含まれる場合もあります。
 
 ---
 
-## Assertion Macros
+## アサーションマクロ
 
 ## `xer_assert`
 
@@ -393,11 +381,11 @@ Depending on the assertion macro, additional value-oriented information may also
 xer_assert(expr)
 ```
 
-This macro checks that `expr` is true.
+このマクロは、`expr` が真であることを確認します。
 
-If `expr` is false, it throws `xer::assertion_error`.
+`expr` が偽の場合、`xer::assertion_error` を送出します。
 
-### Typical Use
+### 典型的な使用例
 
 ```cpp
 xer_assert(result.has_value());
@@ -411,11 +399,11 @@ xer_assert(result.has_value());
 xer_assert_not(expr)
 ```
 
-This macro checks that `expr` is false.
+このマクロは、`expr` が偽であることを確認します。
 
-If `expr` is true, it throws `xer::assertion_error`.
+`expr` が真の場合、`xer::assertion_error` を送出します。
 
-### Typical Use
+### 典型的な使用例
 
 ```cpp
 xer_assert_not(buffer.empty());
@@ -429,15 +417,15 @@ xer_assert_not(buffer.empty());
 xer_assert_eq(lhs, rhs)
 ```
 
-This macro checks that `lhs == rhs`.
+このマクロは、`lhs == rhs` であることを確認します。
 
-If the comparison is false, it throws `xer::assertion_error`.
+比較が偽の場合、`xer::assertion_error` を送出します。
 
-### Purpose
+### 目的
 
-This macro is used when equality of two values is the important condition being tested.
+このマクロは、2つの値が等しいことがテスト対象の重要な条件である場合に使います。
 
-### Typical Use
+### 典型的な使用例
 
 ```cpp
 xer_assert_eq(value, 42);
@@ -451,11 +439,11 @@ xer_assert_eq(value, 42);
 xer_assert_ne(lhs, rhs)
 ```
 
-This macro checks that `lhs != rhs`.
+このマクロは、`lhs != rhs` であることを確認します。
 
-If the comparison is false, it throws `xer::assertion_error`.
+比較が偽の場合、`xer::assertion_error` を送出します。
 
-### Typical Use
+### 典型的な使用例
 
 ```cpp
 xer_assert_ne(ptr, nullptr);
@@ -469,15 +457,15 @@ xer_assert_ne(ptr, nullptr);
 xer_assert_lt(lhs, rhs)
 ```
 
-This macro checks that `lhs < rhs`.
+このマクロは、`lhs < rhs` であることを確認します。
 
-If the comparison is false, it throws `xer::assertion_error`.
+比較が偽の場合、`xer::assertion_error` を送出します。
 
-### Purpose
+### 目的
 
-This is the currently defined ordering-oriented assertion in the basic policy.
+これは、基本方針で現在定義されている順序関係向けのアサーションです。
 
-### Typical Use
+### 典型的な使用例
 
 ```cpp
 xer_assert_lt(index, size);
@@ -491,20 +479,20 @@ xer_assert_lt(index, size);
 xer_assert_throw(expr, exception_type)
 ```
 
-This macro checks that evaluating `expr` throws the specified exception type.
+このマクロは、`expr` を評価したときに指定された例外型が送出されることを確認します。
 
-If `expr` does not throw that exception type, it throws `xer::assertion_error`.
+`expr` がその例外型を送出しない場合、`xer::assertion_error` を送出します。
 
-### Argument Order
+### 引数の順序
 
-The argument order is intentional:
+引数の順序は意図的なものです。
 
-* first: the expression to evaluate
-* second: the exception type expected
+* 第1引数: 評価する式
+* 第2引数: 期待する例外型
 
-This order follows the project testing policy.
+この順序はプロジェクトのテスト方針に従っています。
 
-### Typical Use
+### 典型的な使用例
 
 ```cpp
 xer_assert_throw(f(), std::runtime_error);
@@ -518,11 +506,11 @@ xer_assert_throw(f(), std::runtime_error);
 xer_assert_nothrow(expr)
 ```
 
-This macro checks that evaluating `expr` does not throw.
+このマクロは、`expr` を評価しても例外が送出されないことを確認します。
 
-If `expr` throws, it throws `xer::assertion_error`.
+`expr` が例外を送出した場合、`xer::assertion_error` を送出します。
 
-### Typical Use
+### 典型的な使用例
 
 ```cpp
 xer_assert_nothrow(run_test_case());
@@ -530,66 +518,66 @@ xer_assert_nothrow(run_test_case());
 
 ---
 
-## Diagnostic Policy
+## 診断方針
 
-Assertion failures should provide diagnostics that are useful during development.
+アサーション失敗は、開発中に役立つ診断情報を提供するべきです。
 
-At minimum, they should make it possible to identify:
+少なくとも、次のことを特定できる必要があります。
 
-* the source file
-* the line
-* the assertion form
-* the compared or checked expression text
+* ソースファイル
+* 行
+* アサーションの形式
+* 比較または確認された式のテキスト
 
-For value-comparison assertions such as `xer_assert_eq`, it is also desirable to include the observed left-hand and right-hand values when practical.
+`xer_assert_eq` のような値比較アサーションでは、実用的な場合、観測された左辺値と右辺値を含めることも望ましいです。
 
-However, the assertion facilities are not intended to guarantee perfect formatting for every possible type.
+ただし、アサーション機能は、あらゆる型に対して完全な整形を保証することを目的としていません。
 
-This point is important:
+この点は重要です。
 
-* they are primarily for xer development and lightweight testing
-* they should remain practical and readable
-* they should not accumulate excessive special handling for every conceivable output case
-
----
-
-## Intended Scope
-
-These assertion macros are primarily intended for:
-
-* xer execution tests
-* small utility checks during development
-* lightweight user-side verification when convenient
-
-They are not intended to replace a full-featured external test framework in every scenario.
+* 主に xer の開発と軽量なテストのためのものです
+* 実用的で読みやすいままであるべきです
+* 考えられるすべての出力ケースに対する過剰な特別扱いを積み重ねるべきではありません
 
 ---
 
-## Relationship to Other Policies
+## 想定範囲
 
-`<xer/assert.h>` should be understood together with the following documents:
+これらのアサーションマクロは、主に次の用途を想定しています。
+
+* xer の実行テスト
+* 開発中の小さなユーティリティ確認
+* 便利な場合の軽量な利用者側検証
+
+あらゆる場面で、高機能な外部テストフレームワークを置き換えることを意図したものではありません。
+
+---
+
+## 他の方針との関係
+
+`<xer/assert.h>` は、次の文書とあわせて理解する必要があります。
 
 * `policy_project_outline.md`
 * `policy_testing_and_php.md`
 
-The project outline explains why assertion failure is treated separately from ordinary runtime failure.
-The testing policy explains the role of xer assertions in execution tests.
+プロジェクト概要では、アサーション失敗を通常の実行時失敗とは別扱いにする理由を説明しています。
+テスト方針では、実行テストにおける xer アサーションの役割を説明しています。
 
 ---
 
-## Documentation Notes
+## ドキュメント上の注意
 
-When this header is referenced from a generated manual, it is usually enough to explain:
+このヘッダーを生成マニュアルで参照するときは、通常、次の内容を説明すれば十分です。
 
-* that xer assertions throw instead of aborting
-* the available macro names
-* the intended role of these macros in tests and lightweight verification
+* xer のアサーションは中断ではなく例外送出を行うこと
+* 利用可能なマクロ名
+* テストと軽量な検証におけるこれらのマクロの想定役割
 
-The full operational philosophy belongs in the policy documents rather than in per-header API summaries.
+完全な運用哲学は、ヘッダーごとのAPI要約ではなく方針文書に属します。
 
 ---
 
-## Example
+## 例
 
 ```cpp
 #include <xer/assert.h>
@@ -603,15 +591,15 @@ auto main() -> int
 }
 ```
 
-This example illustrates the general style:
+この例は一般的なスタイルを示しています。
 
-* use explicit assertion macros
-* let failures throw `xer::assertion_error`
-* keep checks readable and localized
+* 明示的なアサーションマクロを使う
+* 失敗時は `xer::assertion_error` を送出させる
+* 確認を読みやすく局所的に保つ
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_testing_and_php.md`
@@ -619,26 +607,20 @@ This example illustrates the general style:
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/typeinfo.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/typeinfo.h>`
 
-## Purpose
+## 目的
 
-`<xer/typeinfo.h>` provides lightweight type information helpers for xer.
+`<xer/typeinfo.h>` は、xer の軽量な型情報ヘルパーを提供します。
 
-Its main purpose is to make type names usable in diagnostics, tracing, and other development-oriented output.
-The header wraps standard C++ type information in a form that fits xer's UTF-8-oriented text model.
+主な目的は、診断、トレース、その他の開発向け出力で型名を使いやすくすることです。
+このヘッダーは、標準C++の型情報を、xer のUTF-8指向のテキストモデルに合う形でラップします。
 
 ---
 
-## Main Entities
+## 主な要素
 
-At minimum, `<xer/typeinfo.h>` provides the following entities:
+少なくとも、`<xer/typeinfo.h>` は次の要素を提供します。
 
 ```cpp
 class xer::type_info;
@@ -646,15 +628,15 @@ class xer::type_info;
 #define xer_typeid(...)
 ```
 
-The exact implementation may use `std::type_index` internally so that `xer::type_info` can be compared and used in ordered containers.
+正確な実装では、`xer::type_info` を比較したり順序付きコンテナで使ったりできるように、内部で `std::type_index` を使う場合があります。
 
 ---
 
 ## `xer::type_info`
 
-`xer::type_info` is a lightweight wrapper around C++ runtime type information.
+`xer::type_info` は、C++の実行時型情報に対する軽量なラッパーです。
 
-It provides at least the following operations:
+少なくとも次の操作を提供します。
 
 ```cpp
 auto raw_name() const noexcept -> const char*;
@@ -667,22 +649,22 @@ auto operator<(const type_info& rhs) const noexcept -> bool;
 
 ### `name()`
 
-`name()` returns a UTF-8 type name intended for human-readable diagnostics.
+`name()` は、人間が読む診断用のUTF-8型名を返します。
 
-On GCC, the implementation may demangle the implementation-provided type name.
-If demangling fails, the raw implementation-provided name may be returned instead.
+GCCでは、実装が提供する型名をデマングルする場合があります。
+デマングルに失敗した場合は、実装が提供する生の名前をそのまま返す場合があります。
 
-The returned name is intended for display and diagnostics, not for stable serialization or ABI-independent comparison.
+返される名前は表示と診断を目的としたものであり、安定したシリアライズやABI非依存の比較に使うためのものではありません。
 
 ---
 
 ## `xer_typeid`
 
-`xer_typeid(...)` creates a `xer::type_info` object from the same kind of operand accepted by `typeid`.
+`xer_typeid(...)` は、`typeid` が受け付けるものと同種のオペランドから `xer::type_info` オブジェクトを作成します。
 
-It is a variadic macro so that template type operands containing commas can be passed naturally.
+これは可変長マクロなので、カンマを含むテンプレート型オペランドも自然に渡せます。
 
-Examples:
+例:
 
 ```cpp
 const auto a = xer_typeid(int);
@@ -692,34 +674,34 @@ const auto c = xer_typeid(value);
 
 ---
 
-## Design Role
+## 設計上の役割
 
-This header is mainly a foundation for diagnostics and tracing.
+このヘッダーは、主に診断とトレースの基盤です。
 
-In particular, it allows code to display:
+特に、コードで次のものを表示できるようにします。
 
-- the type of a traced object
-- an implementation-provided or demangled type name
-- an ordered type key for lookup tables
-
----
-
-## Relationship to Other Headers
-
-`<xer/typeinfo.h>` is related to future diagnostic facilities such as tracing.
-
-It is also useful together with formatted output facilities from `<xer/stdio.h>`, especially when type names are printed as UTF-8 text.
+- トレース対象オブジェクトの型
+- 実装が提供する型名またはデマングル済み型名
+- ルックアップテーブル用の順序付き型キー
 
 ---
 
-## Documentation Notes
+## 他のヘッダーとの関係
 
-Type names are inherently implementation-dependent.
-Documentation should therefore describe `name()` as a diagnostic display facility rather than as a stable programmatic identifier.
+`<xer/typeinfo.h>` は、トレースなどの将来的な診断機能と関係します。
+
+また、型名をUTF-8テキストとして出力する場合には、`<xer/stdio.h>` の書式付き出力機能と組み合わせても有用です。
 
 ---
 
-## Example
+## ドキュメント上の注意
+
+型名は本質的に実装依存です。
+したがって、ドキュメントでは `name()` を、安定したプログラム上の識別子ではなく、診断表示用の機能として説明するべきです。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/stdio.h>
@@ -741,31 +723,25 @@ auto main() -> int
 
 ---
 
-## See Also
+## 関連項目
 
 * `header_stdio.md`
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/diag.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/diag.h>`
 
-## Purpose
+## 目的
 
-`<xer/diag.h>` provides lightweight diagnostic facilities for xer.
+`<xer/diag.h>` は、xer の軽量な診断機能を提供します。
 
-It groups tracing and logging support under one public diagnostic header while keeping the shared category and level vocabulary common to both facilities.
+このヘッダーは、トレースとログ出力のサポートを1つの公開診断ヘッダーにまとめつつ、両機能で共有するカテゴリとレベルの語彙を共通化します。
 
 ---
 
-## Main Entities
+## 主な要素
 
-At minimum, `<xer/diag.h>` provides the following entities:
+少なくとも、`<xer/diag.h>` は次の要素を提供します。
 
 ```cpp
 using xer::diag_level_t = int;
@@ -783,134 +759,128 @@ xer_log(category, level, message)
 xer_log(category, level, format, ...)
 ```
 
-It also provides functions for setting trace and log output streams and levels.
+また、トレース出力ストリームとログ出力ストリーム、およびそれぞれのレベルを設定する関数も提供します。
 
 ---
 
-## Design Role
+## 設計上の役割
 
-This header is intended for diagnostics, development-time tracing, and simple runtime logging.
+このヘッダーは、診断、開発時のトレース、単純な実行時ログ出力のためのものです。
 
-Tracing and logging share:
+トレースとログ出力は、次のものを共有します。
 
 * `diag_category`
 * `diag_level_t`
-* the named level constants
+* 名前付きレベル定数
 
-Their output destinations and current levels are configured independently.
+それぞれの出力先と現在のレベルは個別に設定されます。
 
 ---
 
-## Trace
+## トレース
 
-`xer_trace(category, level, object)` prints one diagnostic line containing:
+`xer_trace(category, level, object)` は、次の内容を含む診断行を1行出力します。
 
-* the diagnostic category
-* the diagnostic level
-* the source expression text
-* the statically derived type name
-* the value formatted through xer's `%@` printf conversion
+* 診断カテゴリ
+* 診断レベル
+* ソース式のテキスト
+* 静的に導出された型名
+* xer の `%@` printf変換を通じて整形された値
 
-The output form is conceptually:
+出力形式の概念は次のとおりです。
 
 ```text
 [category][level] expression (type) = value
 ```
 
-When `NDEBUG` is defined, `xer_trace` expands to a no-op expression and does not evaluate its arguments.
+`NDEBUG` が定義されている場合、`xer_trace` は何もしない式に展開され、引数を評価しません。
 
 ---
 
-## Log
+## ログ
 
-`xer_log(category, level, message)` writes one simple log record.
+`xer_log(category, level, message)` は、単純なログレコードを1件書き込みます。
 
-`xer_log(category, level, format, ...)` writes one formatted log record. The message body uses xer printf formatting rules, including `%@`.
+`xer_log(category, level, format, ...)` は、書式付きログレコードを1件書き込みます。メッセージ本体では、`%@` を含む xer のprintf書式規則を使います。
 
-Unlike `xer_trace`, logging is not disabled merely because `NDEBUG` is defined. It can be disabled at compile time by defining `XER_ENABLE_LOG` to `0` before including `<xer/diag.h>`.
+`xer_trace` とは異なり、ログ出力は `NDEBUG` が定義されているだけでは無効になりません。`<xer/diag.h>` をインクルードする前に `XER_ENABLE_LOG` を `0` と定義することで、コンパイル時に無効化できます。
 
-## Log Record Format
+## ログレコード形式
 
-Each log call writes one CSV data record.
+各ログ呼び出しは、CSVデータレコードを1行書き込みます。
 
-The columns are fixed as follows:
+列は次のように固定されています。
 
 ```text
 timestamp,category,level,message
 ```
 
-No header row is written automatically.
+ヘッダー行は自動では書き込まれません。
 
-The timestamp uses local time and has millisecond precision:
+タイムスタンプはローカル時刻を使い、ミリ秒精度です。
 
 ```text
 YYYY-MM-DD HH:MM:SS.mmm
 ```
 
-A typical log record is:
+典型的なログレコードは次のようになります。
 
 ```csv
 2026-04-26 18:42:15.123,io,30,"opened sample.txt"
 ```
 
-The first three fields are generated by xer and are written without CSV quoting.
-The message field is always written as a quoted CSV field. Double quote characters in the message are escaped by doubling them.
+先頭3つのフィールドは xer が生成し、CSVクォートなしで書き込まれます。
+メッセージフィールドは常にクォートされたCSVフィールドとして書き込まれます。メッセージ中の二重引用符は、二重にすることでエスケープされます。
 
-## Log Cost Policy
+## ログのコスト方針
 
-Logging is designed to remain reasonably lightweight.
+ログ出力は、合理的に軽量であり続けるように設計されています。
 
-* disabled log messages are filtered before formatting arguments are evaluated
-* simple message logging does not use `sprintf`
-* formatted message logging uses `sprintf` only after the level check succeeds
-* the timestamp prefix up to whole seconds is cached per thread
-* the level field is formatted without `printf`
-* the message field is quoted directly to the stream without constructing a separate quoted string
-
----
-
-## Output Streams
-
-Trace and log output default to the standard error text stream.
-They can be changed independently through the corresponding stream-setting functions.
+* 無効なログメッセージは、書式引数が評価される前にフィルタされる
+* 単純なメッセージログ出力では `sprintf` を使わない
+* 書式付きメッセージログ出力では、レベル確認が成功した後にだけ `sprintf` を使う
+* 秒単位までのタイムスタンプ接頭辞はスレッドごとにキャッシュする
+* レベルフィールドは `printf` を使わずに整形する
+* メッセージフィールドは、別のクォート済み文字列を構築せず、ストリームへ直接クォート出力する
 
 ---
 
-## Notes
+## 出力ストリーム
 
-These facilities are intentionally small.
-They are not a full logging framework, but they provide a useful diagnostic foundation for xer itself and for small programs using xer.
+トレース出力とログ出力は、既定では標準エラーのテキストストリームに出力されます。
+対応するストリーム設定関数を使うことで、それぞれを個別に変更できます。
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/scope.h`
-> Reason: Japanese fragment was translated from a different English source hash.
+## 注意
+
+これらの機能は意図的に小さく保たれています。
+完全なログフレームワークではありませんが、xer 自身と、xer を使う小さなプログラムにとって有用な診断基盤を提供します。
+
+---
 
 # `<xer/scope.h>`
 
-## Purpose
+## 目的
 
-`<xer/scope.h>` provides small scope-based utility facilities for xer.
+`<xer/scope.h>` は、xer の小さなスコープベースのユーティリティ機能を提供します。
 
-At present, this header provides `xer::scope_exit`, a lightweight scope guard that invokes a registered callable when the guard object is destroyed.
+現時点では、このヘッダーは `xer::scope_exit` を提供します。`xer::scope_exit` は、ガードオブジェクトの破棄時に登録された呼び出し可能オブジェクトを呼び出す軽量なスコープガードです。
 
-This is useful for cleanup actions that should be performed automatically when leaving a block.
+これは、ブロックを抜けるときに自動的に実行すべきクリーンアップ処理に役立ちます。
 
 ---
 
-## Main Entity
+## 主なエンティティ
 
-At minimum, `<xer/scope.h>` provides the following entity:
+少なくとも、`<xer/scope.h>` は次のエンティティを提供します。
 
 ```cpp
 template <class F>
 class scope_exit;
 ```
 
-It also provides a deduction guide so that ordinary lambdas and function objects can be passed naturally:
+また、通常のラムダ式や関数オブジェクトを自然に渡せるように、推論ガイドも提供します。
 
 ```cpp
 template <class F>
@@ -921,9 +891,9 @@ scope_exit(F&&) -> scope_exit<std::decay_t<F>>;
 
 ## `scope_exit`
 
-`scope_exit` is a move-only RAII helper.
+`scope_exit` はムーブ専用の RAII ヘルパーです。
 
-It stores a callable object and invokes it from the destructor while the guard is active.
+呼び出し可能オブジェクトを保持し、ガードが有効な間はデストラクタからそのオブジェクトを呼び出します。
 
 ```cpp
 auto guard = xer::scope_exit([&] noexcept {
@@ -931,124 +901,124 @@ auto guard = xer::scope_exit([&] noexcept {
 });
 ```
 
-### Basic Behavior
+### 基本動作
 
-A `scope_exit` object is active immediately after construction.
+`scope_exit` オブジェクトは、構築直後から有効です。
 
-When the object is destroyed:
+オブジェクトが破棄されるときの動作は次のとおりです。
 
-* if it is active, the registered callable is invoked
-* if it has been released, nothing is invoked
+* 有効な場合、登録された呼び出し可能オブジェクトを呼び出す
+* 解放済みの場合、何もしない
 
-This makes it suitable for registering cleanup logic close to the resource or state change that needs cleanup.
-
----
-
-## Typical Use Cases
-
-`scope_exit` is useful for actions such as:
-
-* restoring the current working directory after `chdir`
-* removing a temporary file or temporary directory
-* unlocking a resource
-* restoring a global or process-wide setting
-* rolling back a local state change
-* closing or releasing a non-RAII resource when no better wrapper exists
-
-It is especially useful when cleanup must happen along multiple return paths.
+このため、クリーンアップが必要なリソースや状態変更の近くでクリーンアップ処理を登録する用途に適しています。
 
 ---
 
-## Move-Only Semantics
+## 典型的な用途
 
-`scope_exit` is copy-disabled and move-constructible.
+`scope_exit` は、次のような処理に役立ちます。
 
-Copying is not allowed because copying a guard would make it unclear which object owns the cleanup action.
+* `chdir` 後にカレントディレクトリを元に戻す
+* 一時ファイルや一時ディレクトリを削除する
+* リソースのロックを解除する
+* グローバル設定またはプロセス全体の設定を元に戻す
+* ローカルな状態変更をロールバックする
+* よりよいラッパーがない非 RAII リソースを閉じる、または解放する
 
-Move construction transfers the cleanup responsibility to the new object.
-The moved-from guard is released so that the registered callable is not invoked twice.
-
-Move assignment is not provided.
+複数の return 経路に沿ってクリーンアップを行う必要がある場合に、とくに有用です。
 
 ---
 
-## Releasing a Guard
+## ムーブ専用セマンティクス
 
-A guard can be released explicitly:
+`scope_exit` はコピー不可であり、ムーブ構築可能です。
+
+コピーを許可すると、どちらのオブジェクトがクリーンアップ処理を所有するのか不明確になるため、コピーは許可されません。
+
+ムーブ構築は、クリーンアップ責任を新しいオブジェクトへ移します。
+ムーブ元のガードは解放されるため、登録された呼び出し可能オブジェクトが二重に呼び出されることはありません。
+
+ムーブ代入は提供されません。
+
+---
+
+## ガードの解放
+
+ガードは明示的に解放できます。
 
 ```cpp
 guard.release();
 ```
 
-After `release()` is called, the registered callable will not be invoked when the guard is destroyed.
+`release()` を呼び出した後は、ガードの破棄時に登録された呼び出し可能オブジェクトは呼び出されません。
 
-This is useful when the cleanup action is only needed if a later operation does not complete successfully.
+これは、後続の処理が正常に完了しなかった場合だけクリーンアップが必要になるような場面で役立ちます。
 
 ---
 
-## Checking Whether a Guard Is Active
+## ガードが有効かどうかの確認
 
-The current active state can be checked:
+現在の有効状態は次の関数で確認できます。
 
 ```cpp
 auto active() const noexcept -> bool;
 ```
 
-This returns `true` if the callable will be invoked on destruction.
+破棄時に呼び出し可能オブジェクトが呼び出される状態であれば `true` を返します。
 
 ---
 
-## Exception Policy
+## 例外方針
 
-The destructor of `scope_exit` is `noexcept`.
+`scope_exit` のデストラクタは `noexcept` です。
 
-The registered callable is expected not to throw.
+登録される呼び出し可能オブジェクトは、例外を投げないことが期待されます。
 
-If the callable throws while the `scope_exit` destructor is running, `std::terminate` is called.
+`scope_exit` のデストラクタ実行中に呼び出し可能オブジェクトが例外を投げた場合、`std::terminate` が呼び出されます。
 
-This policy follows the usual expectation for cleanup code executed from destructors.
-A scope guard is not a good place to report ordinary recoverable failure, because destructors cannot return `xer::result`.
+この方針は、デストラクタから実行されるクリーンアップコードに対する通常の期待に従っています。
+スコープガードは、通常の回復可能な失敗を報告する場所としては適していません。デストラクタは `xer::result` を返せないためです。
 
-If the cleanup action can fail in a meaningful way, callers should normally handle that failure explicitly before leaving the scope, or intentionally ignore it when failure is not actionable.
-
----
-
-## Relationship to Standard and Experimental Facilities
-
-xer provides its own `scope_exit`.
-
-This is not a wrapper around a standard C++ `<scope>` header.
-Standard C++ does not currently provide such a header as part of the ordinary standard library.
-
-Some similar facilities exist in experimental or library-extension contexts, but xer keeps this utility small and self-contained so that it fits the library's header-only and GCC-oriented portability policy.
+クリーンアップ処理の失敗に意味がある場合、呼び出し側は通常、スコープを抜ける前にその失敗を明示的に処理するか、失敗に対処できない場合は意図して無視するべきです。
 
 ---
 
-## Design Role
+## 標準および実験的機能との関係
 
-`scope_exit` is intentionally small.
+xer は独自の `scope_exit` を提供します。
 
-It does not attempt to provide a complete scope-guard framework.
+これは、標準 C++ の `<scope>` ヘッダーのラッパーではありません。
+標準 C++ は現在、通常の標準ライブラリの一部としてこのようなヘッダーを提供していません。
 
-In particular, this header does not currently provide:
+類似機能は実験的な機能やライブラリ拡張として存在する場合がありますが、xer ではヘッダーオンリーかつ GCC を中心とする移植性方針に合うように、このユーティリティを小さく自己完結したものにしています。
+
+---
+
+## 設計上の役割
+
+`scope_exit` は意図的に小さく保たれています。
+
+完全なスコープガードフレームワークを提供しようとはしていません。
+
+とくに、このヘッダーは現時点で次のものを提供しません。
 
 * `scope_success`
 * `scope_fail`
 * `unique_resource`
 
-The initial purpose is only to support the common “run this cleanup action when leaving the current scope” pattern.
+初期の目的は、「現在のスコープを抜けるときにこのクリーンアップ処理を実行する」という一般的なパターンを支援することだけです。
 
 ---
 
-## Relationship to xer's Error Model
+## xer のエラーモデルとの関係
 
-xer generally represents ordinary fallible operations through `xer::result`.
+xer では通常、失敗する可能性がある通常の処理を `xer::result` で表します。
 
-However, `scope_exit` itself does not return a result from its destructor.
+ただし、`scope_exit` 自体はデストラクタから結果を返しません。
 
-For that reason, cleanup actions registered with `scope_exit` should normally be actions whose failure can be safely ignored or actions that are known not to fail in the intended context.
+そのため、`scope_exit` に登録するクリーンアップ処理は、通常、失敗を安全に無視できる処理か、想定される文脈では失敗しないことが分かっている処理にするべきです。
 
-A common pattern is to explicitly discard the result of a cleanup operation:
+よくあるパターンは、クリーンアップ処理の結果を明示的に破棄することです。
 
 ```cpp
 auto guard = xer::scope_exit([&] noexcept {
@@ -1056,11 +1026,11 @@ auto guard = xer::scope_exit([&] noexcept {
 });
 ```
 
-This makes the decision to ignore cleanup failure visible.
+これにより、クリーンアップ失敗を無視する判断が見える形になります。
 
 ---
 
-## Example
+## 例
 
 ```cpp
 #include <xer/scope.h>
@@ -1082,50 +1052,50 @@ auto main() -> int
             return 1;
         }
 
-        // Work inside another current directory.
+        // 別のカレントディレクトリ内で作業する。
     }
 
     return 0;
 }
 ```
 
-This example shows the typical xer style:
+この例は、典型的な xer のスタイルを示しています。
 
-* acquire or record state explicitly
-* register cleanup with `scope_exit`
-* use `noexcept` for the cleanup lambda when practical
-* explicitly discard cleanup results when failure is not actionable
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that `scope_exit` is a move-only scope guard
-* that it calls the registered callable from its destructor
-* that `release()` disables the cleanup action
-* that the registered callable should not throw
-* that `scope_success` and `scope_fail` are intentionally not provided at this stage
-
-Detailed examples should focus on practical cleanup patterns rather than abstract RAII theory.
+* 状態を明示的に取得または記録する
+* `scope_exit` でクリーンアップを登録する
+* 実用的な場合はクリーンアップラムダに `noexcept` を付ける
+* 失敗に対処できない場合は、クリーンアップ結果を明示的に破棄する
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+このヘッダーを生成ドキュメントで扱う場合、通常は次の点を説明すれば十分です。
 
-* restoring the current working directory after `chdir`
-* deleting a temporary file on scope exit
-* releasing a guard after successful completion
-* moving a guard to transfer cleanup responsibility
+* `scope_exit` はムーブ専用のスコープガードである
+* デストラクタから登録済みの呼び出し可能オブジェクトを呼び出す
+* `release()` はクリーンアップ処理を無効化する
+* 登録される呼び出し可能オブジェクトは例外を投げるべきではない
+* `scope_success` と `scope_fail` はこの段階では意図的に提供していない
 
-These are good candidates for executable examples under `examples/`.
+詳細な例は、抽象的な RAII 理論よりも実用的なクリーンアップパターンに焦点を当てるべきです。
 
 ---
 
-## See Also
+## 例として示す価値が高い題材
+
+このヘッダーには、次のような例がとくに適しています。
+
+* `chdir` 後にカレントディレクトリを元に戻す
+* スコープ終了時に一時ファイルを削除する
+* 正常完了後にガードを解放する
+* ガードをムーブしてクリーンアップ責任を移す
+
+これらは `examples/` 以下の実行可能な例として適した候補です。
+
+---
+
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
@@ -1133,67 +1103,61 @@ These are good candidates for executable examples under `examples/`.
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/string.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/string.h>`
 
-## Purpose
+## 目的
 
-`<xer/string.h>` provides string-related utilities in xer.
+`<xer/string.h>` は、xer の文字列関連ユーティリティを提供します。
 
-This header brings together several kinds of functionality:
+このヘッダーは、複数の種類の機能をまとめています。
 
-- C-style string operations
-- UTF-aware character and substring search helpers
-- PHP-inspired utility functions such as split/join and trim
-- raw memory helpers grouped with string-oriented facilities
-- prefix/suffix checks
-- case conversion and dynamic string transformation
-- error text helpers
+- C風の文字列操作
+- UTFを意識した文字および部分文字列の検索ヘルパー
+- 分割、結合、トリムなどの PHP 由来のユーティリティ関数
+- 文字列指向の機能とまとめられた生メモリヘルパー
+- 接頭辞・接尾辞の検査
+- 大文字小文字変換および動的な文字列変換
+- エラー文字列ヘルパー
 
-The goal is not to reproduce the C standard library exactly.
-Instead, this header reorganizes practical string-related functionality into a form that fits xer's overall design.
-
----
-
-## Main Role
-
-The main role of `<xer/string.h>` is to provide a practical collection of text and memory helpers centered on xer's UTF-8-oriented public string model.
-
-In particular, it serves the following purposes:
-
-- provide familiar C-style names where that improves approachability
-- support UTF-8-oriented public APIs based on `char8_t`
-- provide allocation-free helpers where practical
-- provide higher-level utility functions that are convenient in ordinary code
-
-This header therefore mixes low-level and high-level facilities more intentionally than the standard C library does.
+目的は C 標準ライブラリを正確に再現することではありません。
+その代わりに、このヘッダーは実用的な文字列関連機能を xer 全体の設計に合う形へ再構成します。
 
 ---
 
-## Main Function Groups
+## 主な役割
 
-At a high level, `<xer/string.h>` contains the following groups of functionality:
+`<xer/string.h>` の主な役割は、xer の UTF-8 指向の公開文字列モデルを中心に、実用的なテキストおよびメモリヘルパー群を提供することです。
 
-- search and comparison
-- case-insensitive search and comparison
-- copy and concatenation
-- split / join / trim
-- string replacement
-- raw memory helpers
-- prefix/suffix checks
-- case conversion and dynamic string transformation
-- error text helpers
+特に、次の目的を持ちます。
+
+- 取っつきやすさが向上する場面では、なじみのある C風の名前を提供する
+- `char8_t` に基づく UTF-8 指向の公開 API を支援する
+- 実用的な範囲で、割り付けを行わないヘルパーを提供する
+- 通常のコードで便利な、より高水準のユーティリティ関数を提供する
+
+そのため、このヘッダーは標準 C ライブラリよりも意図的に、低水準機能と高水準機能を混在させています。
 
 ---
 
-## Search and Comparison
+## 主な関数グループ
 
-At minimum, this header provides functions such as the following:
+大きく見ると、`<xer/string.h>` には次の機能グループが含まれます。
+
+- 検索と比較
+- 大文字小文字を無視した検索と比較
+- コピーと連結
+- 分割 / 結合 / トリム
+- 文字列置換
+- 生メモリヘルパー
+- 接頭辞・接尾辞の検査
+- 大文字小文字変換および動的な文字列変換
+- エラー文字列ヘルパー
+
+---
+
+## 検索と比較
+
+少なくとも、このヘッダーは次のような関数を提供します。
 
 ```cpp
 strlen
@@ -1210,23 +1174,23 @@ strspn
 strcspn
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions provide familiar string-search and comparison operations in a form adapted to xer's public string model.
+これらの関数は、なじみのある文字列検索および比較操作を、xer の公開文字列モデルに合わせた形で提供します。
 
-Some are close in spirit to C standard-library functions, while others are influenced more by PHP-style utility naming.
+一部は C 標準ライブラリ関数に近い考え方ですが、別のものは PHP風のユーティリティ名からの影響をより強く受けています。
 
-### Notes
+### 注記
 
-* not all functions are exact source-compatible reimplementations of their C or PHP namesakes
-* accepted argument forms are designed according to xer's own API policy
-* ordinary public APIs are documented in terms of ordinary values rather than `xer::result` arguments
+* すべての関数が C や PHP の同名関数とソース互換な完全再実装であるとは限りません
+* 受け付ける引数形式は、xer 独自の API 方針に従って設計されています
+* 通常の公開 API は、`xer::result` 引数ではなく通常の値に基づいて文書化されます
 
 ---
 
-## Case-Insensitive Search and Comparison
+## 大文字小文字を無視した検索と比較
 
-This header also provides case-insensitive operations such as the following:
+このヘッダーは、次のような大文字小文字を無視した操作も提供します。
 
 ```cpp
 strcasecmp
@@ -1247,21 +1211,21 @@ stristr
 strirstr
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions exist to support practical case-insensitive text handling without requiring users to build the operation manually every time.
+これらの関数は、ユーザーが毎回自前で処理を組み立てなくても、実用的な大文字小文字を無視したテキスト処理を行えるようにするために存在します。
 
-### Notes
+### 注記
 
-* these facilities are intentionally simple
-* they are primarily oriented around ASCII and the normalization currently implemented by the library
-* they should not be read as a promise of full locale-sensitive or Unicode-wide collation behavior
+* これらの機能は意図的に単純です
+* 主に ASCII と、現在ライブラリに実装されている正規化を対象としています
+* 完全なロケール依存または Unicode 全域の照合動作を保証するものとして読むべきではありません
 
 ---
 
-## Copy and Concatenation
+## コピーと連結
 
-At minimum, this header provides functions such as:
+少なくとも、このヘッダーは次のような関数を提供します。
 
 ```cpp
 strcpy
@@ -1270,21 +1234,21 @@ strcat
 strncat
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions provide familiar copy and concatenation operations, but their exact behavior follows xer's design rather than attempting perfect C compatibility.
+これらの関数は、なじみのあるコピーおよび連結操作を提供します。ただし、その正確な振る舞いは完全な C 互換を目指すのではなく、xer の設計に従います。
 
-### Notes
+### 注記
 
-* xer's design gives priority to natural and practical use in C++ code
-* overloads may exist for arrays, pointers, and container-like targets
-* when automatic capacity growth is appropriate for dynamic containers, the design may favor that behavior over stricter historical C behavior
+* xer の設計では、C++ コードで自然かつ実用的に使えることを優先します
+* 配列、ポインター、コンテナー風の対象に対するオーバーロードが存在する場合があります
+* 動的コンテナーで自動的な容量拡張が適切な場合、歴史的な C の厳密な振る舞いよりも、その振る舞いを優先することがあります
 
 ---
 
-## Split / Join / Trim
+## 分割 / 結合 / トリム
 
-This header also provides higher-level helpers such as:
+このヘッダーは、次のような高水準ヘルパーも提供します。
 
 ```cpp
 explode
@@ -1297,15 +1261,15 @@ rtrim_view
 trim_view
 ```
 
-### Role of This Group
+### このグループの役割
 
-This group provides convenient text-processing helpers inspired in part by PHP.
+このグループは、一部 PHP に由来する便利なテキスト処理ヘルパーを提供します。
 
-These functions are intended for cases where ordinary code benefits from a compact utility API rather than from manual loops and range manipulation.
+これらの関数は、通常のコードで手作業のループや範囲操作よりもコンパクトなユーティリティ API が役立つ場面を意図しています。
 
-### Trim Functions
+### トリム関数
 
-The trimming family is provided in two forms:
+トリム系は 2 種類の形で提供されます。
 
 ```cpp
 auto ltrim(std::u8string_view value, std::u8string_view characters = {})
@@ -1327,44 +1291,44 @@ auto trim_view(std::u8string_view value, std::u8string_view characters = {})
     -> xer::result<std::u8string_view>;
 ```
 
-The owning forms return a new `std::u8string`.
-The `*_view` forms return a view into the original storage and do not allocate.
+所有する形式は新しい `std::u8string` を返します。
+`*_view` 形式は元のストレージへのビューを返し、割り付けを行いません。
 
-When `characters` is empty, xer uses the PHP-compatible default trim set:
+`characters` が空の場合、xer は PHP 互換の既定トリム集合を使用します。
 
 ```text
 space, horizontal tab, line feed, carriage return, vertical tab, NUL
 ```
 
-When `characters` is not empty, it is interpreted as a byte-oriented character list.
-The list supports PHP-style range notation such as `a..z` and `0..9`.
+`characters` が空でない場合、それはバイト指向の文字リストとして解釈されます。
+このリストは `a..z` や `0..9` のような PHP風の範囲表記に対応します。
 
-### Important Notes for UTF-8
+### UTF-8 に関する重要な注記
 
-The trimming functions operate on UTF-8 code units, not on Unicode scalar values or grapheme clusters.
-They are therefore appropriate for ASCII-oriented boundary trimming and PHP-style byte character lists.
+トリム関数は、Unicode スカラー値や書記素クラスタではなく、UTF-8 コード単位に対して動作します。
+そのため、ASCII 指向の境界トリムや PHP風のバイト文字リストに適しています。
 
-Do not use these functions as a general Unicode whitespace normalizer.
+これらの関数を、一般的な Unicode 空白正規化器として使わないでください。
 
-### `*_view` Variants
+### `*_view` バリアント
 
-The `ltrim_view`, `rtrim_view`, and `trim_view` family are especially important because they provide non-allocating trimming operations around UTF-8-oriented string views.
+`ltrim_view`、`rtrim_view`、`trim_view` 系は、UTF-8 指向の文字列ビューに対して、割り付けを行わないトリム操作を提供するため特に重要です。
 
-The returned view refers to the storage of `value`.
-The caller must ensure that the source storage outlives the returned view.
+返されるビューは `value` のストレージを参照します。
+呼び出し側は、元のストレージが返されたビューより長く生存することを保証する必要があります。
 
-### Notes
+### 注記
 
-* `trim_view`-style functions are intended to be lightweight and convenient
-* the trimming character list is byte-oriented and supports `..` ranges
-* these helpers are useful both in ordinary code and in executable examples
-* code examples are expected to use these functions naturally with explicit `xer::result` checking where required
+* `trim_view` 形式の関数は、軽量で便利に使えることを意図しています
+* トリム文字リストはバイト指向であり、`..` 範囲に対応します
+* これらのヘルパーは、通常のコードと実行可能な例のどちらでも有用です
+* コード例では、必要に応じて明示的な `xer::result` チェックを行いながら、これらの関数を自然に使うことが期待されます
 
 ---
 
-## String Replacement
+## 文字列置換
 
-`<xer/string.h>` provides a PHP-inspired string replacement helper:
+`<xer/string.h>` は、PHP 由来の文字列置換ヘルパーを提供します。
 
 ```cpp
 auto str_replace(
@@ -1374,31 +1338,31 @@ auto str_replace(
     std::size_t* count = nullptr) -> xer::result<std::u8string>;
 ```
 
-### Role of This Function
+### この関数の役割
 
-`str_replace` replaces all non-overlapping occurrences of `search` in `subject` with `replace`.
+`str_replace` は、`subject` の中にある `search` の重なり合わないすべての出現を `replace` に置き換えます。
 
-The argument order follows PHP's `str_replace` naming tradition: search string, replacement string, and subject string.
+引数順は PHP の `str_replace` の命名伝統に従い、検索文字列、置換文字列、対象文字列の順です。
 
-### Behavior
+### 振る舞い
 
-Replacement is performed on UTF-8 code units. The function does not attempt grapheme-cluster processing.
+置換は UTF-8 コード単位に対して行われます。この関数は書記素クラスタ処理を試みません。
 
-If `search` is empty, no replacement is performed and `subject` is returned unchanged.
+`search` が空の場合、置換は行われず、`subject` がそのまま返されます。
 
-If `count` is not `nullptr`, the number of performed replacements is stored there.
+`count` が `nullptr` でない場合、実行された置換回数がそこに格納されます。
 
-### Notes
+### 注記
 
-This function is useful for simple text substitution. More advanced text processing, such as regular-expression replacement or locale-sensitive transformation, is outside the scope of this helper.
+この関数は単純なテキスト置換に有用です。正規表現置換やロケール依存の変換のような、より高度なテキスト処理はこのヘルパーの範囲外です。
 
 ---
 
-## Raw Memory Helpers
+## 生メモリヘルパー
 
-`<xer/string.h>` also groups raw memory helpers through the related memory facilities.
+`<xer/string.h>` は、関連するメモリ機能を通じて生メモリヘルパーもまとめています。
 
-These include operations such as:
+これには、次のような操作が含まれます。
 
 ```cpp
 memcpy
@@ -1409,23 +1373,23 @@ memcmp
 memset
 ```
 
-### Role of This Group
+### このグループの役割
 
-Although raw memory operations are not text operations in the narrow sense, xer groups them together with string-oriented helpers for practical convenience.
+生メモリ操作は狭い意味ではテキスト操作ではありませんが、xer は実用上の利便性のため、これらを文字列指向のヘルパーとまとめています。
 
-This reflects the historical closeness of string and memory functions in C-style programming, while still keeping the public-header structure compact.
+これは C風プログラミングにおける文字列関数とメモリ関数の歴史的な近さを反映しつつ、公開ヘッダー構成をコンパクトに保つためのものです。
 
-### Notes
+### 注記
 
-* these functions are low-level helpers
-* they are still part of the public surface when exposed through `<xer/string.h>`
-* their semantics should be read according to xer's own design and test coverage, not assumed solely from the standard library
+* これらの関数は低水準ヘルパーです
+* `<xer/string.h>` を通じて公開される場合、これらも公開 API の一部です
+* セマンティクスは標準ライブラリからだけ推測するのではなく、xer 独自の設計とテスト範囲に従って読むべきです
 
 ---
 
-## Error Text Helpers
+## エラー文字列ヘルパー
 
-This header also provides helpers such as:
+このヘッダーは、次のようなヘルパーも提供します。
 
 ```cpp
 strerror
@@ -1433,89 +1397,89 @@ get_error_name
 get_errno_name
 ```
 
-### Role of This Group
+### このグループの役割
 
-These helpers are intended to convert error categories into human-readable or symbolic forms.
+これらのヘルパーは、エラーカテゴリを人間が読める形式またはシンボル名の形式へ変換することを意図しています。
 
-They are useful in diagnostics, debugging output, and user-facing reporting when appropriate.
+診断、デバッグ出力、および適切な場面でのユーザー向け報告に有用です。
 
-### Notes
+### 注記
 
-* the exact mapping policy depends on xer's own error model
-* `get_error_name` and `get_errno_name` are especially useful where symbolic names are preferable to free-form text
-
----
-
-## UTF-Oriented Public String Model
-
-`<xer/string.h>` should be understood in the context of xer's general text model.
-
-### Basic Expectations
-
-* public string APIs generally use `char8_t`
-* owned strings generally use `std::u8string`
-* non-owning text views generally use `std::u8string_view`
-* individual Unicode scalar values are generally represented as `char32_t`
-
-This is important because the header name may look similar to C's `<string.h>`, but the actual design direction is different.
-
-### Character Search
-
-UTF-aware character search functions may accept `char32_t` for searching UTF-8, UTF-16, or UTF-32 text.
-
-This allows a single Unicode scalar value to be expressed clearly at the call site.
+* 正確な対応付け方針は xer 独自のエラーモデルに依存します
+* 自由形式のテキストよりもシンボル名が望ましい場面では、`get_error_name` と `get_errno_name` が特に有用です
 
 ---
 
-## Relationship to Other Policies
+## UTF指向の公開文字列モデル
 
-`<xer/string.h>` is closely related to the following policy documents:
+`<xer/string.h>` は、xer の一般的なテキストモデルの文脈で理解する必要があります。
+
+### 基本的な期待
+
+* 公開文字列 API は通常 `char8_t` を使います
+* 所有する文字列は通常 `std::u8string` を使います
+* 所有しないテキストビューは通常 `std::u8string_view` を使います
+* 個々の Unicode スカラー値は通常 `char32_t` で表します
+
+ヘッダー名は C の `<string.h>` に似ていますが、実際の設計方向は異なるため、この点は重要です。
+
+### 文字検索
+
+UTFを意識した文字検索関数は、UTF-8、UTF-16、UTF-32 テキストを検索するために `char32_t` を受け付ける場合があります。
+
+これにより、呼び出し箇所で単一の Unicode スカラー値を明確に表現できます。
+
+---
+
+## 他の方針との関係
+
+`<xer/string.h>` は、次の方針文書と密接に関係しています。
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
 * `policy_examples.md`
 
-It also interacts conceptually with:
+概念的には、次の文書とも関係します。
 
 * `policy_ctype.md`
 * `policy_encoding.md`
 
-The exact boundary is as follows:
+正確な境界は次のとおりです。
 
-* `<xer/string.h>` handles string and memory utilities
-* `<xer/ctype.h>` handles classification and character transformation
-* encoding policy defines the broader text model used by the library
-
----
-
-## Documentation Notes
-
-When this header is used as part of generated documentation, it is usually enough to explain:
-
-* that it combines C-style string utilities with xer-specific UTF-8-oriented helpers
-* that it includes both low-level and higher-level practical utilities
-* that trim/split/join helpers are an important user-facing part of the header
-* that accepted argument forms follow xer's own API policy
-
-Detailed per-function semantics should be described in the reference manual or generated API sections.
+* `<xer/string.h>` は文字列およびメモリユーティリティを扱います
+* `<xer/ctype.h>` は分類および文字変換を扱います
+* エンコーディング方針は、ライブラリで使われるより広いテキストモデルを定義します
 
 ---
 
-## Example Topics Commonly Worth Showing
+## 文書化上の注記
 
-The following kinds of examples are especially suitable for this header:
+このヘッダーを生成ドキュメントの一部として使う場合、通常は次の点を説明すれば十分です。
 
-* trimming a UTF-8 string with `trim_view`
-* splitting and joining text with `explode` / `implode`
-* replacing text with `str_replace`
-* searching for a Unicode scalar value in UTF-8 text
-* performing familiar C-style comparison or copying in xer style
+* C風の文字列ユーティリティと、xer 固有の UTF-8 指向ヘルパーを組み合わせていること
+* 低水準機能と、より高水準の実用的ユーティリティの両方を含むこと
+* trim / split / join ヘルパーが、ユーザー向けの重要な機能であること
+* 受け付ける引数形式は、xer 独自の API 方針に従うこと
 
-This aligns well with the project direction that executable examples should become the canonical source for user-facing code snippets.
+詳細な関数ごとのセマンティクスは、リファレンスマニュアルまたは生成された API 節で説明するべきです。
 
 ---
 
-## Example
+## 例として示す価値が高い題材
+
+このヘッダーでは、次のような例が特に適しています。
+
+* `trim_view` による UTF-8 文字列のトリム
+* `explode` / `implode` によるテキストの分割と結合
+* `str_replace` によるテキスト置換
+* UTF-8 テキスト内での Unicode スカラー値の検索
+* xer 流の、なじみのある C風の比較またはコピー
+
+これは、実行可能な例をユーザー向けコード片の標準的な情報源にしていくというプロジェクトの方向性によく合っています。
+
+---
+
+## 例
 
 ```cpp id="r4yb9n"
 #include <xer/stdio.h>
@@ -1538,16 +1502,16 @@ auto main() -> int
 }
 ```
 
-This example shows a typical xer style:
+この例は、典型的な xer のスタイルを示しています。
 
-* use UTF-8-oriented string input
-* call an ordinary public API with an ordinary value
-* check `xer::result` explicitly
-* use `<xer/stdio.h>` for text output in examples
+* UTF-8 指向の文字列入力を使う
+* 通常の公開 API を通常の値で呼び出す
+* `xer::result` を明示的に確認する
+* 例のテキスト出力には `<xer/stdio.h>` を使う
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
@@ -1558,22 +1522,22 @@ This example shows a typical xer style:
 
 ---
 
-## Prefix and Suffix Checks
+## 接頭辞・接尾辞の検査
 
-`<xer/string.h>` provides prefix and suffix helpers:
+`<xer/string.h>` は、接頭辞および接尾辞のヘルパーを提供します。
 
 ```cpp
 starts_with
 ends_with
 ```
 
-They accept string-like arguments and are intended to cover common UTF-8 string-view and literal use cases naturally.
+これらは文字列風の引数を受け付け、一般的な UTF-8 文字列ビューおよびリテラルの利用場面を自然に扱えることを意図しています。
 
 ---
 
-## Case Conversion and Dynamic String Transformation
+## 大文字小文字変換および動的な文字列変換
 
-The header provides string-level transformation helpers:
+このヘッダーは、文字列レベルの変換ヘルパーを提供します。
 
 ```cpp
 strtolower
@@ -1581,24 +1545,24 @@ strtoupper
 strtoctrans
 ```
 
-`strtolower` and `strtoupper` apply character conversion to a string and return a transformed string.
+`strtolower` と `strtoupper` は文字列に文字変換を適用し、変換後の文字列を返します。
 
-`strtoctrans` applies a `ctrans_id` transformation to a string.
-For ordinary one-code-point transformations, it acts as the string-level counterpart of `toctrans`.
-For transformations that inherently require multiple code points or context across neighboring characters, `strtoctrans` may provide functionality that `toctrans` cannot provide.
+`strtoctrans` は文字列に `ctrans_id` 変換を適用します。
+通常の 1 コードポイント変換では、これは `toctrans` の文字列レベル版として動作します。
+本質的に複数のコードポイントを必要とする変換や、隣接文字にまたがる文脈を必要とする変換では、`strtoctrans` が `toctrans` では提供できない機能を提供する場合があります。
 
-Current transformation support includes:
+現在対応している変換には、次のものが含まれます。
 
-- ASCII and Latin-1 case conversion
-- fullwidth/halfwidth transformations
-- kana-aware string transformations already implemented through `strtoctrans`
-- kana-to-romaji conversion
+- ASCII および Latin-1 の大文字小文字変換
+- 全角・半角変換
+- `strtoctrans` によってすでに実装されている仮名対応の文字列変換
+- 仮名からローマ字への変換
 
 ---
 
-## Kana-to-Romaji Conversion
+## 仮名からローマ字への変換
 
-`strtoctrans` supports romaji conversion from Hiragana and fullwidth Katakana.
+`strtoctrans` は、ひらがなと全角カタカナからのローマ字変換に対応します。
 
 ```cpp
 auto standard =
@@ -1610,142 +1574,134 @@ auto alternate =
 // toukyou
 ```
 
-### Conversion Kinds
+### 変換の種類
 
-| `ctrans_id` | Meaning |
+| `ctrans_id` | 意味 |
 |---|---|
-| `romaji` | Romanization following the standard long-vowel notation with macrons |
-| `romaji_alt` | Alternate notation that writes long vowels by lining up vowel letters according to modern kana spelling |
+| `romaji` | 長音をマクロンで表す標準的な長音表記に従うローマ字化 |
+| `romaji_alt` | 現代仮名遣いに従って母音字を並べて長音を書く代替表記 |
 
-The romanization policy follows the 2025 Cabinet Notification **“Romanization Spelling”** adopted for Japanese romanization.
-The ordinary `romaji` form uses macrons for long vowels.
-The `romaji_alt` form provides the separately allowed no-macron spelling style.
+ローマ字化方針は、日本語のローマ字表記として採用された 2025 年内閣告示 **「ローマ字のつづり方」** に従います。
+通常の `romaji` 形式は、長音にマクロンを使います。
+`romaji_alt` 形式は、別途認められているマクロンなしの表記方式を提供します。
 
-### Examples
+### 例
 
-| Source | `romaji` | `romaji_alt` |
+| 入力 | `romaji` | `romaji_alt` |
 |---|---|---|
 | `とうきょう` | `tōkyō` | `toukyou` |
 | `おおさか` | `ōsaka` | `oosaka` |
 | `えいが` | `ēga` | `eiga` |
 | `コーヒー` | `kōhī` | `koohii` |
 
-The conversion also handles ordinary romanization details such as:
+この変換は、次のような通常のローマ字化の詳細も扱います。
 
-- yōon combinations such as `きゃ`, `しゃ`, and `ちゃ`
-- sokuon such as `っ`
-- syllabic `ん`, including separator apostrophes before vowels and `y`
-- long sound marks in Katakana text
+- `きゃ`、`しゃ`、`ちゃ` などの拗音結合
+- `っ` などの促音
+- 母音および `y` の前に区切りのアポストロフィーが必要になる場合を含む撥音 `ん`
+- カタカナ文中の長音符
 
-### Scope
+### 範囲
 
-The initial romaji conversion accepts:
+初期のローマ字変換は、次を受け付けます。
 
-- Hiragana
-- fullwidth Katakana
-- the Katakana prolonged sound mark `ー`
-- ordinary halfwidth and fullwidth spaces where they can be preserved as spacing
+- ひらがな
+- 全角カタカナ
+- カタカナ長音符 `ー`
+- 間隔として保持できる通常の半角および全角スペース
 
-Inputs containing unsupported characters are reported as:
+非対応の文字を含む入力は、次のエラーとして報告されます。
 
 ```cpp
 error_t::invalid_argument
 ```
 
-### Relationship to `toctrans`
+### `toctrans` との関係
 
-`ctrans_id::romaji` and `ctrans_id::romaji_alt` are string-level transformations.
+`ctrans_id::romaji` と `ctrans_id::romaji_alt` は、文字列レベルの変換です。
 
-They are accepted by:
+これらは次で受け付けられます。
 
 ```cpp
 strtoctrans
 ```
 
-They are not meaningful for single-code-point conversion through:
+一方で、単一コードポイント変換である次には意味を持ちません。
 
 ```cpp
 toctrans
 ```
 
-and `toctrans` reports:
+そのため、`toctrans` はこれらの識別子に対して次を報告します。
 
 ```cpp
 error_t::invalid_argument
 ```
 
-for these identifiers.
-
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/ctype.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/ctype.h>`
 
-## Purpose
+## 目的
 
-`<xer/ctype.h>` provides character classification and character conversion facilities in xer.
+`<xer/ctype.h>` は、xer における文字分類機能と文字変換機能を提供します。
 
-This header covers two closely related areas:
+このヘッダーは、密接に関連する次の2つの領域を扱います。
 
-- classification of characters into categories such as alphabetic, digit, space, and printable
-- conversion of characters such as uppercase/lowercase conversion and related transformations
+- 英字、数字、空白、表示可能文字などのカテゴリへの文字分類
+- 大文字・小文字変換や関連する変換処理
 
-Its role is similar in spirit to C's `<ctype.h>` and `<wctype.h>`, but the design follows xer's own text model and API policy rather than reproducing the standard library structure exactly.
-
----
-
-## Main Role
-
-The main role of `<xer/ctype.h>` is to provide a simple and explicit character-handling model that fits the rest of xer.
-
-In particular, it aims to provide:
-
-- locale-independent basic behavior
-- a clear distinction between ordinary ASCII-oriented operations and more extended operations
-- a unified character argument type
-- a dynamic mechanism for classification and conversion when fixed function names are not enough
-
-This makes the header suitable both for straightforward checks and for cases where the caller wants to choose a classification or conversion kind dynamically.
+役割としては C の `<ctype.h>` や `<wctype.h>` に近いものですが、設計は標準ライブラリ構造をそのまま再現するのではなく、xer 独自のテキストモデルと API 方針に従います。
 
 ---
 
-## Basic Design Direction
+## 主な役割
 
-### Locale Independence
+`<xer/ctype.h>` の主な役割は、xer の他の部分と整合する、単純で明示的な文字処理モデルを提供することです。
 
-The basic `is` functions and `to` functions are locale-independent.
+特に、次のものを提供することを目指しています。
 
-Their behavior corresponds to the `"C"` locale rather than to environment-dependent locale rules.
+- ロケールに依存しない基本動作
+- 通常の ASCII 向け操作と、より拡張された操作の明確な区別
+- 統一された文字引数型
+- 固定の関数名だけでは足りない場合に使える、動的な分類・変換機構
 
-This is important because xer's broader design tries to minimize dependence on locale.
-
-### Character Type
-
-The argument type for individual character classification and conversion functions is unified to `char32_t`.
-
-This matches xer's general policy that individual Unicode scalar values are handled as `char32_t`.
-
-### ASCII as the Basic Scope
-
-The basic individual functions operate only on the ASCII range.
-
-That means:
-
-- classification functions return `false` for non-ASCII input
-- conversion functions return failure for non-ASCII input
-
-This is a deliberate design choice rather than a temporary limitation.
+これにより、このヘッダーは単純な判定にも、呼び出し側が分類種別や変換種別を実行時に選びたい場合にも適したものになります。
 
 ---
 
-## Individual Classification Functions
+## 基本設計方針
 
-At minimum, `<xer/ctype.h>` provides individual classification functions such as the following:
+### ロケール非依存
+
+基本的な `is` 関数と `to` 関数はロケールに依存しません。
+
+その動作は、環境依存のロケール規則ではなく、`"C"` ロケールに対応するものです。
+
+これは、xer 全体の設計がロケールへの依存をできるだけ小さくしようとしているために重要です。
+
+### 文字型
+
+個別の文字分類関数および文字変換関数の引数型は、`char32_t` に統一されています。
+
+これは、個々の Unicode スカラー値を `char32_t` として扱うという xer の一般方針と一致します。
+
+### ASCII を基本範囲とする
+
+基本的な個別関数は、ASCII 範囲だけを対象にします。
+
+つまり、次のように動作します。
+
+- 分類関数は、非 ASCII 入力に対して `false` を返す
+- 変換関数は、非 ASCII 入力に対して失敗を返す
+
+これは一時的な制限ではなく、意図的な設計選択です。
+
+---
+
+## 個別の文字分類関数
+
+少なくとも、`<xer/ctype.h>` は次のような個別の文字分類関数を提供します。
 
 ```cpp
 isalpha
@@ -1765,215 +1721,215 @@ isoctal
 isbinary
 ```
 
-### Role of These Functions
+### これらの関数の役割
 
-These functions provide direct and readable checks for common categories.
+これらの関数は、一般的なカテゴリを直接かつ読みやすく判定するためのものです。
 
-They are intended for the ordinary case where the caller already knows which category should be tested.
+呼び出し側がどのカテゴリを判定したいかをすでに知っている通常の場面を想定しています。
 
-### Return Type
+### 戻り値の型
 
-Individual classification functions return:
+個別の文字分類関数は次を返します。
 
 ```cpp
 bool
 ```
 
-### Behavior for Non-ASCII Input
+### 非 ASCII 入力に対する動作
 
-These functions classify only ASCII characters.
+これらの関数は ASCII 文字だけを分類します。
 
-If a non-ASCII character is passed, they return `false`.
+非 ASCII 文字が渡された場合は、`false` を返します。
 
-This keeps the meaning of each function simple and predictable.
+これにより、各関数の意味を単純で予測しやすいものに保っています。
 
 ---
 
-## Individual Conversion Functions
+## 個別の文字変換関数
 
-At minimum, `<xer/ctype.h>` provides individual conversion functions such as:
+少なくとも、`<xer/ctype.h>` は次のような個別の文字変換関数を提供します。
 
 ```cpp
 tolower
 toupper
 ```
 
-### Role of These Functions
+### これらの関数の役割
 
-These functions provide direct conversion for common character transformations.
+これらの関数は、一般的な文字変換を直接行うためのものです。
 
-They are intended for the ordinary case where the caller wants a fixed known transformation.
+呼び出し側が固定された既知の変換を行いたい通常の場面を想定しています。
 
-### Return Type
+### 戻り値の型
 
-Individual conversion functions return:
+個別の文字変換関数は次を返します。
 
 ```cpp
 xer::result<char32_t>
 ```
 
-### Behavior
+### 動作
 
-These functions operate only on the ASCII range.
+これらの関数は ASCII 範囲だけを対象にします。
 
-Their behavior is:
+その動作は次のとおりです。
 
-* if the input is a conversion target, return the converted character
-* if the input is not a conversion target, return the original character as a successful result
-* if the input is non-ASCII, return failure
+* 入力が変換対象であれば、変換後の文字を返す
+* 入力が変換対象でなければ、元の文字を成功結果として返す
+* 入力が非 ASCII であれば、失敗を返す
 
-### About `toascii`
+### `toascii` について
 
-A traditional C-family `toascii` is not adopted at present.
+伝統的な C 系の `toascii` は、現時点では採用していません。
 
-This is because `toascii` is often understood as a low-level bit-masking operation that extracts the lower 7 bits, and that does not fit naturally with xer's character-handling policy.
+これは、`toascii` が下位7ビットを取り出す低レベルのビットマスク操作として理解されることが多く、それが xer の文字処理方針に自然には合わないためです。
 
 ---
 
-## Dynamic Character Classification
+## 動的な文字分類
 
-In addition to fixed `is` functions, xer provides a dynamic classifier:
+固定の `is` 関数に加えて、xer は動的な分類関数を提供します。
 
 ```cpp
 enum class ctype_id;
 auto isctype(char32_t c, ctype_id id) noexcept -> bool;
 ```
 
-### Role of `isctype`
+### `isctype` の役割
 
-`isctype` allows the classification kind to be chosen dynamically through a value of `ctype_id`.
+`isctype` は、`ctype_id` の値を通じて分類種別を動的に選べるようにします。
 
-This is useful when:
+これは次のような場合に便利です。
 
-* the classification kind is determined at runtime
-* a single function should support multiple categories
-* code should not branch manually over many fixed `is...` functions
+* 分類種別が実行時に決まる
+* 1つの関数で複数のカテゴリを扱いたい
+* 多数の固定 `is...` 関数に対して手作業で分岐したくない
 
-### Design Direction
+### 設計方針
 
-`ctype_id` may contain both:
+`ctype_id` には、次の両方を含めることができます。
 
-* ASCII-limited categories
-* extended categories that also cover non-ASCII characters
+* ASCII 限定カテゴリ
+* 非 ASCII 文字も扱う拡張カテゴリ
 
-This allows one unified API to cover both the basic and extended cases.
+これにより、基本的なケースと拡張されたケースの両方を、1つの統一 API で扱えます。
 
-### Behavior
+### 動作
 
-When an ASCII-limited category is specified, `isctype` behaves like the corresponding individual `is` function.
+ASCII 限定カテゴリが指定された場合、`isctype` は対応する個別の `is` 関数と同じように動作します。
 
-When an extended category is specified, it may classify non-ASCII characters as well.
+拡張カテゴリが指定された場合、非 ASCII 文字も分類できることがあります。
 
-This makes it possible, for example, to keep `isdigit` simple while still supporting richer classification through `isctype` when explicitly requested.
+これにより、たとえば `isdigit` は単純に保ちながら、明示的に必要な場合には `isctype` によってより豊かな分類を扱えるようになります。
 
 ---
 
-## Dynamic Character Conversion
+## 動的な文字変換
 
-xer also provides a dynamic conversion function:
+xer は動的な変換関数も提供します。
 
 ```cpp
 enum class ctrans_id;
 auto toctrans(char32_t c, ctrans_id id) -> xer::result<char32_t>;
 ```
 
-### Role of `toctrans`
+### `toctrans` の役割
 
-`toctrans` allows the conversion kind to be selected dynamically through `ctrans_id`.
+`toctrans` は、`ctrans_id` を通じて変換種別を動的に選べるようにします。
 
-This is useful when:
+これは次のような場合に便利です。
 
-* the desired transformation is chosen at runtime
-* a single API should support multiple conversion kinds
-* extended conversion categories should be available without creating a large number of fixed function names
+* 目的の変換が実行時に選ばれる
+* 1つの API で複数の変換種別を扱いたい
+* 多数の固定関数名を増やさずに拡張変換カテゴリを提供したい
 
-### Behavior
+### 動作
 
-When an ASCII-limited category is specified, `toctrans` behaves like the corresponding individual conversion function.
+ASCII 限定カテゴリが指定された場合、`toctrans` は対応する個別の変換関数と同じように動作します。
 
-When an extended category is specified, it may perform non-ASCII conversion as well.
+拡張カテゴリが指定された場合、非 ASCII 文字の変換を行えることがあります。
 
 ---
 
-## Extended Conversion Areas
+## 拡張変換領域
 
-Extended conversion categories may cover at least the following areas:
+拡張変換カテゴリは、少なくとも次の領域を扱うことがあります。
 
-* fullwidth/halfwidth conversion for Japanese use
-* conversion between Hiragana and Katakana
-* uppercase/lowercase conversion for Greek and Cyrillic letters
-* kana-to-romaji conversion at the string level
+* 日本語用途の全角・半角変換
+* ひらがなとカタカナの相互変換
+* ギリシア文字およびキリル文字の大文字・小文字変換
+* 文字列レベルでの仮名からローマ字への変換
 
-These are intentionally treated as explicit extended features rather than as behavior automatically implied by the basic ASCII functions.
+これらは、基本的な ASCII 関数から自動的に含意される動作ではなく、明示的な拡張機能として扱われます。
 
-### String-Only Conversion Categories
+### 文字列専用の変換カテゴリ
 
-Some `ctrans_id` values require multiple input or output code points, or depend on neighboring characters.
-Such transformations are exposed through `strtoctrans`, not through single-code-point `toctrans`.
+一部の `ctrans_id` 値は、複数の入力コードポイントや出力コードポイントを必要としたり、隣接する文字に依存したりします。
+そのような変換は、単一コードポイントの `toctrans` ではなく、`strtoctrans` を通じて公開されます。
 
-The romaji categories are the first examples:
+ローマ字カテゴリは、その最初の例です。
 
 ```cpp
 ctrans_id::romaji
 ctrans_id::romaji_alt
 ```
 
-They are valid for `strtoctrans`, but `toctrans` reports `error_t::invalid_argument` when either is passed.
+これらは `strtoctrans` では有効ですが、`toctrans` に渡した場合は `error_t::invalid_argument` が報告されます。
 
 ---
 
-## Fullwidth/Halfwidth Conversion
+## 全角・半角変換
 
-Fullwidth/halfwidth conversion in `toctrans` is intended mainly for Japanese use.
+`toctrans` における全角・半角変換は、主に日本語用途を想定しています。
 
-### Target Characters
+### 対象文字
 
-The target set may include at least:
+対象集合には、少なくとも次のものを含めることができます。
 
-* ASCII-compatible letters, digits, symbols, and space
-* halfwidth Katakana
-* fullwidth Katakana
-* punctuation related to Kana, dakuten, and handakuten
+* ASCII 互換の英字、数字、記号、空白
+* 半角カタカナ
+* 全角カタカナ
+* 仮名、濁点、半濁点に関連する句読点や記号
 
-### Exclusions
+### 除外対象
 
-Hiragana is excluded from fullwidth/halfwidth conversion.
+ひらがなは、全角・半角変換の対象外です。
 
-### Single-Character Limitation
+### 単一文字としての制限
 
-Because `toctrans` returns a single `char32_t`, some information may be dropped in conversions that would otherwise require multiple output characters.
+`toctrans` は単一の `char32_t` を返すため、本来なら複数の出力文字が必要になる変換では、一部の情報が落ちることがあります。
 
-For example, converting a fullwidth Katakana character with dakuten or handakuten into a halfwidth form may drop the mark when a one-character result is required.
+たとえば、濁点または半濁点を持つ全角カタカナを半角形式に変換する場合、1文字の結果が要求されるため、現在のモデルではその記号が落ちることがあります。
 
 ---
 
-## Kana Conversion
+## 仮名変換
 
-`toctrans` also supports conversion between fullwidth Hiragana and fullwidth Katakana.
+`toctrans` は、全角ひらがなと全角カタカナの相互変換もサポートします。
 
-Typical categories include:
+代表的なカテゴリには次のものがあります。
 
 * `katakana`
 * `hiragana`
 
-### Intended Meaning
+### 意味
 
-* `katakana`: convert fullwidth Hiragana to the corresponding fullwidth Katakana
-* `hiragana`: convert fullwidth Katakana to the corresponding fullwidth Hiragana
+* `katakana`: 全角ひらがなを対応する全角カタカナへ変換する
+* `hiragana`: 全角カタカナを対応する全角ひらがなへ変換する
 
-### Exclusions
+### 除外対象
 
-Halfwidth Katakana is excluded from Kana conversion.
+半角カタカナは仮名変換の対象外です。
 
-This keeps the transformation model simpler and avoids mixing script conversion with width conversion.
+これにより、変換モデルを単純に保ち、文字種変換と幅変換が混ざることを避けています。
 
 ---
 
-## Latin-1 and Extended Classification
+## Latin-1 と拡張分類
 
-`<xer/ctype.h>` may also provide extended classification helpers for Latin-1-related cases.
+`<xer/ctype.h>` は、Latin-1 関連のケース向けに拡張分類ヘルパーを提供することもあります。
 
-These can include functions such as:
+これには、次のような関数を含めることができます。
 
 ```cpp
 islatin1_upper
@@ -1984,66 +1940,66 @@ islatin1_print
 islatin1_graph
 ```
 
-### Role of These Functions
+### これらの関数の役割
 
-They provide an intermediate step between:
+これらは、次の中間段階を提供します。
 
-* strict ASCII-only individual functions
-* fully dynamic or more ambitious Unicode-wide classification
+* 厳密に ASCII のみを扱う個別関数
+* 完全に動的な分類、またはより野心的な Unicode 全体の分類
 
-This is useful where the project wants a small, explicit expansion of practical character handling without turning the basic API into a fully locale-driven or fully Unicode-property-driven system.
+基本 API を完全なロケール駆動または完全な Unicode プロパティ駆動の仕組みに変えることなく、実用的な文字処理を小さく明示的に拡張したい場合に有用です。
 
 ---
 
-## Relationship to Other Policies
+## 他の方針との関係
 
-`<xer/ctype.h>` should be understood together with the following documents:
+`<xer/ctype.h>` は、次の文書とあわせて理解する必要があります。
 
 * `policy_project_outline.md`
 * `policy_encoding.md`
 
-It is also related to:
+また、次の文書とも関連します。
 
 * `header_string.md`
 * `header_stdlib.md`
 
-The rough boundary is:
+大まかな境界は次のとおりです。
 
-* `<xer/ctype.h>` handles classification and character transformation
-* `<xer/string.h>` handles string and memory utilities
-* `<xer/stdlib.h>` handles multibyte conversion and related facilities
-* encoding policy defines the broader model within which these character operations make sense
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that the basic individual functions are ASCII-oriented and locale-independent
-* that `char32_t` is the standard argument type
-* that `isctype` and `toctrans` provide dynamic classification and conversion
-* that extended categories exist explicitly rather than being implied automatically by the basic API
-
-Detailed per-category semantics should be described in the reference manual or generated API sections.
+* `<xer/ctype.h>` は分類と文字変換を扱う
+* `<xer/string.h>` は文字列およびメモリユーティリティを扱う
+* `<xer/stdlib.h>` はマルチバイト変換と関連機能を扱う
+* エンコーディング方針は、これらの文字操作が意味を持つより広いモデルを定義する
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+このヘッダーを生成ドキュメントで扱う場合、通常は次の点を説明すれば十分です。
 
-* testing a character with `isalpha` or `isdigit`
-* converting a character with `tolower` or `toupper`
-* performing dynamic classification with `isctype`
-* using `toctrans` for Kana or width conversion
-* understanding that romaji identifiers belong to string-level `strtoctrans`, which is documented with `<xer/string.h>`
+* 基本的な個別関数は ASCII 向けであり、ロケールに依存しないこと
+* `char32_t` が標準の引数型であること
+* `isctype` と `toctrans` が動的な分類と変換を提供すること
+* 拡張カテゴリは、基本 API によって自動的に含意されるのではなく、明示的に存在すること
 
-These are good candidates for executable examples in `examples/`.
+カテゴリごとの詳細な意味は、リファレンスマニュアルまたは生成された API セクションで説明するべきです。
 
 ---
 
-## Example
+## 例として示す価値がある題材
+
+このヘッダーには、次のような例が特に適しています。
+
+* `isalpha` や `isdigit` による文字判定
+* `tolower` や `toupper` による文字変換
+* `isctype` による動的分類
+* `toctrans` による仮名変換または幅変換
+* ローマ字識別子は `<xer/string.h>` で説明される文字列レベルの `strtoctrans` に属する、という点の理解
+
+これらは、`examples/` 以下の実行可能な例の候補として適しています。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/ctype.h>
@@ -2067,15 +2023,15 @@ auto main() -> int
 }
 ```
 
-This example shows the normal style:
+この例は、通常のスタイルを示しています。
 
-* use `char32_t` for individual character values
-* call basic classification directly
-* check `xer::result` explicitly for conversion
+* 個別の文字値には `char32_t` を使う
+* 基本的な分類を直接呼び出す
+* 変換では `xer::result` を明示的に確認する
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_encoding.md`
@@ -2084,9 +2040,9 @@ This example shows the normal style:
 
 ---
 
-## Unicode Scalar Classification
+## Unicode スカラー分類
 
-The dynamic classifier now also includes Unicode validity checks:
+動的分類器には、Unicode の妥当性チェックも含まれています。
 
 ```cpp
 is_unicode_scalar_value
@@ -2096,43 +2052,43 @@ ctype_id::unicode
 ctype_id::unicode_bmp
 ```
 
-`is_unicode_scalar_value` returns true for valid Unicode scalar values.
-Surrogate code points are rejected.
+`is_unicode_scalar_value` は、有効な Unicode スカラー値に対して `true` を返します。
+サロゲートコードポイントは拒否されます。
 
-`is_unicode_bmp_scalar_value` returns true only for valid Unicode scalar values in the Basic Multilingual Plane.
+`is_unicode_bmp_scalar_value` は、基本多言語面内の有効な Unicode スカラー値に対してのみ `true` を返します。
 
-These functions are code-point validity checks. They are not Unicode identifier checks.
+これらの関数はコードポイントの妥当性チェックです。Unicode 識別子のチェックではありません。
 
 
 ---
 
-## Braille Pattern Classification
+## 点字パターン分類
 
-The dynamic classifier includes a category for Unicode Braille Patterns:
+動的分類器には、Unicode 点字パターンのカテゴリが含まれています。
 
 ```cpp
 ctype_id::braille
 ```
 
-This category returns `true` for code points in the Unicode Braille Patterns block:
+このカテゴリは、Unicode 点字パターンブロック内のコードポイントに対して `true` を返します。
 
 ```text
 U+2800..U+28FF
 ```
 
-`U+2800 BRAILLE PATTERN BLANK` is included.
+`U+2800 BRAILLE PATTERN BLANK` も含まれます。
 
-This is a block-level classification.
-It only checks whether the code point is a Unicode Braille Patterns character; it does not validate Japanese braille notation, English braille notation, contractions, spacing rules, or other higher-level braille text rules.
+これはブロックレベルの分類です。
+コードポイントが Unicode 点字パターン文字であるかだけを確認します。日本語点字表記、英語点字表記、縮約、分かち書き規則、その他の高水準の点字テキスト規則は検証しません。
 
-No individual `isbraille` helper is provided at this stage.
-Call `isctype(c, ctype_id::braille)` when braille pattern classification is needed.
+現時点では個別の `isbraille` ヘルパーは提供していません。
+点字パターン分類が必要な場合は、`isctype(c, ctype_id::braille)` を呼び出してください。
 
 ---
 
-## Fullwidth and Halfwidth Classification
+## 全角・半角分類
 
-`ctype_id` includes explicit fullwidth and halfwidth categories:
+`ctype_id` には、明示的な全角・半角カテゴリが含まれています。
 
 ```cpp
 fullwidth_kana
@@ -2153,124 +2109,118 @@ fullwidth
 halfwidth
 ```
 
-These categories are intended for Japanese text processing and are available through `isctype`.
+これらのカテゴリは日本語テキスト処理を想定したもので、`isctype` を通じて利用できます。
 
 ---
 
-## Fullwidth and Halfwidth Conversion
+## 全角・半角変換
 
-`ctrans_id` includes fullwidth and halfwidth conversion categories corresponding to the classification categories.
+`ctrans_id` には、分類カテゴリに対応する全角・半角変換カテゴリが含まれています。
 
-They are available through:
+これらは次を通じて利用できます。
 
 ```cpp
 auto toctrans(char32_t c, ctrans_id id) -> xer::result<char32_t>;
 ```
 
-The conversions are single-code-point transformations.
-When a fullwidth Kana character with dakuten or handakuten would require multiple halfwidth code points, the current single-character return model may necessarily lose that mark.
+これらの変換は単一コードポイント変換です。
+濁点または半濁点を持つ全角仮名文字が複数の半角コードポイントを必要とする場合、現在の単一文字戻り値モデルでは、その記号が失われることがあります。
 
 ---
 
-## Romaji Conversion Identifiers
+## ローマ字変換識別子
 
-`ctrans_id` also includes:
+`ctrans_id` には、次のものも含まれています。
 
 ```cpp
 romaji
 romaji_alt
 ```
 
-These identifiers are defined alongside other transformation kinds because they describe a conversion class.
-However, romaji conversion is inherently string-oriented:
+これらの識別子は、変換クラスを表すため、他の変換種別と同じ場所で定義されています。
+しかし、ローマ字変換は本質的に文字列指向です。
 
-- yōon may combine two Kana characters
-- sokuon depends on the following syllable
-- long vowels may replace a previously emitted vowel with a macron
-- syllabic `ん` may need an apostrophe depending on the next syllable
+- 拗音は2つの仮名文字を組み合わせることがある
+- 促音は後続の音節に依存する
+- 長音は、すでに出力された母音を長音符付き母音に置き換えることがある
+- 撥音 `ん` は、次の音節によってアポストロフィが必要になることがある
 
-For that reason, romaji identifiers are used through:
+そのため、ローマ字識別子は次を通じて使います。
 
 ```cpp
 strtoctrans
 ```
 
-from `<xer/string.h>`, not through character-level `toctrans`.
+`<xer/string.h>` の機能であり、文字レベルの `toctrans` ではありません。
 
-The detailed romanization behavior is documented in `header_string.md`.
+詳細なローマ字化の動作は `header_string.md` に記載されています。
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/braille.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/braille.h>`
 
-## Purpose
+## 目的
 
-`<xer/braille.h>` provides low-level braille-related building blocks for xer.
+`<xer/braille.h>` は、xer における点字関連の低水準構成要素を提供します。
 
-At the current stage, this header provides:
+現段階では、このヘッダーは次のものを提供します。
 
-- common braille sign constants as UTF-8 string views
-- one-character conversion helpers for English letters, digits, English braille punctuation, and information-processing braille punctuation
-- ASCII alphanumeric-and-punctuation text conversion with automatic mode indicators
-- Japanese-specific kana-braille helpers under `xer::ja`, declared by this header
+- UTF-8文字列ビューとして表される共通の点字符号定数
+- 英字、数字、英語点字の句読点、および情報処理用点字の句読点に対する1文字変換ヘルパー
+- 自動的なモード指示符付きのASCII英数字・句読点テキスト変換
+- このヘッダーで宣言される、`xer::ja` 配下の日本語固有の仮名点字ヘルパー
 
-It does not perform complete Japanese braille translation. In particular, it does not decide readings from kanji and does not perform full braille wakachi-gaki by itself.
+このヘッダーは、完全な日本語点訳は行いません。特に、漢字の読みを決定することも、完全な点字分かち書きを自力で行うこともありません。
 
-This keeps the first braille layer small and reusable: callers can combine the provided constants and conversion helpers while higher-level conversion APIs handle analysis and mode control.
+これにより、最初の点字レイヤーを小さく再利用しやすいものにしています。呼び出し側は、提供される定数と変換ヘルパーを組み合わせられ、より高水準の変換APIが解析とモード制御を担当できます。
 
 ---
 
-## Main Role
+## 主な役割
 
-The main role of `<xer/braille.h>` is to expose reusable low-level parts for constructing braille strings.
+`<xer/braille.h>` の主な役割は、点字文字列を構築するための再利用可能な低水準部品を公開することです。
 
-The current implementation provides:
+現在の実装は次のものを提供します。
 
-- Japanese braille numeric and alphabetic indicators
-- Japanese braille capital indicators
-- information-processing braille indicators with `ip_` names
-- one-character English alphabet conversion
-- one-character digit conversion under an already active numeric mode
-- one-character alphanumeric dispatch
-- one-character English braille punctuation conversion
-- one-character information-processing braille conversion
-- ASCII alphanumeric-and-punctuation text conversion with automatic ordinary braille indicators
-- ASCII alphanumeric-and-punctuation text conversion with automatic information-processing braille indicators
-- Japanese-specific kana-braille helpers under `xer::ja`
+- 日本語点字の数字指示符と外字符
+- 日本語点字の大文字符
+- `ip_` 名を持つ情報処理用点字の指示符
+- 1文字の英字変換
+- すでに数字モードが有効である前提での1文字の数字変換
+- 1文字の英数字ディスパッチ
+- 1文字の英語点字句読点変換
+- 1文字の情報処理用点字変換
+- 通常の点字指示符を自動的に付与するASCII英数字・句読点テキスト変換
+- 情報処理用点字指示符を自動的に付与するASCII英数字・句読点テキスト変換
+- `xer::ja` 配下の日本語固有の仮名点字ヘルパー
 
-The constants are represented as:
+定数は次の型で表されます。
 
 ```cpp
 std::u8string_view
 ```
 
-The one-character conversion functions return:
+1文字変換関数は次の型を返します。
 
 ```cpp
 xer::result<std::u8string_view>
 ```
 
-This avoids allocation for the returned braille fragments and allows unsupported input characters to be reported explicitly.
+これにより、返される点字断片に対するメモリ割り当てを避けつつ、未対応の入力文字を明示的に報告できます。
 
-The Japanese kana-text conversion function is placed under `xer::ja` and returns:
+日本語仮名テキスト変換関数は `xer::ja` 配下に置かれ、次の型を返します。
 
 ```cpp
 xer::result<std::u8string>
 ```
 
-It decodes UTF-8 input, combines supported multi-kana sequences, and returns an owned braille string.
+この関数はUTF-8入力をデコードし、対応する複数仮名列を結合し、所有する点字文字列を返します。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-`<xer/braille.h>` currently provides the following constants and functions:
+`<xer/braille.h>` は現在、次の定数と関数を提供します。
 
 ```cpp
 namespace xer::braille {
@@ -2334,12 +2284,9 @@ namespace xer::ja {
 
 ---
 
+日本語固有のヘルパーは `<xer/braille.h>` で宣言されますが、`xer::ja` 配下に置かれます。言語中立のヘルパー、および英語点字・情報処理用点字のヘルパーは `xer::braille` 配下に残ります。
 
-The Japanese-specific helpers are declared by `<xer/braille.h>` but are placed
-under `xer::ja`. The language-neutral and English / information-processing
-helpers remain under `xer::braille`.
-
-## Japanese Braille Indicators
+## 日本語点字の指示符
 
 ### `numeric_indicator`
 
@@ -2347,11 +2294,11 @@ helpers remain under `xer::braille`.
 inline constexpr std::u8string_view numeric_indicator = u8"⠼";
 ```
 
-`numeric_indicator` is the Japanese braille numeric indicator.
+`numeric_indicator` は日本語点字の数字指示符です。
 
-It is the Unicode braille pattern for dots 3-4-5-6.
+Unicode点字パターンの3-4-5-6の点です。
 
-Example:
+例:
 
 ```cpp
 std::u8string text;
@@ -2367,11 +2314,11 @@ text += u8"⠁⠃⠉";
 inline constexpr std::u8string_view alphabetic_indicator = u8"⠰";
 ```
 
-`alphabetic_indicator` is the Japanese braille alphabetic indicator.
+`alphabetic_indicator` は日本語点字の外字符です。
 
-It is the Unicode braille pattern for dots 5-6.
+Unicode点字パターンの5-6の点です。
 
-Example:
+例:
 
 ```cpp
 std::u8string text;
@@ -2387,11 +2334,11 @@ text += u8"⠁⠃⠉";
 inline constexpr std::u8string_view capital_indicator = u8"⠠";
 ```
 
-`capital_indicator` is the Japanese braille capital indicator.
+`capital_indicator` は日本語点字の大文字符です。
 
-It is the Unicode braille pattern for dot 6.
+Unicode点字パターンの6の点です。
 
-Example:
+例:
 
 ```cpp
 std::u8string text;
@@ -2407,11 +2354,11 @@ text += u8"⠁";
 inline constexpr std::u8string_view double_capital_indicator = u8"⠠⠠";
 ```
 
-`double_capital_indicator` represents two consecutive capital indicators.
+`double_capital_indicator` は連続する2つの大文字符を表します。
 
-It is useful when constructing a braille string that needs a double-capital prefix.
+二重大文字接頭辞が必要な点字文字列を構築するときに有用です。
 
-Example:
+例:
 
 ```cpp
 std::u8string text;
@@ -2421,11 +2368,11 @@ text += u8"⠁⠃⠉";
 
 ---
 
-## Information-Processing Braille Indicators
+## 情報処理用点字の指示符
 
-Information-processing braille indicators are exposed directly in `xer::braille` with the `ip_` prefix.
+情報処理用点字の指示符は、`ip_` 接頭辞付きで `xer::braille` に直接公開されます。
 
-The `ip_` prefix keeps information-processing braille names short while still separating them from the ordinary Japanese braille indicators.
+`ip_` 接頭辞により、情報処理用点字の名前を短く保ちながら、通常の日本語点字の指示符と区別しています。
 
 ### `ip_lowercase_indicator`
 
@@ -2433,9 +2380,9 @@ The `ip_` prefix keeps information-processing braille names short while still se
 inline constexpr std::u8string_view ip_lowercase_indicator = u8"⠰";
 ```
 
-`ip_lowercase_indicator` is the information-processing braille lowercase indicator.
+`ip_lowercase_indicator` は情報処理用点字の小文字符です。
 
-It is the Unicode braille pattern for dots 5-6.
+Unicode点字パターンの5-6の点です。
 
 ---
 
@@ -2445,9 +2392,9 @@ It is the Unicode braille pattern for dots 5-6.
 inline constexpr std::u8string_view ip_uppercase_indicator = u8"⠠";
 ```
 
-`ip_uppercase_indicator` is the information-processing braille uppercase indicator.
+`ip_uppercase_indicator` は情報処理用点字の大文字符です。
 
-It is the Unicode braille pattern for dot 6.
+Unicode点字パターンの6の点です。
 
 ---
 
@@ -2457,9 +2404,9 @@ It is the Unicode braille pattern for dot 6.
 inline constexpr std::u8string_view ip_single_uppercase_indicator = u8"⠠";
 ```
 
-`ip_single_uppercase_indicator` represents the single-uppercase indicator.
+`ip_single_uppercase_indicator` は1文字だけの大文字指示符を表します。
 
-At the current stage, it has the same cell as `ip_uppercase_indicator`.
+現段階では、`ip_uppercase_indicator` と同じ点字セルです。
 
 ---
 
@@ -2469,7 +2416,7 @@ At the current stage, it has the same cell as `ip_uppercase_indicator`.
 inline constexpr std::u8string_view ip_double_uppercase_indicator = u8"⠠⠠";
 ```
 
-`ip_double_uppercase_indicator` represents two consecutive uppercase indicators.
+`ip_double_uppercase_indicator` は連続する2つの大文字指示符を表します。
 
 ---
 
@@ -2479,21 +2426,21 @@ inline constexpr std::u8string_view ip_double_uppercase_indicator = u8"⠠⠠";
 inline constexpr std::u8string_view ip_numeric_indicator = u8"⠼";
 ```
 
-`ip_numeric_indicator` is the information-processing braille numeric indicator.
+`ip_numeric_indicator` は情報処理用点字の数字指示符です。
 
-It is the Unicode braille pattern for dots 3-4-5-6.
+Unicode点字パターンの3-4-5-6の点です。
 
 ---
 
-## One-Character Conversion Helpers
+## 1文字変換ヘルパー
 
-The one-character conversion helpers convert a single source character to the corresponding braille cell or short braille fragment.
+1文字変換ヘルパーは、1つの入力文字を対応する点字セルまたは短い点字断片へ変換します。
 
-They do not emit mode indicators. Callers are responsible for adding `numeric_indicator`, `alphabetic_indicator`, `capital_indicator`, or other indicators where required.
+これらの関数はモード指示符を出力しません。必要な場合、呼び出し側が `numeric_indicator`、`alphabetic_indicator`、`capital_indicator`、その他の指示符を追加する責任を持ちます。
 
-All conversion helpers return `xer::result<std::u8string_view>`.
+すべての変換ヘルパーは `xer::result<std::u8string_view>` を返します。
 
-If the input character is not supported by the selected helper, the function returns `error_t::invalid_argument`.
+入力文字が選択したヘルパーで対応されていない場合、関数は `error_t::invalid_argument` を返します。
 
 ---
 
@@ -2504,16 +2451,16 @@ If the input character is not supported by the selected helper, the function ret
     -> result<std::u8string_view>;
 ```
 
-`alpha_to_braille` converts one ASCII alphabetic character to an English braille alphabet cell.
+`alpha_to_braille` は、1つのASCII英字を英語点字のアルファベットセルへ変換します。
 
-The accepted input range is:
+受け付ける入力範囲は次のとおりです。
 
-- `A` to `Z`
-- `a` to `z`
+- `A` から `Z`
+- `a` から `z`
 
-Uppercase and lowercase letters map to the same braille cell. The function does not emit a capital indicator.
+大文字と小文字は同じ点字セルに対応します。この関数は大文字符を出力しません。
 
-| Input | Output |
+| 入力 | 出力 |
 |---|---|
 | `a` / `A` | `⠁` |
 | `b` / `B` | `⠃` |
@@ -2542,7 +2489,7 @@ Uppercase and lowercase letters map to the same braille cell. The function does 
 | `y` / `Y` | `⠽` |
 | `z` / `Z` | `⠵` |
 
-Example:
+例:
 
 ```cpp
 std::u8string text{xer::braille::alphabetic_indicator};
@@ -2560,17 +2507,17 @@ text += *xer::braille::alpha_to_braille(U'r');
     -> result<std::u8string_view>;
 ```
 
-`digit_to_braille` converts one ASCII digit to the corresponding numeric braille cell.
+`digit_to_braille` は、1つのASCII数字を対応する数字点字セルへ変換します。
 
-The accepted input range is:
+受け付ける入力範囲は次のとおりです。
 
-- `0` to `9`
+- `0` から `9`
 
-This function assumes that the caller has already emitted a numeric indicator when required.
+この関数は、必要な場合には呼び出し側がすでに数字指示符を出力していることを前提とします。
 
-Digits `1` to `9` map to the same cells as `a` to `i`, and digit `0` maps to the same cell as `j`.
+数字 `1` から `9` は `a` から `i` と同じセルに対応し、数字 `0` は `j` と同じセルに対応します。
 
-| Input | Output |
+| 入力 | 出力 |
 |---|---|
 | `1` | `⠁` |
 | `2` | `⠃` |
@@ -2583,7 +2530,7 @@ Digits `1` to `9` map to the same cells as `a` to `i`, and digit `0` maps to the
 | `9` | `⠊` |
 | `0` | `⠚` |
 
-Example:
+例:
 
 ```cpp
 std::u8string text{xer::braille::numeric_indicator};
@@ -2601,19 +2548,19 @@ text += *xer::braille::digit_to_braille(U'3');
     -> result<std::u8string_view>;
 ```
 
-`alnum_to_braille` converts one ASCII alphanumeric character to a braille cell.
+`alnum_to_braille` は、1つのASCII英数字を点字セルへ変換します。
 
-It is a small dispatcher for `alpha_to_braille` and `digit_to_braille`.
+これは `alpha_to_braille` と `digit_to_braille` の小さなディスパッチャーです。
 
-The accepted input ranges are:
+受け付ける入力範囲は次のとおりです。
 
-- `A` to `Z`
-- `a` to `z`
-- `0` to `9`
+- `A` から `Z`
+- `a` から `z`
+- `0` から `9`
 
-This function does not emit alphabetic, capital, numeric, or other mode indicators.
+この関数は、外字符、大文字符、数字指示符、その他のモード指示符を出力しません。
 
-Example:
+例:
 
 ```cpp
 std::u8string text;
@@ -2634,38 +2581,38 @@ text += *xer::braille::alnum_to_braille(U'3');
     -> result<std::u8string_view>;
 ```
 
-`punct_to_braille` converts one English braille punctuation character to a braille cell.
+`punct_to_braille` は、1つの英語点字句読点文字を点字セルへ変換します。
 
-The current implementation targets basic Grade 1 English braille punctuation marks.
-It does not implement information-processing braille punctuation, Japanese punctuation, or context-sensitive punctuation rules.
+現在の実装は、基本的なGrade 1英語点字の句読点を対象とします。
+情報処理用点字の句読点、日本語の句読点、文脈依存の句読点規則は実装しません。
 
-Supported characters are:
+対応する文字は次のとおりです。
 
-| Input | Output | Note |
+| 入力 | 出力 | 備考 |
 |---|---|---|
-| `,` | `⠂` | comma |
-| `;` | `⠆` | semicolon |
-| `:` | `⠒` | colon |
-| `.` | `⠲` | period |
-| `!` | `⠖` | exclamation mark |
-| `(` | `⠶` | parenthesis |
-| `)` | `⠶` | parenthesis |
-| `?` | `⠦` | question mark |
-| `“` | `⠦` | opening quotation mark |
-| `*` | `⠔` | asterisk |
-| `”` | `⠴` | closing quotation mark |
-| `'` | `⠄` | apostrophe |
-| `-` | `⠤` | hyphen |
-| `‐` | `⠤` | hyphen |
+| `,` | `⠂` | コンマ |
+| `;` | `⠆` | セミコロン |
+| `:` | `⠒` | コロン |
+| `.` | `⠲` | ピリオド |
+| `!` | `⠖` | 感嘆符 |
+| `(` | `⠶` | 丸括弧 |
+| `)` | `⠶` | 丸括弧 |
+| `?` | `⠦` | 疑問符 |
+| `“` | `⠦` | 開き引用符 |
+| `*` | `⠔` | アスタリスク |
+| `”` | `⠴` | 閉じ引用符 |
+| `'` | `⠄` | アポストロフィ |
+| `-` | `⠤` | ハイフン |
+| `‐` | `⠤` | ハイフン |
 
-ASCII double quotation mark `"` is not supported because a one-character conversion function cannot determine whether it is an opening or closing quotation mark.
+ASCIIの二重引用符 `"` は対応していません。1文字変換関数では、それが開き引用符か閉じ引用符かを判定できないためです。
 
 ---
-## Information-Processing One-Character Conversion Helpers
+## 情報処理用の1文字変換ヘルパー
 
-The information-processing helpers convert one ASCII character under an already selected information-processing braille mode.
+情報処理用ヘルパーは、すでに情報処理用点字モードが選択されている前提で、1つのASCII文字を変換します。
 
-They do not emit `ip_lowercase_indicator`, `ip_single_uppercase_indicator`, `ip_double_uppercase_indicator`, `ip_numeric_indicator`, or any other mode indicator.
+これらの関数は、`ip_lowercase_indicator`、`ip_single_uppercase_indicator`、`ip_double_uppercase_indicator`、`ip_numeric_indicator`、その他のモード指示符を出力しません。
 
 ---
 
@@ -2676,10 +2623,10 @@ They do not emit `ip_lowercase_indicator`, `ip_single_uppercase_indicator`, `ip_
     -> result<std::u8string_view>;
 ```
 
-`ip_alpha_to_braille` converts one ASCII alphabetic character to the corresponding information-processing braille alphabet cell.
+`ip_alpha_to_braille` は、1つのASCII英字を対応する情報処理用点字のアルファベットセルへ変換します。
 
-At the current stage, alphabet cells are the same as `alpha_to_braille`.
-Uppercase and lowercase letters map to the same cell, and the function does not emit uppercase or lowercase indicators.
+現段階では、アルファベットセルは `alpha_to_braille` と同じです。
+大文字と小文字は同じセルに対応し、この関数は大文字または小文字の指示符を出力しません。
 
 ---
 
@@ -2690,10 +2637,10 @@ Uppercase and lowercase letters map to the same cell, and the function does not 
     -> result<std::u8string_view>;
 ```
 
-`ip_digit_to_braille` converts one ASCII digit to the corresponding information-processing braille digit cell.
+`ip_digit_to_braille` は、1つのASCII数字を対応する情報処理用点字の数字セルへ変換します。
 
-At the current stage, digit cells are the same as `digit_to_braille`.
-The function does not emit `ip_numeric_indicator`.
+現段階では、数字セルは `digit_to_braille` と同じです。
+この関数は `ip_numeric_indicator` を出力しません。
 
 ---
 
@@ -2704,9 +2651,9 @@ The function does not emit `ip_numeric_indicator`.
     -> result<std::u8string_view>;
 ```
 
-`ip_alnum_to_braille` dispatches one ASCII alphanumeric character to `ip_alpha_to_braille` or `ip_digit_to_braille`.
+`ip_alnum_to_braille` は、1つのASCII英数字を `ip_alpha_to_braille` または `ip_digit_to_braille` へ振り分けます。
 
-The function does not emit information-processing braille mode indicators.
+この関数は情報処理用点字のモード指示符を出力しません。
 
 ---
 
@@ -2717,13 +2664,13 @@ The function does not emit information-processing braille mode indicators.
     -> result<std::u8string_view>;
 ```
 
-`ip_punct_to_braille` converts one printable ASCII punctuation character to information-processing braille cells.
+`ip_punct_to_braille` は、1つの表示可能なASCII句読点文字を情報処理用点字セルへ変換します。
 
-Unlike `punct_to_braille`, this function targets information-processing braille punctuation. Some punctuation marks are represented by multiple braille cells.
+`punct_to_braille` と異なり、この関数は情報処理用点字の句読点を対象とします。一部の句読点は複数の点字セルで表されます。
 
-Supported characters are:
+対応する文字は次のとおりです。
 
-| Input | Output |
+| 入力 | 出力 |
 |---|---|
 | `!` | `⠖` |
 | `"` | `⠶` |
@@ -2760,12 +2707,12 @@ Supported characters are:
 
 ---
 
-## ASCII Text Conversion with Automatic Mode Indicators
+## 自動モード指示符付きのASCIIテキスト変換
 
-The ASCII text conversion helpers convert short ASCII fragments while automatically emitting mode indicators.
+ASCIIテキスト変換ヘルパーは、短いASCII断片を変換しながら、モード指示符を自動的に出力します。
 
-They are useful when the caller already knows that the input fragment is an ASCII alphanumeric-and-punctuation fragment.
-For Japanese text that needs MeCab readings and phrase spacing, use the MeCab-level helpers such as `mecab_braille_translate` or `mecab_ip_braille_translate`.
+これらは、入力断片がASCII英数字・句読点断片であることを呼び出し側がすでに分かっている場合に有用です。
+MeCabによる読みと文節間隔が必要な日本語テキストには、`mecab_braille_translate` や `mecab_ip_braille_translate` などのMeCabレベルのヘルパーを使用してください。
 
 ---
 
@@ -2776,19 +2723,19 @@ For Japanese text that needs MeCab readings and phrase spacing, use the MeCab-le
     -> result<std::u8string>;
 ```
 
-`alnum_punct_text_to_braille` converts ASCII letters, digits, spaces, and supported English braille punctuation to ordinary braille text.
+`alnum_punct_text_to_braille` は、ASCIIの英字、数字、空白、および対応する英語点字句読点を通常の点字テキストへ変換します。
 
-The function automatically emits:
+この関数は次のものを自動的に出力します。
 
-- `alphabetic_indicator` before a lowercase alphabetic run
-- `capital_indicator` before a single uppercase letter
-- `double_capital_indicator` before an uppercase run of two or more letters
-- `numeric_indicator` before a digit run
+- 小文字英字列の前の `alphabetic_indicator`
+- 1文字の大文字の前の `capital_indicator`
+- 2文字以上の大文字列の前の `double_capital_indicator`
+- 数字列の前の `numeric_indicator`
 
-ASCII spaces are preserved and reset the current mode.
+ASCII空白は保持され、現在のモードをリセットします。
 
-Punctuation is converted through `punct_to_braille` and also resets the current mode.
-Unsupported punctuation such as `+` returns `error_t::invalid_argument`; use `ip_alnum_punct_text_to_braille` for information-processing braille punctuation.
+句読点は `punct_to_braille` を通じて変換され、同様に現在のモードをリセットします。
+`+` などの未対応の句読点は `error_t::invalid_argument` を返します。情報処理用点字の句読点には `ip_alnum_punct_text_to_braille` を使用してください。
 
 ---
 
@@ -2799,19 +2746,19 @@ Unsupported punctuation such as `+` returns `error_t::invalid_argument`; use `ip
     -> result<std::u8string>;
 ```
 
-`ip_alnum_punct_text_to_braille` converts ASCII letters, digits, spaces, and information-processing punctuation to information-processing braille text.
+`ip_alnum_punct_text_to_braille` は、ASCIIの英字、数字、空白、および情報処理用句読点を情報処理用点字テキストへ変換します。
 
-The function automatically emits:
+この関数は次のものを自動的に出力します。
 
-- `ip_lowercase_indicator` before a lowercase alphabetic run
-- `ip_single_uppercase_indicator` before a single uppercase letter
-- `ip_double_uppercase_indicator` before an uppercase run of two or more letters
-- `ip_numeric_indicator` before a digit run
+- 小文字英字列の前の `ip_lowercase_indicator`
+- 1文字の大文字の前の `ip_single_uppercase_indicator`
+- 2文字以上の大文字列の前の `ip_double_uppercase_indicator`
+- 数字列の前の `ip_numeric_indicator`
 
-ASCII spaces are preserved and reset the current mode.
+ASCII空白は保持され、現在のモードをリセットします。
 
-Punctuation is converted through `ip_punct_to_braille` and also resets the current mode.
-This helper is the preferred low-level conversion function for ASCII fragments that contain programming-language-like symbols such as `+`, `=`, `<`, `>`, `&`, `|`, `_`, or `~`.
+句読点は `ip_punct_to_braille` を通じて変換され、同様に現在のモードをリセットします。
+このヘルパーは、`+`、`=`、`<`、`>`、`&`、`|`、`_`、`~` など、プログラミング言語風の記号を含むASCII断片に対する推奨の低水準変換関数です。
 
 ---
 
@@ -2823,33 +2770,33 @@ This helper is the preferred low-level conversion function for ASCII fragments t
     -> result<std::u8string_view>;
 ```
 
-`xer::ja::japanese_punct_to_braille` converts one Japanese punctuation mark to Japanese braille cells.
+`xer::ja::japanese_punct_to_braille` は、1つの日本語句読点を日本語点字セルへ変換します。
 
-This function is separate from `punct_to_braille`. `punct_to_braille` targets basic English braille punctuation, while `xer::ja::japanese_punct_to_braille` targets Japanese kana-braille punctuation used in Japanese text.
+この関数は `punct_to_braille` とは別です。`punct_to_braille` は基本的な英語点字句読点を対象とし、`xer::ja::japanese_punct_to_braille` は日本語テキストで使われる日本語仮名点字の句読点を対象とします。
 
-Supported characters are:
+対応する文字は次のとおりです。
 
-| Input | Output | Note |
+| 入力 | 出力 | 備考 |
 |---|---|---|
-| `。` | `⠲` | Japanese full stop |
-| `、` | `⠰` | Japanese comma |
-| `？` | `⠢` | Japanese question mark |
-| `?` | `⠢` | ASCII question mark treated as Japanese punctuation |
-| `！` | `⠖` | Japanese exclamation mark |
-| `!` | `⠖` | ASCII exclamation mark treated as Japanese punctuation |
-| `・` | `⠂` | middle dot |
-| `「` | `⠤` | corner bracket |
-| `」` | `⠤` | corner bracket |
-| `『` | `⠰⠤` | double corner bracket |
-| `』` | `⠰⠤` | double corner bracket |
-| `（` | `⠶` | parenthesis |
-| `）` | `⠶` | parenthesis |
-| `(` | `⠶` | ASCII parenthesis treated as Japanese punctuation |
-| `)` | `⠶` | ASCII parenthesis treated as Japanese punctuation |
-| `…` | `⠄⠄⠄` | ellipsis |
-| `‥` | `⠄⠄` | two-dot leader |
+| `。` | `⠲` | 句点 |
+| `、` | `⠰` | 読点 |
+| `？` | `⠢` | 日本語疑問符 |
+| `?` | `⠢` | 日本語句読点として扱われるASCII疑問符 |
+| `！` | `⠖` | 日本語感嘆符 |
+| `!` | `⠖` | 日本語句読点として扱われるASCII感嘆符 |
+| `・` | `⠂` | 中点 |
+| `「` | `⠤` | かぎ括弧 |
+| `」` | `⠤` | かぎ括弧 |
+| `『` | `⠰⠤` | 二重かぎ括弧 |
+| `』` | `⠰⠤` | 二重かぎ括弧 |
+| `（` | `⠶` | 丸括弧 |
+| `）` | `⠶` | 丸括弧 |
+| `(` | `⠶` | 日本語句読点として扱われるASCII丸括弧 |
+| `)` | `⠶` | 日本語句読点として扱われるASCII丸括弧 |
+| `…` | `⠄⠄⠄` | 三点リーダー |
+| `‥` | `⠄⠄` | 二点リーダー |
 
-`xer::ja::japanese_punct_to_braille` does not insert spaces around punctuation. Spacing is handled by higher-level text conversion functions such as `mecab_braille_wakati`.
+`xer::ja::japanese_punct_to_braille` は句読点の周囲に空白を挿入しません。空白の扱いは `mecab_braille_wakati` などのより高水準のテキスト変換関数が担当します。
 
 ---
 
@@ -2860,25 +2807,25 @@ Supported characters are:
     -> result<std::u8string_view>;
 ```
 
-`xer::ja::kana_to_braille` converts one Japanese kana character to Japanese braille cells.
+`xer::ja::kana_to_braille` は、1つの日本語仮名文字を日本語点字セルへ変換します。
 
-It accepts both hiragana and katakana for the same syllable.
+同じ音節に対して、ひらがなとカタカナの両方を受け付けます。
 
-The function handles:
+この関数は次のものを扱います。
 
-- basic kana
+- 基本的な仮名
 - `ゐ` / `ヰ`
 - `ゑ` / `ヱ`
 - `ん` / `ン`
-- prolonged sound mark `ー`
-- sokuon `っ` / `ッ`
-- voiced kana
-- semi-voiced kana
+- 長音符 `ー`
+- 促音 `っ` / `ッ`
+- 濁音の仮名
+- 半濁音の仮名
 - `ゔ` / `ヴ`
 
-Some kana characters map to multiple braille cells. For example, voiced and semi-voiced kana are represented by a sign followed by the base kana cell.
+一部の仮名文字は複数の点字セルに対応します。たとえば、濁音と半濁音の仮名は、符号に続いて基底仮名セルで表されます。
 
-This function converts only one input character. It does not combine multiple input characters, so sequences such as `きゃ`, `シェ`, or `ティ` are handled by `xer::ja::kana_text_to_braille`, not by `xer::ja::kana_to_braille`.
+この関数は1つの入力文字だけを変換します。複数の入力文字を結合しないため、`きゃ`、`シェ`、`ティ` などの列は `xer::ja::kana_to_braille` ではなく `xer::ja::kana_text_to_braille` によって処理されます。
 
 ---
 
@@ -2889,23 +2836,23 @@ This function converts only one input character. It does not combine multiple in
     -> result<std::u8string>;
 ```
 
-`xer::ja::kana_text_to_braille` converts UTF-8 kana text to Japanese braille text.
+`xer::ja::kana_text_to_braille` は、UTF-8仮名テキストを日本語点字テキストへ変換します。
 
-It performs the following low-level text conversion:
+この関数は次の低水準テキスト変換を行います。
 
-- decodes UTF-8 input
-- preserves ASCII spaces as wakachi-gaki separators
-- converts Japanese punctuation through `xer::ja::japanese_punct_to_braille`
-- converts ordinary kana through `xer::ja::kana_to_braille`
-- combines supported small-kana sequences before conversion
+- UTF-8入力をデコードする
+- ASCII空白を分かち書き区切りとして保持する
+- `xer::ja::japanese_punct_to_braille` を通じて日本語句読点を変換する
+- `xer::ja::kana_to_braille` を通じて通常の仮名を変換する
+- 変換前に対応する小書き仮名列を結合する
 
-The function returns `error_t::encoding_error` for invalid UTF-8 input and `error_t::invalid_argument` for unsupported characters or unsupported small-kana combinations.
+この関数は、不正なUTF-8入力に対して `error_t::encoding_error` を返し、未対応の文字または未対応の小書き仮名の組み合わせに対して `error_t::invalid_argument` を返します。
 
-### Supported multi-kana sequences
+### 対応する複数仮名列
 
-`xer::ja::kana_text_to_braille` supports ordinary yoon sequences and several extended foreign-sound kana sequences.
+`xer::ja::kana_text_to_braille` は、通常の拗音列と、いくつかの拡張外来音仮名列に対応します。
 
-Supported base-plus-small-kana groups include:
+対応する基底仮名＋小書き仮名のグループは次のとおりです。
 
 - `きゃ` / `きゅ` / `きょ` / `きぇ`
 - `しゃ` / `しゅ` / `しょ` / `しぇ`
@@ -2933,92 +2880,84 @@ Supported base-plus-small-kana groups include:
 - `ふぁ` / `ふぃ` / `ふぇ` / `ふぉ` / `ふゅ` / `ふょ`
 - `ゔぁ` / `ゔぃ` / `ゔぇ` / `ゔぉ` / `ゔゅ` / `ゔょ`
 
-The same combinations are accepted in katakana form, such as `キャ`, `キェ`, `シェ`, `スィ`, `ズィ`, `ティ`, `ファ`, and `ヴォ`.
+同じ組み合わせは、`キャ`、`キェ`、`シェ`、`スィ`、`ズィ`、`ティ`、`ファ`、`ヴォ` などのカタカナ形でも受け付けられます。
 
-Unsupported small-kana combinations are rejected rather than guessed.
+未対応の小書き仮名の組み合わせは、推測されずに拒否されます。
 
-### Scope
+### 範囲
 
-`xer::ja::kana_text_to_braille` is still a low-level kana conversion function.
+`xer::ja::kana_text_to_braille` は、まだ低水準の仮名変換関数です。
 
-It does not:
+この関数は次のことを行いません。
 
-- determine readings from kanji
-- correct particles such as `は`, `へ`, or `を`
-- perform full Japanese braille wakachi-gaki
-- automatically emit numeric or alphabetic indicators for ASCII fragments inside Japanese text
-- automatically choose ordinary braille or information-processing braille for mixed Japanese text
+- 漢字から読みを決定する
+- `は`、`へ`、`を` などの助詞を補正する
+- 完全な日本語点字分かち書きを行う
+- 日本語テキスト中のASCII断片に対して、数字指示符または外字符を自動的に出力する
+- 混在日本語テキストに対して、通常の点字と情報処理用点字を自動的に選択する
 
-Use `alnum_punct_text_to_braille` or `ip_alnum_punct_text_to_braille` when converting a known ASCII fragment directly.
-Use `mecab_braille_wakati`, `mecab_ip_braille_wakati`, `mecab_braille_translate`, or `mecab_ip_braille_translate` when MeCab-derived readings and approximate braille-oriented wakachi-gaki are needed.
+既知のASCII断片を直接変換する場合は、`alnum_punct_text_to_braille` または `ip_alnum_punct_text_to_braille` を使用してください。
+MeCab由来の読みと、おおよその点字向け分かち書きが必要な場合は、`mecab_braille_wakati`、`mecab_ip_braille_wakati`、`mecab_braille_translate`、または `mecab_ip_braille_translate` を使用してください。
 
 ---
 
-## Error Handling
+## エラー処理
 
-The braille conversion helpers use `xer::result` to report unsupported input explicitly.
+点字変換ヘルパーは、未対応入力を明示的に報告するために `xer::result` を使用します。
 
-Common errors are:
+一般的なエラーは次のとおりです。
 
-| Error | Meaning |
+| エラー | 意味 |
 |---|---|
-| `error_t::invalid_argument` | The input character or character sequence is not supported by the selected conversion helper. |
-| `error_t::encoding_error` | A UTF-8 text conversion function received invalid UTF-8 input. |
+| `error_t::invalid_argument` | 入力文字または文字列が、選択した変換ヘルパーで対応されていない。 |
+| `error_t::encoding_error` | UTF-8テキスト変換関数が不正なUTF-8入力を受け取った。 |
 
-One-character helpers do not allocate. `xer::ja::kana_text_to_braille` returns an owned `std::u8string` because it may combine input characters and append multiple output fragments.
+1文字ヘルパーはメモリ割り当てを行いません。`xer::ja::kana_text_to_braille` は入力文字を結合し、複数の出力断片を追加する場合があるため、所有する `std::u8string` を返します。
 
 ---
 
-## Header Dependencies
+## ヘッダー依存関係
 
-`<xer/braille.h>` is the public header for braille-related APIs.
+`<xer/braille.h>` は点字関連APIの公開ヘッダーです。
 
-Implementation details are split under `xer/bits/`, including:
+実装詳細は `xer/bits/` 配下に分割されており、次のものを含みます。
 
 ```cpp
 #include <xer/bits/braille_symbols.h>
 #include <xer/bits/braille_chars.h>
 ```
 
-User code should include:
+ユーザーコードでは、`xer/bits/` ヘッダーを直接インクルードするのではなく、次のようにしてください。
 
 ```cpp
 #include <xer/braille.h>
 ```
 
-rather than including the `xer/bits/` headers directly.
-
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/stdlib.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/stdlib.h>`
 
-## Purpose
+## 目的
 
-`<xer/stdlib.h>` provides a collection of general-purpose utilities in xer.
+`<xer/stdlib.h>` は、xer における汎用ユーティリティ群を提供します。
 
-Its role is similar in spirit to the C standard library `<stdlib.h>`, but it is not intended to be a literal reproduction.
-Instead, it gathers practical facilities that fit xer's design, especially in the following areas:
+このヘッダーの役割は、C 標準ライブラリの `<stdlib.h>` と精神的には似ていますが、字義どおりの再現を意図したものではありません。
+かわりに、xer の設計に合う実用的な機能、とくに次の領域の機能を集めています。
 
-- numeric conversion
-- multibyte character conversion
-- sorting and searching
-- environment access
-- pseudo-random generation
-- small utility structures related to arithmetic-style APIs
+- 数値変換
+- マルチバイト文字変換
+- ソートと検索
+- 環境へのアクセス
+- 擬似乱数生成
+- 算術系 API に関連する小さなユーティリティ構造体
 
-This header therefore functions as a broad utility header whose contents are tied together by practical use rather than by a narrow single abstraction.
+そのため、このヘッダーは、狭い単一の抽象化でまとめられたものというより、実用上の関連によって内容が結び付けられた広範なユーティリティヘッダーとして機能します。
 
 ---
 
-## Main Role
+## 主な役割
 
-The main role of `<xer/stdlib.h>` is to provide utility facilities that do not belong more naturally to headers such as:
+`<xer/stdlib.h>` の主な役割は、次のようなヘッダーにはより自然には属さないユーティリティ機能を提供することです。
 
 - `<xer/string.h>`
 - `<xer/ctype.h>`
@@ -3026,34 +2965,34 @@ The main role of `<xer/stdlib.h>` is to provide utility facilities that do not b
 - `<xer/path.h>`
 - `<xer/time.h>`
 
-In particular, it serves as the home for:
+特に、次の機能の置き場所になります。
 
-- string-to-number conversion
-- multibyte conversion APIs
-- search and sort helpers
-- pseudo-random utilities
-- environment variable access
+- 文字列から数値への変換
+- マルチバイト変換 API
+- 検索およびソートのヘルパー
+- 擬似乱数ユーティリティ
+- 環境変数へのアクセス
 
-This matches the broad and somewhat heterogeneous role traditionally associated with `<stdlib.h>`, while adapting the details to xer's own policies.
-
----
-
-## Main Function Groups
-
-At a high level, `<xer/stdlib.h>` contains the following groups of functionality:
-
-- integer division result structures
-- search and sorting
-- numeric conversion
-- multibyte conversion
-- environment access
-- pseudo-random generation
+これは、伝統的に `<stdlib.h>` に結び付けられてきた広くやや雑多な役割に対応しつつ、細部を xer 独自の方針に合わせるものです。
 
 ---
 
-## Integer Division Result Structures
+## 主な関数グループ
 
-This header may provide small structures related to quotient/remainder style operations, such as:
+大まかに見ると、`<xer/stdlib.h>` には次の機能グループが含まれます。
+
+- 整数除算結果構造体
+- 検索とソート
+- 数値変換
+- マルチバイト変換
+- 環境へのアクセス
+- 擬似乱数生成
+
+---
+
+## 整数除算結果構造体
+
+このヘッダーは、商と余りを扱う操作に関連する小さな構造体を提供する場合があります。たとえば次のようなものです。
 
 ```cpp
 template <class T>
@@ -3074,47 +3013,47 @@ using u32div_t;
 using u64div_t;
 ```
 
-### Role of This Group
+### このグループの役割
 
-These types provide named structures for cases where quotient and remainder are treated together.
+これらの型は、商と余りをまとめて扱う場合のために、名前付きの構造体を提供します。
 
-They are useful when a division-style helper should return both values in a structured way rather than through multiple separate outputs.
+除算系のヘルパーが複数の出力先に値を書き込むのではなく、両方の値を構造化された形で返したい場合に便利です。
 
-### Notes
+### 注意
 
-* exact naming and type coverage follow xer's own design
-* this is related conceptually to arithmetic helpers, but the utility-structure side belongs naturally in `<xer/stdlib.h>`
+* 正確な名前付けと型の範囲は、xer 独自の設計に従います
+* 概念的には算術ヘルパーに関連しますが、ユーティリティ構造体としての側面は `<xer/stdlib.h>` に自然に属します
 
 ---
 
-## Search and Sorting
+## 検索とソート
 
-At minimum, this header provides functions such as:
+少なくとも、このヘッダーは次のような関数を提供します。
 
 ```cpp
 bsearch
 qsort
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions provide classic general-purpose search and sorting operations in the style of the C standard library.
+これらの関数は、C 標準ライブラリ風の古典的な汎用検索およびソート操作を提供します。
 
-### Design Direction
+### 設計方針
 
-Although the names are familiar, they should be understood according to xer's broader style:
+名前は馴染みのあるものですが、xer のより広いスタイルに従って理解する必要があります。
 
-* practical usability is preferred over strict historical fidelity
-* the surrounding type and error model may differ from traditional C expectations
-* documentation should describe actual xer behavior rather than relying on user assumptions from C alone
+* 厳密な歴史的忠実性よりも、実用上の使いやすさを優先します
+* 周辺の型やエラーモデルは、伝統的な C の期待とは異なる場合があります
+* ドキュメントでは、C 由来の思い込みに頼るのではなく、実際の xer における振る舞いを記述するべきです
 
 ---
 
-## Numeric Conversion
+## 数値変換
 
-A major part of `<xer/stdlib.h>` is numeric conversion.
+`<xer/stdlib.h>` の主要な部分のひとつが数値変換です。
 
-At minimum, this header may provide functions such as:
+少なくとも、このヘッダーは次のような関数を提供する場合があります。
 
 ```cpp
 ato
@@ -3135,55 +3074,55 @@ strtof32
 strtof64
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions convert text into numeric values.
+これらの関数は、テキストを数値に変換します。
 
-They are especially important because xer uses explicit text and encoding policies rather than relying on locale-driven interpretation.
+xer はロケール依存の解釈に頼るのではなく、明示的なテキスト方針とエンコーディング方針を用いるため、これらの関数は特に重要です。
 
-### Design Direction
+### 設計方針
 
-These facilities are not intended to reproduce the standard library exactly.
-Instead, they are reconstructed to fit xer's model.
+これらの機能は、標準ライブラリを厳密に再現することを意図していません。
+かわりに、xer のモデルに合うように再構成されています。
 
-Important characteristics may include:
+重要な性質には、次のようなものが含まれます。
 
-* support for UTF-8-oriented public text handling
-* explicit failure reporting
-* practical parsing features such as binary prefixes where adopted by xer
-* consistent behavior across the library's supported environments
+* UTF-8 指向の公開テキスト処理をサポートすること
+* 失敗を明示的に報告すること
+* xer で採用された場合には、2 進数プレフィックスなどの実用的な構文解析機能を扱うこと
+* ライブラリがサポートする環境間で一貫した振る舞いを提供すること
 
-### Notes
+### 注意
 
-Floating-point conversion may recognize textual forms such as:
+浮動小数点変換では、次のようなテキスト形式を認識する場合があります。
 
 * `inf`
 * `infinity`
 * `nan`
 
-Integer conversion may also support practical forms such as:
+整数変換でも、次のような実用的な形式をサポートする場合があります。
 
-* decimal
-* octal
-* hexadecimal
-* binary with `0b...` where adopted by xer
+* 10 進数
+* 8 進数
+* 16 進数
+* xer で採用された場合の `0b...` による 2 進数
 
-The precise accepted grammar belongs in detailed API documentation.
+正確に受け入れられる文法は、詳細な API ドキュメントに属します。
 
 ---
 
-## Multibyte Conversion
+## マルチバイト変換
 
-One of the most important roles of `<xer/stdlib.h>` in xer is multibyte character conversion.
+xer における `<xer/stdlib.h>` の最も重要な役割のひとつが、マルチバイト文字変換です。
 
-At minimum, this header provides the following state type and related facilities:
+少なくとも、このヘッダーは次の状態型と関連機能を提供します。
 
 ```cpp
 enum class multibyte_encoding;
 struct mbstate_t;
 ```
 
-and functions such as:
+また、次のような関数を提供します。
 
 ```cpp
 mblen
@@ -3193,71 +3132,71 @@ mbstotcs
 tcstombs
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions provide conversion between multibyte text and character-oriented representations.
+これらの関数は、マルチバイトテキストと文字指向の表現との間の変換を提供します。
 
-This is one of the clearest places where xer deliberately redesigns a standard-library area according to its own encoding policy.
+これは、xer が標準ライブラリの領域を独自のエンコーディング方針に基づいて意図的に再設計していることが最も明確に表れる場所のひとつです。
 
-### Basic Design Direction
+### 基本的な設計方針
 
-The multibyte conversion model in xer is based on the following ideas:
+xer のマルチバイト変換モデルは、次の考え方に基づいています。
 
-* supported encodings are limited and explicit
-* locale is not the center of the design
-* `char`, `unsigned char`, and `char8_t` are distinguished explicitly
-* `wchar_t`, `char16_t`, and `char32_t` are supported as destination or source character types
-* stateful conversion is expressed explicitly through `xer::mbstate_t*`
+* サポートするエンコーディングは限定的かつ明示的である
+* ロケールを設計の中心に置かない
+* `char`、`unsigned char`、`char8_t` を明示的に区別する
+* 変換先または変換元の文字型として、`wchar_t`、`char16_t`、`char32_t` をサポートする
+* 状態付き変換は `xer::mbstate_t*` によって明示的に表現する
 
-### Overload-Based Design
+### オーバーロードに基づく設計
 
-These functions are provided as overload sets rather than as templates.
+これらの関数は、テンプレートではなくオーバーロード集合として提供されます。
 
-This allows combinations such as:
+これにより、次のような組み合わせを扱えます。
 
-* byte-oriented input/output using `char`, `unsigned char`, or `char8_t`
-* character-oriented input/output using `wchar_t`, `char16_t`, or `char32_t`
+* `char`、`unsigned char`、`char8_t` によるバイト指向の入出力
+* `wchar_t`、`char16_t`、`char32_t` による文字指向の入出力
 
-### Relationship to Encoding Policy
+### エンコーディング方針との関係
 
-This part of `<xer/stdlib.h>` should always be read together with the broader encoding policy.
-It is one of the most policy-driven areas in the whole header.
+`<xer/stdlib.h>` のこの部分は、常により広いエンコーディング方針と合わせて読むべきです。
+この部分は、このヘッダー全体の中でも特に方針に強く依存している領域のひとつです。
 
 ---
 
 ## `xer::mbstate_t`
 
-`xer::mbstate_t` stores the intermediate state used for stateful multibyte conversion.
+`xer::mbstate_t` は、状態付きマルチバイト変換で使われる中間状態を保持します。
 
-### Purpose
+### 目的
 
-It exists so that conversion state is:
+この型が存在する目的は、変換状態を次のように扱えるようにすることです。
 
-* explicit
-* portable across calls
-* not hidden in internal static storage
+* 明示的である
+* 呼び出しをまたいで持ち運べる
+* 内部の静的ストレージに隠さない
 
-### Design Direction
+### 設計方針
 
-`xer::mbstate_t` stores at least information such as:
+`xer::mbstate_t` は、少なくとも次のような情報を保持します。
 
-* the effective encoding
-* incomplete byte sequences
-* the number of retained bytes
+* 有効なエンコーディング
+* 未完成のバイト列
+* 保持しているバイト数
 
-This is necessary because incomplete multibyte input cannot be interpreted correctly without remembering the encoding context.
+これは、未完成のマルチバイト入力は、エンコーディング文脈を記憶していなければ正しく解釈できないために必要です。
 
-### Notes
+### 注意
 
-* xer does not use hidden internal static conversion state
-* if the caller wants independent conversion calls, the caller omits the state argument
-* if the caller wants continued stateful conversion, the caller provides `xer::mbstate_t*`
+* xer は隠れた内部静的変換状態を使いません
+* 呼び出し側が独立した変換呼び出しを望む場合は、状態引数を省略します
+* 呼び出し側が継続的な状態付き変換を望む場合は、`xer::mbstate_t*` を渡します
 
 ---
 
-## Environment Access
+## 環境へのアクセス
 
-This header provides environment-variable access facilities such as:
+このヘッダーは、次のような環境変数アクセス機能を提供します。
 
 ```cpp
 struct environ_entry;
@@ -3269,20 +3208,20 @@ auto getenv(std::u8string_view name) -> xer::result<std::u8string>;
 auto get_environs() -> xer::result<environs>;
 ```
 
-### Role of This Group
+### このグループの役割
 
-This function group provides access to process environment information.
+この関数グループは、プロセスの環境情報へのアクセスを提供します。
 
-`getenv` obtains one environment variable by name.
-`get_environs` obtains a UTF-8 snapshot of all environment variables and returns it as an `environs` object.
+`getenv` は、名前を指定して 1 つの環境変数を取得します。
+`get_environs` は、すべての環境変数の UTF-8 スナップショットを取得し、それを `environs` オブジェクトとして返します。
 
 ### `environs`
 
-`environs` owns environment-variable entries as UTF-8 strings.
-It is a snapshot of the process environment at the time `get_environs` is called.
-Later changes to the process environment do not update an already-created `environs` object.
+`environs` は、環境変数エントリを UTF-8 文字列として所有します。
+これは `get_environs` が呼び出された時点のプロセス環境のスナップショットです。
+その後にプロセス環境が変更されても、すでに作成済みの `environs` オブジェクトは更新されません。
 
-At minimum, `environs` provides:
+少なくとも、`environs` は次を提供します。
 
 ```cpp
 auto size() const noexcept -> std::size_t;
@@ -3292,28 +3231,28 @@ auto at(std::size_t index) const -> xer::result<environ_arg>;
 auto find(std::u8string_view name) const -> xer::result<std::u8string_view>;
 ```
 
-`at` returns name and value views for one entry.
-`find` returns the first value whose name matches the requested name.
-If the requested name is empty, `find` fails with `error_t::invalid_argument`.
-If the name is not present, it fails with `error_t::not_found`.
+`at` は、1 つのエントリについて名前と値のビューを返します。
+`find` は、要求された名前に一致する最初の値を返します。
+要求された名前が空の場合、`find` は `error_t::invalid_argument` で失敗します。
+その名前が存在しない場合は、`error_t::not_found` で失敗します。
 
-### Platform Encoding Policy
+### プラットフォーム上のエンコーディング方針
 
-On Windows, `get_environs` uses `GetEnvironmentStringsW` so that environment strings are obtained as UTF-16 and converted to UTF-8.
+Windows では、`get_environs` は `GetEnvironmentStringsW` を使用します。そのため、環境文字列は UTF-16 として取得され、UTF-8 に変換されます。
 
-On Linux, `get_environs` reads the process environment array and requires each name and value to be valid UTF-8.
+Linux では、`get_environs` はプロセスの環境配列を読み取り、それぞれの名前と値が妥当な UTF-8 であることを要求します。
 
-Entries without `=` and entries whose name part is empty are ignored.
+`=` を含まないエントリ、および名前部分が空のエントリは無視されます。
 
-### Notes
+### 注意
 
-As with other facilities in xer, the exact argument and return conventions should be read from xer documentation rather than assumed from the C standard library alone.
+xer の他の機能と同様に、正確な引数規約と戻り値規約は、C 標準ライブラリからの推測ではなく xer のドキュメントに従って読むべきです。
 
 ---
 
-## Pseudo-Random Generation
+## 擬似乱数生成
 
-This header may provide facilities such as:
+このヘッダーは、次のような機能を提供する場合があります。
 
 ```cpp
 rand
@@ -3321,51 +3260,51 @@ srand
 class rand_context
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions and types provide simple pseudo-random number generation facilities.
+これらの関数と型は、単純な擬似乱数生成機能を提供します。
 
-### Design Direction
+### 設計方針
 
-The purpose here is not to compete with the full generality of `<random>`.
-Instead, the goal is to provide a lighter, easier-to-approach utility layer in the style of traditional C facilities, while still fitting xer's design.
+ここでの目的は、`<random>` の完全な汎用性と競合することではありません。
+かわりに、伝統的な C の機能に近い、より軽く近づきやすいユーティリティ層を提供しつつ、xer の設計にも合うようにすることが目的です。
 
 ### `rand_context`
 
-A context type such as `rand_context` is useful when:
+`rand_context` のような文脈型は、次のような場合に便利です。
 
-* random state should be made explicit
-* global-state dependence should be reduced
-* multiple independent generators are desirable
+* 乱数状態を明示したい場合
+* グローバル状態への依存を減らしたい場合
+* 複数の独立した生成器が必要な場合
 
-The exact API belongs in the detailed reference documentation.
-
----
-
-## Relationship to xer's Text Model
-
-`<xer/stdlib.h>` is closely tied to xer's text and encoding model.
-
-This is especially true for:
-
-* numeric conversion
-* multibyte conversion
-
-### Important Assumptions
-
-* UTF-8 is the primary public string representation
-* `char8_t`, `std::u8string`, and `std::u8string_view` are central to public text APIs
-* `char32_t` is the normal type for individual Unicode scalar values
-* multibyte conversion distinguishes `char`, `unsigned char`, and `char8_t` explicitly
-
-This means that `<xer/stdlib.h>` is not just a miscellaneous utility header.
-In xer, it is also one of the key headers for explicit encoding-aware text handling.
+正確な API は詳細なリファレンスドキュメントに属します。
 
 ---
 
-## Relationship to Other Headers
+## xer のテキストモデルとの関係
 
-`<xer/stdlib.h>` should be understood together with the following headers and policies:
+`<xer/stdlib.h>` は、xer のテキストモデルおよびエンコーディングモデルと密接に結び付いています。
+
+これは特に次の機能について当てはまります。
+
+* 数値変換
+* マルチバイト変換
+
+### 重要な前提
+
+* UTF-8 は主要な公開文字列表現です
+* `char8_t`、`std::u8string`、`std::u8string_view` は公開テキスト API の中心です
+* 個々の Unicode スカラー値の通常の型は `char32_t` です
+* マルチバイト変換では、`char`、`unsigned char`、`char8_t` を明示的に区別します
+
+つまり、`<xer/stdlib.h>` は単なる雑多なユーティリティヘッダーではありません。
+xer では、明示的なエンコーディング認識テキスト処理のための重要なヘッダーのひとつでもあります。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/stdlib.h>` は、次のヘッダーおよび方針文書と合わせて理解するべきです。
 
 * `header_string.md`
 * `header_ctype.md`
@@ -3373,43 +3312,43 @@ In xer, it is also one of the key headers for explicit encoding-aware text handl
 * `policy_encoding.md`
 * `policy_project_outline.md`
 
-The rough boundary is:
+大まかな境界は次のとおりです。
 
-* `<xer/string.h>` handles string and memory utilities
-* `<xer/ctype.h>` handles character classification and character transformation
-* `<xer/stdlib.h>` handles numeric conversion, multibyte conversion, and miscellaneous utility facilities
-* encoding and multibyte policy documents define the deeper model behind the API
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that it serves as a utility header rather than a narrowly scoped abstraction
-* that numeric conversion and multibyte conversion are the most important parts of the header
-* that multibyte conversion follows xer's own encoding policy rather than locale-centered C behavior
-* that overloads distinguish byte-oriented and character-oriented types explicitly
-
-Detailed per-function semantics should be described in the reference manual or generated API sections.
+* `<xer/string.h>` は文字列およびメモリユーティリティを扱います
+* `<xer/ctype.h>` は文字分類と文字変換を扱います
+* `<xer/stdlib.h>` は数値変換、マルチバイト変換、その他の雑多なユーティリティ機能を扱います
+* エンコーディング方針とマルチバイト方針文書は、API の背後にあるより深いモデルを定義します
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+このヘッダーを生成ドキュメントの一部として使用する場合、通常は次を説明すれば十分です。
 
-* converting UTF-8 text to an integer or floating-point value
-* converting one multibyte character with `mbtotc`
-* converting one character back with `tctomb`
-* converting an entire multibyte string with `mbstotcs` or `tcstombs`
-* using `rand` / `srand` or `rand_context` in a minimal example
+* 狭く範囲を絞った抽象化ではなく、ユーティリティヘッダーとして機能すること
+* 数値変換とマルチバイト変換が、このヘッダーの最も重要な部分であること
+* マルチバイト変換が、ロケール中心の C の振る舞いではなく xer 独自のエンコーディング方針に従うこと
+* オーバーロードが、バイト指向の型と文字指向の型を明示的に区別すること
 
-These are good candidates for executable examples under `examples/`.
+詳細な関数ごとの意味論は、リファレンスマニュアルまたは生成された API 節で記述するべきです。
 
 ---
 
-## Example
+## 例として示す価値が高いトピック
+
+このヘッダーでは、次のような例が特に適しています。
+
+* UTF-8 テキストを整数値または浮動小数点値に変換する
+* `mbtotc` で 1 文字のマルチバイト文字を変換する
+* `tctomb` で 1 文字を戻す
+* `mbstotcs` または `tcstombs` でマルチバイト文字列全体を変換する
+* 最小限の例で `rand` / `srand` または `rand_context` を使う
+
+これらは `examples/` 以下の実行可能な例の候補として適しています。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/stdlib.h>
@@ -3429,15 +3368,15 @@ auto main() -> int
 }
 ```
 
-This example shows the general xer style:
+この例は、xer の一般的なスタイルを示しています。
 
-* call the conversion API with an ordinary value
-* check `xer::result` explicitly
-* treat normal failure as part of the ordinary control flow
+* 通常の値を渡して変換 API を呼び出す
+* `xer::result` を明示的に確認する
+* 通常の失敗を通常の制御フローの一部として扱う
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_encoding.md`
@@ -3447,46 +3386,39 @@ This example shows the general xer style:
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/kansuji.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/kansuji.h>`
 
-## Purpose
+## 目的
 
-`<xer/kansuji.h>` provides conversion facilities for practical Japanese integer notation.
+`<xer/kansuji.h>` は、実用的な日本語整数表記の変換機能を提供します。
 
-It supports:
+対応する内容は次のとおりです。
 
-- generation of Kansuji text from `std::uint64_t`
-- parsing of practical Kansuji text into `std::uint64_t`
-- several explicit output styles
-- a limited practical subset of Daiji variants during parsing
+- `std::uint64_t` から漢数字テキストを生成する
+- 実用的な漢数字テキストを `std::uint64_t` へ解析する
+- 複数の明示的な出力スタイル
+- 解析時の限定的で実用的な大字バリアント
 
-The initial API intentionally targets non-negative integers only.
-Negative numbers and fractional numbers are outside the current scope.
-
----
-
-## Main Role
-
-The main role of `<xer/kansuji.h>` is to make it possible to:
-
-- write large integers in Japanese large-unit notation
-- choose a readable output style explicitly
-- parse common Japanese numeric text without requiring callers to manually normalize it
-- report malformed text and overflow through xer's ordinary `xer::result` error model
-
-This facility is especially useful for Japanese text generation, parsing of user-facing text, vertical-writing-oriented notation, and practical Daiji-style output.
+初期 API は意図的に非負整数だけを対象にします。負数と小数は現在の範囲外です。
 
 ---
 
-## Main Entities
+## 主な役割
 
-At minimum, `<xer/kansuji.h>` provides:
+`<xer/kansuji.h>` の主な役割は、次を可能にすることです。
+
+- 大きな整数を日本語の大単位表記で書く
+- 読みやすい出力スタイルを明示的に選ぶ
+- 呼び出し側が手作業で正規化しなくても一般的な日本語数値テキストを解析する
+- 不正なテキストとオーバーフローを xer の通常の `xer::result` エラーモデルで報告する
+
+この機能は、日本語テキスト生成、ユーザー向けテキストの解析、縦書き向け表記、実用的な大字形式の出力で特に有用です。
+
+---
+
+## 主なエンティティ
+
+少なくとも `<xer/kansuji.h>` は次を提供します。
 
 ```cpp
 enum class kansuji_style : std::uint8_t;
@@ -3505,19 +3437,18 @@ auto from_kansuji(std::u8string_view text)
 
 ---
 
-## `kansuji_style` and Style Selectors
+## `kansuji_style` とスタイルセレクタ
 
-The output format is selected through `kansuji_style`.
-Callers normally use the public selector constants directly.
+出力形式は `kansuji_style` で選択します。通常、呼び出し側は公開セレクタ定数を直接使います。
 
-| Selector | Basic Idea | Example for `123456789012` |
+| セレクタ | 基本方針 | `123456789012` の例 |
 |---|---|---|
-| `xer::ja::k10` | Arabic digits with Japanese large units | `1234億5678万9012` |
-| `xer::ja::k十` | Ordinary positional Kansuji | `千二百三十四億五千六百七十八万九千十二` |
-| `xer::ja::k一〇` | Per-digit Kansuji | `一二三四億五六七八万九〇一二` |
-| `xer::ja::k拾` | Practical Daiji positional Kansuji | `壱千弐百参拾四億五千六百七拾八万九千壱拾弐` |
+| `xer::ja::k10` | アラビア数字と日本語大単位 | `1234億5678万9012` |
+| `xer::ja::k十` | 通常の位取り漢数字 | `千二百三十四億五千六百七十八万九千十二` |
+| `xer::ja::k一〇` | 桁ごとの漢数字 | `一二三四億五六七八万九〇一二` |
+| `xer::ja::k拾` | 実用的な大字位取り漢数字 | `壱千弐百参拾四億五千六百七拾八万九千壱拾弐` |
 
-The selector names are intentionally based on how the number `10` is written in each style:
+セレクタ名は、各スタイルで数値 `10` をどのように書くかに基づいています。
 
 ```cpp
 xer::ja::k10
@@ -3535,15 +3466,15 @@ auto to_kansuji(std::uint64_t value, kansuji_style style)
     -> std::u8string;
 ```
 
-### Purpose
+### 目的
 
-`to_kansuji` converts an unsigned 64-bit integer into Japanese numeric text.
+`to_kansuji` は、符号なし 64 ビット整数を日本語数値テキストへ変換します。
 
-### Output Styles
+### 出力スタイル
 
 #### `xer::ja::k10`
 
-`xer::ja::k10` uses Arabic digits inside Japanese four-digit large-unit groups.
+`xer::ja::k10` は、日本語の 4 桁単位グループ内でアラビア数字を使います。
 
 ```cpp
 xer::ja::to_kansuji(UINT64_C(123456789012), xer::ja::k10);
@@ -3552,16 +3483,16 @@ xer::ja::to_kansuji(UINT64_C(123456789012), xer::ja::k10);
 
 #### `xer::ja::k十`
 
-`xer::ja::k十` uses ordinary positional Kansuji.
+`xer::ja::k十` は通常の位取り漢数字を使います。
 
 ```cpp
 xer::ja::to_kansuji(UINT64_C(123456789012), xer::ja::k十);
 // 千二百三十四億五千六百七十八万九千十二
 ```
 
-For `十`, `百`, and `千`, the generated form omits the leading `一`.
+`十`、`百`、`千` では、生成される形式は先頭の `一` を省略します。
 
-| Value | Output |
+| 値 | 出力 |
 |---:|---|
 | `10` | `十` |
 | `100` | `百` |
@@ -3570,17 +3501,16 @@ For `十`, `百`, and `千`, the generated form omits the leading `一`.
 
 #### `xer::ja::k一〇`
 
-`xer::ja::k一〇` writes each decimal digit independently.
-Zero is generated as `〇`.
+`xer::ja::k一〇` は各 10 進数字を独立して書きます。ゼロは `〇` として生成されます。
 
 ```cpp
 xer::ja::to_kansuji(UINT64_C(123456789012), xer::ja::k一〇);
 // 一二三四億五六七八万九〇一二
 ```
 
-This style is suitable for cases where digits are conventionally read one by one, such as years and some vertical-writing contexts.
+このスタイルは、年号や一部の縦書き文脈など、数字を一桁ずつ読む慣習がある場合に適しています。
 
-| Value | Output |
+| 値 | 出力 |
 |---:|---|
 | `10` | `一〇` |
 | `2026` | `二〇二六` |
@@ -3588,25 +3518,25 @@ This style is suitable for cases where digits are conventionally read one by one
 
 #### `xer::ja::k拾`
 
-`xer::ja::k拾` generates a practical Daiji positional style.
+`xer::ja::k拾` は実用的な大字位取りスタイルを生成します。
 
 ```cpp
 xer::ja::to_kansuji(UINT64_C(110), xer::ja::k拾);
 // 壱百壱拾
 ```
 
-The current generation policy uses:
+現在の生成方針では次を使います。
 
 - `壱`
 - `弐`
 - `参`
 - `拾`
 
-Other digits remain in ordinary Kansuji form.
+その他の数字は通常の漢数字のままです。
 
-Unlike `xer::ja::k十`, generated Daiji output does **not** omit `壱` before small units.
+`xer::ja::k十` と異なり、生成される大字出力では小単位の前の `壱` を**省略しません**。
 
-| Value | Output |
+| 値 | 出力 |
 |---:|---|
 | `10` | `壱拾` |
 | `100` | `壱百` |
@@ -3616,11 +3546,11 @@ Unlike `xer::ja::k十`, generated Daiji output does **not** omit `壱` before sm
 
 ---
 
-## Zero Output
+## ゼロの出力
 
-`to_kansuji(0, style)` uses the following style-specific outputs.
+`to_kansuji(0, style)` は、スタイルごとに次の出力を使います。
 
-| Style | Output |
+| スタイル | 出力 |
 |---|---|
 | `xer::ja::k10` | `0` |
 | `xer::ja::k十` | `零` |
@@ -3629,9 +3559,9 @@ Unlike `xer::ja::k十`, generated Daiji output does **not** omit `壱` before sm
 
 ---
 
-## Large-Unit Structure
+## 大単位構造
 
-The current implementation supports these Japanese large units:
+現在の実装は次の日本語大単位をサポートします。
 
 ```text
 万
@@ -3640,20 +3570,19 @@ The current implementation supports these Japanese large units:
 京
 ```
 
-Numbers are divided into four-digit groups.
-For example:
+数値は 4 桁グループに分割されます。たとえば次の数値は、
 
 ```text
 123456789012
 ```
 
-is grouped as:
+次のようにグループ化されます。
 
 ```text
 1234億5678万9012
 ```
 
-Groups whose value is zero are omitted from generated output.
+値がゼロのグループは生成出力から省略されます。
 
 ---
 
@@ -3664,15 +3593,15 @@ auto from_kansuji(std::u8string_view text)
     -> xer::result<std::uint64_t>;
 ```
 
-### Purpose
+### 目的
 
-`from_kansuji` parses practical Japanese integer notation into `std::uint64_t`.
+`from_kansuji` は、実用的な日本語整数表記を `std::uint64_t` へ解析します。
 
-### Accepted Notation Families
+### 受け付ける表記系
 
-The parser accepts the main notation families generated by `to_kansuji`.
+パーサーは、`to_kansuji` が生成する主な表記系を受け付けます。
 
-Examples:
+例:
 
 ```cpp
 xer::ja::from_kansuji(u8"12億34万5");
@@ -3680,19 +3609,19 @@ xer::ja::from_kansuji(u8"一二億三四万五");
 xer::ja::from_kansuji(u8"十二億三十四万五");
 ```
 
-All three examples represent:
+これら 3 つの例はいずれも次を表します。
 
 ```text
 12億0034万0005
 ```
 
-and parse as:
+解析結果は次です。
 
 ```text
 1200340005
 ```
 
-The parser also accepts the whole-zero forms:
+パーサーは全体がゼロである次の形式も受け付けます。
 
 ```text
 0
@@ -3702,11 +3631,11 @@ The parser also accepts the whole-zero forms:
 
 ---
 
-## Accepted Small-Unit Variants
+## 受け付ける小単位バリアント
 
-For ordinary positional Kansuji, parsing accepts both omitted and explicit leading `一` before small units.
+通常の位取り漢数字では、小単位の前の `一` について、省略形と明示形の両方を受け付けます。
 
-| Text | Value |
+| テキスト | 値 |
 |---|---:|
 | `十` | `10` |
 | `一十` | `10` |
@@ -3715,15 +3644,15 @@ For ordinary positional Kansuji, parsing accepts both omitted and explicit leadi
 | `千` | `1000` |
 | `一千` | `1000` |
 
-Generation does not use the unnatural `一十`, `一百`, or `一千` forms for `xer::ja::k十`, but parsing accepts them.
+`xer::ja::k十` の生成では不自然な `一十`、`一百`、`一千` は使いませんが、解析では受け付けます。
 
 ---
 
-## Daiji Parsing
+## 大字の解析
 
-`from_kansuji` accepts a practical subset of Daiji and normalizes it internally.
+`from_kansuji` は実用的な大字の一部を受け付け、内部で正規化します。
 
-| Input | Ordinary Form |
+| 入力 | 通常形 |
 |---|---|
 | `壱` | `一` |
 | `弐` | `二` |
@@ -3733,7 +3662,7 @@ Generation does not use the unnatural `一十`, `一百`, or `一千` forms for 
 | `阡` | `千` |
 | `萬` | `万` |
 
-Examples:
+例:
 
 ```text
 拾
@@ -3744,9 +3673,9 @@ Examples:
 壱阡壱佰壱拾
 ```
 
-These are accepted as practical Daiji variants.
+これらは実用的な大字バリアントとして受け付けられます。
 
-Rare Daiji digit forms such as the following are not accepted in the current implementation:
+現在の実装では、次のようなまれな大字数字は受け付けません。
 
 ```text
 肆
@@ -3759,25 +3688,25 @@ Rare Daiji digit forms such as the following are not accepted in the current imp
 
 ---
 
-## Invalid Input
+## 不正な入力
 
-The parser reports syntactically invalid text as:
+構文的に不正なテキストは次として報告されます。
 
 ```cpp
 error_t::invalid_argument
 ```
 
-This includes at least:
+これには少なくとも次が含まれます。
 
-- empty text
-- unsupported characters
-- unsupported rare Daiji digits
-- a large unit without a preceding numeric group
-- large units in an invalid order
-- malformed positional Kansuji
-- explicit zero-padded large-unit groups
+- 空テキスト
+- 未対応文字
+- 未対応のまれな大字数字
+- 前に数値グループを持たない大単位
+- 不正な順序の大単位
+- 壊れた位取り漢数字
+- 明示的にゼロ埋めされた大単位グループ
 
-Examples of invalid input:
+不正な入力例:
 
 ```text
 万
@@ -3793,15 +3722,15 @@ Examples of invalid input:
 
 ---
 
-## Overflow
+## オーバーフロー
 
-If the parsed value exceeds `std::uint64_t`, the parser reports:
+解析された値が `std::uint64_t` を超える場合、パーサーは次を報告します。
 
 ```cpp
 error_t::overflow_error
 ```
 
-Example:
+例:
 
 ```cpp
 xer::ja::from_kansuji(u8"1844京6744兆737億955万1616");
@@ -3810,124 +3739,117 @@ xer::ja::from_kansuji(u8"1844京6744兆737億955万1616");
 
 ---
 
-## Error Model
+## エラーモデル
 
-`from_kansuji` follows xer's ordinary failure model.
+`from_kansuji` は xer の通常の失敗モデルに従います。
 
 ```cpp
 const auto parsed = xer::ja::from_kansuji(u8"十二億三十四万五");
 if (!parsed) {
-    // parsed.error().code is available here.
+    // ここで parsed.error().code を参照できます。
 }
 ```
 
-No exception is used for ordinary parse failure.
+通常の解析失敗に例外は使いません。
 
 ---
 
-## Deferred Items and Limitations
+## 後回しにしている項目と制限
 
-The following are intentionally outside the initial implementation.
+次の項目は初期実装では意図的に範囲外です。
 
-- negative numbers
-- fractional numbers
-- exhaustive Daiji coverage
-- rare Daiji digits such as `肆`, `伍`, `陸`, `漆`, `捌`, and `玖`
-- broader historical orthography
-- free-form natural-language interpretation of Japanese number expressions
+- 負数
+- 小数
+- 網羅的な大字対応
+- `肆`、`伍`、`陸`、`漆`、`捌`、`玖` などのまれな大字数字
+- より広い歴史的表記
+- 日本語の数値表現に対する自由形式の自然言語解釈
 
 ---
 
-## Relationship to Other Headers
+## 他ヘッダーとの関係
 
-`<xer/kansuji.h>` is related to:
+`<xer/kansuji.h>` は次と関連します。
 
 - `<xer/error.h>`
-- `<xer/string.h>` in the broader sense of Japanese text processing
+- 日本語テキスト処理という広い意味での `<xer/string.h>`
 - `policy_kansuji.md`
 - `policy_encoding.md`
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/mecab.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/mecab.h>`
 
-## Purpose
+## 目的
 
-`<xer/mecab.h>` provides xer's initial MeCab-based Japanese text analysis API.
+`<xer/mecab.h>` は、xer における初期の MeCab ベース日本語テキスト解析 API を提供します。
 
-The current implementation focuses on the lowest-level public foundation:
+現在の実装は、もっとも低レベルな公開基盤に重点を置いています。
 
-- invoking MeCab as a child process
-- sending UTF-8 source text to MeCab
-- receiving UTF-8 analysis output
-- returning morphological token results
-- preserving raw feature text
-- providing split feature fields for common MeCab/IPADIC-style columns
-- deriving practical bunsetsu-like phrase ranges and symbol ranges
-- converting MeCab-derived readings to kana text
-- producing kana wakachi-gaki text using the phrase ranges
-- producing romaji wakachi-gaki text by combining kana conversion and `strtoctrans`
-- producing Japanese braille wakachi-gaki text by combining phrase ranges, MeCab-derived kana readings, Japanese punctuation handling, ASCII fragment conversion, and `<xer/braille.h>`
-- producing information-processing braille variants for ASCII fragments
-- parsing source text and converting it directly to braille through convenience wrappers
+- MeCab を子プロセスとして起動する
+- UTF-8 の入力テキストを MeCab に渡す
+- UTF-8 の解析出力を受け取る
+- 形態素トークンの結果を返す
+- 生の feature テキストを保持する
+- 一般的な MeCab/IPADIC 形式の列を分割済み feature フィールドとして提供する
+- 実用的な文節風の句範囲と記号範囲を導出する
+- MeCab 由来の読みを仮名テキストへ変換する
+- 句範囲を使って仮名分かち書きテキストを生成する
+- 仮名変換と `strtoctrans` を組み合わせてローマ字分かち書きテキストを生成する
+- 句範囲、MeCab 由来の仮名読み、日本語句読点処理、ASCII 断片変換、`<xer/braille.h>` を組み合わせて日本語点字分かち書きテキストを生成する
+- ASCII 断片向けに情報処理点字の変種を生成する
+- 便宜ラッパーにより、入力テキストを解析して直接点字へ変換する
 
-Higher-level Japanese text processing such as ruby generation is planned to build on top of this analysis layer. Braille-oriented wakachi-gaki conversion now has an initial helper built on the kana layer.
-
----
-
-## Main Role
-
-The main role of `<xer/mecab.h>` at the current stage is to expose MeCab's morphological analysis result in a form that xer users can inspect and reuse directly.
-
-The raw feature string is preserved, and xer also splits it into `mecab_features` so that common items such as part of speech and reading can be accessed without reparsing the comma-separated feature string in user code.
-
-On top of the token layer, xer provides `mecab_split_phrases` to derive practical bunsetsu-like ranges and separate symbol ranges. MeCab itself does not return bunsetsu boundaries, so this layer is an xer rule-based approximation.
-
-The kana layer uses `mecab_features::読み` where available and provides `mecab_to_kana` and `mecab_kana_wakati` as practical reading-based conversion helpers.
-
-The braille layer builds on the token, phrase, kana, punctuation, and ASCII-fragment conversion layers. It provides `mecab_braille_wakati` as a practical Japanese braille wakachi-gaki helper for MeCab token sequences. Unlike `mecab_kana_wakati`, it handles symbol ranges directly so that Japanese punctuation can be attached more naturally in braille output. It also converts ASCII alphanumeric-and-punctuation fragments from the original surface text rather than from MeCab readings.
-
-The information-processing braille variant is `mecab_ip_braille_wakati`. It uses the same Japanese reading and spacing rules, but converts ASCII fragments through information-processing braille.
-
-For callers that want to pass source text directly, `mecab_braille_translate` and `mecab_ip_braille_translate` combine `mecab_parse` with the corresponding braille wakachi-gaki helper.
-
-The romaji layer builds on the kana layer and `strtoctrans`. It provides `mecab_romaji_wakati` as a practical romaji wakachi-gaki helper. Particle reading correction is performed before romanization, so particles such as `は`, `へ`, and `を` can become `wa`, `e`, and `o` in the final output.
-
-xer does not link against the MeCab library.
-Instead, it executes the `mecab` command as a child process using xer's process facilities.
-
-This keeps the integration compatible with xer's header-only model while making MeCab-derived analysis data available through ordinary `xer::result` APIs.
+ルビ生成などのより高レベルな日本語テキスト処理は、この解析層の上に構築する予定です。点字向け分かち書き変換については、仮名層の上に初期ヘルパーが用意されています。
 
 ---
 
-## Environment Assumption
+## 主な役割
 
-The current implementation assumes UTF-8 MeCab I/O.
+現段階の `<xer/mecab.h>` の主な役割は、MeCab の形態素解析結果を xer ユーザーが直接確認し再利用できる形で公開することです。
 
-The project has checked the ordinary target environments used for this feature:
+生の feature 文字列は保持されます。また、xer はそれを `mecab_features` に分割するため、品詞や読みなどの一般的な項目を、ユーザーコードでカンマ区切り feature 文字列を再解析せずに参照できます。
 
-- Ubuntu with MeCab installed through the usual package flow
-- MSYS2 UCRT64 with the ordinary MeCab packages
+トークン層の上では、xer は `mecab_split_phrases` により、実用的な文節風の範囲と独立した記号範囲を導出します。MeCab 自体は文節境界を返さないため、この層は xer の規則ベース近似です。
 
-In both cases, `mecab -D` reported UTF-8 dictionary encoding during design verification.
+仮名層は、利用可能な場合には `mecab_features::読み` を使用し、読みベースの実用的な変換ヘルパーとして `mecab_to_kana` と `mecab_kana_wakati` を提供します。
 
-xer therefore:
+点字層は、トークン、句、仮名、句読点、ASCII 断片変換の各層の上に構築されます。`mecab_braille_wakati` は、MeCab トークン列向けの実用的な日本語点字分かち書きヘルパーです。`mecab_kana_wakati` と異なり、記号範囲を直接扱うため、日本語句読点を点字出力により自然に付けられます。また、ASCII 英数字・句読点断片は MeCab の読みではなく、元の表層形から変換します。
 
-- sends UTF-8 input text to MeCab
-- validates MeCab output as UTF-8
-- does not perform character-set conversion around the MeCab process
+情報処理点字版は `mecab_ip_braille_wakati` です。同じ日本語読み規則と空白規則を使いますが、ASCII 断片を情報処理点字として変換します。
+
+入力テキストを直接渡したい呼び出し側のために、`mecab_braille_translate` と `mecab_ip_braille_translate` は、`mecab_parse` と対応する点字分かち書きヘルパーを組み合わせます。
+
+ローマ字層は、仮名層と `strtoctrans` の上に構築されます。`mecab_romaji_wakati` は、実用的なローマ字分かち書きヘルパーです。ローマ字化の前に助詞読み補正を行うため、`は`、`へ`、`を` などの助詞は最終出力で `wa`、`e`、`o` になります。
+
+xer は MeCab ライブラリへリンクしません。代わりに、xer のプロセス機能を使って `mecab` コマンドを子プロセスとして実行します。
+
+これにより、MeCab 由来の解析データを通常の `xer::result` API で利用可能にしつつ、xer のヘッダーオンリーモデルと互換性のある統合にしています。
 
 ---
 
-## Main Entities
+## 環境上の前提
 
-`<xer/mecab.h>` currently provides:
+現在の実装は、MeCab の入出力が UTF-8 であることを前提にしています。
+
+この機能で使う通常の対象環境として、プロジェクトでは次を確認しています。
+
+- 通常のパッケージ導入手順で MeCab をインストールした Ubuntu
+- 通常の MeCab パッケージを使用する MSYS2 UCRT64
+
+どちらの場合も、設計確認時には `mecab -D` が辞書エンコーディングとして UTF-8 を報告しました。
+
+そのため、xer は次のように動作します。
+
+- UTF-8 入力テキストを MeCab に送る
+- MeCab 出力を UTF-8 として検証する
+- MeCab プロセスの前後で文字セット変換を行わない
+
+---
+
+## 主なエンティティ
+
+`<xer/mecab.h>` は現在、次を提供します。
 
 ```cpp
 struct mecab_options {
@@ -4046,18 +3968,18 @@ struct mecab_options {
 };
 ```
 
-`mecab_options` controls how xer locates the MeCab executable.
+`mecab_options` は、xer が MeCab 実行ファイルをどのように見つけるかを制御します。
 
 ### `program`
 
-`program` specifies the MeCab executable path explicitly.
+`program` は MeCab 実行ファイルのパスを明示的に指定します。
 
-If `program` is empty, xer searches the `PATH` environment variable for the platform's ordinary executable name:
+`program` が空の場合、xer は `PATH` 環境変数から、プラットフォームで通常使われる実行ファイル名を検索します。
 
 - Windows: `mecab.exe`
-- POSIX-like environments: `mecab`
+- POSIX 風環境: `mecab`
 
-Example:
+例:
 
 ```cpp
 xer::ja::mecab_options options {
@@ -4065,7 +3987,7 @@ xer::ja::mecab_options options {
 };
 ```
 
-In ordinary Ubuntu and MSYS2 UCRT64 installations, callers will usually leave this empty.
+通常の Ubuntu や MSYS2 UCRT64 のインストールでは、呼び出し側は普通これを空のままにします。
 
 ---
 
@@ -4086,33 +4008,29 @@ struct mecab_features {
 };
 ```
 
-`mecab_features` stores the split form of MeCab's raw feature string.
+`mecab_features` は、MeCab の生 feature 文字列を分割した形で保持します。
 
-The named members follow the ordinary MeCab/IPADIC-style feature order:
+名前付きメンバーは、通常の MeCab/IPADIC 形式の feature 順序に従います。
 
 | Member | Source field | Meaning |
 |---|---:|---|
-| `品詞` | 0 | part of speech |
-| `品詞細分類1` | 1 | part-of-speech subclass 1 |
-| `品詞細分類2` | 2 | part-of-speech subclass 2 |
-| `品詞細分類3` | 3 | part-of-speech subclass 3 |
-| `活用型` | 4 | conjugation type |
-| `活用形` | 5 | conjugation form |
-| `原形` | 6 | base form |
-| `読み` | 7 | reading |
-| `発音` | 8 | pronunciation |
+| `品詞` | 0 | 品詞 |
+| `品詞細分類1` | 1 | 品詞細分類1 |
+| `品詞細分類2` | 2 | 品詞細分類2 |
+| `品詞細分類3` | 3 | 品詞細分類3 |
+| `活用型` | 4 | 活用型 |
+| `活用形` | 5 | 活用形 |
+| `原形` | 6 | 原形 |
+| `読み` | 7 | 読み |
+| `発音` | 8 | 発音 |
 
-`項目` stores all comma-separated fields in order, including dictionary-specific fields that do not have named members.
-If a field is missing, the corresponding named member is an empty string.
+`項目` は、名前付きメンバーを持たない辞書固有フィールドを含め、すべてのカンマ区切りフィールドを順序どおりに保持します。フィールドが存在しない場合、対応する名前付きメンバーは空文字列になります。
 
-For practical compatibility with dictionaries whose feature layout differs from IPADIC-style order, xer may supplement `読み` and `発音` by scanning the split `項目` fields for kana-only values when the direct IPADIC-style field is missing, `*`, or not kana-like. This is a convenience for higher-level helpers such as kana and romaji wakachi-gaki, not a complete dictionary-normalization layer.
+IPADIC 形式の順序と異なる feature レイアウトを持つ辞書との実用的な互換性のため、直接の IPADIC 形式フィールドが存在しない場合、`*` である場合、または仮名らしくない場合、xer は分割済みの `項目` フィールドを走査して仮名のみの値を探し、`読み` と `発音` を補うことがあります。これは仮名分かち書きやローマ字分かち書きなどの高レベルヘルパー向けの便宜機能であり、完全な辞書正規化層ではありません。
 
-The member names intentionally use Japanese identifiers because they correspond directly to MeCab feature terminology.
-xer does not restrict identifiers to ASCII.
-Users are responsible for using a source-code environment that can handle these identifiers when they access the members directly.
+メンバー名は MeCab feature 用語に直接対応するため、意図的に日本語識別子を使っています。xer は識別子を ASCII に制限しません。これらのメンバーを直接参照する場合、利用者はその識別子を扱えるソースコード環境を使う必要があります。
 
-`mecab_features` owns its strings.
-It does not store `std::u8string_view` into `mecab_token::feature`, so `mecab_token` remains safely copyable as a `std::vector` element.
+`mecab_features` は文字列を所有します。`mecab_token::feature` への `std::u8string_view` は保存しないため、`mecab_token` は `std::vector` 要素として安全にコピー可能です。
 
 ---
 
@@ -4126,25 +4044,23 @@ struct mecab_token {
 };
 ```
 
-`mecab_token` represents one token returned by MeCab.
+`mecab_token` は、MeCab が返す 1 個のトークンを表します。
 
 ### `surface`
 
-`surface` is the surface text of the token.
+`surface` はトークンの表層テキストです。
 
 ### `feature`
 
-`feature` is the raw MeCab feature string emitted by MeCab's `%H` formatter.
+`feature` は、MeCab の `%H` フォーマッタが出力する生の MeCab feature 文字列です。
 
-Its exact contents depend on the installed MeCab dictionary.
-xer preserves it as raw text for debugging and for users that need dictionary-specific data.
+正確な内容は、インストールされている MeCab 辞書に依存します。xer は、デバッグ用途や辞書固有データを必要とする利用者のために、生テキストとしてこれを保持します。
 
 ### `features`
 
-`features` is the parsed feature data derived from `feature`.
+`features` は、`feature` から導出された解析済み feature データです。
 
-It is intended for common Japanese-processing operations such as inspecting part of speech, obtaining readings, or checking conjugation forms without reparsing the raw feature string.
-
+生 feature 文字列を再解析せずに品詞を調べる、読みを取得する、活用形を確認する、といった一般的な日本語処理向けに用意されています。
 
 ---
 
@@ -4157,14 +4073,14 @@ enum class mecab_phrase_kind {
 };
 ```
 
-`mecab_phrase_kind` identifies the kind of range returned by `mecab_split_phrases`.
+`mecab_phrase_kind` は、`mecab_split_phrases` が返す範囲の種類を識別します。
 
 | Value | Meaning |
 |---|---|
-| `bunsetsu` | A bunsetsu-like phrase derived from MeCab tokens |
-| `symbol` | A symbol token or consecutive symbol-token range |
+| `bunsetsu` | MeCab トークンから導出された文節風の句 |
+| `symbol` | 記号トークン、または連続する記号トークンの範囲 |
 
-`symbol` is intentionally separated from `bunsetsu`. This makes later processing easier for kana spacing, romanization, and braille-oriented conversion, where punctuation and other symbols often need their own handling.
+`symbol` は意図的に `bunsetsu` から分離されています。これにより、仮名の空白付け、ローマ字化、点字向け変換など、句読点やその他の記号を個別に扱う必要がある後続処理が容易になります。
 
 ---
 
@@ -4178,11 +4094,11 @@ struct mecab_phrase {
 };
 ```
 
-`mecab_phrase` represents a subrange of the original `mecab_token` sequence.
+`mecab_phrase` は、元の `mecab_token` 列の部分範囲を表します。
 
-The range does not own or copy token text. `index` is the first token index in the original token sequence, and `count` is the number of tokens in the range.
+この範囲はトークン文字列を所有せず、コピーもしません。`index` は元のトークン列における最初のトークンのインデックスであり、`count` は範囲内のトークン数です。
 
-This representation is intentionally simple so that callers can reuse the original token objects, inspect their features, and join surfaces or readings in the way required by the next processing step.
+この表現は意図的に単純です。呼び出し側は元のトークンオブジェクトを再利用し、feature を調べ、次の処理段階で必要な形で表層形や読みを結合できます。
 
 ---
 
@@ -4195,33 +4111,33 @@ auto mecab_split_phrases(
     -> std::vector<mecab_phrase>;
 ```
 
-### Purpose
+### 目的
 
-`mecab_split_phrases` splits a MeCab token sequence into practical bunsetsu-like phrase ranges and symbol ranges.
+`mecab_split_phrases` は、MeCab トークン列を実用的な文節風の句範囲と記号範囲に分割します。
 
-MeCab itself does not provide bunsetsu segmentation. xer therefore derives approximate phrase boundaries from the split feature fields in `mecab_token::features`.
+MeCab 自体は文節分割を提供しません。そのため、xer は `mecab_token::features` の分割済み feature フィールドから近似的な句境界を導出します。
 
-### Basic Rules
+### 基本規則
 
-The current rule set is practical rather than linguistically complete.
+現在の規則セットは、言語学的に完全なものではなく実用重視です。
 
-- Tokens whose `features.品詞` is `記号` are emitted as `mecab_phrase_kind::symbol`
-- Consecutive symbols are grouped into one `symbol` range
-- `助詞`, `助動詞`, suffix-like tokens, and non-independent tokens attach to the preceding `bunsetsu`
-- `接頭詞` attaches to the following token by keeping the next token in the same `bunsetsu`
-- Consecutive `名詞` tokens remain in the same `bunsetsu` as a practical compound-word rule
-- A `動詞` or `形容詞` whose `活用形` starts with `連用` remains with the following independent word
-- Other independent words usually begin a new `bunsetsu`
+- `features.品詞` が `記号` であるトークンは `mecab_phrase_kind::symbol` として出力される
+- 連続する記号は 1 つの `symbol` 範囲にまとめられる
+- `助詞`、`助動詞`、接尾辞風トークン、非自立トークンは直前の `bunsetsu` に付く
+- `接頭詞` は、次のトークンを同じ `bunsetsu` に保つことで後続トークンに付く
+- 連続する `名詞` トークンは、実用的な複合語規則として同じ `bunsetsu` に残る
+- `活用形` が `連用` で始まる `動詞` または `形容詞` は、後続の自立語と同じ範囲に残る
+- その他の自立語は通常、新しい `bunsetsu` を開始する
 
-### Example
+### 例
 
-For a token sequence corresponding to:
+次のテキストに対応するトークン列がある場合:
 
 ```text
 私は明日、学校へ行きます。
 ```
 
-`mecab_split_phrases` is intended to produce ranges equivalent to:
+`mecab_split_phrases` は、次と同等の範囲を生成することを意図しています。
 
 ```text
 bunsetsu: 私 は
@@ -4232,17 +4148,17 @@ bunsetsu: 行き ます
 symbol: 。
 ```
 
-Actual token surfaces and feature values still depend on the installed MeCab dictionary.
+実際のトークン表層形と feature 値は、インストールされている MeCab 辞書に依存します。
 
-### Empty Input
+### 空入力
 
-An empty token span returns an empty phrase vector.
+空のトークンスパンは、空の句ベクターを返します。
 
-### Error Model
+### エラーモデル
 
-`mecab_split_phrases` does not invoke MeCab and does not allocate external resources. It returns a plain `std::vector<mecab_phrase>` instead of `xer::result`.
+`mecab_split_phrases` は MeCab を起動せず、外部資源も確保しません。`xer::result` ではなく通常の `std::vector<mecab_phrase>` を返します。
 
-The function assumes that `tokens` was produced by `mecab_parse` or otherwise contains compatible feature data. If feature data is missing or dictionary-specific, the result may be less natural but still follows the documented rules.
+この関数は、`tokens` が `mecab_parse` によって生成されたか、互換性のある feature データを含むことを前提とします。feature データが欠けていたり辞書固有であったりする場合、結果は自然さに欠ける可能性がありますが、それでも文書化された規則に従います。
 
 ---
 
@@ -4256,15 +4172,15 @@ enum class mecab_kana_kind {
 };
 ```
 
-`mecab_kana_kind` controls how MeCab-derived readings are written as kana.
+`mecab_kana_kind` は、MeCab 由来の読みをどの仮名で書くかを制御します。
 
 | Value | Meaning |
 |---|---|
-| `mixed` | Use hiragana by default, while preserving katakana-like source tokens as katakana |
-| `hiragana` | Convert readings to hiragana |
-| `katakana` | Convert readings to katakana |
+| `mixed` | 既定ではひらがなを使い、カタカナ風の入力トークンはカタカナとして保持する |
+| `hiragana` | 読みをひらがなへ変換する |
+| `katakana` | 読みをカタカナへ変換する |
 
-`mixed` is the default because it keeps ordinary Japanese readings readable while preserving common katakana words such as `コンピューター`.
+`mixed` が既定値です。通常の日本語読みを読みやすく保ちながら、`コンピューター` のような一般的なカタカナ語を保持できるためです。
 
 ---
 
@@ -4277,17 +4193,17 @@ struct mecab_kana_options {
 };
 ```
 
-`mecab_kana_options` controls reading-based kana conversion.
+`mecab_kana_options` は、読みベースの仮名変換を制御します。
 
 ### `kind`
 
-`kind` selects the kana output style.
+`kind` は仮名出力スタイルを選択します。
 
-The default is `mecab_kana_kind::mixed`.
+既定値は `mecab_kana_kind::mixed` です。
 
 ### `particle_reading`
 
-When `particle_reading` is `true`, xer uses pronunciation-oriented readings for common particles:
+`particle_reading` が `true` の場合、xer は一般的な助詞について発音寄りの読みを使います。
 
 | Surface | Condition | Hiragana output | Katakana output |
 |---|---|---|---|
@@ -4295,9 +4211,9 @@ When `particle_reading` is `true`, xer uses pronunciation-oriented readings for 
 | `へ` | `features.品詞 == u8"助詞"` | `え` | `エ` |
 | `を` | always | `お` | `オ` |
 
-The default is `true` because kana wakachi-gaki, romanization, and braille-oriented processing usually need pronunciation-oriented particle readings.
+仮名分かち書き、ローマ字化、点字向け処理では通常、発音寄りの助詞読みが必要になるため、既定値は `true` です。
 
-When `particle_reading` is `false`, the function uses MeCab's reading field, or the token surface when the reading is unavailable.
+`particle_reading` が `false` の場合、この関数は MeCab の読みフィールドを使い、読みが利用できない場合はトークンの表層形を使います。
 
 ---
 
@@ -4311,29 +4227,29 @@ auto mecab_to_kana(
     -> std::u8string;
 ```
 
-### Purpose
+### 目的
 
-`mecab_to_kana` converts a MeCab token sequence to kana text.
+`mecab_to_kana` は、MeCab トークン列を仮名テキストへ変換します。
 
-Each token is converted independently. The function uses `mecab_features::読み` when it is available and not `*`; otherwise, it falls back to `mecab_token::surface`.
+各トークンは独立して変換されます。`mecab_features::読み` が利用可能で、かつ `*` でない場合はそれを使います。それ以外の場合は `mecab_token::surface` にフォールバックします。
 
-This function does not insert spaces between tokens. It is useful when the caller already has the desired token or phrase range.
+この関数はトークン間に空白を挿入しません。呼び出し側が目的のトークン範囲や句範囲をすでに持っている場合に便利です。
 
-### Example
+### 例
 
-For tokens corresponding to:
+次のテキストに対応するトークンの場合:
 
 ```text
 私はコンピューターを使います。
 ```
 
-The default `mixed` mode is intended to produce kana text close to:
+既定の `mixed` モードでは、次に近い仮名テキストを生成することを意図しています。
 
 ```text
 わたしわコンピューターおつかいます。
 ```
 
-Actual readings depend on the installed MeCab dictionary.
+実際の読みは、インストールされている MeCab 辞書に依存します。
 
 ---
 
@@ -4347,42 +4263,41 @@ auto mecab_kana_wakati(
     -> std::u8string;
 ```
 
-### Purpose
+### 目的
 
-`mecab_kana_wakati` converts a MeCab token sequence to kana wakachi-gaki text.
+`mecab_kana_wakati` は、MeCab トークン列を仮名分かち書きテキストへ変換します。
 
-The function first calls `mecab_split_phrases`, then inserts one ASCII space between the returned phrase ranges. Symbols are kept as independent ranges, so punctuation and other symbols are also separated by spaces in this low-level helper.
+この関数はまず `mecab_split_phrases` を呼び出し、返された句範囲の間に ASCII 空白を 1 つ挿入します。記号は独立した範囲として保持されるため、この低レベルヘルパーでは句読点やその他の記号も空白で分離されます。
 
-For example, a token sequence corresponding to:
+たとえば、次のテキストに対応するトークン列がある場合:
 
 ```text
 私はコンピューターを使います。
 ```
 
-is intended to produce output close to:
+次に近い出力を生成することを意図しています。
 
 ```text
 わたしわ コンピューターお つかいます 。
 ```
 
-With `mecab_kana_kind::hiragana`, katakana-like source words are also converted to hiragana:
+`mecab_kana_kind::hiragana` では、カタカナ風の入力語もひらがなへ変換されます。
 
 ```text
 わたしわ こんぴゅーたーお つかいます 。
 ```
 
-With `mecab_kana_kind::katakana`, the output is katakana-oriented:
+`mecab_kana_kind::katakana` では、出力はカタカナ寄りになります。
 
 ```text
 ワタシワ コンピューターオ ツカイマス 。
 ```
 
-### Error Model
+### エラーモデル
 
-`mecab_kana_wakati` does not invoke MeCab and does not return `xer::result`.
-It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
+`mecab_kana_wakati` は MeCab を起動せず、`xer::result` も返しません。入力トークン列がすでに `mecab_parse` または互換性のある同等の情報源によって生成されていることを前提とします。
 
-Display-oriented spacing that attaches punctuation to the previous phrase can be layered on top later. The current helper intentionally keeps symbols independent because later romanization and braille-oriented processing often need that separation.
+句読点を前の句へ付ける表示向けの空白処理は、後でこの上に重ねられます。現在のヘルパーは、後続のローマ字化や点字向け処理でその分離が必要になることが多いため、意図的に記号を独立させています。
 
 ---
 
@@ -4396,52 +4311,52 @@ auto mecab_braille_wakati(
     -> xer::result<std::u8string>;
 ```
 
-### Purpose
+### 目的
 
-`mecab_braille_wakati` converts a MeCab token sequence to Japanese braille wakachi-gaki text.
+`mecab_braille_wakati` は、MeCab トークン列を日本語点字分かち書きテキストへ変換します。
 
-The function uses `mecab_split_phrases` to process bunsetsu-like ranges and symbol ranges separately.
+この関数は `mecab_split_phrases` を使い、文節風の範囲と記号範囲を分けて処理します。
 
-For ordinary bunsetsu-like ranges, it normally calls `mecab_to_kana` with the same kana options and then converts the resulting kana text through `xer::ja::kana_text_to_braille`.
+通常の文節風の範囲では、普通は同じ仮名オプションで `mecab_to_kana` を呼び出し、その結果の仮名テキストを `xer::ja::kana_text_to_braille` で変換します。
 
-When a token surface is an ASCII alphanumeric-and-punctuation fragment, the function converts that fragment from the original surface text through `xer::braille::alnum_punct_text_to_braille` instead of using MeCab readings. This allows fragments such as `ABC123` or `UTF-8` to keep their visible ASCII form in braille output.
+トークン表層形が ASCII 英数字・句読点断片である場合、この関数は MeCab の読みを使わず、元の表層テキストを `xer::braille::alnum_punct_text_to_braille` で変換します。これにより、`ABC123` や `UTF-8` のような断片が、点字出力でも可視の ASCII 形を保てます。
 
-For symbol ranges, it converts each symbol directly through the Japanese punctuation conversion layer used by `<xer/braille.h>`. This avoids inserting unnecessary spaces before punctuation such as `。`, `、`, `」`, or `）`.
+記号範囲では、各記号を `<xer/braille.h>` が使う日本語句読点変換層で直接変換します。これにより、`。`、`、`、`」`、`）` などの句読点の前に不要な空白を挿入することを避けます。
 
-Spacing is controlled as follows:
+空白は次のように制御されます。
 
-- ordinary bunsetsu-like ranges are separated by ASCII spaces
-- opening symbols such as `「`, `『`, `（`, and `(` are attached to the following phrase after any required preceding space
-- closing symbols, sentence-ending symbols, pause symbols, and leaders request a following space
-- when a particle or auxiliary-like token follows a closing quotation or closing bracket, it remains attached to the same braille phrase instead of forcing an extra space
-- ASCII-symbol-only token ranges are treated as braille symbol ranges so that tokenized fragments such as `+`, `=`, or `&&` can be handled by the ASCII braille conversion path
-- symbol marks themselves are emitted as braille punctuation, not as surface text
+- 通常の文節風範囲は ASCII 空白で区切られる
+- `「`、`『`、`（`、`(` などの開き記号は、必要な前置空白のあと、後続の句に付く
+- 閉じ記号、文末記号、読点、リーダー類は、後続空白を要求する
+- 助詞または助動詞風トークンが閉じ引用符や閉じ括弧の後に続く場合、余分な空白を強制せず同じ点字句に付く
+- ASCII 記号のみのトークン範囲は、`+`、`=`、`&&` などのトークン化された断片を ASCII 点字変換経路で扱えるように、点字記号範囲として扱われる
+- 記号自体は表層テキストではなく点字句読点として出力される
 
-For example, a token sequence corresponding to:
+たとえば、次のテキストに対応するトークン列がある場合:
 
 ```text
 私は猫です。
 ```
 
-is intended to produce braille wakachi-gaki close to the braille representation of:
+次の仮名表現に相当する点字分かち書きに近い出力を生成することを意図しています。
 
 ```text
 わたしわ ねこです。
 ```
 
-without an extra space before the Japanese full stop.
+このとき、日本語句点の前に余分な空白は入りません。
 
-For text such as quoted speech followed by a particle, the braille-oriented spacing layer is intended to avoid an unnecessary break immediately after the closing quotation mark, for example around the surface pattern `」と`.
+引用発話のあとに助詞が続くようなテキストでは、点字向け空白層は閉じ引用符の直後に不要な切れ目を作らないことを意図しています。たとえば、表層パターン `」と` の周辺が該当します。
 
-The exact reading and phrase boundaries depend on the installed MeCab dictionary.
+正確な読みと句境界は、インストールされている MeCab 辞書に依存します。
 
-### Error Model
+### エラーモデル
 
-`mecab_braille_wakati` returns `xer::result<std::u8string>` because the braille conversion layer can fail.
+`mecab_braille_wakati` は、点字変換層が失敗する可能性があるため `xer::result<std::u8string>` を返します。
 
-Errors from `xer::ja::kana_text_to_braille`, `xer::braille::alnum_punct_text_to_braille`, and the Japanese punctuation conversion layer are propagated. For example, if the token sequence contains a symbol that is not supported as Japanese braille punctuation, or an ASCII fragment contains punctuation that is not supported by ordinary English braille punctuation conversion, the function returns `error_t::invalid_argument`.
+`xer::ja::kana_text_to_braille`、`xer::braille::alnum_punct_text_to_braille`、日本語句読点変換層からのエラーは伝播されます。たとえば、トークン列が日本語点字句読点として対応していない記号を含む場合、または ASCII 断片が通常の英語点字句読点変換で対応していない句読点を含む場合、この関数は `error_t::invalid_argument` を返します。
 
-`mecab_braille_wakati` does not invoke MeCab. It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
+`mecab_braille_wakati` は MeCab を起動しません。入力トークン列がすでに `mecab_parse` または互換性のある同等の情報源によって生成されていることを前提とします。
 
 ---
 
@@ -4455,21 +4370,19 @@ auto mecab_ip_braille_wakati(
     -> xer::result<std::u8string>;
 ```
 
-### Purpose
+### 目的
 
-`mecab_ip_braille_wakati` is the information-processing braille variant of `mecab_braille_wakati`.
+`mecab_ip_braille_wakati` は、`mecab_braille_wakati` の情報処理点字版です。
 
-Japanese tokens are converted with the same MeCab reading, kana conversion, punctuation, and spacing rules as `mecab_braille_wakati`.
-ASCII alphanumeric-and-punctuation fragments are converted from the original surface text through `xer::braille::ip_alnum_punct_text_to_braille`.
+日本語トークンは、`mecab_braille_wakati` と同じ MeCab 読み、仮名変換、句読点、空白規則で変換されます。ASCII 英数字・句読点断片は、元の表層テキストから `xer::braille::ip_alnum_punct_text_to_braille` で変換されます。
 
-This variant is intended for mixed Japanese text that contains programming-language-like ASCII fragments, such as `C++23`, `UTF-8`, `x>=10`, or similar text where information-processing braille punctuation is more appropriate than ordinary English braille punctuation.
+この変種は、`C++23`、`UTF-8`、`x>=10` など、通常の英語点字句読点より情報処理点字句読点の方が適切な、プログラミング言語風 ASCII 断片を含む混在日本語テキストを意図しています。
 
-### Error Model
+### エラーモデル
 
-`mecab_ip_braille_wakati` returns `xer::result<std::u8string>`.
+`mecab_ip_braille_wakati` は `xer::result<std::u8string>` を返します。
 
-Errors from kana conversion, Japanese punctuation conversion, and information-processing ASCII conversion are propagated.
-It does not invoke MeCab and assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
+仮名変換、日本語句読点変換、情報処理 ASCII 変換からのエラーは伝播されます。この関数は MeCab を起動せず、入力トークン列がすでに `mecab_parse` または互換性のある同等の情報源によって生成されていることを前提とします。
 
 ---
 
@@ -4482,15 +4395,15 @@ struct mecab_romaji_options {
 };
 ```
 
-`mecab_romaji_options` controls romaji wakachi-gaki conversion.
+`mecab_romaji_options` は、ローマ字分かち書き変換を制御します。
 
 ### `kana`
 
-`kana` controls the kana conversion performed before romanization.
+`kana` は、ローマ字化の前に行う仮名変換を制御します。
 
-The default keeps `mecab_kana_options::particle_reading` enabled, so common particles are converted by pronunciation before they are romanized.
+既定では `mecab_kana_options::particle_reading` が有効なままなので、一般的な助詞はローマ字化される前に発音で変換されます。
 
-For example, particles are intended to romanize as follows:
+たとえば、助詞は次のようにローマ字化されることを意図しています。
 
 | Surface | Kana after particle correction | Romaji |
 |---|---|---|
@@ -4500,16 +4413,16 @@ For example, particles are intended to romanize as follows:
 
 ### `romaji`
 
-`romaji` selects the `strtoctrans` romanization mode.
+`romaji` は `strtoctrans` のローマ字化モードを選択します。
 
-Supported values are:
+対応する値は次のとおりです。
 
 | Value | Meaning |
 |---|---|
-| `ctrans_id::romaji` | Macron-based long-vowel form |
-| `ctrans_id::romaji_alt` | Kana-spelling-based alternate form |
+| `ctrans_id::romaji` | マクロンを使う長音表記 |
+| `ctrans_id::romaji_alt` | 仮名つづりベースの代替表記 |
 
-Other `ctrans_id` values are rejected with `error_t::invalid_argument`.
+その他の `ctrans_id` 値は `error_t::invalid_argument` で拒否されます。
 
 ---
 
@@ -4523,37 +4436,37 @@ auto mecab_romaji_wakati(
     -> xer::result<std::u8string>;
 ```
 
-### Purpose
+### 目的
 
-`mecab_romaji_wakati` converts a MeCab token sequence to romaji wakachi-gaki text.
+`mecab_romaji_wakati` は、MeCab トークン列をローマ字分かち書きテキストへ変換します。
 
-The function first calls `mecab_split_phrases`. Each `bunsetsu` range is converted to kana, then romanized through `strtoctrans`. Each `symbol` range is preserved as surface text and is not passed to `strtoctrans`. One ASCII space is inserted between phrase ranges.
+この関数はまず `mecab_split_phrases` を呼び出します。各 `bunsetsu` 範囲は仮名へ変換され、その後 `strtoctrans` でローマ字化されます。各 `symbol` 範囲は表層テキストとして保持され、`strtoctrans` には渡されません。句範囲の間には ASCII 空白が 1 つ挿入されます。
 
-For example, a token sequence corresponding to:
+たとえば、次のテキストに対応するトークン列がある場合:
 
 ```text
 私は猫です。
 ```
 
-is intended to produce output close to:
+次に近い出力を生成することを意図しています。
 
 ```text
 watashiwa nekodesu 。
 ```
 
-With `ctrans_id::romaji_alt`, long vowels use the alternate kana-spelling-based form.
+`ctrans_id::romaji_alt` では、長音に仮名つづりベースの代替形式を使います。
 
-The exact result depends on the installed MeCab dictionary, because readings and token boundaries are dictionary-dependent.
+正確な結果は、読みとトークン境界が辞書に依存するため、インストールされている MeCab 辞書に依存します。
 
-### Error Model
+### エラーモデル
 
-Unlike `mecab_to_kana` and `mecab_kana_wakati`, `mecab_romaji_wakati` returns `xer::result<std::u8string>`.
+`mecab_to_kana` や `mecab_kana_wakati` と異なり、`mecab_romaji_wakati` は `xer::result<std::u8string>` を返します。
 
-It reports `error_t::invalid_argument` when `options.romaji` is not `ctrans_id::romaji` or `ctrans_id::romaji_alt`.
+`options.romaji` が `ctrans_id::romaji` または `ctrans_id::romaji_alt` でない場合、`error_t::invalid_argument` を報告します。
 
-If `strtoctrans` cannot romanize a kana sequence, the error from `strtoctrans` is propagated.
+`strtoctrans` が仮名列をローマ字化できない場合、`strtoctrans` からのエラーが伝播されます。
 
-`mecab_romaji_wakati` does not invoke MeCab. It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
+`mecab_romaji_wakati` は MeCab を起動しません。入力トークン列がすでに `mecab_parse` または互換性のある同等の情報源によって生成されていることを前提とします。
 
 ---
 
@@ -4567,39 +4480,39 @@ auto mecab_parse(
     -> xer::result<std::vector<mecab_token>>;
 ```
 
-### Purpose
+### 目的
 
-`mecab_parse` invokes MeCab and returns raw morphological analysis results.
+`mecab_parse` は MeCab を起動し、生の形態素解析結果を返します。
 
-### Output Format Used Internally
+### 内部で使用する出力形式
 
-xer explicitly asks MeCab to emit one token per line in this format:
+xer は MeCab に対して、1 トークン 1 行で次の形式を出力するよう明示的に要求します。
 
 ```text
 surface<TAB>feature
 ```
 
-The `EOS` marker is consumed internally and is not returned as a token.
+`EOS` マーカーは内部で消費され、トークンとしては返されません。
 
-Conceptually, xer configures MeCab so that normal and unknown tokens use equivalent raw output structure:
+概念的には、xer は MeCab に対して、通常トークンと未知語トークンが同等の生出力構造になるよう設定します。
 
 ```text
 %m<TAB>%H
 ```
 
-This keeps the parser independent from human-readable MeCab default formatting.
+これにより、パーサーは人間向けの MeCab 既定出力形式に依存しません。
 
-### Empty Input
+### 空入力
 
-An empty input string is accepted.
+空の入力文字列は受け付けられます。
 
 ```cpp
 const auto tokens = xer::ja::mecab_parse(u8"");
 ```
 
-On success, the result is an empty token vector.
+成功時、結果は空のトークンベクターです。
 
-### Basic Example
+### 基本例
 
 ```cpp
 const auto tokens = xer::ja::mecab_parse(u8"私は猫です。");
@@ -4615,7 +4528,7 @@ for (const auto& token : *tokens) {
 }
 ```
 
-The exact tokenization, feature strings, and split feature fields depend on the installed dictionary.
+正確なトークン化、feature 文字列、分割 feature フィールドは、インストールされている辞書に依存します。
 
 ---
 
@@ -4630,21 +4543,20 @@ auto mecab_braille_translate(
     -> xer::result<std::u8string>;
 ```
 
-### Purpose
+### 目的
 
-`mecab_braille_translate` parses UTF-8 source text with MeCab and converts the resulting token sequence with `mecab_braille_wakati`.
+`mecab_braille_translate` は、UTF-8 入力テキストを MeCab で解析し、その結果のトークン列を `mecab_braille_wakati` で変換します。
 
-It is a convenience wrapper for callers that do not need to inspect the intermediate token sequence.
-MeCab determines readings for Japanese text. ASCII alphanumeric-and-punctuation fragments are converted from the original surface text by the ordinary braille ASCII-fragment conversion layer.
+これは、中間のトークン列を調べる必要がない呼び出し側向けの便宜ラッパーです。MeCab は日本語テキストの読みを決定します。ASCII 英数字・句読点断片は、通常点字の ASCII 断片変換層により元の表層テキストから変換されます。
 
-### Error Model
+### エラーモデル
 
-`mecab_braille_translate` propagates errors from both stages:
+`mecab_braille_translate` は両方の段階からのエラーを伝播します。
 
 - `mecab_parse`
 - `mecab_braille_wakati`
 
-This means the function can report MeCab execution errors, UTF-8 errors, and braille conversion errors.
+つまり、この関数は MeCab 実行エラー、UTF-8 エラー、点字変換エラーを報告できます。
 
 ---
 
@@ -4659,34 +4571,33 @@ auto mecab_ip_braille_translate(
     -> xer::result<std::u8string>;
 ```
 
-### Purpose
+### 目的
 
-`mecab_ip_braille_translate` parses UTF-8 source text with MeCab and converts the resulting token sequence with `mecab_ip_braille_wakati`.
+`mecab_ip_braille_translate` は、UTF-8 入力テキストを MeCab で解析し、その結果のトークン列を `mecab_ip_braille_wakati` で変換します。
 
-Japanese text is handled in the same way as `mecab_braille_translate`.
-ASCII alphanumeric-and-punctuation fragments are converted through the information-processing braille ASCII-fragment conversion layer.
+日本語テキストは `mecab_braille_translate` と同じ方法で処理されます。ASCII 英数字・句読点断片は情報処理点字の ASCII 断片変換層で変換されます。
 
-This function is the convenient entry point for Japanese text that may contain code-like or technical ASCII fragments.
+この関数は、コード風または技術的な ASCII 断片を含む可能性がある日本語テキスト向けの便利な入口です。
 
-### Error Model
+### エラーモデル
 
-`mecab_ip_braille_translate` propagates errors from both stages:
+`mecab_ip_braille_translate` は両方の段階からのエラーを伝播します。
 
 - `mecab_parse`
 - `mecab_ip_braille_wakati`
 
 ---
 
-## Executable Resolution
+## 実行ファイルの解決
 
-If `mecab_options::program` is empty, xer:
+`mecab_options::program` が空の場合、xer は次の手順を行います。
 
-1. reads `PATH`
-2. searches each path entry
-3. checks for the platform's ordinary MeCab executable name
-4. executes the first matching file
+1. `PATH` を読む
+2. 各パス要素を検索する
+3. プラットフォームで通常使われる MeCab 実行ファイル名を確認する
+4. 最初に一致したファイルを実行する
 
-If no executable is found, `mecab_parse` returns:
+実行ファイルが見つからない場合、`mecab_parse` は次を返します。
 
 ```cpp
 error_t::not_found
@@ -4694,72 +4605,71 @@ error_t::not_found
 
 ---
 
-## Error Model
+## エラーモデル
 
-`mecab_parse` returns `xer::result<std::vector<mecab_token>>`.
+`mecab_parse` は `xer::result<std::vector<mecab_token>>` を返します。
 
-The current implementation uses these errors:
+現在の実装では次のエラーを使います。
 
 | Condition | Error |
 |---|---|
-| input text is not valid UTF-8 | `error_t::encoding_error` |
-| MeCab output is not valid UTF-8 | `error_t::encoding_error` |
-| automatic executable search cannot find MeCab | `error_t::not_found` |
-| MeCab cannot be executed, exits unsuccessfully, or emits unexpected output | `error_t::process_error` |
+| 入力テキストが妥当な UTF-8 ではない | `error_t::encoding_error` |
+| MeCab 出力が妥当な UTF-8 ではない | `error_t::encoding_error` |
+| 実行ファイルの自動検索で MeCab が見つからない | `error_t::not_found` |
+| MeCab を実行できない、MeCab が失敗終了する、または想定外の出力を出す | `error_t::process_error` |
 
-Some lower-level process or stream failures may preserve their own xer error code when they arise before the final MeCab-level validation step.
-
----
-
-## Dictionary Dependence
-
-`mecab_token::feature` and `mecab_token::features` are dictionary-dependent.
-
-Different MeCab dictionaries may:
-
-- split text differently
-- report different feature-column layouts
-- produce different readings or base-form fields
-
-xer splits the feature string according to the comma-separated structure emitted by `%H`, and fills named members using the ordinary MeCab/IPADIC-style field positions.
-This is a practical convenience, not a complete normalization layer for all possible dictionaries.
-
-Higher-level xer Japanese text processing facilities may later define their own supported interpretation strategy where needed.
+一部の低レベルなプロセスまたはストリームの失敗は、最終的な MeCab レベルの検証段階より前に発生した場合、それぞれの xer エラーコードを保持することがあります。
 
 ---
 
-## Current Scope
+## 辞書依存性
 
-At the current stage, `<xer/mecab.h>` provides the low-level MeCab morphological analysis foundation.
+`mecab_token::feature` と `mecab_token::features` は辞書に依存します。
 
-Implemented:
+異なる MeCab 辞書は、次の点で異なる可能性があります。
 
-- UTF-8 MeCab child-process invocation
-- executable-path resolution
-- token collection
-- surface text preservation
-- raw feature text preservation
-- split feature field preservation
-- common MeCab/IPADIC-style named feature members
-- practical bunsetsu-like phrase and symbol segmentation through `mecab_split_phrases`
-- kana conversion based on MeCab-derived readings through `mecab_to_kana`
-- kana wakachi-gaki through `mecab_kana_wakati`
-- braille wakachi-gaki through `mecab_braille_wakati` and `mecab_ip_braille_wakati`
-- direct braille translation through `mecab_braille_translate` and `mecab_ip_braille_translate`
-- romaji wakachi-gaki through `mecab_romaji_wakati`
+- テキストを異なる単位に分割する
+- 異なる feature 列レイアウトを報告する
+- 異なる読みや原形フィールドを生成する
 
-Not yet implemented in this header:
+xer は `%H` が出力するカンマ区切り構造に従って feature 文字列を分割し、通常の MeCab/IPADIC 形式のフィールド位置を使って名前付きメンバーを埋めます。これは実用的な便宜機能であり、あらゆる辞書に対する完全な正規化層ではありません。
 
-- ruby-oriented structures
-- word or bunsetsu counting helpers
-
-These are planned on top of the raw layer and are described at the policy level in `policy_mecab.md`.
+高レベルな xer 日本語テキスト処理機能は、必要に応じて独自の対応解釈方針を後で定義する可能性があります。
 
 ---
 
-## Relationship to Other Headers
+## 現在の範囲
 
-`<xer/mecab.h>` is related to:
+現段階の `<xer/mecab.h>` は、低レベルな MeCab 形態素解析基盤を提供します。
+
+実装済み:
+
+- UTF-8 MeCab 子プロセス起動
+- 実行ファイルパスの解決
+- トークン収集
+- 表層テキストの保持
+- 生 feature テキストの保持
+- 分割済み feature フィールドの保持
+- 一般的な MeCab/IPADIC 形式の名前付き feature メンバー
+- `mecab_split_phrases` による実用的な文節風の句分割と記号分割
+- `mecab_to_kana` による MeCab 由来の読みベースの仮名変換
+- `mecab_kana_wakati` による仮名分かち書き
+- `mecab_braille_wakati` と `mecab_ip_braille_wakati` による点字分かち書き
+- `mecab_braille_translate` と `mecab_ip_braille_translate` による直接点字変換
+- `mecab_romaji_wakati` によるローマ字分かち書き
+
+このヘッダーで未実装:
+
+- ルビ向け構造
+- 単語数または文節数カウントヘルパー
+
+これらは生の層の上に構築する予定であり、`policy_mecab.md` のポリシーレベルで説明されています。
+
+---
+
+## 他ヘッダーとの関係
+
+`<xer/mecab.h>` は次と関係します。
 
 - `<xer/process.h>`
 - `<xer/path.h>`
@@ -5005,19 +4915,13 @@ xer/bits/escape_html.h
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/ja.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/ja.h>`
 
-## Purpose
+## 目的
 
-`<xer/ja.h>` is a convenience umbrella header for Japanese-specific xer facilities.
+`<xer/ja.h>` は、日本語固有の xer 機能をまとめる便利なアンブレラヘッダーです。
 
-It includes:
+次をインクルードします。
 
 ```cpp
 #include <xer/furigana.h>
@@ -5028,17 +4932,17 @@ It includes:
 #include <xer/bits/ja_to.h>
 ```
 
-The APIs provided by these headers are placed under `xer::ja`.
+これらのヘッダーが提供する API は `xer::ja` 名前空間に置かれます。
 
 ---
 
-## Namespace Policy
+## 名前空間ポリシー
 
-Japanese-specific APIs are collected under `xer::ja`.
+日本語固有 API は `xer::ja` に集約します。
 
-This keeps the main `xer` namespace focused on language-neutral utilities, while allowing xer to provide deeper Japanese support before v1.0.0.
+これにより、メインの `xer` 名前空間は言語非依存のユーティリティに集中させつつ、v1.0.0 より前から深い日本語対応を提供できます。
 
-Examples:
+例:
 
 ```cpp
 xer::ja::to_kansuji(2026, xer::ja::k十);
@@ -5057,25 +4961,25 @@ xer::ja::mecab_parse(u8"私は猫です。");
 
 ---
 
-## Character Classification
+## 文字分類
 
-`xer::ja::is_hiragana` checks whether a code point is practical hiragana. It accepts the Unicode Hiragana block and the prolonged sound mark `U+30FC`.
+`xer::ja::is_hiragana` は、コードポイントが実用的なひらがなかどうかを調べます。Unicode の Hiragana ブロックと長音記号 `U+30FC` を受け付けます。
 
-`xer::ja::is_katakana` checks whether a code point is practical katakana, including fullwidth katakana, halfwidth katakana, Katakana Phonetic Extensions, Kana Supplement/Extended blocks, and prolonged sound marks.
+`xer::ja::is_katakana` は、コードポイントが実用的なカタカナかどうかを調べます。全角カタカナ、半角カタカナ、Katakana Phonetic Extensions、Kana Supplement/Extended ブロック、長音記号を含みます。
 
-`xer::ja::is_kana` checks whether a code point is practical hiragana or practical katakana.
+`xer::ja::is_kana` は、コードポイントが実用的なひらがなまたは実用的なカタカナかどうかを調べます。
 
-`xer::ja::is_kanji` checks whether a code point belongs to the common CJK unified ideograph or CJK compatibility ideograph ranges. Unicode shares many kanji/hanzi/hanja code points, so this function does not attempt to identify language-specific usage.
+`xer::ja::is_kanji` は、コードポイントが一般的な CJK 統合漢字または CJK 互換漢字の範囲に属するかどうかを調べます。Unicode では多くの漢字/hanzi/hanja コードポイントが共有されるため、この関数は言語固有の用法を識別しようとはしません。
 
-`xer::ja::is_japanese_punctuation` checks whether a code point is punctuation commonly used in Japanese text.
+`xer::ja::is_japanese_punctuation` は、日本語テキストで一般的に使われる句読点かどうかを調べます。
 
-`xer::ja::is_japanese` checks whether a code point is kana, kanji, or Japanese punctuation.
+`xer::ja::is_japanese` は、コードポイントが仮名、漢字、または日本語句読点かどうかを調べます。
 
-`xer::ja::contains_hiragana`, `xer::ja::contains_katakana`, `xer::ja::contains_kana`, `xer::ja::contains_kanji`, and `xer::ja::contains_japanese` check whether a UTF-8 string contains at least one matching code point. Empty input returns `false`. Invalid UTF-8 input returns `encoding_error`.
+`xer::ja::contains_hiragana`、`xer::ja::contains_katakana`、`xer::ja::contains_kana`、`xer::ja::contains_kanji`、`xer::ja::contains_japanese` は、UTF-8 文字列が少なくとも 1 つの該当コードポイントを含むかどうかを調べます。空入力は `false` を返します。不正な UTF-8 入力は `encoding_error` を返します。
 
-`xer::ja::is_all_hiragana`, `xer::ja::is_all_katakana`, and `xer::ja::is_all_kana` check whether all code points in a UTF-8 string belong to practical hiragana, katakana, or kana text. Empty input returns `false`. Invalid UTF-8 input returns `encoding_error`.
+`xer::ja::is_all_hiragana`、`xer::ja::is_all_katakana`、`xer::ja::is_all_kana` は、UTF-8 文字列内のすべてのコードポイントが実用的なひらがな、カタカナ、または仮名テキストに属するかどうかを調べます。空入力は `false` を返します。不正な UTF-8 入力は `encoding_error` を返します。
 
-The `contains_*` and `is_all_*` predicates use the same practical character sets as the corresponding code point predicates. The `is_all_*` kana predicates do not accept spaces, punctuation, kanji, or Latin letters.
+`contains_*` と `is_all_*` 述語は、対応するコードポイント述語と同じ実用的な文字集合を使います。`is_all_*` の仮名述語は、空白、句読点、漢字、ラテン文字を受け付けません。
 
 ```cpp
 xer::ja::is_hiragana(U'あ'); // true
@@ -5099,12 +5003,13 @@ xer::ja::is_all_kana(u8""); // false
 xer::ja::is_all_kana(u8"こんにちは。"); // false
 ```
 
-These functions are defined in the internal implementation header `<xer/bits/ja_is.h>` and are available through `<xer/ja.h>`.
+これらの関数は内部実装ヘッダー `<xer/bits/ja_is.h>` で定義され、`<xer/ja.h>` から利用できます。
 
+---
 
-## Kanji Classification Tables
+## 漢字分類テーブル
 
-`xer::ja::name_kanji_class_of` returns the practical Japanese name-use class of a code point.
+`xer::ja::name_kanji_class_of` は、コードポイントの実用的な日本語人名用漢字クラスを返します。
 
 ```cpp
 namespace xer::ja {
@@ -5119,7 +5024,7 @@ enum class name_kanji_class {
 }
 ```
 
-The class is ordered by containment: educational kanji are treated as a subset of common-use kanji, and common-use kanji are treated as usable in Japanese given names.
+このクラスは包含関係に従って順序付けられています。教育漢字は常用漢字の部分集合として扱われ、常用漢字は日本語の名に使える漢字の部分集合として扱われます。
 
 ```cpp
 xer::ja::is_name_kanji(U'凜'); // true
@@ -5127,7 +5032,7 @@ xer::ja::is_jouyou_kanji(U'鬱'); // true
 xer::ja::is_kyouiku_kanji(U'日'); // true
 ```
 
-`xer::ja::jis_kanji_level_of` returns the JIS kanji level.
+`xer::ja::jis_kanji_level_of` は JIS 漢字水準を返します。
 
 ```cpp
 namespace xer::ja {
@@ -5143,7 +5048,7 @@ enum class jis_kanji_level {
 }
 ```
 
-Convenience predicates are also provided.
+便利な述語も用意されています。
 
 ```cpp
 xer::ja::is_jis_level_1_kanji(U'亜'); // true
@@ -5152,27 +5057,29 @@ xer::ja::is_jis_level_3_kanji(U'俱'); // true
 xer::ja::is_jis_level_4_kanji(U'㐆'); // true
 ```
 
-The implementation stores compact one-byte flags for the basic CJK unified ideograph range and uses a sparse fallback table for supported code points outside that range. The low two bits store `name_kanji_class`, and bits 2..4 store `jis_kanji_level`.
+実装は基本 CJK 統合漢字範囲についてコンパクトな 1 バイトフラグを保持し、その範囲外の対応コードポイントには疎なフォールバックテーブルを使います。下位 2 ビットは `name_kanji_class` を保持し、ビット 2..4 は `jis_kanji_level` を保持します。
 
-These functions are defined in the internal implementation header `<xer/bits/ja_kanji.h>` and are available through `<xer/ja.h>`.
+これらの関数は内部実装ヘッダー `<xer/bits/ja_kanji.h>` で定義され、`<xer/ja.h>` から利用できます。
 
-## Kana Conversion
+---
 
-`xer::ja::to_hiragana` converts fullwidth katakana in UTF-8 text to hiragana.
+## 仮名変換
+
+`xer::ja::to_hiragana` は、UTF-8 テキスト内の全角カタカナをひらがなへ変換します。
 
 ```cpp
 const auto text = xer::ja::to_hiragana(u8"カタカナとヴ");
 // text == u8"かたかなとゔ"
 ```
 
-`xer::ja::to_katakana` converts hiragana in UTF-8 text to fullwidth katakana.
+`xer::ja::to_katakana` は、UTF-8 テキスト内のひらがなを全角カタカナへ変換します。
 
 ```cpp
 const auto text = xer::ja::to_katakana(u8"ひらがなとゔ");
 // text == u8"ヒラガナトヴ"
 ```
 
-`xer::ja::normalize_kana` normalizes practical kana spelling while preserving hiragana/katakana script choice. It converts halfwidth katakana to fullwidth katakana and composes separated voiced or semi-voiced sound marks when a composed kana exists.
+`xer::ja::normalize_kana` は、ひらがな/カタカナの文字種を保ちながら、実用的な仮名表記を正規化します。半角カタカナを全角カタカナへ変換し、合成済み仮名が存在する場合は分離された濁点または半濁点を合成します。
 
 ```cpp
 const auto text = xer::ja::normalize_kana(u8"ｶﾞｷﾞｸﾞｹﾞｺﾞ ﾊﾟﾋﾟﾌﾟﾍﾟﾎﾟ");
@@ -5182,54 +5089,50 @@ const auto text2 = xer::ja::normalize_kana(u8"がハ゜");
 // text2 == u8"がパ"
 ```
 
-These functions keep unrelated code points unchanged and return `xer::result<std::u8string>` so invalid UTF-8 input can be reported as `encoding_error`.
+これらの関数は無関係なコードポイントを変更せず、不正な UTF-8 入力を `encoding_error` として報告できるように `xer::result<std::u8string>` を返します。
 
-These functions are defined in the internal implementation header `<xer/bits/ja_to.h>` and are available through `<xer/ja.h>`.
-
-## Notes
-
-`<xer/ja.h>` does not define a separate implementation layer. It is an include-only convenience header.
-
-Individual headers such as `<xer/kansuji.h>`, `<xer/furigana.h>`, and `<xer/mecab.h>` remain available when a caller wants to include only a smaller component. Kana conversion is currently available through `<xer/ja.h>` only.
+これらの関数は内部実装ヘッダー `<xer/bits/ja_to.h>` で定義され、`<xer/ja.h>` から利用できます。
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/unicode.h`
-> Reason: Japanese fragment was translated from a different English source hash.
+## 注意
+
+`<xer/ja.h>` は独自の実装層を定義しません。これはインクルード専用の便利ヘッダーです。
+
+`<xer/kansuji.h>`、`<xer/furigana.h>`、`<xer/mecab.h>` のような個別ヘッダーは、呼び出し側がより小さな構成要素だけをインクルードしたい場合にも利用できます。仮名変換は現在 `<xer/ja.h>` からのみ利用できます。
+
+---
 
 # `<xer/unicode.h>`
 
-## Purpose
+## 目的
 
-`<xer/unicode.h>` provides practical Unicode utilities.
+`<xer/unicode.h>` は、実用的な Unicode ユーティリティを提供します。
 
-The current scope includes:
+現在の対象範囲は次のとおりです。
 
-- code point traversal for `std::u8string_view`
-- code point traversal for `std::u16string_view`
-- code point traversal for `std::wstring_view`
-- extended grapheme cluster traversal for `std::u8string_view`
-- extended grapheme cluster traversal for `std::u16string_view`
-- extended grapheme cluster traversal for `std::wstring_view`
-- grapheme-cluster-based string operations for `std::u8string_view`
-- grapheme-cluster-based string operations for `std::u16string_view`
-- grapheme-cluster-based string operations for `std::wstring_view`
-- practical emoji detection for code points and single grapheme clusters
-- NFC normalization for UTF-8 text
-- NFC status checking for UTF-8 text
+- `std::u8string_view` のコードポイント走査
+- `std::u16string_view` のコードポイント走査
+- `std::wstring_view` のコードポイント走査
+- `std::u8string_view` の拡張書記素クラスタ走査
+- `std::u16string_view` の拡張書記素クラスタ走査
+- `std::wstring_view` の拡張書記素クラスタ走査
+- `std::u8string_view` の書記素クラスタ単位の文字列操作
+- `std::u16string_view` の書記素クラスタ単位の文字列操作
+- `std::wstring_view` の書記素クラスタ単位の文字列操作
+- コードポイントおよび単一書記素クラスタに対する実用的な絵文字判定
+- UTF-8 テキストの NFC 正規化
+- UTF-8 テキストの NFC 状態確認
 
-Code point traversal, grapheme cluster traversal, grapheme-cluster-based string operations, and emoji detection themselves do not use ICU. NFC normalization uses the ICU C API.
+コードポイント走査、書記素クラスタ走査、書記素クラスタ単位の文字列操作、および絵文字判定そのものは ICU を使用しません。NFC 正規化は ICU C API を使用します。
 
-At present, `<xer/unicode.h>` includes the ICU-based normalization implementation, so including this public header requires the ICU development headers to be available.
+現時点では、`<xer/unicode.h>` は ICU ベースの正規化実装を含むため、この公開ヘッダーをインクルードするには ICU 開発用ヘッダーが利用可能である必要があります。
 
 ---
 
-## External Dependency
+## 外部依存
 
-`<xer/unicode.h>` requires the ICU C API headers because it exposes NFC normalization utilities:
+`<xer/unicode.h>` は NFC 正規化ユーティリティを公開するため、ICU C API ヘッダーを必要とします。
 
 ```cpp
 #include <unicode/utypes.h>
@@ -5237,35 +5140,35 @@ At present, `<xer/unicode.h>` includes the ICU-based normalization implementatio
 #include <unicode/unorm2.h>
 ```
 
-The normalization implementation uses ICU C API functions such as `u_strFromUTF8`, `u_strToUTF8`, `unorm2_getNFCInstance`, `unorm2_normalize`, and `unorm2_isNormalized`.
+正規化実装では、`u_strFromUTF8`、`u_strToUTF8`、`unorm2_getNFCInstance`、`unorm2_normalize`、`unorm2_isNormalized` などの ICU C API 関数を使用します。
 
-xer does not manage application build-system settings. Users must provide suitable include paths and link options for their environment.
+xer はアプリケーションのビルドシステム設定を管理しません。ユーザーは、自分の環境に適したインクルードパスとリンクオプションを指定する必要があります。
 
-For example, on many Unix-like environments, the required link options are obtained through `pkg-config`:
+たとえば、多くの Unix 系環境では、必要なリンクオプションを `pkg-config` で取得できます。
 
 ```bash
 pkg-config --cflags --libs icu-uc
 ```
 
-A direct compile command may look like this:
+直接コンパイルするコマンドは、たとえば次のようになります。
 
 ```bash
 g++ -std=c++23 -I. example.cpp -licuuc -licudata
 ```
 
-On MSYS2 environments, the ICU data library may be named `icudt` rather than `icudata`, so a typical command may look like this:
+MSYS2 環境では、ICU データライブラリ名が `icudata` ではなく `icudt` の場合があるため、典型的なコマンドは次のようになります。
 
 ```bash
 g++ -std=c++23 -I. example.cpp -licuuc -licudt
 ```
 
-The xer test runner handles known environments separately.
+xer のテストランナーは、既知の環境を個別に処理します。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-`<xer/unicode.h>` provides the following code point traversal type:
+`<xer/unicode.h>` は、次のコードポイント走査型を提供します。
 
 ```cpp
 struct code_point {
@@ -5275,15 +5178,15 @@ struct code_point {
 };
 ```
 
-The `offset` and `size` fields are expressed in source code units:
+`offset` および `size` フィールドは、元のコード単位で表されます。
 
-- for `std::u8string_view`, UTF-8 code units, effectively bytes
-- for `std::u16string_view`, UTF-16 code units
-- for `std::wstring_view`, wide code units
+- `std::u8string_view` では UTF-8 コード単位、実質的にはバイト
+- `std::u16string_view` では UTF-16 コード単位
+- `std::wstring_view` ではワイドコード単位
 
-The decoded `value` is a Unicode scalar value represented as `char32_t`.
+デコードされた `value` は、`char32_t` で表される Unicode スカラー値です。
 
-The header provides these decoding functions:
+このヘッダーは、次のデコード関数を提供します。
 
 ```cpp
 auto next_code_point(std::u8string_view text, std::size_t offset = 0)
@@ -5305,7 +5208,7 @@ auto prev_code_point(std::wstring_view text, std::size_t offset)
     -> xer::result<xer::code_point>;
 ```
 
-It also provides range helpers:
+また、範囲ヘルパーも提供します。
 
 ```cpp
 auto code_points(std::u8string_view text)
@@ -5318,15 +5221,15 @@ auto code_points(std::wstring_view text)
     -> xer::code_point_range<wchar_t>;
 ```
 
-The dereferenced range element is:
+範囲要素を参照解除した値は次の型です。
 
 ```cpp
 xer::result<xer::code_point>
 ```
 
-This keeps malformed input explicit during traversal.
+これにより、走査中の不正な入力が明示的になります。
 
-`<xer/unicode.h>` provides the following grapheme cluster traversal type:
+`<xer/unicode.h>` は、次の書記素クラスタ走査型を提供します。
 
 ```cpp
 struct grapheme_cluster {
@@ -5335,9 +5238,9 @@ struct grapheme_cluster {
 };
 ```
 
-The `offset` and `size` fields are expressed in source code units. A grapheme cluster may contain multiple code points, so `grapheme_cluster` intentionally does not contain a `char32_t` value.
+`offset` および `size` フィールドは、元のコード単位で表されます。書記素クラスタは複数のコードポイントを含むことがあるため、`grapheme_cluster` は意図的に `char32_t` 値を持ちません。
 
-The header provides these grapheme cluster functions:
+このヘッダーは、次の書記素クラスタ関数を提供します。
 
 ```cpp
 auto next_grapheme_cluster(std::u8string_view text, std::size_t offset = 0)
@@ -5359,7 +5262,7 @@ auto prev_grapheme_cluster(std::wstring_view text, std::size_t offset)
     -> xer::result<xer::grapheme_cluster>;
 ```
 
-It also provides range helpers:
+また、範囲ヘルパーも提供します。
 
 ```cpp
 auto grapheme_clusters(std::u8string_view text)
@@ -5372,15 +5275,15 @@ auto grapheme_clusters(std::wstring_view text)
     -> xer::grapheme_cluster_range<wchar_t>;
 ```
 
-The dereferenced range element is:
+範囲要素を参照解除した値は次の型です。
 
 ```cpp
 xer::result<xer::grapheme_cluster>
 ```
 
-This keeps malformed input explicit during traversal.
+これにより、走査中の不正な入力が明示的になります。
 
-The header also provides grapheme-cluster-based string operations:
+このヘッダーは、書記素クラスタ単位の文字列操作も提供します。
 
 ```cpp
 auto grapheme_length(std::u8string_view text)
@@ -5399,9 +5302,9 @@ auto grapheme_right(std::u8string_view text, std::size_t count)
     -> xer::result<std::u8string_view>;
 ```
 
-`std::u16string_view` and `std::wstring_view` overloads are also provided. The returned substring values are views into the original text.
+`std::u16string_view` および `std::wstring_view` のオーバーロードも提供されます。返される部分文字列値は元のテキストへのビューです。
 
-The header also provides practical emoji detection:
+このヘッダーは、実用的な絵文字判定も提供します。
 
 ```cpp
 auto is_emoji(char32_t value) noexcept -> bool;
@@ -5416,9 +5319,9 @@ auto is_emoji(std::wstring_view text)
     -> xer::result<bool>;
 ```
 
-The string-view overloads return `true` only when the whole input is one practical emoji grapheme cluster. Empty input returns `false`. Malformed UTF-8, UTF-16, or wide text is reported as an error.
+文字列ビュー版は、入力全体が 1 個の実用的な絵文字書記素クラスタである場合にだけ `true` を返します。空入力は `false` を返します。不正な UTF-8、UTF-16、またはワイドテキストはエラーとして報告されます。
 
-The header also provides NFC utilities:
+このヘッダーは NFC ユーティリティも提供します。
 
 ```cpp
 auto normalize_nfc(std::u8string_view text)
@@ -5440,25 +5343,25 @@ struct code_point {
 };
 ```
 
-### Purpose
+### 目的
 
-`code_point` describes one decoded Unicode scalar value and the corresponding source span.
+`code_point` は、1 個のデコード済み Unicode スカラー値と、それに対応する元の範囲を表します。
 
-It does not own the original string. It only records where the decoded code point was found and how many source code units it occupied.
+元の文字列は所有しません。デコードされたコードポイントがどこで見つかり、元のコード単位をいくつ占めていたかだけを記録します。
 
-### Offset and Size
+### オフセットとサイズ
 
-`offset` is the index where the code point begins.
+`offset` はコードポイントが始まるインデックスです。
 
-`size` is the number of source code units occupied by the code point.
+`size` は、そのコードポイントが占める元のコード単位数です。
 
-For example, in UTF-8 text:
+たとえば、UTF-8 テキストでは次のようになります。
 
 ```cpp
 std::u8string_view text = u8"Aあ😀";
 ```
 
-The code points are:
+コードポイントは次のとおりです。
 
 ```text
 offset=0 size=1 value=U+0041
@@ -5466,9 +5369,9 @@ offset=1 size=3 value=U+3042
 offset=4 size=4 value=U+1F600
 ```
 
-For UTF-16 text, a supplementary-plane character such as U+1F600 occupies two code units because it is represented as a surrogate pair.
+UTF-16 テキストでは、U+1F600 のような補助平面文字はサロゲートペアで表されるため、2 個のコード単位を占めます。
 
-For `std::wstring_view`, the unit depends on the platform's `wchar_t` representation. On platforms where `wchar_t` is 16 bits, supplementary-plane characters occupy two wide code units. On platforms where `wchar_t` is 32 bits, they occupy one wide code unit.
+`std::wstring_view` では、単位はプラットフォームの `wchar_t` 表現に依存します。`wchar_t` が 16 ビットのプラットフォームでは、補助平面文字は 2 個のワイドコード単位を占めます。`wchar_t` が 32 ビットのプラットフォームでは、1 個のワイドコード単位を占めます。
 
 ---
 
@@ -5485,40 +5388,40 @@ auto next_code_point(std::wstring_view text, std::size_t offset = 0)
     -> xer::result<xer::code_point>;
 ```
 
-### Purpose
+### 目的
 
-`next_code_point` decodes the code point beginning at `offset`.
+`next_code_point` は、`offset` から始まるコードポイントをデコードします。
 
-### Input Model
+### 入力モデル
 
-The `offset` argument is expressed in the source string view's code units.
+`offset` 引数は、元の文字列ビューのコード単位で表されます。
 
-The input must be well-formed for the corresponding encoding:
+入力は、対応するエンコーディングとして well-formed である必要があります。
 
-- `std::u8string_view` must contain well-formed UTF-8
-- `std::u16string_view` must contain well-formed UTF-16
-- `std::wstring_view` must contain well-formed wide text according to the platform's `wchar_t` width
+- `std::u8string_view` は well-formed な UTF-8 を含んでいる必要があります
+- `std::u16string_view` は well-formed な UTF-16 を含んでいる必要があります
+- `std::wstring_view` はプラットフォームの `wchar_t` 幅に応じた well-formed なワイドテキストを含んでいる必要があります
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<xer::code_point>
 ```
 
-The function can fail if:
+この関数は、次の場合に失敗する可能性があります。
 
-- `offset` is outside the string view
-- `offset` is equal to the end of the string view
-- the input contains malformed UTF-8
-- the input contains malformed UTF-16 surrogate pairs
-- the decoded value is not a Unicode scalar value
+- `offset` が文字列ビューの範囲外である
+- `offset` が文字列ビューの末尾と等しい
+- 入力に不正な UTF-8 が含まれている
+- 入力に不正な UTF-16 サロゲートペアが含まれている
+- デコードされた値が Unicode スカラー値ではない
 
-Out-of-range offsets are reported as `xer::error_t::out_of_range`.
-Malformed encoded text is reported as `xer::error_t::encoding_error`.
+範囲外のオフセットは `xer::error_t::out_of_range` として報告されます。
+不正な符号化テキストは `xer::error_t::encoding_error` として報告されます。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"Aあ";
@@ -5542,27 +5445,27 @@ auto prev_code_point(std::wstring_view text, std::size_t offset)
     -> xer::result<xer::code_point>;
 ```
 
-### Purpose
+### 目的
 
-`prev_code_point` decodes the code point immediately before `offset`.
+`prev_code_point` は、`offset` の直前にあるコードポイントをデコードします。
 
-The `offset` argument is a one-past position. Passing `text.size()` decodes the final code point.
+`offset` 引数は one-past 位置です。`text.size()` を渡すと、最後のコードポイントをデコードします。
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<xer::code_point>
 ```
 
-The function can fail if:
+この関数は、次の場合に失敗する可能性があります。
 
-- `offset` is outside the string view
-- `offset` is `0`
-- the bytes or code units immediately before `offset` do not form exactly one well-formed code point
+- `offset` が文字列ビューの範囲外である
+- `offset` が `0` である
+- `offset` の直前のバイト列またはコード単位列が、ちょうど 1 個の well-formed なコードポイントを形成していない
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"Aあ";
@@ -5585,23 +5488,23 @@ auto code_points(std::wstring_view text)
     -> xer::code_point_range<wchar_t>;
 ```
 
-### Purpose
+### 目的
 
-`code_points` creates a lightweight input range that walks through the source text by Unicode code point.
+`code_points` は、元のテキストを Unicode コードポイント単位で走査する軽量入力範囲を作成します。
 
-### Element Type
+### 要素型
 
-The dereferenced iterator value is:
+イテレーターを参照解除した値は次の型です。
 
 ```cpp
 const xer::result<xer::code_point>&
 ```
 
-This means each element must be checked before use.
+つまり、各要素は使用前に確認する必要があります。
 
-A malformed sequence appears as an error element. Incrementing the iterator after an error moves it to the end.
+不正なシーケンスはエラー要素として現れます。エラー後にイテレーターを進めると終端へ移動します。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"Aあ😀";
@@ -5619,20 +5522,20 @@ for (const auto& item : xer::code_points(text)) {
 
 ---
 
-## Relationship to Grapheme Clusters
+## 書記素クラスタとの関係
 
-Code point traversal is not the same as grapheme cluster traversal.
+コードポイント走査は、書記素クラスタ走査とは同じではありません。
 
-For example, the following may be two code points but one user-perceived character:
+たとえば、次の組み合わせは 2 個のコードポイントですが、ユーザーから見た 1 文字になることがあります。
 
 ```text
 U+304B HIRAGANA LETTER KA
 U+3099 COMBINING KATAKANA-HIRAGANA VOICED SOUND MARK
 ```
 
-Code point APIs intentionally expose this as two code points.
+コードポイント API は、これを意図的に 2 個のコードポイントとして公開します。
 
-Grapheme cluster APIs are built on top of this layer and return source string spans rather than a single `char32_t`, because one grapheme cluster may contain multiple code points.
+書記素クラスタ API はこの層の上に構築され、単一の `char32_t` ではなく元の文字列範囲を返します。これは、1 個の書記素クラスタが複数のコードポイントを含むことがあるためです。
 
 ---
 
@@ -5646,13 +5549,13 @@ struct grapheme_cluster {
 };
 ```
 
-### Purpose
+### 目的
 
-`grapheme_cluster` describes one extended grapheme cluster and the corresponding source span.
+`grapheme_cluster` は、1 個の拡張書記素クラスタと、それに対応する元の範囲を表します。
 
-It does not own the original string. It only records where the cluster begins and how many source code units it occupies.
+元の文字列は所有しません。クラスタがどこで始まり、元のコード単位をいくつ占めているかだけを記録します。
 
-Unlike `code_point`, it does not contain a `char32_t` value. A single user-visible character can consist of multiple Unicode code points, such as a base character followed by a combining mark, an emoji with a variation selector, or an emoji ZWJ sequence.
+`code_point` と異なり、`char32_t` 値は持ちません。ユーザーから見える 1 文字は、基底文字と結合記号、異体字セレクター付きの絵文字、または絵文字 ZWJ シーケンスのように、複数の Unicode コードポイントから構成されることがあります。
 
 ---
 
@@ -5669,31 +5572,31 @@ auto next_grapheme_cluster(std::wstring_view text, std::size_t offset = 0)
     -> xer::result<xer::grapheme_cluster>;
 ```
 
-### Purpose
+### 目的
 
-`next_grapheme_cluster` decodes the extended grapheme cluster beginning at `offset`.
+`next_grapheme_cluster` は、`offset` から始まる拡張書記素クラスタをデコードします。
 
-The implementation is based on the code point traversal layer and groups practical extended grapheme cluster sequences, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences.
+実装はコードポイント走査層を基盤とし、結合記号、異体字セレクター、絵文字修飾子、絵文字 ZWJ シーケンス、地域指示記号ペア、CRLF、およびハングル音節シーケンスなど、実用的な拡張書記素クラスタ列をグループ化します。
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<xer::grapheme_cluster>
 ```
 
-The function can fail if:
+この関数は、次の場合に失敗する可能性があります。
 
-- `offset` is outside the string view
-- `offset` is equal to the end of the string view
-- the input contains malformed UTF-8
-- the input contains malformed UTF-16 surrogate pairs
-- the decoded value is not a Unicode scalar value
+- `offset` が文字列ビューの範囲外である
+- `offset` が文字列ビューの末尾と等しい
+- 入力に不正な UTF-8 が含まれている
+- 入力に不正な UTF-16 サロゲートペアが含まれている
+- デコードされた値が Unicode スカラー値ではない
 
-Out-of-range offsets are reported as `xer::error_t::out_of_range`. Malformed encoded text is reported as `xer::error_t::encoding_error`.
+範囲外のオフセットは `xer::error_t::out_of_range` として報告されます。不正な符号化テキストは `xer::error_t::encoding_error` として報告されます。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"A\u0301B";
@@ -5718,11 +5621,11 @@ auto prev_grapheme_cluster(std::wstring_view text, std::size_t offset)
     -> xer::result<xer::grapheme_cluster>;
 ```
 
-### Purpose
+### 目的
 
-`prev_grapheme_cluster` decodes the extended grapheme cluster immediately before `offset`.
+`prev_grapheme_cluster` は、`offset` の直前にある拡張書記素クラスタをデコードします。
 
-The `offset` argument is a one-past cluster boundary. Passing `text.size()` decodes the final grapheme cluster. Passing an offset inside a cluster is reported as `xer::error_t::encoding_error`.
+`offset` 引数は、クラスタ境界の one-past 位置です。`text.size()` を渡すと最後の書記素クラスタをデコードします。クラスタ内部のオフセットを渡した場合は `xer::error_t::encoding_error` として報告されます。
 
 ---
 
@@ -5739,17 +5642,17 @@ auto grapheme_clusters(std::wstring_view text)
     -> xer::grapheme_cluster_range<wchar_t>;
 ```
 
-### Purpose
+### 目的
 
-`grapheme_clusters` creates a lightweight input range that walks through the source text by extended grapheme cluster.
+`grapheme_clusters` は、元のテキストを拡張書記素クラスタ単位で走査する軽量入力範囲を作成します。
 
-The dereferenced element type is:
+参照解除された要素型は次のとおりです。
 
 ```cpp
 xer::result<xer::grapheme_cluster>
 ```
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"A\u0301B👩‍💻";
@@ -5780,23 +5683,23 @@ auto grapheme_length(std::wstring_view text)
     -> xer::result<std::size_t>;
 ```
 
-### Purpose
+### 目的
 
-`grapheme_length` counts extended grapheme clusters in the source string view.
+`grapheme_length` は、元の文字列ビューに含まれる拡張書記素クラスタ数を数えます。
 
-This is different from `text.size()`, which counts source code units. For UTF-8 Japanese text, `text.size()` is a byte count. `grapheme_length` is intended for user-visible character counts based on xer's practical grapheme cluster rules.
+これは、元のコード単位数を数える `text.size()` とは異なります。UTF-8 の日本語テキストでは、`text.size()` はバイト数です。`grapheme_length` は、xer の実用的な書記素クラスタ規則にもとづく、ユーザーから見える文字数を得るためのものです。
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<std::size_t>
 ```
 
-Malformed UTF-8 or UTF-16 input is reported as `xer::error_t::encoding_error`.
+不正な UTF-8 または UTF-16 入力は `xer::error_t::encoding_error` として報告されます。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"A\u0301B👩‍💻";
@@ -5828,15 +5731,15 @@ auto grapheme_substr(
     -> xer::result<std::wstring_view>;
 ```
 
-### Purpose
+### 目的
 
-`grapheme_substr` returns a substring view selected by grapheme cluster index.
+`grapheme_substr` は、書記素クラスタのインデックスで選択した部分文字列ビューを返します。
 
-The `offset` and `count` parameters are grapheme cluster counts, not byte counts and not UTF-16 code-unit counts. The returned value is a view into the original string.
+`offset` および `count` パラメーターは、書記素クラスタ数です。バイト数でも UTF-16 コード単位数でもありません。返される値は元の文字列へのビューです。
 
-If `offset` is equal to the grapheme cluster length, the result is an empty view at the end of the input. If `offset` is greater than the grapheme cluster length, the function returns `xer::error_t::out_of_range`.
+`offset` が書記素クラスタ長と等しい場合、結果は入力末尾の空ビューになります。`offset` が書記素クラスタ長より大きい場合、この関数は `xer::error_t::out_of_range` を返します。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"A\u0301B👩‍💻C";
@@ -5859,9 +5762,9 @@ auto grapheme_left(std::wstring_view text, std::size_t count)
     -> xer::result<std::wstring_view>;
 ```
 
-### Purpose
+### 目的
 
-`grapheme_left` returns the first `count` grapheme clusters as a view into the original string. If `count` is greater than the grapheme cluster length, the whole input view is returned.
+`grapheme_left` は、先頭から `count` 個の書記素クラスタを、元の文字列へのビューとして返します。`count` が書記素クラスタ長より大きい場合は、入力全体のビューを返します。
 
 ---
 
@@ -5878,13 +5781,13 @@ auto grapheme_right(std::wstring_view text, std::size_t count)
     -> xer::result<std::wstring_view>;
 ```
 
-### Purpose
+### 目的
 
-`grapheme_right` returns the last `count` grapheme clusters as a view into the original string. If `count` is greater than the grapheme cluster length, the whole input view is returned.
+`grapheme_right` は、末尾から `count` 個の書記素クラスタを、元の文字列へのビューとして返します。`count` が書記素クラスタ長より大きい場合は、入力全体のビューを返します。
 
-`grapheme_right` first determines the grapheme cluster length, so malformed input anywhere in the source view is reported.
+`grapheme_right` は最初に書記素クラスタ長を求めるため、元のビュー内のどこかに不正な入力があれば報告されます。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"A\u0301B👩‍💻C";
@@ -5909,35 +5812,35 @@ auto is_emoji(std::wstring_view text)
     -> xer::result<bool>;
 ```
 
-### Purpose
+### 目的
 
-`is_emoji` provides practical emoji detection for English/Japanese user-facing text.
+`is_emoji` は、英語・日本語のユーザー向けテキストで実用的に使える絵文字判定を提供します。
 
-The `char32_t` overload checks whether a Unicode scalar value is treated as an emoji base by xer. It is intended for quick code point classification.
+`char32_t` オーバーロードは、Unicode スカラー値が xer で絵文字基底として扱われるかどうかを調べます。これはコードポイント分類をすばやく行うためのものです。
 
-The string-view overloads check whether the whole input is one emoji grapheme cluster. This is the overload to use for sequences such as flags, keycap emoji, emoji with variation selectors, skin-tone modifiers, and ZWJ emoji sequences.
+文字列ビュー版は、入力全体が 1 個の絵文字書記素クラスタであるかどうかを調べます。旗、キーキャップ絵文字、異体字セレクター付き絵文字、肌色修飾子、ZWJ 絵文字シーケンスなどには、このオーバーロードを使用します。
 
-### Input Model
+### 入力モデル
 
-The string-view overloads accept UTF-8, UTF-16, or wide text. The input must contain exactly one grapheme cluster to return `true`. Empty input returns `false`.
+文字列ビュー版は UTF-8、UTF-16、またはワイドテキストを受け取ります。`true` を返すには、入力がちょうど 1 個の書記素クラスタを含んでいる必要があります。空入力は `false` を返します。
 
-### Return Model
+### 戻り値モデル
 
-The `char32_t` overload returns `bool` and never reports an error.
+`char32_t` オーバーロードは `bool` を返し、エラーを報告しません。
 
-The string-view overloads return:
+文字列ビュー版は次を返します。
 
 ```cpp
 xer::result<bool>
 ```
 
-They can fail when the input contains malformed UTF-8, UTF-16, or wide text.
+入力に不正な UTF-8、UTF-16、またはワイドテキストが含まれている場合、失敗する可能性があります。
 
-### Scope
+### 対象範囲
 
-This is a compact practical detector, not a complete generated implementation of every Unicode emoji property. It reuses xer's existing grapheme cluster handling and covers common emoji used in English/Japanese text, including pictographic emoji, flags, keycap emoji, variation-selector forms, emoji modifiers, and ZWJ sequences.
+これは小さく実用的な判定器であり、すべての Unicode 絵文字プロパティを生成テーブルで完全実装したものではありません。xer の既存の書記素クラスタ処理を再利用し、英語・日本語テキストでよく使われる絵文字を対象にします。対象には、絵文字ピクトグラフ、旗、キーキャップ絵文字、異体字セレクター形式、絵文字修飾子、ZWJ シーケンスが含まれます。
 
-### Example
+### 例
 
 ```cpp
 const auto face = xer::is_emoji(std::u8string_view{u8"😀"});
@@ -5945,7 +5848,7 @@ const auto worker = xer::is_emoji(std::u8string_view{u8"👩‍💻"});
 const auto letter = xer::is_emoji(std::u8string_view{u8"A"});
 ```
 
-In this example, `face` and `worker` are expected to contain `true`, while `letter` is expected to contain `false`.
+この例では、`face` と `worker` は `true` を含み、`letter` は `false` を含むことが期待されます。
 
 ---
 
@@ -5956,75 +5859,75 @@ auto normalize_nfc(std::u8string_view text)
     -> xer::result<std::u8string>;
 ```
 
-### Purpose
+### 目的
 
-`normalize_nfc` converts valid UTF-8 text to Unicode Normalization Form C.
+`normalize_nfc` は、有効な UTF-8 テキストを Unicode 正規化形式 C に変換します。
 
-NFC is the normalization form that first applies canonical decomposition and then canonical composition. It is useful for making canonically equivalent text use a consistent byte representation where composed characters are available.
+NFC は、まず正準分解を適用し、その後に正準合成を行う正規化形式です。正準等価なテキストについて、合成済み文字が利用可能な場合に一貫したバイト表現へそろえるために有用です。
 
-For example, the sequence:
+たとえば、次のシーケンスは、
 
 ```text
 U+304B HIRAGANA LETTER KA
 U+3099 COMBINING KATAKANA-HIRAGANA VOICED SOUND MARK
 ```
 
-can be normalized to:
+次のように正規化できます。
 
 ```text
 U+304C HIRAGANA LETTER GA
 ```
 
-Similarly, the sequence:
+同様に、次のシーケンスは、
 
 ```text
 U+0041 LATIN CAPITAL LETTER A
 U+030A COMBINING RING ABOVE
 ```
 
-can be normalized to:
+次のように正規化できます。
 
 ```text
 U+00C5 LATIN CAPITAL LETTER A WITH RING ABOVE
 ```
 
-### Input Model
+### 入力モデル
 
-The input is provided as:
+入力は次の型で与えます。
 
 ```cpp
 std::u8string_view
 ```
 
-The input must be valid UTF-8. Invalid UTF-8 is reported as an error.
+入力は有効な UTF-8 である必要があります。無効な UTF-8 はエラーとして報告されます。
 
-### Output Model
+### 出力モデル
 
-On success, the function returns:
+成功時、この関数は次を返します。
 
 ```cpp
 std::u8string
 ```
 
-The returned string is valid UTF-8 normalized to NFC.
+返される文字列は、NFC に正規化された有効な UTF-8 です。
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<std::u8string>
 ```
 
-The function can fail if:
+この関数は、次の場合に失敗する可能性があります。
 
-- the input is not valid UTF-8
-- the input or output size exceeds the range accepted by ICU C API length parameters
-- ICU reports an internal failure
+- 入力が有効な UTF-8 ではない
+- 入力または出力サイズが ICU C API の長さパラメーターで受け付けられる範囲を超えている
+- ICU が内部エラーを報告した
 
-Typical invalid UTF-8 input is reported as `xer::error_t::encoding_error`.
+典型的な無効 UTF-8 入力は `xer::error_t::encoding_error` として報告されます。
 
-### Example
+### 例
 
 ```cpp
 const auto result = xer::normalize_nfc(u8"か\u3099");
@@ -6042,72 +5945,72 @@ auto is_normalized_nfc(std::u8string_view text)
     -> xer::result<bool>;
 ```
 
-### Purpose
+### 目的
 
-`is_normalized_nfc` checks whether valid UTF-8 text is already normalized to Unicode NFC.
+`is_normalized_nfc` は、有効な UTF-8 テキストがすでに Unicode NFC に正規化されているかどうかを確認します。
 
-This is useful when a program wants to avoid rewriting text that is already in the desired normalization form.
+これは、すでに目的の正規化形式になっているテキストを書き換えずに済ませたい場合に有用です。
 
-### Input Model
+### 入力モデル
 
-The input is provided as:
+入力は次の型で与えます。
 
 ```cpp
 std::u8string_view
 ```
 
-The input must be valid UTF-8. Invalid UTF-8 is reported as an error.
+入力は有効な UTF-8 である必要があります。無効な UTF-8 はエラーとして報告されます。
 
-### Output Model
+### 出力モデル
 
-On success, the function returns:
+成功時、この関数は次を返します。
 
 ```cpp
 bool
 ```
 
-The value is `true` if the input is already NFC, and `false` otherwise.
+値は、入力がすでに NFC であれば `true`、そうでなければ `false` です。
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<bool>
 ```
 
-The function can fail if:
+この関数は、次の場合に失敗する可能性があります。
 
-- the input is not valid UTF-8
-- the input size exceeds the range accepted by ICU C API length parameters
-- ICU reports a failure
+- 入力が有効な UTF-8 ではない
+- 入力サイズが ICU C API の長さパラメーターで受け付けられる範囲を超えている
+- ICU が失敗を報告した
 
-Typical invalid UTF-8 input is reported as `xer::error_t::encoding_error`.
+典型的な無効 UTF-8 入力は `xer::error_t::encoding_error` として報告されます。
 
-### Example
+### 例
 
 ```cpp
 const auto before = xer::is_normalized_nfc(u8"か\u3099");
 const auto after = xer::is_normalized_nfc(u8"が");
 ```
 
-In this example, `before` is expected to contain `false`, while `after` is expected to contain `true`.
+この例では、`before` は `false` を含み、`after` は `true` を含むことが期待されます。
 
 ---
 
-## Design Notes
+## 設計メモ
 
-`<xer/unicode.h>` is intentionally independent from ordinary string-processing headers such as `<xer/string.h>`.
+`<xer/unicode.h>` は、`<xer/string.h>` のような通常の文字列処理ヘッダーから意図的に独立しています。
 
-The code point traversal layer is small and table-free. It validates UTF-8 and UTF-16 structure, reports malformed input through `xer::result`, and records source spans in code units.
+コードポイント走査層は小さく、テーブルを使いません。UTF-8 および UTF-16 構造を検証し、不正な入力を `xer::result` で報告し、元の範囲をコード単位で記録します。
 
-The grapheme cluster traversal layer is built on top of the code point layer. It is intended for practical user-visible character traversal while still returning source spans instead of copying text. The grapheme-cluster-based string operations provide convenient length and substring helpers while returning views into the original text. Emoji detection is also built on the same code point and grapheme cluster layers so that multi-code-point emoji sequences can be checked as one user-visible unit.
+書記素クラスタ走査層は、コードポイント層の上に構築されています。これは、実用的なユーザー可視文字の走査を目的としつつ、テキストをコピーせずに元の範囲を返します。書記素クラスタ単位の文字列操作は、長さおよび部分文字列の便利なヘルパーを提供しつつ、元のテキストへのビューを返します。絵文字判定も同じコードポイント層と書記素クラスタ層の上に構築されるため、複数コードポイントからなる絵文字シーケンスを 1 個のユーザー可視単位として確認できます。
 
-The default language scope of this layer is English and Japanese text. It handles common sequences needed for practical English/Japanese user-facing text, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences. It is not a full Unicode text-boundary engine for every script and does not provide language-specific tailoring. Users who need broader script coverage can extend xer's public source code or use a dedicated Unicode boundary service.
+この層の既定の言語対象は英語および日本語テキストです。結合記号、異体字セレクター、絵文字修飾子、絵文字 ZWJ シーケンス、地域指示記号ペア、CRLF、ハングル音節シーケンスなど、実用的な英語・日本語のユーザー向けテキストに必要な一般的シーケンスを扱います。あらゆる文字体系に対応する完全な Unicode テキスト境界エンジンではなく、言語固有の tailoring も提供しません。より広い文字体系への対応が必要なユーザーは、xer の公開ソースコードを拡張するか、専用の Unicode 境界サービスを使用できます。
 
-Unicode normalization is heavier than simple UTF-8 string utilities because it requires Unicode normalization data. xer delegates this responsibility to ICU instead of embedding a large generated Unicode table in the header-only library.
+Unicode 正規化は Unicode 正規化データを必要とするため、単純な UTF-8 文字列ユーティリティより重い処理です。xer はヘッダーオンリーライブラリ内に大きな生成済み Unicode テーブルを埋め込むのではなく、この責務を ICU に委譲します。
 
-The initial normalization API exposes only NFC because NFC is the most practical normalization form for many file-name, search-key, dictionary, and text-cleanup use cases. Other normalization forms can be added later without changing the basic API shape.
+初期の正規化 API は NFC のみを公開します。NFC は、ファイル名、検索キー、辞書、テキスト整形など、多くの実用的な用途で最も使いやすい正規化形式だからです。その他の正規化形式は、基本的な API 形状を変更せずに後から追加できます。
 
 ---
 
@@ -6228,27 +6131,21 @@ auto main() -> int
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/binary.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/binary.h>`
 
-## Purpose
+## 目的
 
-`<xer/binary.h>` provides small binary-data utility functions.
+`<xer/binary.h>` は、小規模なバイナリデータ用ユーティリティ関数を提供します。
 
-The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for xer's 128-bit unsigned integer type, simple checksum calculation, CRC calculation, binary-to-hex conversion, hex-to-binary conversion, and practical hash calculation for byte sequences and files.
+現在の対象範囲は意図的に狭くしています。このヘッダーは、固定幅符号なし整数の分割と合成、ビット順反転、xer の128ビット符号なし整数型に対するバイト順反転、単純なチェックサム計算、CRC計算、バイナリから16進文字列への変換、16進文字列からバイナリへの変換、バイト列とファイルに対する実用的なハッシュ計算を扱います。
 
-These functions treat input values as fixed-width binary values. They do not depend on the CPU's native endian setting.
+これらの関数は、入力値を固定幅のバイナリ値として扱います。CPUのネイティブエンディアン設定には依存しません。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/binary.h>` provides the following facilities:
+最低限、`<xer/binary.h>` は次の機能を提供します。
 
 ```cpp
 enum class byte_order {
@@ -6271,7 +6168,7 @@ auto low_u32(std::uint64_t value) noexcept -> std::uint32_t;
 auto make_u64(std::uint32_t high, std::uint32_t low) noexcept -> std::uint64_t;
 ```
 
-When `xer::uint128_t` is available, the header also provides:
+`xer::uint128_t` が利用できる場合、このヘッダーはさらに次を提供します。
 
 ```cpp
 auto high_u64(xer::uint128_t value) noexcept -> std::uint64_t;
@@ -6281,7 +6178,7 @@ auto make_u128(std::uint64_t high, std::uint64_t low) noexcept -> xer::uint128_t
 auto byteswap(xer::uint128_t value) noexcept -> xer::uint128_t;
 ```
 
-The header also provides bit-order reversal:
+このヘッダーはビット順反転も提供します。
 
 ```cpp
 auto reverse_bits(std::uint8_t value) noexcept -> std::uint8_t;
@@ -6290,92 +6187,92 @@ auto reverse_bits(std::uint32_t value) noexcept -> std::uint32_t;
 auto reverse_bits(std::uint64_t value) noexcept -> std::uint64_t;
 ```
 
-When `xer::uint128_t` is available:
+`xer::uint128_t` が利用できる場合は次も提供されます。
 
 ```cpp
 auto reverse_bits(xer::uint128_t value) noexcept -> xer::uint128_t;
 ```
 
-For simple checksums, the header provides additive checksums, XOR checksums, and convenience aliases in 8-bit, 16-bit, and 32-bit forms. It also provides CRC16 and CRC32 calculation helpers.
+単純なチェックサムについて、このヘッダーは8ビット、16ビット、32ビット形式の加算チェックサム、XORチェックサム、および便利な別名を提供します。また、CRC16とCRC32の計算ヘルパーも提供します。
 
-For binary/text conversion, the header provides `bin2hex` and `hex2bin`. For practical hash calculation, the header provides `md5`, `sha1`, and `sha256`.
+バイナリ/テキスト変換について、このヘッダーは `bin2hex` と `hex2bin` を提供します。実用的なハッシュ計算について、このヘッダーは `md5`、`sha1`、`sha256` を提供します。
 
 ---
 
-## Integer Splitting and Composition
+## 整数の分割と合成
 
-The `high_uN` and `low_uN` functions extract the upper or lower half of an unsigned integer value.
+`high_uN` 関数と `low_uN` 関数は、符号なし整数値の上位半分または下位半分を取り出します。
 
 ```cpp
 auto high = xer::high_u8(std::uint16_t{0x1234}); // 0x12
 auto low = xer::low_u8(std::uint16_t{0x1234});  // 0x34
 ```
 
-The `make_uN` functions compose a larger unsigned integer value from its upper and lower parts.
+`make_uN` 関数は、上位部分と下位部分から、より大きな符号なし整数値を合成します。
 
 ```cpp
 auto value = xer::make_u16(0x12, 0x34); // 0x1234
 ```
 
-The naming convention indicates the size of the extracted part:
+命名規則は、取り出される部分のサイズを示します。
 
-- `high_u8` and `low_u8` extract 8-bit parts from a 16-bit value
-- `high_u16` and `low_u16` extract 16-bit parts from a 32-bit value
-- `high_u32` and `low_u32` extract 32-bit parts from a 64-bit value
-- `high_u64` and `low_u64` extract 64-bit parts from a 128-bit value
+- `high_u8` と `low_u8` は16ビット値から8ビット部分を取り出します
+- `high_u16` と `low_u16` は32ビット値から16ビット部分を取り出します
+- `high_u32` と `low_u32` は64ビット値から32ビット部分を取り出します
+- `high_u64` と `low_u64` は128ビット値から64ビット部分を取り出します
 
-The composition functions indicate the size of the composed result:
+合成関数は、合成される結果のサイズを示します。
 
-- `make_u16` composes a 16-bit value from two 8-bit values
-- `make_u32` composes a 32-bit value from two 16-bit values
-- `make_u64` composes a 64-bit value from two 32-bit values
-- `make_u128` composes a 128-bit value from two 64-bit values
+- `make_u16` は2つの8ビット値から16ビット値を合成します
+- `make_u32` は2つの16ビット値から32ビット値を合成します
+- `make_u64` は2つの32ビット値から64ビット値を合成します
+- `make_u128` は2つの64ビット値から128ビット値を合成します
 
-These functions operate on integer values, not on object representation in memory. Their behavior is independent of native endian.
+これらの関数は、メモリ上のオブジェクト表現ではなく、整数値に対して動作します。その振る舞いはネイティブエンディアンに依存しません。
 
 ---
 
 ## `byteswap`
 
-`<xer/binary.h>` imports `std::byteswap` into the `xer` namespace.
+`<xer/binary.h>` は `std::byteswap` を `xer` 名前空間に取り込みます。
 
 ```cpp
 using std::byteswap;
 ```
 
-This makes standard C++23 byte swapping available as `xer::byteswap` for the standard unsigned integer types supported by `std::byteswap`.
+これにより、C++23標準のバイトスワップを、`std::byteswap` が対応している標準の符号なし整数型に対して `xer::byteswap` として利用できます。
 
-When `xer::uint128_t` is available, xer also provides a 128-bit overload:
+`xer::uint128_t` が利用できる場合、xer は128ビットの多重定義も提供します。
 
 ```cpp
 auto byteswap(xer::uint128_t value) noexcept -> xer::uint128_t;
 ```
 
-For example, a 128-bit value whose high and low halves are:
+たとえば、上位半分と下位半分が次の128ビット値があるとします。
 
 ```text
 0x0011223344556677_8899aabbccddeeff
 ```
 
-is byte-swapped to:
+これはバイトスワップによって次になります。
 
 ```text
 0xffeeddccbbaa9988_7766554433221100
 ```
 
-The 128-bit overload is provided because C++23 `std::byteswap` does not cover xer's extended `uint128_t` type.
+128ビット多重定義は、C++23の `std::byteswap` が xer の拡張 `uint128_t` 型を対象にしていないため提供されています。
 
 ---
 
 ## `reverse_bits`
 
-`reverse_bits` reverses the order of all bits in a fixed-width unsigned integer value.
+`reverse_bits` は、固定幅符号なし整数値の全ビットの順序を反転します。
 
 ```cpp
 auto value = xer::reverse_bits(std::uint8_t{0b0001'0010}); // 0b0100'1000
 ```
 
-This is different from byte-order reversal.
+これはバイト順反転とは異なります。
 
 ```cpp
 std::uint16_t value = 0x1234;
@@ -6384,13 +6281,13 @@ xer::byteswap(value);     // 0x3412
 xer::reverse_bits(value); // 0x2c48
 ```
 
-`reverse_bits` treats the input as a fixed-width value. For example, the 8-bit overload reverses exactly 8 bits, and the 32-bit overload reverses exactly 32 bits.
+`reverse_bits` は入力を固定幅の値として扱います。たとえば、8ビット多重定義は正確に8ビットを反転し、32ビット多重定義は正確に32ビットを反転します。
 
 ---
 
 ## `byte_order`
 
-`byte_order` specifies how consecutive bytes are grouped into 16-bit or 32-bit words for checksum calculation.
+`byte_order` は、チェックサム計算で連続するバイトを16ビットワードまたは32ビットワードへまとめる方法を指定します。
 
 ```cpp
 enum class byte_order {
@@ -6399,15 +6296,15 @@ enum class byte_order {
 };
 ```
 
-This enum is used only when byte sequences are interpreted as 16-bit or 32-bit words.
+この列挙型は、バイト列を16ビットまたは32ビットワードとして解釈する場合にだけ使われます。
 
-For 8-bit checksums, no byte-order setting is needed because each input byte is already one checksum unit.
+8ビットチェックサムでは、各入力バイトがすでに1つのチェックサム単位なので、バイト順の設定は不要です。
 
 ---
 
-## 8-bit Checksums
+## 8ビットチェックサム
 
-The 8-bit checksum functions calculate a simple checksum over individual bytes.
+8ビットチェックサム関数は、個々のバイトに対して単純なチェックサムを計算します。
 
 ```cpp
 auto checksum8(std::span<const std::byte> bytes) noexcept -> std::uint8_t;
@@ -6415,13 +6312,13 @@ auto checksum_add8(std::span<const std::byte> bytes) noexcept -> std::uint8_t;
 auto checksum_xor8(std::span<const std::byte> bytes) noexcept -> std::uint8_t;
 ```
 
-`checksum8` is the usual additive 8-bit checksum. It is equivalent to `checksum_add8`.
+`checksum8` は通常の加算式8ビットチェックサムです。`checksum_add8` と等価です。
 
-`checksum_add8` adds all bytes modulo 256.
+`checksum_add8` はすべてのバイトを256を法として加算します。
 
-`checksum_xor8` XORs all bytes.
+`checksum_xor8` はすべてのバイトをXORします。
 
-For example:
+例:
 
 ```cpp
 const std::array<std::byte, 4> bytes {
@@ -6437,9 +6334,9 @@ const auto x = xer::checksum_xor8(std::span<const std::byte>(bytes));   // 0x04
 
 ---
 
-## 16-bit Checksums
+## 16ビットチェックサム
 
-The 16-bit checksum functions group the input bytes into 16-bit words and then calculate either an additive checksum or an XOR checksum.
+16ビットチェックサム関数は、入力バイトを16ビットワードへまとめてから、加算チェックサムまたはXORチェックサムを計算します。
 
 ```cpp
 auto checksum16(std::span<const std::byte> bytes, byte_order order) noexcept
@@ -6452,24 +6349,24 @@ auto checksum_xor16(std::span<const std::byte> bytes, byte_order order) noexcept
     -> std::uint16_t;
 ```
 
-`checksum16` is the usual additive 16-bit checksum. It is equivalent to `checksum_add16`.
+`checksum16` は通常の加算式16ビットチェックサムです。`checksum_add16` と等価です。
 
-The byte order controls how each pair of bytes is converted into a word.
+バイト順は、各2バイトをどのようにワードへ変換するかを制御します。
 
-For bytes `{0x01, 0x02}`:
+バイト `{0x01, 0x02}` の場合:
 
-- `byte_order::big_endian` reads the word as `0x0102`
-- `byte_order::little_endian` reads the word as `0x0201`
+- `byte_order::big_endian` はワードを `0x0102` として読み取ります
+- `byte_order::little_endian` はワードを `0x0201` として読み取ります
 
-If the input has an odd number of bytes, the final missing byte is treated as `0x00`.
+入力のバイト数が奇数の場合、最後に不足しているバイトは `0x00` として扱われます。
 
-For example, with big-endian grouping, `{0x01, 0x02, 0x03}` is treated as:
+たとえば、ビッグエンディアンのグループ化では、`{0x01, 0x02, 0x03}` は次のように扱われます。
 
 ```text
 0x0102, 0x0300
 ```
 
-With little-endian grouping, the same input is treated as:
+リトルエンディアンのグループ化では、同じ入力は次のように扱われます。
 
 ```text
 0x0201, 0x0003
@@ -6477,9 +6374,9 @@ With little-endian grouping, the same input is treated as:
 
 ---
 
-## 32-bit Checksums
+## 32ビットチェックサム
 
-The 32-bit checksum functions group the input bytes into 32-bit words and then calculate either an additive checksum or an XOR checksum.
+32ビットチェックサム関数は、入力バイトを32ビットワードへまとめてから、加算チェックサムまたはXORチェックサムを計算します。
 
 ```cpp
 auto checksum32(std::span<const std::byte> bytes, byte_order order) noexcept
@@ -6492,22 +6389,22 @@ auto checksum_xor32(std::span<const std::byte> bytes, byte_order order) noexcept
     -> std::uint32_t;
 ```
 
-`checksum32` is the usual additive 32-bit checksum. It is equivalent to `checksum_add32`.
+`checksum32` は通常の加算式32ビットチェックサムです。`checksum_add32` と等価です。
 
-For bytes `{0x01, 0x02, 0x03, 0x04}`:
+バイト `{0x01, 0x02, 0x03, 0x04}` の場合:
 
-- `byte_order::big_endian` reads the word as `0x01020304`
-- `byte_order::little_endian` reads the word as `0x04030201`
+- `byte_order::big_endian` はワードを `0x01020304` として読み取ります
+- `byte_order::little_endian` はワードを `0x04030201` として読み取ります
 
-If the input byte count is not a multiple of four, the final incomplete word is padded with zero bytes.
+入力バイト数が4の倍数ではない場合、最後の不完全なワードはゼロバイトで埋められます。
 
-For example, with big-endian grouping, `{0x01, 0x02, 0x03}` is treated as:
+たとえば、ビッグエンディアンのグループ化では、`{0x01, 0x02, 0x03}` は次のように扱われます。
 
 ```text
 0x01020300
 ```
 
-With little-endian grouping, the same input is treated as:
+リトルエンディアンのグループ化では、同じ入力は次のように扱われます。
 
 ```text
 0x00030201
@@ -6515,13 +6412,13 @@ With little-endian grouping, the same input is treated as:
 
 ---
 
-## Checksum Input Forms
+## チェックサム入力形式
 
-The checksum functions are provided for four input forms.
+チェックサム関数は4種類の入力形式に対して提供されます。
 
 ### `std::span<const std::byte>`
 
-The span overloads are the primary in-memory byte-sequence overloads.
+span多重定義は、メモリ上のバイト列に対する主要な多重定義です。
 
 ```cpp
 auto checksum8(std::span<const std::byte> bytes) noexcept -> std::uint8_t;
@@ -6547,11 +6444,11 @@ auto checksum_xor32(std::span<const std::byte> bytes, byte_order order) noexcept
     -> std::uint32_t;
 ```
 
-These overloads do not allocate and do not fail.
+これらの多重定義はメモリ割り当てを行わず、失敗しません。
 
-### Pointer and Size
+### ポインタとサイズ
 
-Pointer-and-size overloads are provided for C-style byte buffers.
+C風のバイトバッファ向けに、ポインタとサイズを受け取る多重定義が提供されます。
 
 ```cpp
 auto checksum8(const void* data, std::size_t size) noexcept
@@ -6582,13 +6479,13 @@ auto checksum_xor32(const void* data, std::size_t size, byte_order order) noexce
     -> xer::result<std::uint32_t>;
 ```
 
-If `data` is `nullptr` and `size` is not zero, these overloads fail with `error_t::invalid_argument`.
+`data` が `nullptr` で `size` がゼロではない場合、これらの多重定義は `error_t::invalid_argument` で失敗します。
 
-`data == nullptr` with `size == 0` is accepted and represents an empty byte sequence.
+`data == nullptr` かつ `size == 0` は受け入れられ、空のバイト列を表します。
 
-### Iterator Range
+### イテレータ範囲
 
-Iterator-range overloads are provided for byte-like ranges.
+バイト風の範囲向けに、イテレータ範囲多重定義が提供されます。
 
 ```cpp
 template<std::input_iterator InputIt>
@@ -6619,13 +6516,13 @@ template<std::input_iterator InputIt>
 auto checksum_xor32(InputIt first, InputIt last, byte_order order) -> std::uint32_t;
 ```
 
-The iterator value type must be `std::byte` or a byte-like integer value convertible to `std::uint8_t`.
+イテレータの値型は `std::byte`、または `std::uint8_t` に変換可能なバイト風の整数値でなければなりません。
 
-These overloads are useful with containers such as `std::vector<std::byte>`, `std::array<std::uint8_t, N>`, and similar byte-oriented storage.
+これらの多重定義は、`std::vector<std::byte>`、`std::array<std::uint8_t, N>`、および同様のバイト指向ストレージで役立ちます。
 
-### File Path
+### ファイルパス
 
-File overloads calculate the checksum of a whole file.
+ファイル多重定義は、ファイル全体のチェックサムを計算します。
 
 ```cpp
 auto checksum8(const path& filename) -> xer::result<std::uint8_t>;
@@ -6641,87 +6538,87 @@ auto checksum_add32(const path& filename, byte_order order) -> xer::result<std::
 auto checksum_xor32(const path& filename, byte_order order) -> xer::result<std::uint32_t>;
 ```
 
-These overloads read the whole file content and then calculate the checksum. File I/O failures are reported through `xer::result`.
+これらの多重定義はファイル全体の内容を読み取ってからチェックサムを計算します。ファイルI/Oの失敗は `xer::result` を通じて報告されます。
 
 ---
 
-## Additive and XOR Checksum Meaning
+## 加算チェックサムとXORチェックサムの意味
 
-The additive checksum functions add each checksum unit and keep only the low bits of the result.
+加算チェックサム関数は、各チェックサム単位を加算し、結果の下位ビットだけを保持します。
 
-- `checksum8` and `checksum_add8` keep the low 8 bits
-- `checksum16` and `checksum_add16` keep the low 16 bits
-- `checksum32` and `checksum_add32` keep the low 32 bits
+- `checksum8` と `checksum_add8` は下位8ビットを保持します
+- `checksum16` と `checksum_add16` は下位16ビットを保持します
+- `checksum32` と `checksum_add32` は下位32ビットを保持します
 
-`checksum8`, `checksum16`, and `checksum32` are convenience aliases for the additive checksum functions. Use `checksum_add8`, `checksum_add16`, or `checksum_add32` when the additive method should be explicit at the call site.
+`checksum8`、`checksum16`、`checksum32` は、加算チェックサム関数の便利な別名です。加算方式であることを呼び出し箇所で明示したい場合は、`checksum_add8`、`checksum_add16`、`checksum_add32` を使ってください。
 
-The XOR checksum functions XOR each checksum unit and return the result in the corresponding width.
+XORチェックサム関数は、各チェックサム単位をXORし、対応する幅の結果を返します。
 
-These are intentionally simple checksums. They are useful for small binary formats, simple diagnostics, and compatibility with simple protocols.
+これらは意図的に単純なチェックサムです。小規模なバイナリ形式、単純な診断、単純なプロトコルとの互換性に役立ちます。
 
-They are not cryptographic hashes. Use `crc16` or `crc32` when compatibility with common CRC algorithms is needed.
+これらは暗号学的ハッシュではありません。一般的なCRCアルゴリズムとの互換性が必要な場合は、`crc16` または `crc32` を使ってください。
 
 
 ---
 
-## CRC16 and CRC32
+## CRC16とCRC32
 
-`crc16` and `crc32` calculate standard CRC values over a byte sequence.
+`crc16` と `crc32` は、バイト列に対して標準的なCRC値を計算します。
 
 ```cpp
 auto crc16(std::span<const std::byte> bytes) noexcept -> std::uint16_t;
 auto crc32(std::span<const std::byte> bytes) noexcept -> std::uint32_t;
 ```
 
-`crc16` uses CRC-16/ARC parameters:
+`crc16` はCRC-16/ARCのパラメータを使います。
 
-- polynomial: `0xa001`
-- initial value: `0x0000`
-- final XOR: none
-- check value for `"123456789"`: `0xbb3d`
+- 多項式: `0xa001`
+- 初期値: `0x0000`
+- 最終XOR: なし
+- `"123456789"` に対するチェック値: `0xbb3d`
 
-`crc32` uses CRC-32/ISO-HDLC parameters:
+`crc32` はCRC-32/ISO-HDLCのパラメータを使います。
 
-- polynomial: `0xedb88320`
-- initial value: `0xffffffff`
-- final XOR: `0xffffffff`
-- check value for `"123456789"`: `0xcbf43926`
+- 多項式: `0xedb88320`
+- 初期値: `0xffffffff`
+- 最終XOR: `0xffffffff`
+- `"123456789"` に対するチェック値: `0xcbf43926`
 
-These functions operate on bytes. Unlike 16-bit and 32-bit simple checksums, CRC calculation does not use `byte_order`.
+これらの関数はバイトに対して動作します。16ビットおよび32ビットの単純チェックサムとは異なり、CRC計算では `byte_order` を使いません。
 
 ---
 
-## CRC Input Forms
+## CRC入力形式
 
-The CRC functions follow the same input-form policy as the checksum functions.
+CRC関数は、チェックサム関数と同じ入力形式ポリシーに従います。
 
 ### `std::span<const std::byte>`
 
-The span overloads are the primary in-memory byte-sequence overloads.
+span多重定義は、メモリ上のバイト列に対する主要な多重定義です。
 
 ```cpp
 auto crc16(std::span<const std::byte> bytes) noexcept -> std::uint16_t;
 auto crc32(std::span<const std::byte> bytes) noexcept -> std::uint32_t;
 ```
 
-These overloads do not allocate and do not fail.
+これらの多重定義はメモリ割り当てを行わず、失敗しません。
 
-### Pointer and Size
+### ポインタとサイズ
 
-Pointer-and-size overloads are provided for C-style byte buffers.
+C風のバイトバッファ向けに、ポインタとサイズを受け取る多重定義が提供されます。
 
 ```cpp
 auto crc16(const void* data, std::size_t size) noexcept -> xer::result<std::uint16_t>;
 auto crc32(const void* data, std::size_t size) noexcept -> xer::result<std::uint32_t>;
 ```
 
-If `data` is `nullptr` and `size` is not zero, these overloads fail with `error_t::invalid_argument`.
+`data` が `nullptr` で `size` がゼロではない場合、これらの多重定義は `error_t::invalid_argument` で失敗します。
 
-`data == nullptr` with `size == 0` is accepted and represents an empty byte sequence.
+`data == nullptr` かつ `size == 0` は受け入れられ、空のバイト列を表します。
 
-### Iterator Range
+### イテレータ範囲
 
-Iterator-range overloads are provided for byte-like ranges.
+バイト風の範囲向けに、イテレータ範囲多重定義が提供されます。
 
 ```cpp
 template<std::input_iterator InputIt>
@@ -6731,57 +6628,57 @@ template<std::input_iterator InputIt>
 auto crc32(InputIt first, InputIt last) -> std::uint32_t;
 ```
 
-The iterator value type must be `std::byte` or a byte-like integer value convertible to `std::uint8_t`.
+イテレータの値型は `std::byte`、または `std::uint8_t` に変換可能なバイト風の整数値でなければなりません。
 
-### File Path
+### ファイルパス
 
-File overloads calculate the CRC of a whole file.
+ファイル多重定義は、ファイル全体のCRCを計算します。
 
 ```cpp
 auto crc16(const path& filename) -> xer::result<std::uint16_t>;
 auto crc32(const path& filename) -> xer::result<std::uint32_t>;
 ```
 
-These overloads read the whole file content and then calculate the CRC. File I/O failures are reported through `xer::result`.
+これらの多重定義はファイル全体の内容を読み取ってからCRCを計算します。ファイルI/Oの失敗は `xer::result` を通じて報告されます。
 
 ---
 
-## Empty Input for CRC
+## CRCの空入力
 
-Empty input is valid.
+空入力は有効です。
 
-For empty input:
+空入力に対して:
 
-- `crc16` returns `0x0000`
-- `crc32` returns `0x00000000`
-
----
-
-## Empty Input
-
-Empty input is valid.
-
-For empty input, all checksum functions return zero.
+- `crc16` は `0x0000` を返します
+- `crc32` は `0x00000000` を返します
 
 ---
 
-## Relationship to Other Headers
+## 空入力
 
-`<xer/binary.h>` is useful together with:
+空入力は有効です。
+
+空入力に対して、すべてのチェックサム関数はゼロを返します。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/binary.h>` は次のヘッダーと併用すると有用です。
 
 - `<xer/bytes.h>`
 - `<xer/stdio.h>`
 - `<xer/stdint.h>`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-- `<xer/bytes.h>` converts text or byte-like storage into explicit byte views or byte vectors
-- `<xer/binary.h>` performs small binary value manipulation, simple checksum calculation, CRC calculation, hex conversion, and hash calculation
-- `<xer/stdio.h>` handles stream-based binary I/O and whole-file operations
+- `<xer/bytes.h>` はテキストまたはバイト風ストレージを明示的なバイトビューまたはバイトベクターへ変換します
+- `<xer/binary.h>` は小規模なバイナリ値操作、単純なチェックサム計算、CRC計算、16進変換、ハッシュ計算を行います
+- `<xer/stdio.h>` はストリームベースのバイナリI/Oとファイル全体の操作を扱います
 
 ---
 
-## Example
+## 例
 
 ```cpp
 #include <array>
@@ -6827,9 +6724,9 @@ auto main() -> int
 
 ---
 
-## Binary-to-Hex Conversion
+## バイナリから16進文字列への変換
 
-`bin2hex` converts binary data to a lowercase hexadecimal string.
+`bin2hex` はバイナリデータを小文字の16進文字列に変換します。
 
 ```cpp
 auto bin2hex(std::span<const std::byte> bytes) -> std::u8string;
@@ -6841,7 +6738,7 @@ template<std::input_iterator InputIt>
 auto bin2hex(InputIt first, InputIt last) -> std::u8string;
 ```
 
-Each input byte is represented by two lowercase hexadecimal characters. Empty input is valid and returns an empty string.
+各入力バイトは2つの小文字16進文字で表されます。空入力は有効で、空文字列を返します。
 
 ```cpp
 const std::array<std::byte, 3> bytes {
@@ -6853,34 +6750,34 @@ const std::array<std::byte, 3> bytes {
 auto hex = xer::bin2hex(std::span<const std::byte>(bytes)); // u8"12ab00"
 ```
 
-The pointer-and-size overload fails with `error_t::invalid_argument` when `data == nullptr` and `size != 0`. `data == nullptr` with `size == 0` is accepted as an empty byte sequence.
+ポインタとサイズを受け取る多重定義は、`data == nullptr` かつ `size != 0` のとき `error_t::invalid_argument` で失敗します。`data == nullptr` かつ `size == 0` は空のバイト列として受け入れられます。
 
-The iterator-range overload accepts `std::byte` and byte-like integer values convertible to `std::uint8_t`. It is useful for containers such as `std::array<std::byte, N>`, `std::vector<std::byte>`, and `std::array<std::uint8_t, N>`.
+イテレータ範囲多重定義は、`std::byte` と、`std::uint8_t` に変換可能なバイト風の整数値を受け入れます。`std::array<std::byte, N>`、`std::vector<std::byte>`、`std::array<std::uint8_t, N>` などのコンテナで役立ちます。
 
 ---
 
-## Hex-to-Binary Conversion
+## 16進文字列からバイナリへの変換
 
-`hex2bin` converts a hexadecimal string to binary data. It is modeled after PHP's `hex2bin` function.
+`hex2bin` は16進文字列をバイナリデータへ変換します。これはPHPの `hex2bin` 関数をモデルにしています。
 
 ```cpp
 auto hex2bin(std::u8string_view hex) -> xer::result<std::vector<std::byte>>;
 ```
 
-`hex2bin` accepts the characters `0` to `9`, `a` to `f`, and `A` to `F`. The input length must be even because two hexadecimal characters form one byte.
+`hex2bin` は `0` から `9`、`a` から `f`、`A` から `F` の文字を受け入れます。2つの16進文字が1バイトを形成するため、入力長は偶数でなければなりません。
 
 ```cpp
 auto bytes = xer::hex2bin(u8"12ab00");
 ```
 
-If the input length is odd, or if the input contains a non-hexadecimal character, the function fails with `error_t::invalid_argument`. Empty input is valid and returns an empty vector.
+入力長が奇数の場合、または入力に16進文字以外が含まれる場合、関数は `error_t::invalid_argument` で失敗します。空入力は有効で、空のベクターを返します。
 
 ---
 
 
-## Hash Functions
+## ハッシュ関数
 
-`md5`, `sha1`, and `sha256` calculate message digests of byte sequences and files.
+`md5`、`sha1`、`sha256` は、バイト列とファイルのメッセージダイジェストを計算します。
 
 ```cpp
 auto md5(std::span<const std::byte> bytes) noexcept
@@ -6893,9 +6790,9 @@ auto sha256(std::span<const std::byte> bytes) noexcept
     -> std::array<std::byte, 32>;
 ```
 
-The returned array contains the raw digest bytes, not a hexadecimal string. Use `bin2hex` when a conventional hexadecimal representation is needed.
+返される配列には、生のダイジェストバイトが含まれます。16進文字列ではありません。一般的な16進表現が必要な場合は `bin2hex` を使ってください。
 
-For example:
+例:
 
 ```cpp
 const auto text = std::string_view("abc");
@@ -6906,23 +6803,23 @@ const auto hex = xer::bin2hex(digest.begin(), digest.end());
 // hex == u8"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 ```
 
-The digest sizes are:
+ダイジェストサイズは次のとおりです。
 
-- `md5`: 16 bytes, 128 bits
-- `sha1`: 20 bytes, 160 bits
-- `sha256`: 32 bytes, 256 bits
+- `md5`: 16バイト、128ビット
+- `sha1`: 20バイト、160ビット
+- `sha256`: 32バイト、256ビット
 
-MD5 and SHA-1 are provided mainly for compatibility with existing file formats, tools, and test data. They must not be used as cryptographic security mechanisms. Among these three functions, SHA-256 is the preferred choice when a stronger modern hash is needed.
+MD5とSHA-1は、主に既存のファイル形式、ツール、テストデータとの互換性のために提供されています。暗号学的なセキュリティ機構として使ってはいけません。これら3つの関数の中では、より強い現代的なハッシュが必要な場合はSHA-256が推奨されます。
 
 ---
 
-## Hash Input Forms
+## ハッシュ入力形式
 
-The hash functions are provided for four input forms.
+ハッシュ関数は4種類の入力形式に対して提供されます。
 
 ### `std::span<const std::byte>`
 
-The span overloads are the primary in-memory byte-sequence overloads.
+span多重定義は、メモリ上のバイト列に対する主要な多重定義です。
 
 ```cpp
 auto md5(std::span<const std::byte> bytes) noexcept
@@ -6935,11 +6832,11 @@ auto sha256(std::span<const std::byte> bytes) noexcept
     -> std::array<std::byte, 32>;
 ```
 
-These overloads do not allocate and do not fail.
+これらの多重定義はメモリ割り当てを行わず、失敗しません。
 
-### Pointer and Size
+### ポインタとサイズ
 
-Pointer-and-size overloads are provided for C-style byte buffers.
+C風のバイトバッファ向けに、ポインタとサイズを受け取る多重定義が提供されます。
 
 ```cpp
 auto md5(const void* data, std::size_t size) noexcept
@@ -6952,13 +6849,13 @@ auto sha256(const void* data, std::size_t size) noexcept
     -> xer::result<std::array<std::byte, 32>>;
 ```
 
-If `data` is `nullptr` and `size` is not zero, these overloads fail with `error_t::invalid_argument`.
+`data` が `nullptr` で `size` がゼロではない場合、これらの多重定義は `error_t::invalid_argument` で失敗します。
 
-`data == nullptr` with `size == 0` is accepted and represents an empty byte sequence.
+`data == nullptr` かつ `size == 0` は受け入れられ、空のバイト列を表します。
 
-### Iterator Range
+### イテレータ範囲
 
-Iterator-range overloads are provided for byte-like ranges.
+バイト風の範囲向けに、イテレータ範囲多重定義が提供されます。
 
 ```cpp
 template<std::input_iterator InputIt>
@@ -6971,13 +6868,13 @@ template<std::input_iterator InputIt>
 auto sha256(InputIt first, InputIt last) -> std::array<std::byte, 32>;
 ```
 
-The iterator value type must be `std::byte` or a byte-like integer value convertible to `std::uint8_t`.
+イテレータの値型は `std::byte`、または `std::uint8_t` に変換可能なバイト風の整数値でなければなりません。
 
-These overloads are useful for containers such as `std::array<std::byte, N>`, `std::vector<std::byte>`, and `std::array<std::uint8_t, N>`.
+これらの多重定義は、`std::array<std::byte, N>`、`std::vector<std::byte>`、`std::array<std::uint8_t, N>` などのコンテナで役立ちます。
 
-### File Path
+### ファイルパス
 
-File overloads calculate the hash of a whole file.
+ファイル多重定義は、ファイル全体のハッシュを計算します。
 
 ```cpp
 auto md5(const xer::path& filename) -> xer::result<std::array<std::byte, 16>>;
@@ -6985,13 +6882,13 @@ auto sha1(const xer::path& filename) -> xer::result<std::array<std::byte, 20>>;
 auto sha256(const xer::path& filename) -> xer::result<std::array<std::byte, 32>>;
 ```
 
-These overloads read the whole file content and then calculate the hash. File I/O failures are reported through `xer::result`.
+これらの多重定義はファイル全体の内容を読み取ってからハッシュを計算します。ファイルI/Oの失敗は `xer::result` を通じて報告されます。
 
 ---
 
-## Known Hash Test Values
+## 既知のハッシュテスト値
 
-Known digest values include:
+既知のダイジェスト値には次のものがあります。
 
 | Input | MD5 | SHA-1 | SHA-256 |
 | --- | --- | --- | --- |
@@ -7003,52 +6900,46 @@ Known digest values include:
 
 ---
 
-## Empty Input for Hash Functions
+## ハッシュ関数の空入力
 
-Empty input is valid.
+空入力は有効です。
 
-For empty input:
+空入力に対して:
 
-- `md5` returns `d41d8cd98f00b204e9800998ecf8427e`
-- `sha1` returns `da39a3ee5e6b4b0d3255bfef95601890afd80709`
-- `sha256` returns `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+- `md5` は `d41d8cd98f00b204e9800998ecf8427e` を返します
+- `sha1` は `da39a3ee5e6b4b0d3255bfef95601890afd80709` を返します
+- `sha256` は `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` を返します
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/base64.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/base64.h>`
 
-## Purpose
+## 目的
 
-`<xer/base64.h>` provides Base64 encode and decode facilities in xer.
+`<xer/base64.h>` は、xer の Base64 エンコードおよびデコード機能を提供します。
 
-Base64 is treated as a small binary-to-text conversion facility. It is not a structured data format like JSON, INI, or TOML, and it is not ordinary string processing either. Its role is to convert binary byte sequences into UTF-8 text that can be embedded in text-based data and to convert that text representation back into bytes.
+Base64 は、小さなバイナリからテキストへの変換機能として扱われます。これは JSON、INI、TOML のような構造化データ形式ではなく、通常の文字列処理でもありません。その役割は、バイナリのバイト列をテキストベースのデータに埋め込める UTF-8 テキストへ変換し、そのテキスト表現をバイト列へ戻すことです。
 
-The initial implementation deliberately supports only the standard Base64 form. Variants such as URL-safe Base64 and unpadded Base64 are deferred.
-
----
-
-## Main Role
-
-The main role of `<xer/base64.h>` is to make it possible to:
-
-- encode binary data into standard Base64 text
-- decode standard Base64 text back into binary data
-- handle invalid encoded text through xer's ordinary `xer::result` error model
-- provide a compact public API that can be extended later without changing its basic shape
-
-This makes the header useful for simple binary payload handling, text-based interchange, configuration data, diagnostics, and small utility programs.
+初期実装では、意図的に標準 Base64 形式のみをサポートしています。URL セーフ Base64 やパディングなし Base64 などのバリアントは後回しです。
 
 ---
 
-## Main Entities
+## 主な役割
 
-At minimum, `<xer/base64.h>` provides the following functions:
+`<xer/base64.h>` の主な役割は、次のことを可能にすることです。
+
+- バイナリデータを標準 Base64 テキストへエンコードする
+- 標準 Base64 テキストをバイナリデータへデコードする
+- 不正なエンコード済みテキストを xer の通常の `xer::result` エラーモデルで扱う
+- 基本形を変えずに後から拡張できる、コンパクトな公開 API を提供する
+
+このため、このヘッダーは単純なバイナリペイロード処理、テキストベースの交換、設定データ、診断、小さなユーティリティプログラムに有用です。
+
+---
+
+## 主なエンティティ
+
+少なくとも、`<xer/base64.h>` は次の関数を提供します。
 
 ```cpp
 auto base64_encode(std::span<const std::byte> data)
@@ -7058,7 +6949,7 @@ auto base64_decode(std::u8string_view text)
     -> xer::result<std::vector<std::byte>>;
 ```
 
-The current API is intentionally small. Additional overloads or options may be added later.
+現在の API は意図的に小さく保たれています。追加のオーバーロードやオプションは後から追加される可能性があります。
 
 ---
 
@@ -7069,37 +6960,37 @@ auto base64_encode(std::span<const std::byte> data)
     -> xer::result<std::u8string>;
 ```
 
-### Purpose
+### 目的
 
-`base64_encode` converts a binary byte sequence into standard Base64 text.
+`base64_encode` は、バイナリのバイト列を標準 Base64 テキストへ変換します。
 
-### Input Model
+### 入力モデル
 
-The input is provided as:
+入力は次の形で与えます。
 
 ```cpp
 std::span<const std::byte>
 ```
 
-This makes the function explicitly byte-oriented. The input is not interpreted as text and is not validated as UTF-8.
+これにより、この関数が明示的にバイト指向であることが分かります。入力はテキストとして解釈されず、UTF-8 として検証されることもありません。
 
-### Output Model
+### 出力モデル
 
-On success, the function returns:
+成功時、関数は次の値を返します。
 
 ```cpp
 std::u8string
 ```
 
-The output contains only ASCII Base64 characters and is therefore valid UTF-8.
+出力は ASCII Base64 文字だけを含むため、有効な UTF-8 です。
 
-### Return Model
+### 返却モデル
 
-The return type is `xer::result<std::u8string>`.
+返却型は `xer::result<std::u8string>` です。
 
-The current minimal encoder normally has no content-based failure condition. However, the function still returns `xer::result` so that future variants can report ordinary failures without changing the public API shape.
+現在の最小エンコーダには、通常、内容に依存する失敗条件はありません。ただし、将来のバリアントが公開 API の形を変えずに通常の失敗を報告できるように、この関数は引き続き `xer::result` を返します。
 
-Possible future failure cases include output-size limits, formatting options, stream-oriented output failures, or invalid option combinations.
+将来の失敗条件としては、出力サイズ制限、整形オプション、ストリーム指向出力の失敗、無効なオプションの組み合わせなどが考えられます。
 
 ---
 
@@ -7110,58 +7001,58 @@ auto base64_decode(std::u8string_view text)
     -> xer::result<std::vector<std::byte>>;
 ```
 
-### Purpose
+### 目的
 
-`base64_decode` converts standard Base64 text back into binary data.
+`base64_decode` は、標準 Base64 テキストをバイナリデータへ戻します。
 
-### Input Model
+### 入力モデル
 
-The input is provided as:
+入力は次の形で与えます。
 
 ```cpp
 std::u8string_view
 ```
 
-Only ASCII Base64 characters, `=`, and ignored ASCII whitespace are meaningful. Non-ASCII input is rejected because it is not part of the supported Base64 alphabet.
+意味を持つのは、ASCII Base64 文字、`=`、および無視される ASCII 空白だけです。非 ASCII 入力は、サポート対象の Base64 アルファベットに含まれないため拒否されます。
 
-### Output Model
+### 出力モデル
 
-On success, the function returns:
+成功時、関数は次の値を返します。
 
 ```cpp
 std::vector<std::byte>
 ```
 
-The output is binary data. It is not interpreted as text.
+出力はバイナリデータです。テキストとしては解釈されません。
 
 ---
 
-## Supported Base64 Form
+## サポートされる Base64 形式
 
-The initial implementation supports standard Base64 with the following alphabet:
+初期実装は、次のアルファベットを使う標準 Base64 をサポートします。
 
 ```text
 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
 ```
 
-Padding uses:
+パディングには次を使用します。
 
 ```text
 =
 ```
 
-### Encoding Behavior
+### エンコード時の動作
 
-`base64_encode` currently behaves as follows:
+`base64_encode` の現在の動作は次のとおりです。
 
-- emits standard Base64 text
-- always emits padding when padding is needed
-- does not insert line breaks
-- does not insert spaces
-- does not support URL-safe output
-- does not support unpadded output
+- 標準 Base64 テキストを出力する
+- パディングが必要な場合は常にパディングを出力する
+- 改行を挿入しない
+- 空白を挿入しない
+- URL セーフ出力をサポートしない
+- パディングなし出力をサポートしない
 
-Examples:
+例:
 
 ```text
 f      -> Zg==
@@ -7170,111 +7061,111 @@ foo    -> Zm9v
 foobar -> Zm9vYmFy
 ```
 
-### Decoding Behavior
+### デコード時の動作
 
-`base64_decode` currently behaves as follows:
+`base64_decode` の現在の動作は次のとおりです。
 
-- accepts the standard Base64 alphabet
-- accepts `=` padding only in valid final positions
-- ignores ASCII whitespace
-- rejects non-Base64 characters
-- rejects malformed padding
-- rejects inputs whose effective length is not a multiple of four
-- rejects non-canonical padding bits
+- 標準 Base64 アルファベットを受け付ける
+- `=` パディングは有効な末尾位置でのみ受け付ける
+- ASCII 空白を無視する
+- Base64 文字でない文字を拒否する
+- 不正なパディングを拒否する
+- 有効入力長が 4 の倍数でない入力を拒否する
+- 非正準なパディングビットを拒否する
 
-ASCII whitespace means the following characters:
+ASCII 空白とは、次の文字を意味します。
 
 ```text
 space, tab, LF, CR, FF, VT
 ```
 
-Whitespace is ignored only while decoding. The encoder does not generate whitespace.
+空白はデコード時にのみ無視されます。エンコーダは空白を生成しません。
 
 ---
 
-## Error Handling
+## エラー処理
 
-`<xer/base64.h>` follows xer's ordinary failure model.
+`<xer/base64.h>` は、xer の通常の失敗モデルに従います。
 
-That means:
+つまり、次のようになります。
 
-- normal failure is reported through `xer::result`
-- invalid encoded text is not handled by exceptions
-- callers explicitly check whether the returned `xer::result` has a value
+- 通常の失敗は `xer::result` で報告される
+- 不正なエンコード済みテキストは例外で処理されない
+- 呼び出し側は、返された `xer::result` が値を持つかどうかを明示的に確認する
 
-The initial decoder reports malformed Base64 input as:
+初期デコーダは、不正な Base64 入力を次のエラーとして報告します。
 
 ```cpp
 error_t::invalid_argument
 ```
 
-This includes at least the following cases:
+これには、少なくとも次の場合が含まれます。
 
-- invalid Base64 character
-- invalid effective input length
-- padding before the final quartet
-- malformed padding pattern
-- non-canonical unused padding bits
+- 不正な Base64 文字
+- 不正な有効入力長
+- 最終 quartet より前のパディング
+- 不正なパディングパターン
+- 非正準な未使用パディングビット
 
-At this stage, detailed error positions are not reported. If position-aware diagnostics become useful later, the error detail type can be extended separately.
-
----
-
-## Deferred Items and Limitations
-
-The following items are intentionally deferred from the initial implementation.
-
-### URL-Safe Base64
-
-URL-safe Base64, which uses `-` and `_` instead of `+` and `/`, is not supported yet.
-
-A future API may add an option or separate variant for URL-safe Base64.
-
-### Unpadded Base64
-
-Unpadded Base64 is not supported yet.
-
-The current decoder requires the effective input length after whitespace removal to be a multiple of four. Therefore, input that relies on omitted `=` padding is rejected.
-
-A future API may add an option to accept or emit unpadded Base64.
-
-### MIME-Style Line Wrapping on Encode
-
-The encoder does not insert line breaks.
-
-The decoder ignores ASCII whitespace, so it can read many line-wrapped Base64 strings. However, line-wrapped output generation is not provided yet.
-
-A future API may add a line-width option.
-
-### Streaming Encode and Decode
-
-The initial API operates on complete input data and returns complete output data.
-
-Streaming Base64 processing is deferred. This includes direct integration with `binary_stream` and `text_stream`.
-
-### Custom Alphabets
-
-Custom Base64 alphabets are not supported.
-
-Only the standard alphabet is accepted in the initial implementation.
-
-### Detailed Error Positions
-
-The initial decoder reports invalid input as `error_t::invalid_argument`, but it does not report the exact position of the invalid character or malformed padding.
-
-Detailed position information may be added later through `xer::error<Detail>`.
-
-### Text Encoding Conversion
-
-Base64 text itself is ASCII and therefore valid UTF-8, but `<xer/base64.h>` does not perform character encoding conversion.
-
-The input to `base64_decode` is treated as UTF-8-oriented text storage, but only the ASCII Base64 subset is meaningful. Binary output is returned as bytes and is not interpreted as UTF-8.
+この段階では、詳細なエラー位置は報告されません。位置情報付き診断が後で有用になった場合は、エラー詳細型を別途拡張できます。
 
 ---
 
-## Relationship to Other Headers
+## 後回しにしている項目と制限
 
-`<xer/base64.h>` is related to the following headers and policies:
+次の項目は、初期実装では意図的に後回しにしています。
+
+### URL セーフ Base64
+
+`+` と `/` の代わりに `-` と `_` を使う URL セーフ Base64 は、まだサポートしていません。
+
+将来の API では、URL セーフ Base64 用のオプションまたは別バリアントを追加する可能性があります。
+
+### パディングなし Base64
+
+パディングなし Base64 は、まだサポートしていません。
+
+現在のデコーダは、空白を除去した後の有効入力長が 4 の倍数であることを要求します。そのため、`=` パディングを省略することに依存した入力は拒否されます。
+
+将来の API では、パディングなし Base64 を受け付ける、または出力するオプションを追加する可能性があります。
+
+### エンコード時の MIME 風行折り返し
+
+エンコーダは改行を挿入しません。
+
+デコーダは ASCII 空白を無視するため、多くの行折り返し済み Base64 文字列を読み取れます。ただし、行折り返し付き出力の生成はまだ提供していません。
+
+将来の API では、行幅オプションを追加する可能性があります。
+
+### ストリーミングエンコードおよびデコード
+
+初期 API は、完全な入力データを受け取り、完全な出力データを返します。
+
+ストリーミング Base64 処理は後回しです。これには、`binary_stream` や `text_stream` との直接統合も含まれます。
+
+### カスタムアルファベット
+
+カスタム Base64 アルファベットはサポートしていません。
+
+初期実装では、標準アルファベットだけを受け付けます。
+
+### 詳細なエラー位置
+
+初期デコーダは、不正な入力を `error_t::invalid_argument` として報告しますが、不正な文字や不正なパディングの正確な位置は報告しません。
+
+詳細な位置情報は、後で `xer::error<Detail>` によって追加される可能性があります。
+
+### テキストエンコーディング変換
+
+Base64 テキスト自体は ASCII であり、したがって有効な UTF-8 ですが、`<xer/base64.h>` は文字エンコーディング変換を行いません。
+
+`base64_decode` への入力は UTF-8 指向のテキストストレージとして扱われますが、意味を持つのは ASCII Base64 の部分集合だけです。バイナリ出力はバイト列として返され、UTF-8 としては解釈されません。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/base64.h>` は、次のヘッダーおよび方針に関連します。
 
 - `<xer/error.h>`
 - `<xer/stdio.h>`
@@ -7282,70 +7173,60 @@ The input to `base64_decode` is treated as UTF-8-oriented text storage, but only
 - `policy_result_arguments.md`
 - `policy_encoding.md`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-- `<xer/string.h>` handles general string and memory utilities
-- `<xer/stdio.h>` handles stream I/O
-- `<xer/json.h>`, `<xer/ini.h>`, and `<xer/toml.h>` handle structured or semi-structured data formats
-- `<xer/base64.h>` handles byte-oriented binary-to-text conversion
+- `<xer/string.h>` は、一般的な文字列およびメモリユーティリティを扱う
+- `<xer/stdio.h>` は、ストリーム I/O を扱う
+- `<xer/json.h>`、`<xer/ini.h>`、`<xer/toml.h>` は、構造化または半構造化データ形式を扱う
+- `<xer/base64.h>` は、バイト指向のバイナリからテキストへの変換を扱う
 
-This separation is intentional. Base64 is useful together with text formats, but it is not itself a structured data format.
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-- that Base64 encoding is byte-oriented
-- that encoded output is UTF-8 text containing only ASCII characters
-- that decoding returns binary bytes
-- that both encode and decode return `xer::result`
-- that the initial implementation supports only standard padded Base64
-- that URL-safe, unpadded, wrapped-output, and streaming variants are deferred
-
-Detailed option behavior should be added when such options are actually introduced.
+この分離は意図的なものです。Base64 はテキスト形式と組み合わせると便利ですが、それ自体は構造化データ形式ではありません。
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+このヘッダーを生成ドキュメントで扱う場合、通常は次の点を説明すれば十分です。
 
-- encoding a small byte sequence into Base64
-- decoding the Base64 result back into bytes
-- showing explicit `xer::result` checking
-- printing encoded text with `<xer/stdio.h>`
+- Base64 エンコードはバイト指向である
+- エンコード出力は ASCII 文字だけを含む UTF-8 テキストである
+- デコードはバイナリバイト列を返す
+- エンコードとデコードの両方が `xer::result` を返す
+- 初期実装は標準のパディング付き Base64 のみをサポートする
+- URL セーフ、パディングなし、折り返し付き出力、ストリーミングの各バリアントは後回しである
 
-These are good candidates for executable examples in `examples/`.
+詳細なオプション動作は、そのようなオプションが実際に導入されたときに追加するべきです。
 
 ---
 
-## Example
+## 例として示す価値が高い題材
+
+このヘッダーには、次のような例がとくに適しています。
+
+- 小さなバイト列を Base64 へエンコードする
+- Base64 テキストをバイト列へデコードする
+- `xer::to_bytes_view` と組み合わせて文字列リテラルをエンコードする
+- 不正な Base64 入力を明示的に処理する
+
+これらは `examples/` 以下の実行可能な例として適した候補です。
+
+---
+
+## 例
 
 ```cpp
-#include <array>
-#include <cstddef>
+#include <span>
+#include <string_view>
 
 #include <xer/base64.h>
-#include <xer/stdio.h>
+#include <xer/bytes.h>
 
-auto main() -> int
+int main()
 {
-    const std::array<std::byte, 5> data = {
-        std::byte{'h'},
-        std::byte{'e'},
-        std::byte{'l'},
-        std::byte{'l'},
-        std::byte{'o'},
-    };
+    constexpr std::u8string_view text = u8"hello";
 
-    const auto encoded = xer::base64_encode(data);
+    const auto encoded = xer::base64_encode(xer::to_bytes_view(text));
     if (!encoded.has_value()) {
-        return 1;
-    }
-
-    if (!xer::printf(u8"Encoded: %@\n", *encoded).has_value()) {
         return 1;
     }
 
@@ -7358,22 +7239,12 @@ auto main() -> int
 }
 ```
 
-This example shows the general style:
+この例は、基本的な流れを示しています。
 
-- pass ordinary byte data to `base64_encode`
-- check `xer::result` explicitly
-- pass the encoded text to `base64_decode`
-- treat decoded data as bytes rather than as text unless the caller knows its content
-
----
-
-## See Also
-
-- `policy_project_outline.md`
-- `policy_result_arguments.md`
-- `policy_encoding.md`
-- `header_error.md`
-- `header_stdio.md`
+- `to_bytes_view` で UTF-8 テキストのバイト列ビューを得る
+- `base64_encode` で Base64 テキストへ変換する
+- `base64_decode` でバイト列へ戻す
+- 各段階で `xer::result` を明示的に確認する
 
 ---
 
@@ -8347,25 +8218,19 @@ The serialization layer does not compress data by itself. Compression and archiv
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/parse.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/parse.h>`
 
-## Purpose
+## 目的
 
-`<xer/parse.h>` provides common structured detail types for parsed input errors.
+`<xer/parse.h>` は、解析済み入力のエラーに使う共通の構造化詳細型を提供します。
 
-The header is intentionally independent from JSON, INI, TOML, XBF bitmap-font data, and other individual parsers or loaders. A parse-failure position and a parse-failure reason are useful across multiple structured-input APIs, so xer provides a shared vocabulary rather than format-specific detail types.
+このヘッダーは、JSON、INI、TOML、XBF ビットマップフォントデータ、その他の個別のパーサーやローダーから意図的に独立しています。解析失敗位置と解析失敗理由は複数の構造化入力 API で有用なので、xer は形式ごとの詳細型ではなく共通語彙を提供します。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/parse.h>` provides the following entities:
+少なくとも、`<xer/parse.h>` は次のエンティティを提供します。
 
 ```cpp
 enum class xer::parse_error_reason;
@@ -8373,15 +8238,15 @@ enum class xer::parse_error_reason;
 struct xer::parse_error_detail;
 ```
 
-`parse_error_detail` is intended for use as the `Detail` argument of `xer::result<T, Detail>`.
+`parse_error_detail` は `xer::result<T, Detail>` の `Detail` 引数として使うことを想定しています。
 
 ---
 
 ## `parse_error_reason`
 
-`parse_error_reason` is a format-neutral reason code for structured input failures.
+`parse_error_reason` は、構造化入力の失敗に対する形式非依存の理由コードです。
 
-The current reason set includes:
+現在の理由集合には次のものがあります。
 
 ```cpp
 enum class parse_error_reason {
@@ -8409,14 +8274,14 @@ enum class parse_error_reason {
 };
 ```
 
-The reason is a more detailed classification than `error_t`. For example:
+理由は `error_t` より詳しい分類です。たとえば次のように使います。
 
-- a text parser may use `error_t::invalid_argument` together with `parse_error_reason::duplicate_key`
-- an XBF bitmap-font loader may use `error_t::invalid_argument` together with `parse_error_reason::invalid_magic`
+- テキストパーサーは `error_t::invalid_argument` と `parse_error_reason::duplicate_key` を組み合わせて使う場合があります。
+- XBF ビットマップフォントローダーは `error_t::invalid_argument` と `parse_error_reason::invalid_magic` を組み合わせて使う場合があります。
 
-### Binary-Structure Reasons
+### バイナリ構造向けの理由
 
-The following reasons are intended for binary formats or other structured inputs that have fixed headers, offsets, ranges, or finite byte spans:
+次の理由は、固定ヘッダー、オフセット、範囲、有限のバイト範囲を持つバイナリ形式またはその他の構造化入力を対象としています。
 
 - `invalid_magic`
 - `unsupported_version`
@@ -8425,7 +8290,7 @@ The following reasons are intended for binary formats or other structured inputs
 - `invalid_offset`
 - `truncated_input`
 
-They are currently used by `xer::image::bitmap_font_load` when validating XBF bitmap-font data.
+これらは現在、XBF ビットマップフォントデータの検証時に `xer::image::bitmap_font_load` で使われています。
 
 ---
 
@@ -8440,38 +8305,38 @@ struct parse_error_detail {
 };
 ```
 
-### Position Meaning
+### 位置の意味
 
-`offset` is the zero-based position from the beginning of the input.
+`offset` は入力先頭からの 0 始まりの位置です。
 
-- For UTF-8 text formats, it is counted in UTF-8 code units.
-- For binary formats, it is counted in bytes.
+- UTF-8 テキスト形式では、UTF-8 コード単位で数えます。
+- バイナリ形式では、バイト単位で数えます。
 
-`line` is the one-based line number when line information is available. It is `0` when line information is not available.
+`line` は行情報が利用できる場合の 1 始まりの行番号です。行情報が利用できない場合は `0` です。
 
-`column` is the one-based column number when column information is available. For UTF-8 text formats, it is counted in UTF-8 code units, not display cells, Unicode scalar values, or grapheme clusters. It is `0` when column information is not available.
+`column` は列情報が利用できる場合の 1 始まりの列番号です。UTF-8 テキスト形式では、表示セル、Unicode スカラー値、書記素クラスタではなく、UTF-8 コード単位で数えます。列情報が利用できない場合は `0` です。
 
-This rule keeps parser diagnostics aligned with xer's `char8_t`-based text model while also allowing binary loaders to report exact byte positions without inventing fake line or column values.
+この規則により、パーサー診断を xer の `char8_t` ベースのテキストモデルに合わせつつ、バイナリローダーは擬似的な行番号や列番号を作らずに正確なバイト位置を報告できます。
 
 ---
 
-## Intended Use
+## 想定される使い方
 
-A text parser that can report structured detail may return a result such as:
+構造化詳細を報告できるテキストパーサーは、次のような結果を返せます。
 
 ```cpp
 auto toml_decode(std::u8string_view text)
     -> xer::result<toml_value, parse_error_detail>;
 ```
 
-A binary loader may use the same detail type:
+バイナリローダーも同じ詳細型を使えます。
 
 ```cpp
 auto bitmap_font_load(const xer::path& filename)
     -> xer::result<xer::image::bitmap_font, parse_error_detail>;
 ```
 
-When parsing or loading fails, callers can inspect both the common error code and the parse-specific detail.
+解析または読み込みが失敗した場合、呼び出し側は共通のエラーコードと解析固有の詳細の両方を調べられます。
 
 ```cpp
 const auto result = xer::toml_decode(text);
@@ -8485,13 +8350,13 @@ if (!result.has_value()) {
 }
 ```
 
-Because `error<Detail>` exposes class-type detail naturally, `offset`, `line`, `column`, and `reason` are directly available on the returned error object.
+`error<Detail>` はクラス型の詳細を自然に公開するため、`offset`、`line`、`column`、`reason` は返されたエラーオブジェクトから直接利用できます。
 
 ---
 
-## Relationship to Other Headers
+## 他のヘッダーとの関係
 
-`<xer/parse.h>` is related to:
+`<xer/parse.h>` は次のヘッダーと関係します。
 
 - `<xer/error.h>`
 - `<xer/json.h>`
@@ -8499,1037 +8364,350 @@ Because `error<Detail>` exposes class-type detail naturally, `offset`, `line`, `
 - `<xer/toml.h>`
 - `<xer/image.h>`
 
-The rough boundary is:
+大まかな境界は次のとおりです。
 
-- `<xer/error.h>` provides the common result and error model
-- `<xer/parse.h>` provides shared structured-input error detail
-- data-format headers use that detail where position-aware diagnostics are useful
-- `<xer/image.h>` uses that detail for XBF bitmap-font loading
-
----
-
-## Documentation Notes
-
-`parse_error_detail` is intentionally not named after TOML, JSON, INI, or XBF. It is a common structured-input detail type and should remain reusable by multiple parsers and loaders.
-
-### No-detail State
-
-`parse_error_reason::none` means that the parse-detail payload is intentionally unused. In that state, `offset`, `line`, and `column` are all zero.
-
-This is used by convenience functions such as `json_load`, `ini_load`, `toml_load`, and `bitmap_font_load` when file I/O fails before format parsing begins.
-
-When `reason` is not `none`:
-
-- `offset` is always a zero-based input position
-- `line` and `column` are one-based only when line information exists
-- binary loaders keep `line` and `column` at `0`
+- `<xer/error.h>` は共通のエラーコードと結果モデルを提供します。
+- `<xer/parse.h>` は構造化入力の失敗に対する共通の解析詳細を提供します。
+- 個別の形式ヘッダーは、その形式固有の値型とパーサーを提供します。
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/json.h`
-> Reason: Japanese fragment was translated from a different English source hash.
+## ドキュメント上の注意
+
+このヘッダーを生成マニュアルで参照する場合、通常は次の点を説明すれば十分です。
+
+- `parse_error_detail` は解析失敗位置と理由を保持すること
+- `line` と `column` は利用できない場合 `0` であること
+- UTF-8 テキストの `offset` と `column` は UTF-8 コード単位で数えること
+- 同じ詳細型をテキストパーサーとバイナリローダーの両方で使えること
+
+詳細な形式固有の構文エラー規則は、それぞれの形式ヘッダーの説明に置くべきです。
+
+---
 
 # `<xer/json.h>`
 
-## Purpose
+## 目的
 
-`<xer/json.h>` provides JSON value handling and JSON encode/decode facilities in xer.
+`<xer/json.h>` は、xer の JSON 読み書き機能を提供します。
 
-Its purpose is not merely to treat JSON as a string-processing convenience.
-Instead, it provides a structured representation of JSON data together with parsing and serialization functions.
-
-This header is therefore positioned as a data-format facility rather than as part of the ordinary string utility layer.
+現在の実装は、実用的な JSON 値の表現、解析、保存、読み込みを扱います。完全なアプリケーションフレームワークではなく、xer のエラーモデルと UTF-8 中心のテキストモデルに合う小さな JSON 層です。
 
 ---
 
-## Main Role
+## 主な役割
 
-The main role of `<xer/json.h>` is to make it possible to:
+`<xer/json.h>` の主な役割は次を可能にすることです。
 
-- parse JSON text into a structured xer value model
-- inspect and manipulate JSON values in memory
-- serialize structured JSON values back into text
+- JSON テキストを xer の値型へ解析する
+- xer の JSON 値を JSON テキストへエンコードする
+- JSON ファイルを読み込む、または保存する
+- 通常の失敗を `xer::result` で明示的に報告する
+- UTF-8 入力を前提にした予測可能な JSON 処理を提供する
 
-This makes the header useful for configuration data, simple structured interchange, and JSON-oriented utility processing.
+このヘッダーは、設定ファイル、小さなデータ交換、テストデータ、診断用の構造化出力に適しています。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/json.h>` provides the following entities:
+代表的には、`<xer/json.h>` は次のような JSON 値型と入出力関数を提供します。
 
 ```cpp
-struct json_value;
+class json;
 
-using json_array = json_value::array_type;
-using json_object = json_value::object_type;
+auto parse_json(std::u8string_view text)
+    -> xer::result<json>;
 
-auto json_decode(std::u8string_view text) -> xer::result<json_value, parse_error_detail>;
-auto json_encode(const json_value& value) -> xer::result<std::u8string>;
-```
+auto load_json(const xer::path& filename)
+    -> xer::result<json>;
 
-The exact helper members and constructors of `json_value` may evolve, but this is the core public shape.
-
----
-
-## `json_value`
-
-`json_value` is the central value type for JSON in xer.
-
-It stores one JSON value in structured form.
-
-### Supported Value Kinds
-
-At minimum, `json_value` can represent the following JSON kinds:
-
-* `null`
-* boolean
-* number
-* string
-* array
-* object
-
-### Concrete Stored Forms
-
-The value model currently corresponds to the following C++ forms:
-
-* `std::nullptr_t`
-* `bool`
-* `double`
-* `std::u8string`
-* array of `json_value`
-* object represented as `std::vector<std::pair<std::u8string, json_value>>`
-
-This means that objects preserve insertion order rather than being normalized into an associative container.
-
-### Why This Matters
-
-This design keeps the JSON model lightweight and practical:
-
-* strings fit naturally into xer's UTF-8-oriented text model
-* numbers use `double`
-* arrays remain straightforward recursive containers
-* objects preserve source order naturally
-
----
-
-## `json_array`
-
-`json_array` is an alias for the array type used by `json_value`.
-
-### Role
-
-This alias exists to make array-oriented code more readable and to avoid exposing the implementation form only indirectly through `json_value`.
-
-### Typical Use
-
-A caller may use `json_array` when constructing or inspecting an array value explicitly.
-
----
-
-## `json_object`
-
-`json_object` is an alias for the object type used by `json_value`.
-
-### Role
-
-This alias exists to make object-oriented code easier to read.
-
-### Current Representation
-
-A JSON object is represented as an ordered sequence of key/value pairs:
-
-```cpp
-std::vector<std::pair<std::u8string, json_value>>
-```
-
-### Notes
-
-This means:
-
-* key order is preserved
-* the representation is simple and predictable
-* behavior should not be assumed to match that of a hash map or tree map automatically
-
----
-
-## `json_decode`
-
-```cpp id="tjh4ki"
-auto json_decode(std::u8string_view text) -> xer::result<json_value, parse_error_detail>;
-```
-
-### Purpose
-
-`json_decode` parses UTF-8 JSON text and returns a structured `json_value`.
-
-### Input Model
-
-The input text is provided as:
-
-```cpp id="6ve0b2"
-std::u8string_view
-```
-
-This matches xer's general UTF-8-oriented public text policy.
-
-### Return Model
-
-On success, `json_decode` returns a `json_value`.
-
-On failure, it returns an error through `xer::result`.
-
-### Role in the Header
-
-This is the main entry point from text into the in-memory JSON model.
-
----
-
-## `json_encode`
-
-```cpp id="d05h93"
-auto json_encode(const json_value& value) -> xer::result<std::u8string>;
-```
-
-### Purpose
-
-`json_encode` serializes a structured `json_value` into UTF-8 JSON text.
-
-### Return Model
-
-On success, it returns:
-
-```cpp id="7v7txm"
-std::u8string
-```
-
-On failure, it returns an error through `xer::result`.
-
-### Role in the Header
-
-This is the main entry point from the in-memory JSON model back into text.
-
----
-
-## Accessors and Inspection
-
-`json_value` may provide inspection and accessor functions such as:
-
-```cpp id="2z9586"
-is_null
-is_bool
-is_number
-is_string
-is_array
-is_object
-
-as_bool
-as_number
-as_string
-as_array
-as_object
-```
-
-### Role of These Functions
-
-These functions allow callers to:
-
-* inspect which JSON kind is currently stored
-* retrieve the underlying value in typed form
-
-### Basic Direction
-
-The design is intentionally explicit.
-
-A caller should first know or check what kind of value is present, and then access it accordingly.
-
----
-
-## Number Representation
-
-Numbers in `json_value` are represented as:
-
-```cpp id="enb0ih"
-double
-```
-
-### Design Direction
-
-This keeps the implementation simple and aligns with the current project policy.
-
-### Implications
-
-* the JSON number model is handled as floating-point data
-* integers are represented through the same numeric storage
-* the API should not be read as preserving arbitrary-precision numeric structure
-
----
-
-## String Representation
-
-JSON strings are represented as:
-
-```cpp id="5bbuxu"
-std::u8string
-```
-
-### Why This Matters
-
-This matches xer's broader text model:
-
-* public text APIs are UTF-8 oriented
-* `char8_t`-based strings are the normal representation
-* JSON processing remains consistent with the rest of the library
-
----
-
-## Object Representation
-
-Objects are represented as an ordered vector of key/value pairs rather than as a map-like container.
-
-### Reasons This Is Reasonable
-
-This design has practical advantages:
-
-* preserves insertion order
-* avoids committing the public model to hash-based semantics
-* keeps the stored structure straightforward
-* aligns well with many JSON-oriented use cases
-
-### Important Note
-
-Documentation should make clear that object behavior is based on ordered pairs, not on implicit map semantics.
-
----
-
-## Error Handling
-
-`<xer/json.h>` follows xer's ordinary failure model.
-
-That means:
-
-* parsing failure is reported through `xer::result`
-* serialization failure is reported through `xer::result`
-* normal failure is not expressed through exceptions by default
-
-### Design Direction
-
-This keeps JSON processing aligned with the rest of xer's public APIs.
-
----
-
-## Relationship to Other Headers
-
-`<xer/json.h>` should be understood together with the following documents and headers:
-
-* `policy_project_outline.md`
-* `policy_result_arguments.md`
-* `header_string.md`
-
-The rough boundary is:
-
-* `<xer/string.h>` handles string and text utilities
-* `<xer/json.h>` handles structured JSON data and JSON text conversion
-
-This separation is intentional.
-JSON is treated as an independent data-format facility rather than as a mere extension of string helpers. 
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that it provides a structured JSON value model
-* that `json_decode` parses UTF-8 JSON text
-* that `json_encode` serializes the structured model back to UTF-8 text
-* that objects preserve insertion order
-
-Detailed grammar and escaping rules belong in the detailed reference or generated API documentation.
-
----
-
-## Example Topics Commonly Worth Showing
-
-The following kinds of examples are especially suitable for this header:
-
-* decoding a simple JSON object
-* decoding a JSON array
-* reading values from `json_value`
-* encoding a constructed JSON value back into text
-
-These are good candidates for executable examples in `examples/`.
-
----
-
-## Example
-
-```cpp id="q07rge"
-#include <xer/json.h>
-
-auto main() -> int
-{
-    const auto decoded = xer::json_decode(u8"{\"value\":123}");
-    if (!decoded.has_value()) {
-        return 1;
-    }
-
-    if (!decoded->is_object()) {
-        return 1;
-    }
-
-    const auto encoded = xer::json_encode(*decoded);
-    if (!encoded.has_value()) {
-        return 1;
-    }
-
-    return 0;
-}
-```
-
-This example shows the general style:
-
-* parse UTF-8 JSON text with `json_decode`
-* inspect the resulting `json_value`
-* serialize it again with `json_encode`
-* check `xer::result` explicitly at each fallible step
-
----
-
-## See Also
-
-* `policy_project_outline.md`
-* `policy_result_arguments.md`
-* `header_string.md`
-
----
-
-## JSON find and load/save helpers
-
-This header also provides helper functions for inspecting decoded JSON values and for loading or saving JSON files.
-
-```cpp
-auto json_find(json_value& value, std::u8string_view key) noexcept
-    -> json_value*;
-
-auto json_find(const json_value& value, std::u8string_view key) noexcept
-    -> const json_value*;
-
-auto json_load(const path& filename)
-    -> xer::result<json_value, parse_error_detail>;
-
-auto json_save(const path& filename, const json_value& value)
+auto save_json(const xer::path& filename, const json& value)
     -> xer::result<void>;
 ```
 
-The `json_find` helpers inspect an already-decoded JSON object and search only its direct child entries. They return a pointer to the existing value when the key is found. They return `nullptr` when the searched value is not an object or when the key is not present.
-
-The load helper combines UTF-8 file reading with decoding and returns `xer::result<json_value, parse_error_detail>`. If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
-
-The save helper combines encoding with UTF-8 file writing and returns `xer::result<void>`.
+実際の公開 API の詳細は実装に従いますが、中心となる考え方は、JSON 値を所有する型と `xer::result` ベースの入出力関数を提供することです。
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/ini.h`
-> Reason: Japanese fragment was translated from a different English source hash.
+## JSON 値モデル
 
-# `<xer/ini.h>`
+JSON 値は、JSON の基本的な値種別を表します。
 
-## Purpose
+- null
+- boolean
+- number
+- string
+- array
+- object
 
-`<xer/ini.h>` provides INI decode and encode facilities in xer.
-
-INI is treated as a small configuration-file format rather than as a general structured data language.
-The purpose of this header is to support practical reading and writing of simple UTF-8 INI text while preserving the parts of the format that are important for ordinary configuration files.
-
-The initial implementation deliberately supports a small and predictable subset.
-It does not try to define every INI dialect.
+文字列は UTF-8 テキストとして扱われます。JSON テキストの解析では、不正な UTF-8 や不正な JSON 構文は通常の失敗として報告されます。
 
 ---
 
-## Main Role
+## 解析
 
-The main role of `<xer/ini.h>` is to make it possible to:
-
-- parse UTF-8 INI text into a simple ordered in-memory representation
-- inspect global entries and section entries
-- serialize that representation back into UTF-8 INI text
-- preserve duplicate keys and duplicate sections instead of silently discarding information
-
-This makes the header useful for simple configuration files and for data that does not require the stricter type system of formats such as TOML.
-
----
-
-## Main Entities
-
-At minimum, `<xer/ini.h>` provides the following entities:
+JSON 解析関数は UTF-8 JSON テキストを受け取り、JSON 値を返します。
 
 ```cpp
-struct ini_entry;
-struct ini_section;
-struct ini_file;
-
-auto ini_decode(std::u8string_view text) -> xer::result<ini_file, parse_error_detail>;
-auto ini_encode(const ini_file& value) -> xer::result<std::u8string>;
-````
-
-The exact helper functions may expand later, but these are the core public entities of the initial INI facility.
-
----
-
-## `ini_entry`
-
-```cpp
-struct ini_entry {
-    std::u8string key;
-    std::u8string value;
-};
-```
-
-`ini_entry` represents one key-value pair.
-
-INI does not have a single strong standard type system.
-For that reason, both keys and values are represented as UTF-8 strings.
-
-### Notes
-
-* keys are stored after ASCII whitespace trimming during decoding
-* values are stored after ASCII whitespace trimming during decoding
-* duplicate keys are preserved
-* the value is not interpreted as a number, boolean, string literal, or other typed value
-
----
-
-## `ini_section`
-
-```cpp
-struct ini_section {
-    std::u8string name;
-    std::vector<ini_entry> entries;
-};
-```
-
-`ini_section` represents one section and its entries.
-
-Section names are stored as UTF-8 strings.
-The section's entries are stored in source order.
-
-### Notes
-
-* duplicate section names are preserved
-* sections are not automatically merged
-* section entries preserve their order
-* an empty section is valid
-
----
-
-## `ini_file`
-
-```cpp
-struct ini_file {
-    std::vector<ini_entry> entries;
-    std::vector<ini_section> sections;
-};
-```
-
-`ini_file` represents a decoded INI document.
-
-Entries before the first section are stored in `entries`.
-Sectioned entries are stored in `sections`.
-
-### Why Global Entries Are Separate
-
-Many INI files allow key-value entries before the first section.
-xer represents these entries explicitly instead of inventing an artificial section name.
-
-### Preservation Policy
-
-The representation preserves:
-
-* global entry order
-* section order
-* entry order within each section
-* duplicate keys
-* duplicate sections
-
-This is intentional.
-INI has many dialects, and silently overwriting or merging data can lose information.
-
----
-
-## Supported INI Subset
-
-The initial implementation supports the following INI elements:
-
-```ini
-; comment
-# comment
-
-key = value
-
-[section]
-name = xer
-version = example
-```
-
-### Supported Forms
-
-* blank lines
-* full-line comments beginning with `;`
-* full-line comments beginning with `#`
-* global key-value entries
-* section headers
-* section key-value entries
-
-### Line Endings
-
-The decoder accepts the following line endings:
-
-* LF
-* CRLF
-* CR
-
----
-
-## Whitespace Handling
-
-During decoding, leading and trailing ASCII whitespace is removed from:
-
-* each logical line
-* section names
-* keys
-* values
-
-Only ASCII whitespace is treated as trimming whitespace.
-
-This keeps the rule simple and avoids locale dependence.
-
----
-
-## Comments
-
-Only full-line comments are recognized.
-
-A line is treated as a comment when its first non-trimmed character is either:
-
-```text
-;
-#
-```
-
-Inline comments are not recognized.
-
-For example:
-
-```ini
-name = xer ; this remains part of the value
-```
-
-is decoded as the value:
-
-```text
-xer ; this remains part of the value
-```
-
-This rule avoids guessing dialect-specific inline-comment behavior.
-
----
-
-## Sections
-
-A section line has the following form:
-
-```ini
-[section]
-```
-
-The section name is trimmed as ASCII whitespace.
-
-For example:
-
-```ini
-[ main ]
-```
-
-is decoded as the section name:
-
-```text
-main
-```
-
-### Invalid Section Lines
-
-A section line is invalid if:
-
-* the closing `]` is missing
-* the section name is empty after trimming
-
-Such cases are reported as ordinary parse failures.
-
----
-
-## Entries
-
-An entry line has the following form:
-
-```ini
-key=value
-```
-
-The first `=` separates the key and value.
-
-For example:
-
-```ini
-path = a=b
-```
-
-is decoded as:
-
-* key: `path`
-* value: `a=b`
-
-### Invalid Entry Lines
-
-An entry line is invalid if:
-
-* it does not contain `=`
-* the key is empty after trimming
-
-Such cases are reported as ordinary parse failures.
-
----
-
-## Quoting and Escaping
-
-The initial INI implementation does not interpret quotes or escape sequences.
-
-For example:
-
-```ini
-name = "xer"
-```
-
-is decoded as the value:
-
-```text
-"xer"
-```
-
-including the quote characters.
-
-This is intentional.
-INI dialects differ widely in quoting and escaping behavior.
-xer keeps the initial INI feature small and predictable, and leaves typed or strongly escaped configuration syntax to formats such as TOML.
-
----
-
-## `ini_decode`
-
-```cpp
-auto ini_decode(std::u8string_view text) -> xer::result<ini_file, parse_error_detail>;
-```
-
-### Purpose
-
-`ini_decode` parses UTF-8 INI text and returns an `ini_file`.
-
-### Input Model
-
-The input text is provided as:
-
-```cpp
-std::u8string_view
-```
-
-This follows xer's UTF-8-oriented public text model.
-
-### Return Model
-
-On success, `ini_decode` returns:
-
-```cpp
-ini_file
-```
-
-On failure, it returns an error through `xer::result`.
-
-### Failure Conditions
-
-At minimum, decoding fails when:
-
-* the input contains invalid UTF-8
-* a section line is malformed
-* a section name is empty
-* an entry line has no `=`
-* an entry key is empty
-
-Invalid UTF-8 is treated as an encoding error.
-Malformed INI structure is treated as an invalid argument.
-
----
-
-## `ini_encode`
-
-```cpp
-auto ini_encode(const ini_file& value) -> xer::result<std::u8string>;
-```
-
-### Purpose
-
-`ini_encode` serializes an `ini_file` into UTF-8 INI text.
-
-### Output Model
-
-On success, it returns:
-
-```cpp
-std::u8string
-```
-
-The generated text uses `\n` line endings.
-
-### Serialization Form
-
-The encoder emits a compact deterministic form.
-
-Global entries are written first:
-
-```ini
-key=value
-```
-
-Sections are then written as:
-
-```ini
-[section]
-key=value
-```
-
-A blank line is inserted before each section when there is previous output.
-
-### Representability
-
-Because the initial INI subset has no quoting or escaping rules, the encoder rejects values that cannot be represented without changing their meaning when decoded again.
-
-For example, the encoder rejects:
-
-* empty keys
-* keys containing `=`
-* keys with leading or trailing ASCII whitespace
-* values with leading or trailing ASCII whitespace
-* keys, values, or section names containing line breaks
-* section names containing `]`
-* invalid UTF-8
-
-This keeps `ini_encode` honest and avoids silently emitting ambiguous INI text.
-
----
-
-## Error Handling
-
-`<xer/ini.h>` follows xer's ordinary failure model.
-
-That means:
-
-* parsing failure is reported through `xer::result`
-* serialization failure is reported through `xer::result`
-* normal failure is not expressed through exceptions by default
-
-The usual pattern is:
-
-```cpp
-const auto decoded = xer::ini_decode(text);
-if (!decoded.has_value()) {
+const auto value = xer::parse_json(u8"{\"name\":\"xer\"}");
+if (!value.has_value()) {
     return 1;
 }
 ```
 
----
-
-## Relationship to Other Headers
-
-`<xer/ini.h>` should be understood together with the following documents and headers:
-
-* `policy_project_outline.md`
-* `policy_result_arguments.md`
-* `policy_encoding.md`
-* `header_string.md`
-* `header_json.md`
-
-The rough boundary is:
-
-* `<xer/string.h>` handles general string and text utilities
-* `<xer/json.h>` handles JSON as a structured data format
-* `<xer/ini.h>` handles INI as a simple configuration data format
-* `<xer/toml.h>` handles a stricter typed configuration format
-
-This separation is intentional.
-INI is treated as an independent data-format facility rather than as a string helper or stream helper.
+解析に失敗した場合、関数は `xer::result` のエラーを返します。通常の解析失敗に例外は使いません。
 
 ---
 
-## Documentation Notes
+## 読み込みと保存
 
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that INI processing uses UTF-8 text
-* that INI values are stored as strings
-* that global entries and section entries are separated
-* that duplicate keys and duplicate sections are preserved
-* that only full-line comments are recognized
-* that quotes and escapes are not interpreted in the initial implementation
-
-Detailed dialect-specific behavior should not be implied unless it is actually implemented.
-
----
-
-## Example Topics Commonly Worth Showing
-
-The following kinds of examples are especially suitable for this header:
-
-* decoding simple INI text
-* reading a value from a section
-* encoding an `ini_file` back into text
-* preserving duplicate keys or duplicate sections where relevant
-
-These are good candidates for executable examples in `examples/`.
-
----
-
-## Example
+ファイルベースのヘルパーは、JSON テキストをファイルから読み込む、またはファイルへ保存するために使います。
 
 ```cpp
-#include <xer/ini.h>
-
-auto main() -> int
-{
-    const auto decoded = xer::ini_decode(
-        u8"title = sample\n"
-        u8"\n"
-        u8"[project]\n"
-        u8"name = xer\n"
-        u8"version = example\n");
-
-    if (!decoded.has_value()) {
-        return 1;
-    }
-
-    if (decoded->entries.empty()) {
-        return 1;
-    }
-
-    if (decoded->sections.empty()) {
-        return 1;
-    }
-
-    const auto encoded = xer::ini_encode(*decoded);
-    if (!encoded.has_value()) {
-        return 1;
-    }
-
-    return 0;
+const auto value = xer::load_json(xer::path(u8"config.json"));
+if (!value.has_value()) {
+    return 1;
 }
 ```
 
-This example shows the general style:
-
-* parse UTF-8 INI text with `ini_decode`
-* inspect the resulting `ini_file`
-* serialize it again with `ini_encode`
-* check `xer::result` explicitly at each fallible step
+保存側も `xer::result<void>` を返すことで、ファイル I/O エラーを明示的に扱えるようにします。
 
 ---
 
-## See Also
+## エラーモデル
 
-* `policy_project_outline.md`
-* `policy_result_arguments.md`
-* `policy_encoding.md`
-* `header_json.md`
+`<xer/json.h>` は xer の通常の失敗モデルに従います。
+
+- 構文エラー
+- 不正な UTF-8
+- ファイル I/O エラー
+- サポート範囲外の値
+
+これらは、設計上必要な場合を除いて例外ではなく `xer::result` で報告されます。
 
 ---
 
-## INI find and load/save helpers
+## 設計上の注意
 
-This header also provides helper functions for inspecting decoded INI files and for loading or saving INI files.
+この JSON 層は、標準ライブラリや外部ライブラリの巨大な JSON フレームワークを置き換えることを目的としていません。
+
+目的は、xer の他の機能と同じスタイルで、実用的で小さく、明示的な JSON 処理を提供することです。
+
+特に重要な点は次のとおりです。
+
+- 入出力テキストは UTF-8 を中心に扱う
+- 失敗は `xer::result` で明示する
+- 値の所有権と寿命を単純に保つ
+- ファイル処理は `<xer/path.h>` や `<xer/stdio.h>` の方針と整合させる
+
+---
+
+## 他ヘッダーとの関係
+
+`<xer/json.h>` は次と関連します。
+
+- `<xer/error.h>`
+- `<xer/path.h>`
+- `<xer/stdio.h>`
+- `<xer/string.h>`
+- `policy_project_outline.md`
+- `policy_encoding.md`
+
+---
+
+## ドキュメント上の注意
+
+このヘッダーを生成リファレンスで扱う場合、少なくとも次を説明すれば十分です。
+
+- JSON 値を扱うヘッダーであること
+- JSON 解析、読み込み、保存を提供すること
+- 通常の失敗は `xer::result` で報告すること
+- UTF-8 テキストモデルに従うこと
+
+詳細な JSON 値 API は、実装の安定化に合わせて個別に記述します。
+
+---
+
+# `<xer/ini.h>`
+
+## 目的
+
+`<xer/ini.h>` は、xer の INI 形式読み書き機能を提供します。
+
+INI は厳密な単一標準を持つ形式ではありません。そのため、このヘッダーは「すべての INI 方言」を扱うのではなく、設定ファイル用途に向いた実用的で予測可能なサブセットを提供します。
+
+---
+
+## 主な役割
+
+`<xer/ini.h>` の主な役割は次を可能にすることです。
+
+- UTF-8 の INI テキストを解析する
+- セクションとキー/値の設定データを保持する
+- INI データを UTF-8 テキストとして保存する
+- ファイルから読み込む、またはファイルへ保存する
+- 構文エラーや I/O エラーを `xer::result` で明示的に扱う
+
+この機能は、小さな設定ファイル、テスト用データ、手で編集しやすい設定表現に適しています。
+
+---
+
+## 主なエンティティ
+
+代表的には、`<xer/ini.h>` は INI データ型と入出力関数を提供します。
 
 ```cpp
-auto ini_find(ini_file& file, std::u8string_view key) noexcept
-    -> ini_entry*;
+class ini;
 
-auto ini_find(const ini_file& file, std::u8string_view key) noexcept
-    -> const ini_entry*;
+auto parse_ini(std::u8string_view text)
+    -> xer::result<ini>;
 
-auto ini_find(
-    ini_file& file,
-    std::u8string_view section,
-    std::u8string_view key) noexcept -> ini_entry*;
+auto load_ini(const xer::path& filename)
+    -> xer::result<ini>;
 
-auto ini_find(
-    const ini_file& file,
-    std::u8string_view section,
-    std::u8string_view key) noexcept -> const ini_entry*;
-
-auto ini_load(const path& filename)
-    -> xer::result<ini_file, parse_error_detail>;
-
-auto ini_save(const path& filename, const ini_file& value)
+auto save_ini(const xer::path& filename, const ini& value)
     -> xer::result<void>;
 ```
 
-The two-argument `ini_find` helpers search global entries. The three-argument overloads search the first section whose name matches `section`, and then the first entry whose key matches `key` within that section.
-
-These helpers return pointers to existing entries. They return `nullptr` when the requested item is not present. Because the INI representation preserves duplicate keys and duplicate sections, these helpers return the first matching entry. A future `ini_find_all`-style helper may be added if bulk retrieval becomes necessary.
-
-The load helper combines UTF-8 file reading with decoding and returns `xer::result<ini_file, parse_error_detail>`. If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
-
-The save helper combines encoding with UTF-8 file writing and returns `xer::result<void>`.
+実際の公開 API の詳細は実装に従いますが、中心となる考え方は、設定データを所有する型と `xer::result` ベースの読み書き関数を提供することです。
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/toml.h`
-> Reason: Japanese fragment was translated from a different English source hash.
+## INI データモデル
+
+INI データは、セクションとキー/値の組を中心に扱います。
+
+典型的な入力例です。
+
+```ini
+[general]
+name = xer
+enabled = true
+
+[path]
+root = ./data
+```
+
+セクション名、キー、値は UTF-8 テキストとして扱われます。
+
+---
+
+## 解析
+
+INI 解析関数は UTF-8 テキストを受け取り、INI データを返します。
+
+```cpp
+const auto config = xer::parse_ini(u8"[app]\nname=xer\n");
+if (!config.has_value()) {
+    return 1;
+}
+```
+
+構文エラーや不正な UTF-8 は通常の失敗として `xer::result` で報告されます。
+
+---
+
+## 読み込みと保存
+
+ファイルベースのヘルパーは、INI ファイルを読み込む、または保存するために使います。
+
+```cpp
+const auto config = xer::load_ini(xer::path(u8"config.ini"));
+if (!config.has_value()) {
+    return 1;
+}
+```
+
+保存時のファイル I/O エラーも `xer::result<void>` によって明示的に報告されます。
+
+---
+
+## 方言と制限
+
+INI 形式には広く受け入れられた単一仕様がありません。
+
+そのため、`<xer/ini.h>` は実装が定める実用的な方言を対象とします。呼び出し側は、Windows INI、PHP INI、各種アプリケーション固有 INI のすべてと完全互換であると仮定すべきではありません。
+
+この方針により、xer は次を優先します。
+
+- UTF-8 入力の明確な扱い
+- 予測可能な構文
+- 明示的な失敗報告
+- 小さな設定ファイルでの実用性
+
+---
+
+## エラーモデル
+
+`<xer/ini.h>` は xer の通常の失敗モデルに従います。
+
+少なくとも次のような失敗が考えられます。
+
+- 不正な UTF-8
+- 構文エラー
+- 不正なセクションまたはキーの形
+- ファイル読み込みエラー
+- ファイル書き込みエラー
+
+通常の失敗に例外は使わず、`xer::result` で返します。
+
+---
+
+## 他ヘッダーとの関係
+
+`<xer/ini.h>` は次と関連します。
+
+- `<xer/error.h>`
+- `<xer/path.h>`
+- `<xer/stdio.h>`
+- `<xer/string.h>`
+- `policy_project_outline.md`
+- `policy_encoding.md`
+
+---
+
+## ドキュメント上の注意
+
+このヘッダーを生成リファレンスで扱う場合、少なくとも次を説明すれば十分です。
+
+- INI 形式の設定データを扱うヘッダーであること
+- 解析、読み込み、保存を提供すること
+- INI は方言が多いため、xer の実用的なサブセットとして扱うこと
+- 通常の失敗は `xer::result` で報告すること
+
+---
 
 # `<xer/toml.h>`
 
-## Purpose
+## 目的
 
-`<xer/toml.h>` provides TOML decode and encode facilities in xer.
+`<xer/toml.h>` は、xer における TOML のデコードおよびエンコード機能を提供します。
 
-TOML is treated as a typed configuration data format.
-The purpose of this header is to support practical reading and writing of simple UTF-8 TOML text while keeping the implementation small enough to fit xer's incremental development policy.
+TOML は、型付きの設定データ形式として扱われます。
+このヘッダーの目的は、xer の段階的な開発方針に収まる程度に実装を小さく保ちながら、単純な UTF-8 TOML テキストの実用的な読み書きを支援することです。
 
-The current implementation supports a practical subset of TOML.
-It does not claim complete TOML v1.0.0 compatibility.
-
----
-
-## Main Role
-
-The main role of `<xer/toml.h>` is to make it possible to:
-
-- parse UTF-8 TOML text into a structured xer value model
-- inspect booleans, integers, floating-point numbers, strings, arrays, and tables
-- serialize the supported value model back into UTF-8 TOML text
-- use TOML as a typed configuration format distinct from INI
-
-This makes the header useful for configuration data that needs more structure than INI but does not require the full TOML feature set at the initial stage.
+現在の実装は、TOML の実用的なサブセットをサポートします。
+TOML v1.0.0 への完全な互換性は主張しません。
 
 ---
 
-## Main Entities
+## 主な役割
 
-At minimum, `<xer/toml.h>` provides the following entities:
+`<xer/toml.h>` の主な役割は、次のことを可能にすることです。
+
+- UTF-8 TOML テキストを構造化された xer の値モデルへ解析する
+- 真偽値、整数、浮動小数点数、文字列、配列、テーブルを調べる
+- サポートされる値モデルを UTF-8 TOML テキストへシリアライズする
+- INI とは異なる型付き設定形式として TOML を使用する
+
+これにより、このヘッダーは、INI より多くの構造を必要としつつ、初期段階では TOML の全機能までは必要としない設定データに有用です。
+
+---
+
+## 主なエンティティ
+
+少なくとも、`<xer/toml.h>` は次のエンティティを提供します。
 
 ```cpp
 struct toml_value;
@@ -9540,34 +8718,34 @@ using toml_table = std::vector<std::pair<std::u8string, toml_value>>;
 auto toml_decode(std::u8string_view text)
     -> xer::result<toml_value, parse_error_detail>;
 auto toml_encode(const toml_value& value) -> xer::result<std::u8string>;
-````
+```
 
-The exact helper functions and supported TOML syntax may expand later, but these are the core public entities of the initial TOML facility.
+正確なヘルパー関数とサポートされる TOML 構文は今後拡張される可能性がありますが、これらは初期 TOML 機能の中核となる公開エンティティです。
 
 ---
 
 ## `toml_value`
 
-`toml_value` is the central value type for TOML in xer.
+`toml_value` は、xer における TOML の中心的な値型です。
 
-It stores one TOML value in structured form.
+1つの TOML 値を構造化された形で格納します。
 
-### Supported Value Kinds
+### サポートされる値の種類
 
-The current implementation supports the following value kinds:
+現在の実装は、次の値の種類をサポートします。
 
-* boolean
-* integer
-* floating-point number
-* string
-* local date
-* local time
-* local date-time
-* offset date-time
-* array
-* table
+* 真偽値
+* 整数
+* 浮動小数点数
+* 文字列
+* ローカル日付
+* ローカル時刻
+* ローカル日時
+* オフセット付き日時
+* 配列
+* テーブル
 
-The internal representation corresponds to:
+内部表現は次に対応します。
 
 ```cpp
 std::variant<
@@ -9584,15 +8762,15 @@ std::variant<
 >
 ```
 
-### Notes
+### 注意
 
-* integer values are stored as `std::int64_t`
-* floating-point values are stored as `double`
-* strings are stored as UTF-8 `std::u8string`
-* date/time values are stored in small TOML-specific value structs
-* arrays are stored as `std::vector<toml_value>`
-* array-of-tables is represented as an array whose elements are tables
-* tables are stored as ordered key-value pairs
+* 整数値は `std::int64_t` として格納されます
+* 浮動小数点値は `double` として格納されます
+* 文字列は UTF-8 の `std::u8string` として格納されます
+* 日付/時刻値は TOML 専用の小さな値構造体に格納されます
+* 配列は `std::vector<toml_value>` として格納されます
+* テーブル配列は、要素がテーブルである配列として表現されます
+* テーブルは順序付きのキー値ペアとして格納されます
 
 ---
 
@@ -9602,16 +8780,16 @@ std::variant<
 using toml_array = std::vector<toml_value>;
 ```
 
-`toml_array` represents an array of TOML values.
+`toml_array` は TOML 値の配列を表します。
 
-The current implementation stores arrays as ordinary ordered vectors.
+現在の実装では、配列は通常の順序付きベクターとして格納されます。
 
-### Notes
+### 注意
 
-* array elements preserve order
-* arrays may contain values of different supported kinds
-* arrays may contain table values
-* array-of-tables syntax is represented as an array of table values
+* 配列要素の順序は保持されます
+* 配列は、サポートされる種類が異なる値を含められます
+* 配列はテーブル値を含められます
+* テーブル配列構文は、要素がテーブル値である配列として表現されます
 
 ---
 
@@ -9621,29 +8799,29 @@ The current implementation stores arrays as ordinary ordered vectors.
 using toml_table = std::vector<std::pair<std::u8string, toml_value>>;
 ```
 
-`toml_table` represents a TOML table.
+`toml_table` は TOML テーブルを表します。
 
-Tables are represented as ordered key-value pairs rather than as a map-like container.
+テーブルは、map 風のコンテナーではなく、順序付きのキー値ペアとして表現されます。
 
-### Why Ordered Pairs Are Used
+### 順序付きペアを使う理由
 
-This representation keeps the value model simple and preserves source order.
+この表現は値モデルを単純に保ち、ソース上の順序を保持します。
 
-It also matches the general xer tendency to avoid prematurely committing public data-format models to hash-map or tree-map semantics.
+また、公開データ形式モデルをハッシュマップやツリーマップの意味論へ早すぎる段階で固定しないという、xer の一般的な傾向にも合っています。
 
-### Duplicate Keys
+### 重複キー
 
-TOML does not allow duplicate keys in the same table.
+TOML では、同じテーブル内の重複キーは許可されません。
 
-The decoder rejects duplicate keys as invalid input.
+デコーダーは重複キーを不正な入力として拒否します。
 
 ---
 
-## Accessors and Inspection
+## 検査とアクセサー
 
-`toml_value` provides inspection and accessor functions.
+`toml_value` は検査関数とアクセサー関数を提供します。
 
-At minimum, the following inspection functions are provided:
+少なくとも、次の検査関数が提供されます。
 
 ```cpp
 is_bool
@@ -9654,7 +8832,7 @@ is_array
 is_table
 ```
 
-At minimum, the following accessor functions are provided:
+少なくとも、次のアクセサー関数が提供されます。
 
 ```cpp
 as_bool
@@ -9665,9 +8843,9 @@ as_array
 as_table
 ```
 
-The accessor functions return pointers to the stored value when the value has the requested kind, and `nullptr` otherwise.
+アクセサー関数は、値が要求された種類を持つ場合は格納値へのポインターを返し、そうでない場合は `nullptr` を返します。
 
-### Example
+### 例
 
 ```cpp
 const auto* table = value.as_table();
@@ -9676,13 +8854,13 @@ if (table == nullptr) {
 }
 ```
 
-This style keeps type inspection explicit and avoids throwing exceptions for ordinary kind checks.
+このスタイルは、型検査を明示的にし、通常の種類判定のために例外を投げることを避けます。
 
 ---
 
-## Supported TOML Subset
+## サポートされる TOML サブセット
 
-The current implementation supports the following TOML-style input:
+現在の実装は、次のような TOML 風入力をサポートします。
 
 ```toml
 title = "xer"
@@ -9703,34 +8881,34 @@ name = "xer"
 version = "example"
 ```
 
-### Supported Forms
+### サポートされる形式
 
-The initial decoder supports:
+初期デコーダーは次をサポートします。
 
-* blank lines
-* comments beginning with `#`
-* end-of-line comments outside strings
-* bare keys
-* quoted keys
-* dotted keys
-* key-value pairs
-* ordinary and nested tables
-* basic double-quoted strings
-* literal strings
-* multiline basic and literal strings
-* booleans
-* signed decimal integers
-* hexadecimal, octal, and binary integers
-* numeric separators between digits
-* finite and special floating-point numbers
-* arrays
-* inline tables
-* local date, local time, local date-time, and offset date-time values
-* array-of-tables
+* 空行
+* `#` で始まるコメント
+* 文字列外の行末コメント
+* 裸キー
+* 引用符付きキー
+* ドット付きキー
+* キー値ペア
+* 通常のテーブルと入れ子テーブル
+* 基本二重引用符付き文字列
+* リテラル文字列
+* 複数行の基本文字列とリテラル文字列
+* 真偽値
+* 符号付き10進整数
+* 16進、8進、2進整数
+* 数字間の数値区切り文字
+* 有限および特殊な浮動小数点数
+* 配列
+* インラインテーブル
+* ローカル日付、ローカル時刻、ローカル日時、オフセット付き日時の値
+* テーブル配列
 
-### Line Endings
+### 改行
 
-The decoder accepts the following line endings:
+デコーダーは次の改行を受け付けます。
 
 * LF
 * CRLF
@@ -9738,33 +8916,33 @@ The decoder accepts the following line endings:
 
 ---
 
-## Deferred TOML Features and Limitations
+## 後回しの TOML 機能と制限事項
 
-The current implementation supports a practical subset of TOML, including date/time values and array-of-tables.
+現在の実装は、日付/時刻値とテーブル配列を含む、TOML の実用的なサブセットをサポートします。
 
-The following areas remain intentionally limited or deferred:
+次の領域は意図的に制限されているか、後回しにされています。
 
-* complete TOML v1.0.0 conformance
-* preservation of original formatting and comments during encoding
-* timezone names beyond TOML offset date-time syntax
-* full validation of every semantic rule required by TOML v1.0.0
+* TOML v1.0.0 への完全準拠
+* エンコード時に元の整形やコメントを保持すること
+* TOML のオフセット付き日時構文を超えるタイムゾーン名
+* TOML v1.0.0 が要求するすべての意味論的規則の完全な検証
 
-The implementation should therefore be described as a practical TOML subset, not as a complete TOML implementation.
+したがって、この実装は完全な TOML 実装ではなく、実用的な TOML サブセットとして説明する必要があります。
 
 ---
 
-## Keys
+## キー
 
-The implementation supports bare keys, quoted keys, and dotted keys.
+実装は裸キー、引用符付きキー、ドット付きキーをサポートします。
 
-A bare key may contain:
+裸キーには次を含められます。
 
-* ASCII letters
-* ASCII digits
+* ASCII 英字
+* ASCII 数字
 * `_`
 * `-`
 
-Examples:
+例:
 
 ```toml
 name = "xer"
@@ -9772,33 +8950,33 @@ build-target = "ucrt64"
 version_1 = "example"
 ```
 
-Quoted keys use the same single-line basic-string or literal-string syntax as values.
+引用符付きキーは、値と同じ単一行の基本文字列またはリテラル文字列構文を使用します。
 
 ```toml
 "site.name" = "xer"
 'literal.key' = 10
 ```
 
-Dotted keys create nested tables implicitly when necessary.
+ドット付きキーは、必要に応じて入れ子テーブルを暗黙に作成します。
 
 ```toml
 server.port = 8080
 database."connection.pool".size = 4
 ```
 
-In this representation, each dotted-key segment is stored as an ordinary table key. Quoted segments may contain dots without being split.
+この表現では、各ドット付きキーセグメントは通常のテーブルキーとして格納されます。引用符付きセグメントには、分割されないドットを含められます。
 
 ---
 
-## Tables
+## テーブル
 
-A table line has the following form:
+テーブル行は次の形式です。
 
 ```toml
 [project]
 ```
 
-Nested table names are also supported through dotted key syntax.
+入れ子テーブル名も、ドット付きキー構文を通じてサポートされます。
 
 ```toml
 [project.package]
@@ -9808,19 +8986,19 @@ name = "xer"
 name = "ucrt64"
 ```
 
-The table name is parsed as a key path. The table becomes the destination for subsequent key-value entries until another table is declared.
+テーブル名はキーパスとして解析されます。そのテーブルは、別のテーブルが宣言されるまで、後続のキー値エントリーの出力先になります。
 
-### Notes
+### 注意
 
-* duplicate explicit table declarations are rejected
-* tables created implicitly by dotted keys may later be declared explicitly
-* array-of-tables syntax such as `[[project]]` is supported and represented as arrays whose elements are tables
+* 明示的なテーブル宣言の重複は拒否されます
+* ドット付きキーによって暗黙に作成されたテーブルは、後で明示的に宣言できます
+* `[[project]]` のようなテーブル配列構文はサポートされ、要素がテーブルである配列として表現されます
 
 ---
 
-## Strings
+## 文字列
 
-The implementation supports basic strings, literal strings, multiline basic strings, and multiline literal strings.
+実装は、基本文字列、リテラル文字列、複数行基本文字列、複数行リテラル文字列をサポートします。
 
 ```toml
 name = "xer"
@@ -9833,7 +9011,7 @@ C:\\Users\\xer
 '''
 ```
 
-Basic strings support the following escapes:
+基本文字列は次のエスケープをサポートします。
 
 ```text
 \"
@@ -9847,26 +9025,26 @@ Basic strings support the following escapes:
 \UXXXXXXXX
 ```
 
-Literal strings do not process escape sequences. Multiline strings remove the first newline immediately following the opening delimiter, following TOML-style behavior.
+リテラル文字列はエスケープシーケンスを処理しません。複数行文字列は、TOML 風の挙動に従い、開始デリミターの直後の最初の改行を取り除きます。
 
 ---
 
-## Booleans
+## 真偽値
 
-The following boolean values are supported:
+次の真偽値がサポートされます。
 
 ```toml
 enabled = true
 disabled = false
 ```
 
-They are stored as `bool`.
+これらは `bool` として格納されます。
 
 ---
 
-## Integers
+## 整数
 
-The current implementation supports signed decimal integers and prefixed non-decimal integers. Numeric separators may be used between digits.
+現在の実装は、符号付き10進整数と、接頭辞付きの非10進整数をサポートします。数値区切り文字は数字間で使用できます。
 
 ```toml
 count = 123
@@ -9878,15 +9056,15 @@ octal = 0o755
 binary = 0b1010_0101
 ```
 
-They are stored as `std::int64_t`.
+これらは `std::int64_t` として格納されます。
 
-The supported integer prefixes are `0x` for hexadecimal, `0o` for octal, and `0b` for binary. A leading `+` or `-` may be used before the prefix. Separators are valid only between digits of the corresponding base.
+サポートされる整数接頭辞は、16進の `0x`、8進の `0o`、2進の `0b` です。接頭辞の前に先頭の `+` または `-` を使用できます。区切り文字は、対応する基数の数字間でのみ有効です。
 
 ---
 
-## Floating-Point Numbers
+## 浮動小数点数
 
-The implementation supports finite decimal floating-point numbers and TOML special floating-point values. Numeric separators may be used between decimal digits of finite decimal values.
+実装は、有限の10進浮動小数点数と TOML の特殊な浮動小数点値をサポートします。数値区切り文字は、有限10進形式の10進数字間で使用できます。
 
 ```toml
 ratio = 1.5
@@ -9899,17 +9077,17 @@ negative_inf = -inf
 not_a_number = nan
 ```
 
-They are stored as `double`.
+これらは `double` として格納されます。
 
-Special values `inf`, `+inf`, `-inf`, `nan`, `+nan`, and `-nan` are accepted. Separators are valid only between digits of finite decimal forms; forms such as `1_.0`, `1._0`, and `1.0e_3` are rejected.
+特殊値 `inf`、`+inf`、`-inf`、`nan`、`+nan`、`-nan` が受け付けられます。区切り文字は有限10進形式の数字間でのみ有効です。`1_.0`、`1._0`、`1.0e_3` のような形式は拒否されます。
 
 ---
 
-## Date and Time Values
+## 日付と時刻の値
 
-The TOML decoder supports local dates, local times, local date-times, and offset date-times.
+TOML デコーダーは、ローカル日付、ローカル時刻、ローカル日時、オフセット付き日時をサポートします。
 
-Examples:
+例:
 
 ```toml
 date = 2026-04-30
@@ -9919,33 +9097,33 @@ offset = 2026-04-30T23:59:58+09:00
 utc = 2026-04-30T14:59:58Z
 ```
 
-The value model stores these as `toml_local_date`, `toml_local_time`, `toml_local_datetime`, and `toml_offset_datetime`. Fractional seconds are stored with microsecond precision.
+値モデルはこれらを `toml_local_date`、`toml_local_time`、`toml_local_datetime`、`toml_offset_datetime` として格納します。小数秒はマイクロ秒精度で格納されます。
 
 ---
 
-## Arrays
+## 配列
 
-The implementation supports arrays.
+実装は配列をサポートします。
 
 ```toml
 ports = [8000, 8001, 8002]
 mixed = ["xer", true, 3]
 ```
 
-Arrays preserve element order.
+配列は要素の順序を保持します。
 
-The implementation stores arrays as `toml_array`.
+実装は配列を `toml_array` として格納します。
 
-### Notes
+### 注意
 
-* arrays can contain supported scalar values, arrays, and inline tables
-* array-of-tables syntax is represented as arrays whose elements are tables
+* 配列は、サポートされるスカラー値、配列、インラインテーブルを含められます
+* テーブル配列構文は、要素がテーブルである配列として表現されます
 
 ---
 
-## Inline Tables
+## インラインテーブル
 
-The implementation supports inline tables.
+実装はインラインテーブルをサポートします。
 
 ```toml
 point = { x = 1, y = 2 }
@@ -9953,15 +9131,15 @@ package = { name = "xer", metadata.version = "example" }
 items = [{ name = "one" }, { name = "two" }]
 ```
 
-Inline tables are stored as ordinary `toml_table` values. Dotted keys inside inline tables create nested table values in the same representation used by ordinary dotted keys.
+インラインテーブルは通常の `toml_table` 値として格納されます。インラインテーブル内のドット付きキーは、通常のドット付きキーで使われる表現と同じ表現で入れ子テーブル値を作成します。
 
-Trailing commas in inline tables are rejected.
+インラインテーブル内の末尾カンマは拒否されます。
 
 ---
 
-## Array-of-Tables
+## テーブル配列
 
-The decoder supports TOML array-of-tables syntax.
+デコーダーは TOML のテーブル配列構文をサポートします。
 
 ```toml
 [[products]]
@@ -9971,21 +9149,21 @@ name = "Hammer"
 name = "Nail"
 ```
 
-In the value model, this is represented as a `toml_array` whose elements are table values. Nested array-of-tables are attached to the latest table element in the parent array.
+値モデルでは、これは要素がテーブル値である `toml_array` として表現されます。入れ子のテーブル配列は、親配列内の最新のテーブル要素に追加されます。
 
-The encoder emits an array whose elements are tables as `[[...]]` when it appears in table context.
+エンコーダーは、テーブル文脈に現れる、要素がテーブルである配列を `[[...]]` として出力します。
 
 ---
 
-## Comments
+## コメント
 
-A `#` starts a comment when it appears outside a string.
+`#` は、文字列外に現れるとコメントを開始します。
 
 ```toml
 name = "xer" # comment
 ```
 
-A `#` inside a string is treated as part of the string.
+文字列内の `#` は、文字列の一部として扱われます。
 
 ```toml
 name = "x#r"
@@ -10000,51 +9178,51 @@ auto toml_decode(std::u8string_view text)
     -> xer::result<toml_value, parse_error_detail>;
 ```
 
-### Purpose
+### 目的
 
-`toml_decode` parses UTF-8 TOML text and returns a `toml_value`.
+`toml_decode` は UTF-8 TOML テキストを解析し、`toml_value` を返します。
 
-### Input Model
+### 入力モデル
 
-The input text is provided as:
+入力テキストは次の形で渡されます。
 
 ```cpp
 std::u8string_view
 ```
 
-This follows xer's UTF-8-oriented public text model.
+これは、xer の UTF-8 指向の公開テキストモデルに従います。
 
-### Return Model
+### 戻り値モデル
 
-On success, `toml_decode` returns a `toml_value`.
+成功時、`toml_decode` は `toml_value` を返します。
 
-The returned value is a table value.
+返される値はテーブル値です。
 
-### Failure Conditions
+### 失敗条件
 
-At minimum, decoding fails when:
+少なくとも、次の場合にデコードは失敗します。
 
-* the input contains invalid UTF-8
-* a key-value line does not contain `=`
-* a key is malformed
-* a table declaration is malformed
-* a key is duplicated
-* a table is duplicated
-* a value uses unsupported syntax
-* a value is malformed
+* 入力に不正な UTF-8 が含まれる
+* キー値行に `=` が含まれない
+* キーが不正な形式である
+* テーブル宣言が不正な形式である
+* キーが重複している
+* テーブルが重複している
+* 値がサポートされない構文を使用している
+* 値が不正な形式である
 
-Invalid UTF-8 is treated as an encoding error.
-Malformed TOML structure is treated as an invalid argument.
+不正な UTF-8 はエンコーディングエラーとして扱われます。
+不正な TOML 構造は不正な引数として扱われます。
 
 ---
 
-## Parse Error Detail
+## 解析エラー詳細
 
-`toml_decode` returns `xer::result<toml_value, parse_error_detail>`.
+`toml_decode` は `xer::result<toml_value, parse_error_detail>` を返します。
 
-On parse failure, the error object contains the ordinary xer error code together with `offset`, `line`, `column`, and `reason` fields from `<xer/parse.h>`.
+解析失敗時、エラーオブジェクトは通常の xer エラーコードに加え、`<xer/parse.h>` の `offset`、`line`、`column`、`reason` フィールドを含みます。
 
-The position fields are counted in UTF-8 code units. `line` and `column` are one-based, while `offset` is zero-based.
+位置フィールドは UTF-8 コード単位で数えられます。`line` と `column` は 1 始まり、`offset` は 0 始まりです。
 
 ---
 
@@ -10054,27 +9232,27 @@ The position fields are counted in UTF-8 code units. `line` and `column` are one
 auto toml_encode(const toml_value& value) -> xer::result<std::u8string>;
 ```
 
-### Purpose
+### 目的
 
-`toml_encode` serializes a supported TOML value model into UTF-8 TOML text.
+`toml_encode` は、サポートされる TOML 値モデルを UTF-8 TOML テキストへシリアライズします。
 
-### Input Model
+### 入力モデル
 
-The value to encode must be a table value.
+エンコードする値はテーブル値でなければなりません。
 
-### Output Model
+### 出力モデル
 
-On success, it returns:
+成功時は次を返します。
 
 ```cpp
 std::u8string
 ```
 
-The generated text uses `\n` line endings.
+生成されるテキストは `\n` 改行を使用します。
 
-### Serialization Form
+### シリアライズ形式
 
-The encoder emits ordinary key-value entries first.
+エンコーダーは、通常のキー値エントリーを先に出力します。
 
 ```toml
 title = "sample"
@@ -10082,7 +9260,7 @@ enabled = true
 count = 123
 ```
 
-Then it emits table sections.
+その後、テーブルセクションを出力します。
 
 ```toml
 [project]
@@ -10090,31 +9268,31 @@ name = "xer"
 version = "example"
 ```
 
-A blank line is inserted before a table when there is preceding output.
+先行する出力がある場合、テーブルの前に空行が挿入されます。
 
-### Representability
+### 表現可能性
 
-Because the current TOML implementation supports only a subset, `toml_encode` rejects values that cannot be represented by that subset.
+現在の TOML 実装はサブセットのみをサポートするため、`toml_encode` はそのサブセットで表現できない値を拒否します。
 
-For example, it rejects:
+たとえば、次を拒否します。
 
-* a top-level value that is not a table
-* unsupported key forms
-* invalid UTF-8 strings
+* トップレベル値がテーブルではない
+* サポートされないキー形式
+* 不正な UTF-8 文字列
 
 ---
 
-## Error Handling
+## エラー処理
 
-`<xer/toml.h>` follows xer's ordinary failure model.
+`<xer/toml.h>` は xer の通常の失敗モデルに従います。
 
-That means:
+つまり、次のようになります。
 
-* parsing failure is reported through `xer::result`
-* serialization failure is reported through `xer::result`
-* normal failure is not expressed through exceptions by default
+* 解析失敗は `xer::result` を通じて報告されます
+* シリアライズ失敗は `xer::result` を通じて報告されます
+* 通常の失敗は、既定では例外として表現されません
 
-The usual pattern is:
+通常のパターンは次のとおりです。
 
 ```cpp
 const auto decoded = xer::toml_decode(text);
@@ -10123,13 +9301,13 @@ if (!decoded.has_value()) {
 }
 ```
 
-This follows xer's general policy that fallible public APIs return `xer::result`, while ordinary public APIs should accept ordinary values rather than `xer::result` arguments.
+これは、失敗可能な公開 API は `xer::result` を返し、通常の公開 API は `xer::result` 引数ではなく通常の値を受け取るべきである、という xer の一般方針に従っています。
 
 ---
 
-## Relationship to Other Headers
+## 他のヘッダーとの関係
 
-`<xer/toml.h>` should be understood together with the following documents and headers:
+`<xer/toml.h>` は、次の文書およびヘッダーと合わせて理解する必要があります。
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
@@ -10138,49 +9316,49 @@ This follows xer's general policy that fallible public APIs return `xer::result`
 * `header_json.md`
 * `header_ini.md`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-* `<xer/string.h>` handles general string and text utilities
-* `<xer/json.h>` handles JSON as a structured data format
-* `<xer/ini.h>` handles INI as a simple string-valued configuration data format
-* `<xer/toml.h>` handles TOML as a typed configuration data format
+* `<xer/string.h>` は一般的な文字列およびテキストユーティリティを扱います
+* `<xer/json.h>` は構造化データ形式としての JSON を扱います
+* `<xer/ini.h>` は単純な文字列値設定データ形式としての INI を扱います
+* `<xer/toml.h>` は型付き設定データ形式としての TOML を扱います
 
-This separation is intentional.
-TOML is treated as an independent data-format facility rather than as a string helper or stream helper.
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that TOML processing uses UTF-8 text
-* that the current implementation is a practical TOML subset
-* that top-level decode results are table values
-* that TOML values are typed
-* that duplicate keys and duplicate tables are rejected
-* that hexadecimal, octal, and binary integers are supported
-* that numeric separators are supported only between digits
-* that the remaining limitations should be described as limitations of a practical subset
-
-Detailed feature coverage should be kept in sync with the implementation as support expands.
+この分離は意図的なものです。
+TOML は、文字列ヘルパーやストリームヘルパーではなく、独立したデータ形式機能として扱われます。
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+このヘッダーを生成ドキュメントで扱う場合、通常は次を説明すれば十分です。
 
-* decoding simple TOML text
-* reading a value from the top-level table
-* reading a value from a section table
-* encoding a `toml_value` table back into TOML text
+* TOML 処理は UTF-8 テキストを使用すること
+* 現在の実装は実用的な TOML サブセットであること
+* トップレベルのデコード結果はテーブル値であること
+* TOML 値は型付きであること
+* 重複キーと重複テーブルは拒否されること
+* 16進、8進、2進整数がサポートされること
+* 数値区切り文字は数字間でのみサポートされること
+* 残る制限事項は実用的なサブセットの制限として説明すべきであること
 
-These are good candidates for executable examples in `examples/`.
+サポート機能の詳細は、サポートが拡張されるたびに実装と同期しておく必要があります。
 
 ---
 
-## Example
+## 例として示す価値がある話題
+
+このヘッダーには、次のような例が特に適しています。
+
+* 単純な TOML テキストのデコード
+* トップレベルテーブルから値を読む
+* セクションテーブルから値を読む
+* `toml_value` テーブルを TOML テキストへエンコードする
+
+これらは `examples/` の実行可能な例に適した候補です。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/toml.h>
@@ -10213,16 +9391,16 @@ auto main() -> int
 }
 ```
 
-This example shows the general style:
+この例は一般的なスタイルを示しています。
 
-* parse UTF-8 TOML text with `toml_decode`
-* inspect the resulting top-level table
-* serialize it again with `toml_encode`
-* check `xer::result` explicitly at each fallible step
+* `toml_decode` で UTF-8 TOML テキストを解析する
+* 結果のトップレベルテーブルを調べる
+* `toml_encode` で再びシリアライズする
+* 失敗可能な各手順で `xer::result` を明示的に確認する
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
@@ -10232,9 +9410,9 @@ This example shows the general style:
 
 ---
 
-## TOML find and load/save helpers
+## TOML の検索および読み込み/保存ヘルパー
 
-This header also provides helper functions for inspecting decoded TOML values and for loading or saving TOML files.
+このヘッダーは、デコード済み TOML 値を調べるためのヘルパー関数と、TOML ファイルを読み込みまたは保存するためのヘルパー関数も提供します。
 
 ```cpp
 auto toml_find(toml_value& value, std::u8string_view path) noexcept
@@ -10250,141 +9428,135 @@ auto toml_save(const path& filename, const toml_value& value)
     -> xer::result<void>;
 ```
 
-The `toml_find` helpers inspect already-decoded in-memory values and return pointers to existing values. They return `nullptr` when the requested item is not present or when the searched value has the wrong shape.
+`toml_find` ヘルパーは、すでにデコードされたメモリー上の値を調べ、既存の値へのポインターを返します。要求された項目が存在しない場合、または検索対象の値の形が合わない場合は `nullptr` を返します。
 
-The `path` argument to `toml_find` is a simple dot-separated lookup path such as `project.name` or `database.port`. It is not a full TOML key parser. In particular, TOML quoted-key syntax is not interpreted by this helper; quoted dots are not treated specially in the lookup path.
+`toml_find` の `path` 引数は、`project.name` や `database.port` のような単純なドット区切りの検索パスです。これは完全な TOML キーパーサーではありません。特に、TOML の引用符付きキー構文はこのヘルパーでは解釈されず、引用符付きのドットは検索パス内で特別扱いされません。
 
-The load helper combines UTF-8 file reading with decoding and returns `xer::result<toml_value, parse_error_detail>`. If file I/O fails before parsing begins, the returned error uses `parse_error_reason::none` and leaves `offset`, `line`, and `column` at zero.
+読み込みヘルパーは UTF-8 ファイル読み込みとデコードを組み合わせ、`xer::result<toml_value, parse_error_detail>` を返します。解析が始まる前にファイル I/O が失敗した場合、返されるエラーは `parse_error_reason::none` を使用し、`offset`、`line`、`column` は 0 のままにします。
 
-The save helper combines encoding with UTF-8 file writing and returns `xer::result<void>`.
+保存ヘルパーはエンコードと UTF-8 ファイル書き込みを組み合わせ、`xer::result<void>` を返します。
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/stdio.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/stdio.h>`
 
-## Purpose
+## 目的
 
-`<xer/stdio.h>` provides stream-based input and output facilities in xer.
+`<xer/stdio.h>` は、xer のストリームベースの入出力機能を提供します。
 
-Its role is similar in spirit to the C standard library `<stdio.h>`, but it is not intended to be a literal reproduction.
-Instead, it reconstructs practical I/O around explicit stream types, explicit encodings, and xer's ordinary failure model.
+その役割は C 標準ライブラリの `<stdio.h>` と精神的には似ていますが、文字どおりの再実装を目的とするものではありません。
+代わりに、明示的なストリーム型、明示的なエンコーディング、xer の通常の失敗モデルを中心に、実用的な I/O を再構成します。
 
-This header is one of the most important public headers in xer because it provides the main user-facing path for:
+このヘッダーは、次のような主要なユーザー向け経路を提供するため、xer の中でも特に重要な公開ヘッダーの一つです。
 
-- binary stream I/O
-- text stream I/O
-- formatted input/output
-- file-entry operations
-- CSV input/output
-- stream state and positioning
-- stream rewinding
-- stream content convenience operations
-- whole-file content convenience operations
-
----
-
-## Main Role
-
-The main role of `<xer/stdio.h>` is to provide a coherent I/O model built on the following principles:
-
-- do not expose `FILE*` directly as the public abstraction
-- distinguish binary I/O from text I/O explicitly
-- use RAII for stream lifetime management
-- handle text encodings explicitly rather than through locale
-- report ordinary failure through `xer::result`
-
-This makes the header easier to use safely from modern C++ code while preserving the familiarity of many classic C-style function names.
+- バイナリストリーム I/O
+- テキストストリーム I/O
+- 書式付き入出力
+- ファイルエントリ操作
+- CSV 入出力
+- ストリーム状態と位置指定
+- ストリームの巻き戻し
+- ストリーム内容の便利操作
+- ファイル全体の内容を扱う便利操作
 
 ---
 
-## Core Stream Types
+## 主な役割
 
-At minimum, `<xer/stdio.h>` provides the following public stream types:
+`<xer/stdio.h>` の主な役割は、次の原則に基づく一貫した I/O モデルを提供することです。
+
+- `FILE*` を公開抽象として直接公開しない
+- バイナリ I/O とテキスト I/O を明示的に区別する
+- ストリームの生存期間管理に RAII を使用する
+- テキストエンコーディングをロケールではなく明示的に扱う
+- 通常の失敗を `xer::result` で報告する
+
+これにより、古典的な C スタイル関数名の親しみやすさを保ちながら、現代的な C++ コードからより安全に使いやすいヘッダーになります。
+
+---
+
+## 中核となるストリーム型
+
+少なくとも、`<xer/stdio.h>` は次の公開ストリーム型を提供します。
 
 ```cpp
 class binary_stream;
 class text_stream;
 ```
 
-These are the central abstractions of the header.
+これらはこのヘッダーの中心的な抽象です。
 
 ### `binary_stream`
 
-`binary_stream` represents binary input/output.
+`binary_stream` はバイナリ入出力を表します。
 
-It is used for:
+これは次の用途に使われます。
 
-* files opened in binary mode
-* memory-backed binary streams
-* binary temporary streams
-* other byte-oriented stream targets
+* バイナリモードで開いたファイル
+* メモリを背後に持つバイナリストリーム
+* バイナリ一時ストリーム
+* その他のバイト指向ストリーム対象
 
 ### `text_stream`
 
-`text_stream` represents text input/output.
+`text_stream` はテキスト入出力を表します。
 
-It is used for:
+これは次の用途に使われます。
 
-* files opened with explicit text encoding
-* UTF-8 or CP932 text sources
-* string-backed text streams
-* text temporary streams
-* standard text-oriented input/output targets
+* 明示的なテキストエンコーディングで開いたファイル
+* UTF-8 または CP932 のテキスト入力元
+* 文字列を背後に持つテキストストリーム
+* テキスト一時ストリーム
+* 標準のテキスト指向入出力対象
 
-### Design Direction
+### 設計方針
 
-These two stream types are intentionally separate.
+これら 2 つのストリーム型は意図的に分離されています。
 
-xer does not model them as one stream class with a mode switch.
-Instead, the distinction between binary and text I/O is made explicit at the type level.
-
----
-
-## Move-Only RAII Objects
-
-`binary_stream` and `text_stream` are move-only RAII objects.
-
-### Meaning
-
-This implies at least the following:
-
-* they are not copyable
-* they are movable
-* they acquire and release stream resources through object lifetime
-* the destructor performs automatic cleanup
-
-### Why This Matters
-
-This makes stream ownership explicit and avoids many ambiguities associated with raw handle sharing.
-
-It also fits xer's broader design preference for explicit ownership and explicit failure handling.
+xer は、モード切り替えを持つ 1 つのストリームクラスとしてこれらをモデル化しません。
+代わりに、バイナリ I/O とテキスト I/O の区別を型レベルで明示します。
 
 ---
 
-## Stream Opening
+## ムーブ専用 RAII オブジェクト
 
-`<xer/stdio.h>` provides functions for opening streams from files, memory, and strings.
+`binary_stream` と `text_stream` はムーブ専用の RAII オブジェクトです。
 
-### File Opening
+### 意味
 
-At minimum, the public file-opening forms are:
+これは少なくとも次のことを意味します。
+
+* コピーできない
+* ムーブできる
+* オブジェクトの生存期間を通じてストリームリソースを獲得・解放する
+* デストラクタが自動クリーンアップを行う
+
+### なぜ重要か
+
+これにより、ストリーム所有権が明示され、生ハンドル共有に伴う多くの曖昧さを避けられます。
+
+また、明示的な所有権と明示的な失敗処理を好む xer の全体的な設計にも合っています。
+
+---
+
+## ストリームを開く
+
+`<xer/stdio.h>` は、ファイル、メモリ、文字列からストリームを開く関数を提供します。
+
+### ファイルを開く
+
+少なくとも、公開されるファイルオープン形式は次のとおりです。
 
 ```cpp
 auto fopen(const path& filename, const char* mode) noexcept -> xer::result<binary_stream>;
 auto fopen(const path& filename, const char* mode, encoding_t encoding) noexcept -> xer::result<text_stream>;
 ```
 
-These two overloads separate binary opening from text opening.
+これら 2 つのオーバーロードは、バイナリオープンとテキストオープンを分離します。
 
-### Memory Opening
+### メモリを開く
 
-For memory-backed streams, the header may provide forms such as:
+メモリを背後に持つストリームについては、次のような形式を提供する場合があります。
 
 ```cpp
 auto memopen(std::span<std::byte> memory, const char* mode) noexcept -> xer::result<binary_stream>;
@@ -10392,21 +9564,21 @@ auto stropen(std::u8string_view text, const char* mode) noexcept -> xer::result<
 auto stropen(std::u8string& text, const char* mode) noexcept -> xer::result<text_stream>;
 ```
 
-### Design Direction
+### 設計方針
 
-These open functions are designed so that:
+これらの open 関数は、次のようになるよう設計されています。
 
-* binary streams and text streams are distinguished at open time
-* ordinary ownership of the backing container is not silently transferred
-* borrowed storage remains explicit in the API shape
+* バイナリストリームとテキストストリームをオープン時点で区別する
+* 背後のコンテナの通常の所有権を暗黙に移譲しない
+* 借用されたストレージであることを API 形状で明示する
 
 ---
 
-## Text Encoding Selection
+## テキストエンコーディングの選択
 
-For text streams, `<xer/stdio.h>` provides explicit encoding selection.
+テキストストリームでは、`<xer/stdio.h>` は明示的なエンコーディング選択を提供します。
 
-At minimum, the public encoding enumeration is:
+少なくとも、公開エンコーディング列挙は次のとおりです。
 
 ```cpp
 enum class encoding_t {
@@ -10416,27 +9588,27 @@ enum class encoding_t {
 };
 ```
 
-### Meaning
+### 意味
 
-* `utf8` means UTF-8 text
-* `cp932` means CP932 text
-* `auto_detect` means automatic input-side detection between supported encodings
+* `utf8` は UTF-8 テキストを意味します
+* `cp932` は CP932 テキストを意味します
+* `auto_detect` は、サポートするエンコーディング間で入力側の自動判定を行うことを意味します
 
-### Important Notes
+### 重要な注意
 
-* text I/O in xer is not locale-centered
-* encoding is part of the stream-opening model
-* `auto_detect` is intended for input, not for general write-side behavior
+* xer のテキスト I/O はロケール中心ではありません
+* エンコーディングはストリームオープンモデルの一部です
+* `auto_detect` は入力用であり、一般的な書き込み側の振る舞いを表すものではありません
 
-This is one of the clearest differences from traditional locale-driven C text I/O.
+これは、従来のロケール駆動の C テキスト I/O との最も明確な違いの一つです。
 
 ---
 
-## Binary I/O
+## バイナリ I/O
 
-For binary streams, the header provides byte-oriented operations.
+バイナリストリームに対して、このヘッダーはバイト指向操作を提供します。
 
-At minimum, this includes functions such as:
+少なくとも、次のような関数を含みます。
 
 ```cpp
 fread
@@ -10445,37 +9617,37 @@ fgetb
 fputb
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions provide:
+これらの関数は次を提供します。
 
-* block input/output
-* single-byte input/output
-* binary-stream operations in byte units
+* ブロック入出力
+* 1 バイト入出力
+* バイト単位のバイナリストリーム操作
 
-### Design Direction
+### 設計方針
 
-Binary data is handled as raw byte-oriented data rather than as text.
+バイナリデータは、テキストではなく生のバイト指向データとして扱います。
 
-`fgetc` and `fputc` are therefore not the single-byte binary I/O interface.
-Instead, xer uses `fgetb` and `fputb` for that role.
+そのため、`fgetc` と `fputc` は 1 バイトのバイナリ I/O インターフェイスではありません。
+代わりに、xer はその役割に `fgetb` と `fputb` を使用します。
 
-### EOF Handling
+### EOF の扱い
 
-Sequential input functions report an exhausted input stream as `error_t::end_of_file`.
-This applies to operations such as `fread`, `fgetb`, `fgetc`, and `fgets` when no new data can be read.
+逐次入力関数は、入力ストリームを使い切った状態を `error_t::end_of_file` として報告します。
+これは、`fread`、`fgetb`、`fgetc`、`fgets` などで新しいデータを読めない場合に適用されます。
 
-Partial reads remain successful.
-For example, if `fread` reads at least one byte but fewer bytes than requested, it returns the number of bytes actually read.
-`stream_get_contents` treats `end_of_file` as the natural termination condition while collecting contents.
+部分読み取りは成功のままです。
+たとえば、`fread` が要求されたバイト数より少なくても 1 バイト以上を読み取った場合は、実際に読み取ったバイト数を返します。
+`stream_get_contents` は、内容を収集する際に `end_of_file` を自然な終了条件として扱います。
 
 ---
 
-## Text I/O
+## テキスト I/O
 
-For text streams, the header provides character- and string-oriented operations.
+テキストストリームに対して、このヘッダーは文字指向および文字列指向の操作を提供します。
 
-At minimum, this includes functions such as:
+少なくとも、次のような関数を含みます。
 
 ```cpp
 fgetc
@@ -10491,33 +9663,33 @@ fputs
 puts
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions provide:
+これらの関数は次を提供します。
 
-* single-character text input/output
-* string-oriented text input/output
-* standard-stream convenience operations
-* limited push-back support through `ungetc`
+* 1 文字のテキスト入出力
+* 文字列指向のテキスト入出力
+* 標準ストリーム向けの便利操作
+* `ungetc` による限定的な押し戻しサポート
 
-### Design Direction
+### 設計方針
 
-Text streams are normalized internally around xer's text model.
+テキストストリームは内部的に xer のテキストモデルを中心に正規化されます。
 
-In particular:
+特に次の点が重要です。
 
-* single-character input is centered on `char32_t`
-* string-oriented text handling is centered on UTF-8 `char8_t` strings
+* 1 文字入力は `char32_t` を中心にします
+* 文字列指向テキスト処理は UTF-8 `char8_t` 文字列を中心にします
 
-The exact visible overload set depends on the implementation, but the conceptual model remains the same.
+実際に見えるオーバーロード集合は実装に依存しますが、概念的なモデルは同じです。
 
 ---
 
-## Formatted Input and Output
+## 書式付き入出力
 
-`<xer/stdio.h>` also provides formatted I/O facilities.
+`<xer/stdio.h>` は書式付き I/O 機能も提供します。
 
-At minimum, this includes the following families:
+少なくとも、次のファミリを含みます。
 
 ```cpp
 fprintf
@@ -10529,20 +9701,20 @@ sscanf
 scanf
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions provide familiar formatted I/O in a style approachable to users familiar with C.
+これらの関数は、C に慣れたユーザーにも近づきやすいスタイルで、親しみのある書式付き I/O を提供します。
 
-### Design Direction
+### 設計方針
 
-Although the naming resembles the standard library, the surrounding design is xer's own:
+名前は標準ライブラリに似ていますが、周辺設計は xer 独自です。
 
-* stream types are explicit
-* text model is UTF-8-oriented
-* ordinary failure is reported through xer-style result handling where applicable
-* integration with xer stream abstractions takes priority over strict source-level emulation of C
+* ストリーム型は明示的です
+* テキストモデルは UTF-8 指向です
+* 通常の失敗は、該当する箇所では xer スタイルの結果処理で報告します
+* C の厳密なソースレベル再現よりも、xer のストリーム抽象との統合を優先します
 
-### printf Format Details
+### printf 書式の詳細
 
 # xer printf Format Specifiers
 
@@ -10725,7 +9897,7 @@ The exact error category may be refined as the implementation evolves, but inval
 This document is intended to describe the user-visible printf-family behavior.
 When implementation details in `xer/bits/printf_format.h` change, this document should be kept in sync.
 
-### scanf Format Details
+### scanf 書式の詳細
 
 # xer scanf Format Specifiers
 
@@ -11319,35 +10491,35 @@ When implementation details in `xer/bits/scanf_format.h` or `xer/bits/scanf.h` c
 
 ---
 
-## CSV Support
+## CSV サポート
 
-`<xer/stdio.h>` also includes CSV-oriented helpers:
+`<xer/stdio.h>` は CSV 向けヘルパーも含みます。
 
 ```cpp
 fgetcsv
 fputcsv
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions provide convenient CSV input and output on top of xer streams.
+これらの関数は、xer ストリーム上で便利な CSV 入出力を提供します。
 
-They are particularly useful because CSV is a text-oriented format that benefits from integration with:
+CSV はテキスト指向フォーマットであり、次との統合によって特に有用になります。
 
-* explicit text encodings
-* explicit stream ownership
-* UTF-8-oriented strings
+* 明示的なテキストエンコーディング
+* 明示的なストリーム所有権
+* UTF-8 指向文字列
 
-### Design Direction
+### 設計方針
 
-These functions are not merely string helpers.
-They belong naturally in the I/O layer because they operate on streams and formatted text records.
+これらの関数は単なる文字列ヘルパーではありません。
+ストリームと書式付きテキストレコードを操作するため、自然に I/O 層に属します。
 
 ---
 
-## Position and Stream State Helpers
+## 位置とストリーム状態のヘルパー
 
-At minimum, `<xer/stdio.h>` provides helpers such as:
+少なくとも、`<xer/stdio.h>` は次のようなヘルパーを提供します。
 
 ```cpp
 fseek
@@ -11359,51 +10531,52 @@ ferror
 clearerr
 ```
 
-and the related public types:
+また、関連する公開型は次のとおりです。
 
 ```cpp
 enum seek_origin_t { seek_set, seek_cur, seek_end };
 using fpos_t = std::uint64_t;
 ```
 
-### Role of This Group
+### このグループの役割
 
-These facilities provide:
+これらの機能は次を提供します。
 
-* byte- or position-oriented stream movement
-* stream status inspection
-* stream error-state control
-* explicit text-stream position handling
+* バイトまたは位置指向のストリーム移動
+* ストリーム状態の検査
+* ストリームエラー状態の制御
+* 明示的なテキストストリーム位置処理
 
-### Binary vs Text Positioning
+### バイナリとテキストの位置指定
 
-The basic intended distinction is:
+基本的な意図は次のとおりです。
 
-* `fseek` / `ftell` are the ordinary position helpers for `binary_stream`
-* `fgetpos` / `fsetpos` are the primary position helpers for `text_stream`
+* `fseek` / `ftell` は `binary_stream` の通常の位置ヘルパーです
+* `fgetpos` / `fsetpos` は `text_stream` の主要な位置ヘルパーです
 
-This reflects the fact that text streams may not always map cleanly to simple byte offsets after decoding and buffering.
+これは、テキストストリームがデコードやバッファリングの後で単純なバイトオフセットにきれいに対応するとは限らないことを反映しています。
 
 ---
 
-## Rewinding
+## 巻き戻し
 
-`<xer/stdio.h>` provides `rewind` for both stream kinds:
+`<xer/stdio.h>` は、両方のストリーム種別に対して `rewind` を提供します。
 
 ```cpp
 auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
 auto rewind(text_stream& stream) noexcept -> xer::result<void>;
 ```
 
-Unlike the C standard-library function, xer's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
+C 標準ライブラリ関数と異なり、xer の `rewind` は `xer::result<void>` を返すため、無効なストリームやシーク失敗を明示的に報告できます。
 
-For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
+テキストストリームでは、巻き戻し時に押し戻し文字、先読みバイト、途中のデコード状態もクリアします。
+ストリームが `encoding_t::auto_detect` で開かれていた場合、具体的なエンコーディングは未決定状態に戻ります。
 
 ---
 
-## Whole-Stream Convenience Operations
+## ストリーム全体の便利操作
 
-`<xer/stdio.h>` provides whole-stream convenience operations:
+`<xer/stdio.h>` は、ストリーム全体の便利操作を提供します。
 
 ```cpp
 auto stream_get_contents(
@@ -11425,15 +10598,15 @@ auto stream_put_contents(
     -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`stream_get_contents` and `stream_put_contents` provide compact helpers for reading from and writing to an already-open xer stream.
+`stream_get_contents` と `stream_put_contents` は、すでに開いている xer ストリームから読み取る、またはそこへ書き込むための簡潔なヘルパーです。
 
-They are the stream-level counterparts of `file_get_contents` and `file_put_contents`.
+これらは `file_get_contents` と `file_put_contents` のストリームレベル版です。
 
-Because they operate on streams rather than file names, they can be used with any stream source or destination supported by xer, including files, temporary files, memory streams, string streams, process pipes, and socket-derived streams where applicable.
+ファイル名ではなくストリームに対して動作するため、ファイル、一時ファイル、メモリストリーム、文字列ストリーム、プロセスパイプ、適用可能な場合のソケット由来ストリームなど、xer がサポートする任意のストリーム入出力元・宛先で使用できます。
 
-### Binary `stream_get_contents`
+### バイナリ `stream_get_contents`
 
 ```cpp
 auto stream_get_contents(
@@ -11442,41 +10615,41 @@ auto stream_get_contents(
     -> xer::result<std::vector<std::byte>>;
 ```
 
-This overload reads binary data from the current position of `stream`.
+このオーバーロードは、`stream` の現在位置からバイナリデータを読み取ります。
 
-It reads at most `length` bytes, or stops earlier if EOF is reached.
+最大で `length` バイトを読み取り、EOF に到達した場合はそこで停止します。
 
-If `length` is zero, the function succeeds and returns an empty byte vector.
+`length` が 0 の場合、関数は成功し、空のバイトベクタを返します。
 
-### No Offset Argument
+### オフセット引数が無い理由
 
-xer intentionally does not provide an offset parameter for `stream_get_contents`.
+xer は、意図的に `stream_get_contents` にオフセット引数を提供しません。
 
-A stream already has a current position. If the caller needs to choose the starting position, the caller should use `fseek`, `fsetpos`, or another appropriate positioning function explicitly before calling `stream_get_contents`.
+ストリームにはすでに現在位置があります。呼び出し側が開始位置を選びたい場合は、`stream_get_contents` を呼ぶ前に `fseek`、`fsetpos`、またはその他の適切な位置指定関数を明示的に使用してください。
 
-This also avoids the confusing argument-order difference found in PHP, where `file_get_contents` and `stream_get_contents` place offset and length differently.
+これにより、PHP の `file_get_contents` と `stream_get_contents` で offset と length の引数順が異なるという混乱も避けられます。
 
-In xer, the rule is simple:
+xer での規則は単純です。
 
-* `file_get_contents` may take an offset because it opens the file internally
-* `stream_get_contents` reads from the stream's current position
+* `file_get_contents` は内部でファイルを開くため、オフセットを取ることがあります
+* `stream_get_contents` はストリームの現在位置から読み取ります
 
-### Text `stream_get_contents`
+### テキスト `stream_get_contents`
 
 ```cpp
 auto stream_get_contents(text_stream& stream)
     -> xer::result<std::u8string>;
 ```
 
-This overload reads text from the current position of `stream` until EOF.
+このオーバーロードは、`stream` の現在位置から EOF までテキストを読み取ります。
 
-The returned string is UTF-8 text.
+返される文字列は UTF-8 テキストです。
 
-The stream's own encoding state controls how external bytes are decoded.
+外部バイト列をどのようにデコードするかは、ストリーム自身のエンコーディング状態によって制御されます。
 
-Text-mode `stream_get_contents` does not provide `offset` or `length` arguments because byte offsets, decoded characters, line ending behavior, and encoding state can otherwise become ambiguous.
+テキストモードの `stream_get_contents` は、`offset` や `length` 引数を提供しません。バイトオフセット、デコード済み文字、行末処理、エンコーディング状態が曖昧になり得るためです。
 
-### Binary `stream_put_contents`
+### バイナリ `stream_put_contents`
 
 ```cpp
 auto stream_put_contents(
@@ -11485,13 +10658,13 @@ auto stream_put_contents(
     -> xer::result<void>;
 ```
 
-This overload writes all bytes in `contents` to the current position of `stream`.
+このオーバーロードは、`contents` 内の全バイトを `stream` の現在位置へ書き込みます。
 
-The exact placement behavior is determined by the stream's current position and open mode.
+正確な配置の振る舞いは、ストリームの現在位置とオープンモードによって決まります。
 
-For example, if the stream was opened in append mode, the write follows the stream's append behavior.
+たとえば、ストリームが追記モードで開かれている場合、書き込みはそのストリームの追記動作に従います。
 
-### Text `stream_put_contents`
+### テキスト `stream_put_contents`
 
 ```cpp
 auto stream_put_contents(
@@ -11500,49 +10673,49 @@ auto stream_put_contents(
     -> xer::result<void>;
 ```
 
-This overload writes the UTF-8 text in `contents` to the current position of `stream`.
+このオーバーロードは、`contents` 内の UTF-8 テキストを `stream` の現在位置へ書き込みます。
 
-The stream's encoding controls how the UTF-8 text is encoded externally.
+その UTF-8 テキストを外部へどのようにエンコードするかは、ストリームのエンコーディングによって決まります。
 
-### Relationship to File Convenience Functions
+### ファイル便利関数との関係
 
-`file_get_contents` and `file_put_contents` are file-opening convenience wrappers around these stream-level helpers.
+`file_get_contents` と `file_put_contents` は、これらのストリームレベルヘルパーを包むファイルオープン用の便利ラッパーです。
 
-Conceptually:
+概念的には次のようになります。
 
 ```cpp
 auto stream = xer::fopen(filename, "r");
 return xer::stream_get_contents(*stream);
 ```
 
-or:
+または次のようになります。
 
 ```cpp
 auto stream = xer::fopen(filename, "w");
 return xer::stream_put_contents(*stream, contents);
 ```
 
-The stream-level functions contain the reusable read/write logic, while the file-level functions handle opening the file and applying file-specific options such as the binary `offset` argument.
+ストリームレベル関数は再利用可能な読み書きロジックを持ち、ファイルレベル関数はファイルを開き、バイナリ `offset` 引数などのファイル固有オプションを適用します。
 
-### Error Handling
+### エラー処理
 
-These functions follow xer's ordinary failure model.
+これらの関数は xer の通常の失敗モデルに従います。
 
-On success:
+成功時は次のようになります。
 
-* `stream_get_contents` returns the read data
-* `stream_put_contents` returns an empty success value
+* `stream_get_contents` は読み取ったデータを返します
+* `stream_put_contents` は空の成功値を返します
 
-On failure, they return an error through `xer::result`.
+失敗時は、`xer::result` によってエラーを返します。
 
-Typical failure conditions include:
+代表的な失敗条件は次のとおりです。
 
-* the stream is not readable or writable for the requested operation
-* reading or writing fails
-* text decoding or encoding fails
-* memory allocation fails while collecting the result
+* 要求された操作に対してストリームが読み取り可能または書き込み可能でない
+* 読み取りまたは書き込みに失敗する
+* テキストのデコードまたはエンコードに失敗する
+* 結果を収集する途中でメモリ確保に失敗する
 
-### Example
+### 例
 
 ```cpp
 std::u8string buffer;
@@ -11573,9 +10746,9 @@ if (!text.has_value()) {
 
 ---
 
-## Closing and Flushing
+## クローズとフラッシュ
 
-This header also provides operations such as:
+このヘッダーは、次のような操作も提供します。
 
 ```cpp
 fclose
@@ -11583,29 +10756,29 @@ fflush
 tmpfile
 ```
 
-and a text-oriented temporary-file overload or equivalent helper for explicitly encoded text streams.
+また、明示的にエンコードされたテキストストリーム向けのテキスト指向一時ファイルオーバーロード、または同等のヘルパーも提供します。
 
-### Role of This Group
+### このグループの役割
 
-These functions support:
+これらの関数は次をサポートします。
 
-* explicit closing
-* explicit flush control
-* temporary stream creation
+* 明示的なクローズ
+* 明示的なフラッシュ制御
+* 一時ストリーム作成
 
-### Design Direction
+### 設計方針
 
-Even though stream destructors perform automatic cleanup, explicit close and flush operations still matter because:
+ストリームのデストラクタは自動クリーンアップを行いますが、それでも明示的な close と flush 操作は重要です。
 
-* callers may want deterministic resource release
-* callers may want explicit error observation before destruction
-* explicit flushing is part of normal stream control
+* 呼び出し側が決定的なリソース解放を望むことがあります
+* 呼び出し側が破棄前にエラーを明示的に観測したいことがあります
+* 明示的なフラッシュは通常のストリーム制御の一部です
 
 ---
 
-## File-Entry Operations
+## ファイルエントリ操作
 
-`<xer/stdio.h>` also provides file-entry operations such as:
+`<xer/stdio.h>` は、次のようなファイルエントリ操作も提供します。
 
 ```cpp
 file_exists
@@ -11633,31 +10806,31 @@ file_get_contents
 file_put_contents
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions operate on filesystem entries rather than on open stream objects.
+これらの関数は、開いているストリームオブジェクトではなく、ファイルシステムエントリに対して動作します。
 
-They are grouped here because they are operationally close to stream/file handling.
+ストリームやファイル処理と操作上近いため、ここにまとめられています。
 
-### Design Direction
+### 設計方針
 
-These functions are intentionally separate from stream objects themselves.
+これらの関数はストリームオブジェクトそのものとは意図的に分離されています。
 
-They typically operate on `xer::path`, not on raw native path strings.
+通常は、生のネイティブパス文字列ではなく `xer::path` に対して動作します。
 
-This aligns them with xer's own path model, where path values are represented internally as UTF-8 strings with `/` as the normalized separator.
+これは、パス値を内部的に UTF-8 文字列で表し、正規化された区切り文字として `/` を使う xer 独自のパスモデルと整合します。
 
-Some functions in this group are simple predicates, while others perform actual filesystem operations.
+このグループの一部の関数は単純な述語であり、別の関数は実際のファイルシステム操作を行います。
 
-Predicate functions such as `file_exists`, `is_file`, `is_dir`, `is_readable`, and `is_writable` return `bool`.
+`file_exists`、`is_file`、`is_dir`、`is_readable`、`is_writable` などの述語関数は `bool` を返します。
 
-Operations that can fail normally return `xer::result`.
+通常失敗し得る操作は `xer::result` を返します。
 
-### File Time Helpers
+### ファイル時刻ヘルパー
 
-`fileatime`, `filemtime`, and `filectime` return file time fields as seconds since the POSIX epoch. They use the platform's ordinary path status operation and may follow symbolic links when the platform's normal stat-like operation does so.
+`fileatime`、`filemtime`、`filectime` は、POSIX エポックからの秒数としてファイル時刻フィールドを返します。これらはプラットフォーム通常のパス状態取得操作を使い、そのプラットフォームの通常の stat 風操作がシンボリックリンクをたどる場合はそれに従うことがあります。
 
-`filectime` returns the same ctime field as `xer::stat::ctime`. The platform-specific meaning of that field is documented on `xer::stat`.
+`filectime` は `xer::stat::ctime` と同じ ctime フィールドを返します。そのフィールドのプラットフォーム固有の意味は `xer::stat` で文書化されています。
 
 ```cpp
 auto fileatime(const path& filename) -> xer::result<time_t>;
@@ -11674,15 +10847,15 @@ auto touch(
     time_t atime = -1) -> xer::result<void>;
 ```
 
-`touch` changes the target's modification and access times. If the target does not exist, it creates an empty regular file.
+`touch` は対象の変更時刻とアクセス時刻を変更します。対象が存在しない場合は、空の通常ファイルを作成します。
 
-A negative `mtime` means that the current time is used. A negative `atime` means that the resolved `mtime` is also used as the access time. Non-finite time values are rejected as invalid arguments.
+負の `mtime` は現在時刻を使用することを意味します。負の `atime` は、解決済みの `mtime` をアクセス時刻としても使用することを意味します。有限でない時刻値は不正な引数として拒否されます。
 
 ---
 
-## Current Working Directory Operations
+## カレントワーキングディレクトリ操作
 
-`<xer/stdio.h>` provides current-working-directory helpers:
+`<xer/stdio.h>` はカレントワーキングディレクトリのヘルパーを提供します。
 
 ```cpp
 auto chdir(const path& target) -> xer::result<void>;
@@ -11691,32 +10864,32 @@ auto getcwd() -> xer::result<path>;
 
 ### `chdir`
 
-`chdir` changes the process-wide current working directory.
+`chdir` はプロセス全体のカレントワーキングディレクトリを変更します。
 
 ```cpp
 auto chdir(const path& target) -> xer::result<void>;
 ```
 
-The argument is a `xer::path`.
+引数は `xer::path` です。
 
-On success, the function returns an empty success value.
-On failure, it returns an error through `xer::result`.
+成功時、関数は空の成功値を返します。
+失敗時は、`xer::result` によってエラーを返します。
 
-Because the current working directory is process-wide state, callers should use this function carefully in programs where multiple components or threads may depend on the current directory.
+カレントワーキングディレクトリはプロセス全体の状態であるため、複数のコンポーネントやスレッドがカレントディレクトリに依存する可能性があるプログラムでは、この関数を慎重に使用してください。
 
 ### `getcwd`
 
-`getcwd` returns the current working directory.
+`getcwd` はカレントワーキングディレクトリを返します。
 
 ```cpp
 auto getcwd() -> xer::result<path>;
 ```
 
-The returned value is a `xer::path`.
+返される値は `xer::path` です。
 
-The path is converted into xer's internal UTF-8 representation and uses `/` as the normalized separator.
+パスは xer の内部 UTF-8 表現へ変換され、正規化された区切り文字として `/` を使用します。
 
-The result is a snapshot of the process-wide current working directory at the time of the call.
+結果は、呼び出し時点のプロセス全体のカレントワーキングディレクトリのスナップショットです。
 
 ---
 
@@ -11726,51 +10899,51 @@ The result is a snapshot of the process-wide current working directory at the ti
 auto realpath(const path& filename) -> xer::result<path>;
 ```
 
-### Purpose
+### 目的
 
-`realpath` returns the canonicalized absolute path of an existing filesystem entry.
+`realpath` は、存在するファイルシステムエントリの正規化された絶対パスを返します。
 
-It queries the actual filesystem through the platform path canonicalization mechanism.
+これは、プラットフォームのパス正規化機構を通じて実際のファイルシステムに問い合わせます。
 
-### Behavior
+### 振る舞い
 
-The target path must exist.
+対象パスは存在していなければなりません。
 
-Relative path components are resolved.
-Symbolic links and other filesystem-level indirections are resolved according to the behavior of the underlying platform.
+相対パス要素は解決されます。
+シンボリックリンクやその他のファイルシステムレベルの間接参照は、基盤プラットフォームの振る舞いに従って解決されます。
 
-On POSIX-like environments, the behavior follows the platform `realpath` facility.
-On Windows, the implementation uses Windows path canonicalization facilities and converts the result back into xer's path representation.
+POSIX 風環境では、振る舞いはプラットフォームの `realpath` 機能に従います。
+Windows では、実装は Windows のパス正規化機能を使用し、その結果を xer のパス表現へ戻します。
 
-### Return Value
+### 戻り値
 
-On success, `realpath` returns a `xer::path`.
+成功時、`realpath` は `xer::path` を返します。
 
-The returned path:
+返されるパスは次の性質を持ちます。
 
-* is absolute
-* refers to an existing filesystem entry
-* is converted to xer's UTF-8 path representation
-* uses `/` as the internal separator
+* 絶対パスである
+* 存在するファイルシステムエントリを参照する
+* xer の UTF-8 パス表現へ変換される
+* 内部区切り文字として `/` を使用する
 
-On failure, it returns an error through `xer::result`.
+失敗時は、`xer::result` によってエラーを返します。
 
-Typical failure conditions include:
+代表的な失敗条件は次のとおりです。
 
-* the target path does not exist
-* the caller lacks permission to access the path
-* native path conversion fails
-* platform path canonicalization fails
+* 対象パスが存在しない
+* 呼び出し側にパスへアクセスする権限がない
+* ネイティブパス変換に失敗する
+* プラットフォームのパス正規化に失敗する
 
-### Difference from Lexical Path Operations
+### 字句的なパス操作との違い
 
-`realpath` is not a purely lexical path operation.
+`realpath` は純粋に字句的なパス操作ではありません。
 
-It depends on the actual filesystem and may observe filesystem state such as symbolic links, mounted volumes, permissions, and existing entries.
+これは実際のファイルシステムに依存し、シンボリックリンク、マウント済みボリューム、権限、既存エントリなどのファイルシステム状態を観測することがあります。
 
-For purely lexical path manipulation, use path helpers such as `basename`, `parent_path`, `extension`, `stem`, `is_absolute`, and `is_relative`.
+純粋に字句的なパス操作には、`basename`、`parent_path`、`extension`、`stem`、`is_absolute`、`is_relative` などのパスヘルパーを使用してください。
 
-### Example
+### 例
 
 ```cpp
 const auto resolved = xer::realpath(xer::path(u8"."));
@@ -11779,13 +10952,13 @@ if (!resolved.has_value()) {
 }
 ```
 
-After success, `resolved` contains the canonicalized absolute path of the current directory.
+成功後、`resolved` にはカレントディレクトリの正規化された絶対パスが入ります。
 
 ---
 
-## Whole-File Convenience Operations
+## ファイル全体の便利操作
 
-`<xer/stdio.h>` provides PHP-inspired whole-file convenience operations:
+`<xer/stdio.h>` は、PHP に着想を得たファイル全体の便利操作を提供します。
 
 ```cpp
 auto file_get_contents(
@@ -11811,24 +10984,24 @@ auto file_put_contents(
     -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`file_get_contents` and `file_put_contents` provide compact helpers for reading and writing an entire file without manually opening a stream.
+`file_get_contents` と `file_put_contents` は、手動でストリームを開かずにファイル全体を読み書きするための簡潔なヘルパーです。
 
-They are file-opening convenience wrappers around `stream_get_contents` and `stream_put_contents`. The reusable read/write behavior belongs to the stream-level helpers, while the file-level helpers additionally open the target file and apply file-specific options.
+これらは `stream_get_contents` と `stream_put_contents` を包むファイルオープン用の便利ラッパーです。再利用可能な読み書きの振る舞いはストリームレベルヘルパーに属し、ファイルレベルヘルパーはさらに対象ファイルを開き、ファイル固有オプションを適用します。
 
-They are inspired by PHP functions of the same names, but their behavior follows xer's stream and encoding model.
+同名の PHP 関数に着想を得ていますが、その振る舞いは xer のストリームおよびエンコーディングモデルに従います。
 
-### Binary and Text Selection
+### バイナリとテキストの選択
 
-The overload set uses the presence or absence of an `encoding_t` argument to select binary or text behavior.
+オーバーロード集合は、`encoding_t` 引数の有無によってバイナリまたはテキストの振る舞いを選択します。
 
-* when no encoding is specified, the file is handled through `binary_stream`
-* when an encoding is specified, the file is handled through `text_stream`
+* エンコーディングが指定されていない場合、ファイルは `binary_stream` として扱われます
+* エンコーディングが指定されている場合、ファイルは `text_stream` として扱われます
 
-This keeps the call site explicit without introducing a separate mode flag.
+これにより、別個のモードフラグを導入せずに、呼び出し箇所を明示的に保てます。
 
-### Binary `file_get_contents`
+### バイナリ `file_get_contents`
 
 ```cpp
 auto file_get_contents(
@@ -11838,17 +11011,17 @@ auto file_get_contents(
     -> xer::result<std::vector<std::byte>>;
 ```
 
-This overload opens the file as binary and returns its contents as `std::vector<std::byte>`.
+このオーバーロードはファイルをバイナリとして開き、その内容を `std::vector<std::byte>` として返します。
 
-The optional `offset` and `length` arguments are byte-based.
+省略可能な `offset` と `length` 引数はバイト単位です。
 
-If `offset` is greater than the file size, the function returns `error_t::invalid_argument`.
+`offset` がファイルサイズより大きい場合、関数は `error_t::invalid_argument` を返します。
 
-If `offset` is exactly equal to the file size, the function succeeds and returns an empty byte vector.
+`offset` がファイルサイズとちょうど等しい場合、関数は成功し、空のバイトベクタを返します。
 
-If `length` is zero, the function succeeds and returns an empty byte vector.
+`length` が 0 の場合、関数は成功し、空のバイトベクタを返します。
 
-### Text `file_get_contents`
+### テキスト `file_get_contents`
 
 ```cpp
 auto file_get_contents(
@@ -11857,15 +11030,15 @@ auto file_get_contents(
     -> xer::result<std::u8string>;
 ```
 
-This overload opens the file as text and returns its contents as UTF-8 text.
+このオーバーロードはファイルをテキストとして開き、その内容を UTF-8 テキストとして返します。
 
-The specified encoding controls how the external file bytes are decoded.
+指定したエンコーディングは、外部ファイルバイト列をどのようにデコードするかを制御します。
 
-`encoding_t::auto_detect` is valid for this input-side operation.
+`encoding_t::auto_detect` は、この入力側操作では有効です。
 
-Text-mode `file_get_contents` does not provide `offset` or `length` arguments because byte offsets, decoded characters, line ending behavior, and encoding state can otherwise become ambiguous.
+テキストモードの `file_get_contents` は、`offset` や `length` 引数を提供しません。バイトオフセット、デコード済み文字、行末処理、エンコーディング状態が曖昧になり得るためです。
 
-### Binary `file_put_contents`
+### バイナリ `file_put_contents`
 
 ```cpp
 auto file_put_contents(
@@ -11874,11 +11047,11 @@ auto file_put_contents(
     -> xer::result<void>;
 ```
 
-This overload opens the file as binary and writes all bytes in `contents`.
+このオーバーロードはファイルをバイナリとして開き、`contents` 内の全バイトを書き込みます。
 
-Existing file contents are replaced.
+既存のファイル内容は置き換えられます。
 
-### Text `file_put_contents`
+### テキスト `file_put_contents`
 
 ```cpp
 auto file_put_contents(
@@ -11888,43 +11061,41 @@ auto file_put_contents(
     -> xer::result<void>;
 ```
 
-This overload opens the file as text and writes the UTF-8 text in `contents` using the specified output encoding.
+このオーバーロードはファイルをテキストとして開き、`contents` 内の UTF-8 テキストを指定した出力エンコーディングで書き込みます。
 
-`encoding_t::auto_detect` is invalid for writing and results in `error_t::invalid_argument`.
+`encoding_t::auto_detect` は書き込みでは不正であり、`error_t::invalid_argument` になります。
 
-### Why PHP-Style Flags Are Not Provided
+### PHP スタイルのフラグを提供しない理由
 
-xer intentionally does not provide PHP-style `flags` arguments for these functions.
+xer は、これらの関数に PHP スタイルの `flags` 引数を意図的に提供しません。
 
-In particular, append behavior and locking behavior are not hidden inside `file_put_contents`.
+特に、追記動作やロック動作を `file_put_contents` の内部に隠しません。
 
-If file locking is required, the caller should perform it explicitly with an outer operation such as `flock`.
+ファイルロックが必要な場合、呼び出し側は `flock` などの外側の操作で明示的に行ってください。
 
-If append-style output is required, the caller should use stream APIs directly, such as opening a stream with append mode and writing with `fwrite` or `fputs`.
+追記形式の出力が必要な場合、呼び出し側は追記モードでストリームを開き、`fwrite`、`fputs`、または `stream_put_contents` で書き込むなど、ストリーム API を直接使用してください。
 
-If append-style output is required, the caller should use stream APIs directly, such as opening a stream with append mode and writing with `fwrite`, `fputs`, or `stream_put_contents`.
+### エラー処理
 
-### Error Handling
+これらの関数は xer の通常の失敗モデルに従います。
 
-These functions follow xer's ordinary failure model.
+成功時は次のようになります。
 
-On success:
+* `file_get_contents` は読み取ったデータを返します
+* `file_put_contents` は空の成功値を返します
 
-* `file_get_contents` returns the read data
-* `file_put_contents` returns an empty success value
+失敗時は、`xer::result` によってエラーを返します。
 
-On failure, they return an error through `xer::result`.
+代表的な失敗条件は次のとおりです。
 
-Typical failure conditions include:
+* ファイルを開けない
+* シークに失敗する
+* 読み取りまたは書き込みに失敗する
+* `offset` が不正である
+* テキスト出力に `encoding_t::auto_detect` が使用されている
+* テキストのデコードまたはエンコードに失敗する
 
-* the file cannot be opened
-* seeking fails
-* reading or writing fails
-* `offset` is invalid
-* `encoding_t::auto_detect` is used for text output
-* text decoding or encoding fails
-
-### Example
+### 例
 
 ```cpp
 const auto text = xer::file_get_contents(
@@ -11947,52 +11118,52 @@ if (!written.has_value()) {
 
 ---
 
-## Native Handle Access
+## ネイティブハンドルアクセス
 
-The header may also expose support related to native-handle access.
+このヘッダーは、ネイティブハンドルアクセスに関連するサポートを公開する場合があります。
 
-### Role
+### 役割
 
-This exists for cases where callers need to bridge xer stream abstractions to lower-level platform or runtime facilities.
+これは、呼び出し側が xer ストリーム抽象をより低レベルのプラットフォーム機能またはランタイム機能へ橋渡しする必要がある場合のために存在します。
 
-### Design Direction
+### 設計方針
 
-Such support is supplementary rather than central.
-The normal user-facing abstraction remains `binary_stream` or `text_stream`, not the native handle.
-
----
-
-## Internal Design Direction
-
-Although `<xer/stdio.h>` is a public header, its conceptual design depends on the following ideas:
-
-* stream objects are lightweight public handles
-* internal state is hidden behind those handles
-* binary and text streams may use function-pointer-based internal dispatch
-* text-stream state may include buffering, encoding resolution, and multibyte intermediate state
-
-These implementation ideas are important to understand the shape of the public API, even though the internal structures themselves are not the public abstraction.
+このようなサポートは中心的なものではなく補助的なものです。
+通常のユーザー向け抽象はネイティブハンドルではなく、`binary_stream` または `text_stream` のままです。
 
 ---
 
-## Relationship to xer's Text Model
+## 内部設計方針
 
-`<xer/stdio.h>` is one of the headers most tightly coupled to xer's overall text model.
+`<xer/stdio.h>` は公開ヘッダーですが、その概念設計は次の考え方に依存しています。
 
-In particular:
+* ストリームオブジェクトは軽量な公開ハンドルである
+* 内部状態はそれらのハンドルの背後に隠されている
+* バイナリストリームとテキストストリームは、関数ポインタベースの内部ディスパッチを使う場合がある
+* テキストストリーム状態は、バッファリング、エンコーディング解決、マルチバイト中間状態を含む場合がある
 
-* UTF-8 is the primary public string representation
-* `char32_t` is used for individual text characters where appropriate
-* text streams support UTF-8 and CP932 explicitly
-* automatic text input detection is limited and explicit
-
-This means that `<xer/stdio.h>` should always be read together with the broader encoding-related policies.
+これらの実装上の考え方は、内部構造そのものが公開抽象ではないとしても、公開 API の形を理解するうえで重要です。
 
 ---
 
-## Relationship to Other Headers and Policies
+## xer のテキストモデルとの関係
 
-`<xer/stdio.h>` should be understood together with:
+`<xer/stdio.h>` は、xer の全体的なテキストモデルと最も強く結び付いたヘッダーの一つです。
+
+特に次の点が重要です。
+
+* UTF-8 は主要な公開文字列表現です
+* 必要に応じて、個々のテキスト文字には `char32_t` を使用します
+* テキストストリームは UTF-8 と CP932 を明示的にサポートします
+* 自動テキスト入力判定は限定的かつ明示的です
+
+そのため、`<xer/stdio.h>` は、より広いエンコーディング関連方針とあわせて読む必要があります。
+
+---
+
+## 他のヘッダーおよび方針との関係
+
+`<xer/stdio.h>` は次とあわせて理解してください。
 
 * `policy_project_outline.md`
 * `policy_stdio.md`
@@ -12000,54 +11171,54 @@ This means that `<xer/stdio.h>` should always be read together with the broader 
 * `header_path.md`
 * `header_stdlib.md`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-* `<xer/path.h>` handles lexical path representation and native-path conversion
-* `<xer/stdio.h>` handles stream I/O and file-entry operations
-* `<xer/stdlib.h>` handles multibyte conversion and related utility facilities
-* encoding policy explains the broader text-encoding model behind text streams
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that xer distinguishes `binary_stream` and `text_stream`
-* that text encodings are explicit rather than locale-driven
-* that stream objects are move-only RAII types
-* that both low-level I/O and higher-level facilities such as formatted I/O and CSV are included
-* that path-oriented file-entry operations are part of the header
-* that `realpath` is filesystem-dependent and distinct from lexical path operations
-* that `stream_get_contents` reads from the current stream position and intentionally does not provide an offset argument
-* that `file_get_contents` and `file_put_contents` are convenience APIs whose binary/text behavior is selected by the presence of an encoding argument
-* that `file_get_contents` and `file_put_contents` are file-opening wrappers around the stream-level content helpers
-
-Detailed per-function semantics should be described in the reference manual or generated API sections.
+* `<xer/path.h>` は字句的なパス表現とネイティブパス変換を扱います
+* `<xer/stdio.h>` はストリーム I/O とファイルエントリ操作を扱います
+* `<xer/stdlib.h>` はマルチバイト変換と関連するユーティリティ機能を扱います
+* エンコーディング方針は、テキストストリームの背後にあるより広いテキストエンコーディングモデルを説明します
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+このヘッダーを生成ドキュメントで扱う場合、通常は次を説明すれば十分です。
 
-* opening a binary file and reading bytes
-* opening a UTF-8 text stream and reading text
-* writing text with `puts` or `fputs`
-* using `fgetpos` / `fsetpos`
-* using `tmpfile`
-* reading or writing CSV
-* performing `rename`, `remove`, or `copy`
-* changing and restoring the current working directory with `chdir` and `getcwd`
-* canonicalizing an existing path with `realpath`
-* reading and writing already-open streams with `stream_get_contents` and `stream_put_contents`
-* reading and writing whole files with `file_get_contents` and `file_put_contents`
+* xer が `binary_stream` と `text_stream` を区別すること
+* テキストエンコーディングがロケール駆動ではなく明示的であること
+* ストリームオブジェクトがムーブ専用 RAII 型であること
+* 低レベル I/O と、書式付き I/O や CSV などの高レベル機能の両方を含むこと
+* パス指向のファイルエントリ操作がこのヘッダーの一部であること
+* `realpath` がファイルシステム依存であり、字句的なパス操作とは異なること
+* `stream_get_contents` は現在のストリーム位置から読み取り、意図的にオフセット引数を提供しないこと
+* `file_get_contents` と `file_put_contents` は、エンコーディング引数の有無によってバイナリ/テキスト動作が選択される便利 API であること
+* `file_get_contents` と `file_put_contents` はストリームレベルの内容ヘルパーを包むファイルオープン用ラッパーであること
 
-These are good candidates for executable examples under `examples/`.
+関数ごとの詳細な意味は、リファレンスマニュアルまたは生成された API セクションで説明してください。
 
 ---
 
-## Example
+## 例として示す価値のある話題
+
+このヘッダーには、特に次のような例が適しています。
+
+* バイナリファイルを開いてバイトを読み取る
+* UTF-8 テキストストリームを開いてテキストを読み取る
+* `puts` または `fputs` でテキストを書き込む
+* `fgetpos` / `fsetpos` を使用する
+* `tmpfile` を使用する
+* CSV を読み書きする
+* `rename`、`remove`、`copy` を実行する
+* `chdir` と `getcwd` でカレントワーキングディレクトリを変更し、復元する
+* `realpath` で既存パスを正規化する
+* `stream_get_contents` と `stream_put_contents` で、すでに開いているストリームを読み書きする
+* `file_get_contents` と `file_put_contents` でファイル全体を読み書きする
+
+これらは `examples/` 以下の実行可能な例の候補として適しています。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/stdio.h>
@@ -12062,15 +11233,15 @@ auto main() -> int
 }
 ```
 
-This example shows the basic xer style:
+この例は、基本的な xer スタイルを示しています。
 
-* use xer text I/O directly
-* work with UTF-8-oriented text
-* check `xer::result` explicitly
+* xer のテキスト I/O を直接使用する
+* UTF-8 指向テキストを扱う
+* `xer::result` を明示的に確認する
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_stdio.md`
@@ -12083,27 +11254,21 @@ This example shows the basic xer style:
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/iostream.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/iostream.h>`
 
-## Purpose
+## 目的
 
-`<xer/iostream.h>` provides formatted iostream insertion and extraction operators for selected xer value types.
+`<xer/iostream.h>` は、選択された xer の値型に対して、標準 iostream の書式付き挿入演算子と抽出演算子を提供します。
 
-This header does not make iostreams the main input/output model of xer. xer's primary I/O model remains based on `binary_stream`, `text_stream`, and the functions provided by `<xer/stdio.h>`. The role of `<xer/iostream.h>` is narrower: it provides a bridge for diagnostics, tests, examples, and the implementation of generic `%@` formatting and scanning support.
+このヘッダーは、iostream を xer の主たる入出力モデルにするためのものではありません。xer の基本的な入出力モデルは、引き続き `binary_stream`、`text_stream`、および `<xer/stdio.h>` が提供する関数を中心とします。`<xer/iostream.h>` の役割はより限定的で、診断、テスト、例、および汎用 `%@` 書式化・読み取り支援の実装に使う橋渡しです。
 
-The header is intentionally opt-in. Users include it only when they want ordinary C++ iostream operators for xer value types.
+このヘッダーは明示的に opt-in です。通常の C++ iostream 演算子を xer の値型に対して使いたい場合にだけインクルードします。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/iostream.h>` makes `operator<<` available for the following types. The `error_t` and `error<void>` insertion operators are defined by `<xer/error.h>` and are available because this header includes it:
+少なくとも、`<xer/iostream.h>` は次の型に対して `operator<<` を利用可能にします。`error_t` と `error<void>` の挿入演算子は `<xer/error.h>` で定義され、このヘッダーがそれをインクルードするため利用できます。
 
 ```cpp
 xer::error_t
@@ -12129,7 +11294,7 @@ xer::basic_lab<T>
 xer::basic_luv<T>
 ```
 
-It also provides `operator>>` for the following types where formatted extraction is straightforward:
+また、書式付き抽出が素直に定義できる次の型について `operator>>` も提供します。
 
 ```cpp
 xer::error_t
@@ -12145,35 +11310,33 @@ xer::image::rect
 xer::image::rectf
 ```
 
-Formatted extraction for matrices and color values is intentionally deferred because their insertion format is meant for diagnostics rather than as a stable serialized grammar.
+行列と色値の抽出は、現時点では意図的に後回しです。これらの挿入形式は診断用であり、安定した直列化文法として固定するためのものではありません。
 
 ---
 
-## Design Role
+## 設計上の役割
 
-The main design role of this header is to make xer-provided value types usable by generic stream-based formatting paths.
+このヘッダーの主な役割は、xer が提供する値型を、ストリームベースの汎用書式化経路で扱えるようにすることです。
 
-In particular, it supports facilities that internally rely on stream insertion or extraction for default formatting, such as enhanced `%@` handling in the printf and scanf families.
+特に、printf / scanf 系の拡張 `%@` の既定処理のように、内部的にストリーム挿入または抽出に依存する機能を支援します。
 
-The operators are not intended to replace xer's own text I/O APIs.
+これらの演算子は、xer 自身のテキスト入出力 API を置き換えることを意図していません。
 
 ---
 
-## UTF-8 Handling
+## UTF-8 の扱い
 
-xer uses `char8_t` and `std::u8string_view` for UTF-8 text. Ordinary iostreams use `char` streams.
+xer は UTF-8 テキストに `char8_t` と `std::u8string_view` を使います。一方、通常の iostream は `char` ストリームです。
 
-For this reason, `<xer/iostream.h>` writes UTF-8 text to `std::ostream` by copying the underlying UTF-8 bytes to the stream without locale-dependent conversion. This applies to types such as `path` and `type_info`, whose display strings are UTF-8-oriented.
+そのため、`<xer/iostream.h>` は `path` や `type_info` のような UTF-8 指向の表示文字列を持つ型について、UTF-8 の基礎バイト列をロケール依存の変換なしで `std::ostream` に書き込みます。
 
-Formatted extraction from `std::istream` reads ordinary narrow tokens and copies the bytes into UTF-8 storage where appropriate.
+`std::istream` からの書式付き抽出では、通常の narrow トークンを読み取り、必要に応じてそのバイト列を UTF-8 ストレージへコピーします。
 
 ---
 
 ## `error_t`
 
-`operator<<` for `error_t` writes the enumerator name returned by `get_error_name`.
-
-Example output:
+`error_t` の `operator<<` は、`get_error_name` が返す列挙子名を書き込みます。
 
 ```text
 invalid_argument
@@ -12181,55 +11344,55 @@ not_found
 io_error
 ```
 
-`operator>>` accepts enumerator names without the `error_t::` prefix. Unknown names set the stream fail bit.
+`operator>>` は `error_t::` 接頭辞を付けない列挙子名を受け付けます。未知の名前を読んだ場合、ストリームの fail bit を設定します。
 
 ---
 
 ## `error<void>`
 
-`operator<<` for `error<void>` writes the compact diagnostic representation already provided by `<xer/error.h>`:
+`error<void>` の `operator<<` は、`<xer/error.h>` が提供する短い診断表現を書き込みます。
 
 ```text
 xer::error{code=invalid_argument}
 ```
 
-The source location stored in the error object is not written. This keeps the default representation short and suitable for assertion messages, trace output, and `%@` formatting.
+エラーオブジェクトに保存されたソース位置は出力されません。これは、アサーションメッセージ、トレース出力、`%@` 書式化に適した短い既定表現にするためです。
 
-There is no extraction operator for `error<void>`. Error objects are normally created by failed operations, not read from formatted input.
+`error<void>` の抽出演算子はありません。エラーオブジェクトは通常、書式付き入力から読むものではなく、失敗した操作によって作られるものです。
 
 ---
 
 ## `type_info`
 
-`operator<<` for `type_info` writes the display name returned by `type_info::name()`.
+`type_info` の `operator<<` は、`type_info::name()` が返す表示名を書き込みます。
 
-This is intended for diagnostics. The spelling remains implementation-dependent, just like the underlying type information facility.
+これは診断用です。表記は基礎となる型情報機構と同様に実装依存です。
 
-There is no extraction operator for `type_info`.
+`type_info` の抽出演算子はありません。
 
 ---
 
 ## `path`
 
-`operator<<` for `path` writes the normalized UTF-8 path returned by `path::str()`.
+`path` の `operator<<` は、`path::str()` が返す正規化済み UTF-8 パスを書き込みます。
 
-`operator>>` reads one whitespace-delimited token and constructs a `path` from it. As usual for formatted extraction, paths containing whitespace are not handled by this operator. Use line-oriented input and construct `xer::path` explicitly when such paths are needed.
+`operator>>` は空白で区切られた 1 個のトークンを読み取り、それから `path` を構築します。書式付き抽出の通常の性質どおり、空白を含むパスはこの演算子では扱いません。そのようなパスが必要な場合は、行単位入力を行い、明示的に `xer::path` を構築してください。
 
 ---
 
 ## `cyclic<T>`
 
-`operator<<` for `cyclic<T>` writes the normalized scalar value returned by `value()`.
+`cyclic<T>` の `operator<<` は、`value()` が返す正規化済みスカラー値を書き込みます。
 
-`operator>>` reads a scalar value and constructs `cyclic<T>` from it. The ordinary `cyclic` normalization rules apply.
+`operator>>` はスカラー値を読み取り、それから `cyclic<T>` を構築します。通常の `cyclic` 正規化規則が適用されます。
 
-Example:
+たとえば、
 
 ```text
 -0.25
 ```
 
-is read as the normalized cyclic value:
+は次の正規化済み循環値として読み込まれます。
 
 ```text
 0.75
@@ -12239,40 +11402,41 @@ is read as the normalized cyclic value:
 
 ## `interval<T, Min, Max>`
 
-`operator<<` for `interval<T, Min, Max>` writes the stored scalar value returned by `value()`.
+`interval<T, Min, Max>` の `operator<<` は、`value()` が返す保存済みスカラー値を書き込みます。
 
-`operator>>` reads a scalar value and constructs an interval value from it. The ordinary `interval` rules apply: finite out-of-range values are clamped, while invalid floating-point values such as NaN or infinity cause extraction to set the stream fail bit if interval construction rejects them.
+`operator>>` はスカラー値を読み取り、それから interval 値を構築します。通常の `interval` 規則が適用されます。有限の範囲外値はクランプされ、NaN や無限大のような不正な浮動小数点値が interval 構築で拒否される場合は、抽出によりストリームの fail bit が設定されます。
 
 ---
 
 ## `quantity<T, Dim>`
 
-`operator<<` for `quantity<T, Dim>` writes the stored value in the base unit system.
+`quantity<T, Dim>` の `operator<<` は、基準単位系での保存値を書き込みます。
 
-`operator>>` reads a scalar value and constructs a quantity of the destination dimension. The input value is interpreted as already normalized to the base unit system.
+`operator>>` はスカラー値を読み取り、宛先次元の量を構築します。入力値はすでに基準単位系へ正規化済みであるものとして解釈されます。
 
-For example, if the destination type is a length quantity, the input value is interpreted as meters, not as kilometers or centimeters.
+たとえば宛先型が長さの量であれば、入力値はキロメートルやセンチメートルではなくメートルとして解釈されます。
 
 ---
 
 ## `matrix<T, Rows, Cols>`
 
-`operator<<` for `matrix<T, Rows, Cols>` writes a compact row-major diagnostic form.
+`matrix<T, Rows, Cols>` の `operator<<` は、行優先の短い診断形式を書き込みます。
 
-Example output for a 2x2 matrix:
+2x2 行列の出力例です。
 
 ```text
 [[1, 2], [3, 4]]
 ```
 
-There is no extraction operator for matrices at this stage. Parsing a matrix would require committing the diagnostic output form to a stable input grammar, which is intentionally avoided for now.
+現時点では行列の抽出演算子はありません。行列の構文解析を提供すると、診断用出力形式を安定した入力文法として固定する必要があるため、今は意図的に避けています。
 
 ---
-## Image Geometry Types
 
-`operator<<` and `operator>>` are provided for the image geometry helper types in `xer::image`.
+## 画像ジオメトリ型
 
-The stream forms are intentionally compact:
+`xer::image` の画像ジオメトリ補助型には、`operator<<` と `operator>>` が提供されます。
+
+ストリーム形式は意図的に短くしています。
 
 ```text
 point  -> (x, y)
@@ -12280,7 +11444,7 @@ size   -> {width, height}
 rect   -> (x, y) {width, height}
 ```
 
-The floating-point variants use the same spelling:
+浮動小数点版も同じ表記です。
 
 ```text
 pointf -> (x, y)
@@ -12288,7 +11452,7 @@ sizef  -> {width, height}
 rectf  -> (x, y) {width, height}
 ```
 
-Extraction accepts the same forms and allows ordinary formatted-input whitespace around punctuation and values. For example, all of the following are valid when reading a `rect`:
+抽出は同じ形式を受け付け、句読点や値の周囲の通常の書式付き入力空白を許します。たとえば `rect` の読み取りでは次のいずれも有効です。
 
 ```text
 (10,20){30,40}
@@ -12296,17 +11460,17 @@ Extraction accepts the same forms and allows ordinary formatted-input whitespace
 ( 10, 20 ) { 30, 40 }
 ```
 
-The extraction grammar is intentionally strict about punctuation. A point uses parentheses, a size uses braces, and a rectangle is a point followed by a size. Forms such as `point(10, 20)`, `size(30, 40)`, and `rect(10, 20, 30, 40)` are not accepted by these operators.
+抽出文法は句読点について意図的に厳密です。点は丸括弧、サイズは波括弧、矩形は点に続くサイズです。`point(10, 20)`、`size(30, 40)`、`rect(10, 20, 30, 40)` のような形式は受け付けません。
 
-These operators also make image geometry values usable through generic `%@` formatting and scanning paths that rely on stream insertion or extraction.
+これらの演算子により、画像ジオメトリ値はストリーム挿入・抽出に依存する汎用 `%@` 書式化・読み取り経路でも利用できます。
 
 ---
 
-## Color Types
+## 色型
 
-`operator<<` is provided for the basic color value types.
+基本色値型には `operator<<` が提供されます。
 
-Example output:
+出力例です。
 
 ```text
 rgb(1, 0.5, 0)
@@ -12318,27 +11482,27 @@ lab(50, 10, -20)
 luv(50, 10, -20)
 ```
 
-There are no extraction operators for color values at this stage. The insertion format is intended for diagnostics and `%@` formatting, not for stable serialization.
+現時点では色値の抽出演算子はありません。挿入形式は診断と `%@` 書式化のためのものであり、安定した直列化形式ではありません。
 
 ---
 
-## Deferred Items
+## 後回しにしている項目
 
-The following are intentionally deferred from the current implementation:
+現在の実装では、次の項目を意図的に後回しにしています。
 
-- `operator<<` and `operator>>` for `error<Detail>`
-- `operator>>` for `matrix`
-- `operator>>` for color types
-- `operator<<` and `operator>>` for JSON, INI, and TOML values
-- stream insertion for resource handles such as `binary_stream`, `text_stream`, `process`, and `socket`
+- `error<Detail>` の `operator<<` / `operator>>`
+- `matrix` の `operator>>`
+- 色型の `operator>>`
+- JSON、INI、TOML 値の `operator<<` / `operator>>`
+- `binary_stream`、`text_stream`、`process`、`socket` などのリソースハンドルのストリーム挿入
 
-These types either need additional formatting policy or are not ordinary value types suitable for default formatted extraction.
+これらの型は、追加の書式方針が必要であるか、既定の書式付き抽出に適した通常の値型ではありません。
 
 ---
 
-## Relationship to Other Headers
+## 他のヘッダーとの関係
 
-`<xer/iostream.h>` is related to the following headers:
+`<xer/iostream.h>` は次のヘッダーと関係します。
 
 - `<xer/error.h>`
 - `<xer/typeinfo.h>`
@@ -12351,15 +11515,15 @@ These types either need additional formatting policy or are not ordinary value t
 - `<xer/color.h>`
 - `<xer/stdio.h>`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-- `<xer/stdio.h>` remains the ordinary xer text I/O header
-- `<xer/iostream.h>` provides opt-in compatibility with standard iostream formatting
-- individual value-type headers remain usable without pulling in iostream support
+- `<xer/stdio.h>` は通常の xer テキスト入出力ヘッダーであり続ける
+- `<xer/iostream.h>` は標準 iostream 書式化との opt-in 互換性を提供する
+- 個々の値型ヘッダーは iostream 支援を取り込まなくても利用できる
 
 ---
 
-## Example
+## 例
 
 ```cpp
 #include <iostream>
@@ -12408,7 +11572,7 @@ auto main() -> int
 
 ---
 
-## See Also
+## 関連項目
 
 - `header_error.md`
 - `header_typeinfo.md`
@@ -12423,46 +11587,39 @@ auto main() -> int
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/path.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/path.h>`
 
-## Purpose
+## 目的
 
-`<xer/path.h>` provides xer's lexical path type and related path utilities.
+`<xer/path.h>` は、xer の字句的なパス型と関連するパスユーティリティを提供します。
 
-Its role is not to wrap `std::filesystem::path`.
-Instead, xer provides its own UTF-8-based path model designed around the following ideas:
+このヘッダーの役割は `std::filesystem::path` を包むことではありません。xer は、次の考え方に基づいて設計された独自の UTF-8 ベースのパスモデルを提供します。
 
-- keep the internal representation simple and consistent
-- treat path handling primarily as a lexical operation
-- preserve important Windows-specific path distinctions
-- separate lexical path handling from actual filesystem-dependent resolution
+- 内部表現を単純かつ一貫したものに保つ
+- パス処理を主に字句的な操作として扱う
+- Windows 固有の重要なパス上の区別を保持する
+- 字句的なパス処理と、実際のファイルシステムに依存する解決を分離する
 
-This header is therefore the public entry point for path representation and path-oriented utility functions in xer.
-
----
-
-## Main Role
-
-The main role of `<xer/path.h>` is to provide:
-
-- a public UTF-8 path type
-- lexical path composition and decomposition
-- path classification helpers such as absolute/relative checks
-- conversion to and from native platform path representations
-
-This makes the header the foundation for path handling in the rest of the library, especially for file-entry and stream-related APIs.
+したがって、このヘッダーは xer におけるパス表現とパス指向ユーティリティ関数の公開入口です。
 
 ---
 
-## Main Entities
+## 主な役割
 
-At minimum, `<xer/path.h>` provides the following entities:
+`<xer/path.h>` の主な役割は次を提供することです。
+
+- 公開 UTF-8 パス型
+- 字句的なパス結合と分解
+- 絶対 / 相対判定などのパス分類補助関数
+- プラットフォームネイティブのパス表現との相互変換
+
+これにより、このヘッダーはライブラリの他の部分、とくにファイルエントリやストリーム関連 API におけるパス処理の基礎になります。
+
+---
+
+## 主なエンティティ
+
+少なくとも、`<xer/path.h>` は次のエンティティを提供します。
 
 ```cpp
 using native_path_char_t;
@@ -12484,19 +11641,19 @@ auto from_native_path(native_path_view value) -> std::expected<path, error<void>
 auto from_native_path(const native_path_char_t* value) -> std::expected<path, error<void>>;
 ```
 
-The exact overload set may expand, but this is the core public shape.
+正確なオーバーロード集合は今後拡張される可能性がありますが、これが中心となる公開形です。
 
 ---
 
 ## `path`
 
-`path` is the central type of the header.
+`path` はこのヘッダーの中心となる型です。
 
-It represents a path in xer's own lexical UTF-8 model.
+これは xer 独自の字句的 UTF-8 モデルでパスを表します。
 
-### Basic Shape
+### 基本形
 
-At minimum, the class has a shape like the following:
+少なくとも、このクラスは次のような形を持ちます。
 
 ```cpp
 class path {
@@ -12513,43 +11670,43 @@ public:
 };
 ```
 
-### Role
+### 役割
 
-The role of `path` is intentionally narrow.
+`path` の役割は意図的に狭くしています。
 
-It exists primarily to:
+主な目的は次のとおりです。
 
-* store the internal normalized path representation
-* preserve path invariants
-* support fundamental path composition
+* 内部の正規化済みパス表現を保存する
+* パス不変条件を保持する
+* 基本的なパス結合を支える
 
-More elaborate path operations are generally provided as free functions rather than as member functions.
+より複雑なパス操作は、通常はメンバー関数ではなく自由関数として提供します。
 
 ---
 
-## Internal Representation
+## 内部表現
 
-`path` uses a UTF-8 internal representation.
+`path` は UTF-8 の内部表現を使います。
 
-### Basic Rules
+### 基本規則
 
-* internally, a path stores `std::u8string`
-* the internal separator is always `/`
-* input `\` is normalized to `/`
-* the lexical meaning of leading components is preserved
+* 内部的には `std::u8string` を保存する
+* 内部区切り文字は常に `/`
+* 入力中の `\` は `/` に正規化する
+* 先頭構成要素の字句的な意味は保持する
 
-### Why This Matters
+### なぜ重要か
 
-This design keeps internal handling simple while still preserving important distinctions, especially on Windows.
+この設計により、内部処理を単純に保ちながら、とくに Windows で重要な区別を保持できます。
 
-For example, the following forms must remain distinguishable:
+たとえば、次の形式は区別されたままでなければなりません。
 
 * `C:foo`
 * `C:/foo`
 * `/foo`
 * `//server/share/foo`
 
-This is one of the central design requirements of the path model.
+これはパスモデルの中心的な設計要件の 1 つです。
 
 ---
 
@@ -12559,24 +11716,23 @@ This is one of the central design requirements of the path model.
 auto str() const noexcept -> std::u8string_view;
 ```
 
-### Purpose
+### 目的
 
-`str()` returns the internal normalized representation of the path.
+`str()` はパスの内部正規化表現を返します。
 
-### Notes
+### 注意
 
-* the returned form is lexical and normalized
-* separators are returned as `/`
-* it is not a display-oriented native path string
+* 返される形式は字句的に正規化されたものです
+* 区切り文字は `/` として返されます
+* 表示向けのネイティブパス文字列ではありません
 
-This distinction is important.
-`str()` returns the xer path representation, not a platform display form.
+この区別は重要です。`str()` が返すのは xer のパス表現であり、プラットフォーム表示形式ではありません。
 
 ---
 
-## Path Composition
+## パス結合
 
-Path composition is supported through both member and free-function forms.
+パス結合は、メンバー形式と自由関数形式の両方で支援されます。
 
 ### `operator/=`
 
@@ -12584,7 +11740,7 @@ Path composition is supported through both member and free-function forms.
 auto operator/=(const path& rhs) -> xer::result<void>;
 ```
 
-This is the fundamental mutating composition operation.
+これは基本となる変更型の結合操作です。
 
 ### `operator/`
 
@@ -12592,24 +11748,24 @@ This is the fundamental mutating composition operation.
 auto operator/(path lhs, const path& rhs) -> xer::result<path>;
 ```
 
-This is the non-mutating composition form.
+これは非変更型の結合形式です。
 
-### Design Direction
+### 設計方針
 
-The general design is:
+基本的な設計は次のとおりです。
 
-* `operator/=` is the fundamental mutating operation
-* `operator/` may be implemented in terms of `operator/=`
+* `operator/=` が基本の変更型操作
+* `operator/` は `operator/=` に基づいて実装できる
 
-This keeps the basic semantics centralized.
+これにより、基本的な意味を一箇所に集約できます。
 
 ---
 
-## Lexical Path Operations
+## 字句的パス操作
 
-Most path utilities in xer are free functions.
+xer のほとんどのパスユーティリティは自由関数です。
 
-At minimum, these include:
+少なくとも次を含みます。
 
 * `basename`
 * `extension`
@@ -12618,11 +11774,11 @@ At minimum, these include:
 * `is_absolute`
 * `is_relative`
 
-### Why Free Functions
+### なぜ自由関数か
 
-xer prefers free functions for operations that do not need direct mutation or privileged internal control.
+xer は、直接の変更や特権的な内部制御を必要としない操作については自由関数を好みます。
 
-This keeps the responsibility of `path` itself small and focused.
+これにより、`path` 自身の責務を小さく集中したものに保てます。
 
 ---
 
@@ -12632,20 +11788,20 @@ This keeps the responsibility of `path` itself small and focused.
 auto basename(const path& value) noexcept -> std::u8string_view;
 ```
 
-### Purpose
+### 目的
 
-`basename` returns the trailing lexical path component.
+`basename` は末尾の字句的パス構成要素を返します。
 
-### Design Direction
+### 設計方針
 
-Its behavior is intentionally close to PHP's `basename`, while still following xer's own path model.
+その挙動は PHP の `basename` に近くしつつ、xer 独自のパスモデルに従います。
 
-### Important Notes
+### 重要な注意
 
-* it accepts `path`, not arbitrary raw strings
-* it is locale-independent
-* it treats only `/` as the separator
-* any `\` has already been normalized by `path`
+* 任意の生文字列ではなく `path` を受け取る
+* ロケールに依存しない
+* 区切り文字として `/` だけを扱う
+* `\` はすでに `path` によって正規化済みである
 
 ---
 
@@ -12655,25 +11811,25 @@ Its behavior is intentionally close to PHP's `basename`, while still following x
 auto extension(const path& value) noexcept -> std::u8string_view;
 ```
 
-### Purpose
+### 目的
 
-`extension` returns the extension-like suffix of the basename.
+`extension` は basename のうち、拡張子のような接尾部を返します。
 
-### xer Rule
+### xer の規則
 
-In xer, `extension` returns the part of `basename(path)` beginning with the **first** `.`.
+xer では、`extension` は `basename(path)` の **最初の** `.` から始まる部分を返します。
 
-This means, for example:
+つまり、たとえば次のようになります。
 
 * `c.txt` -> `.txt`
 * `archive.tar.gz` -> `.tar.gz`
 * `.foo` -> `.foo`
 
-This is a deliberate rule and should not be assumed to match other libraries automatically.
+これは意図的な規則であり、他のライブラリと自動的に一致すると仮定してはいけません。
 
-### Optional Start Position
+### 任意の開始位置
 
-The design may also allow a start-position argument relative to the basename when needed.
+必要に応じて、basename からの相対開始位置引数を許す設計も考えられます。
 
 ---
 
@@ -12683,18 +11839,18 @@ The design may also allow a start-position argument relative to the basename whe
 auto stem(const path& value) noexcept -> std::u8string_view;
 ```
 
-### Purpose
+### 目的
 
-`stem` returns the leading part of the basename after removing the extension as defined by xer.
+`stem` は、xer の定義する拡張子を取り除いた後の basename の先頭部分を返します。
 
-### Examples
+### 例
 
 * `c.txt` -> `c`
 * `archive.tar.gz` -> `archive`
-* `.foo` -> empty string
+* `.foo` -> 空文字列
 * `foo.` -> `foo`
 
-Its exact behavior should therefore always be interpreted together with xer's `extension` rule.
+したがって、正確な挙動は常に xer の `extension` 規則と合わせて解釈する必要があります。
 
 ---
 
@@ -12704,63 +11860,63 @@ Its exact behavior should therefore always be interpreted together with xer's `e
 auto parent_path(const path& value) -> xer::result<path>;
 ```
 
-### Purpose
+### 目的
 
-`parent_path` returns the lexical parent path.
+`parent_path` は字句的な親パスを返します。
 
-### Important Property
+### 重要な性質
 
-This is a **purely lexical** operation.
+これは **純粋に字句的な** 操作です。
 
-It does not:
+次のことは行いません。
 
-* consult the real filesystem
-* resolve symbolic links
-* normalize against actual filesystem state
+* 実際のファイルシステムを参照する
+* シンボリックリンクを解決する
+* 実際のファイルシステム状態に基づいて正規化する
 
-### Behavior
+### 挙動
 
-The operation removes one trailing component while preserving the meaning of the leading part.
+先頭部分の意味を保持しつつ、末尾の構成要素を 1 つ取り除きます。
 
-If no further lexical parent exists, it returns failure.
+これ以上の字句的な親が存在しない場合は失敗を返します。
 
-This behavior is important because it clearly separates lexical reasoning from filesystem-dependent reasoning.
+この挙動により、字句的な推論とファイルシステム依存の推論が明確に分離されます。
 
 ---
 
-## Absolute and Relative Classification
+## 絶対 / 相対の分類
 
-At minimum, `<xer/path.h>` provides:
+少なくとも、`<xer/path.h>` は次を提供します。
 
 ```cpp
 auto is_absolute(const path& value) noexcept -> bool;
 auto is_relative(const path& value) noexcept -> bool;
 ```
 
-### Purpose
+### 目的
 
-These functions classify the path according to xer's path rules.
+これらの関数は、xer のパス規則に従ってパスを分類します。
 
-### Windows-Specific Importance
+### Windows 固有の重要性
 
-On Windows, the distinction is not reduced to a simple leading-separator check.
+Windows では、この区別は単純な先頭区切り文字の検査には還元できません。
 
-For example:
+たとえば、
 
-* `X:foo` is not absolute
-* `X:/foo` is absolute
-* `/foo` is absolute
-* `//server/share/foo` is absolute
+* `X:foo` は絶対パスではない
+* `X:/foo` は絶対パスである
+* `/foo` は絶対パスである
+* `//server/share/foo` は絶対パスである
 
-This is one of the reasons xer uses its own path model instead of simply delegating public semantics to another library.
+これが、xer が公開意味論を単純に別ライブラリへ委譲せず、独自のパスモデルを使う理由の 1 つです。
 
 ---
 
-## Native Path Conversion
+## ネイティブパス変換
 
-`<xer/path.h>` also provides conversion between xer paths and native platform path representations.
+`<xer/path.h>` は、xer のパスとプラットフォームネイティブのパス表現との変換も提供します。
 
-At minimum, this includes:
+少なくとも、次を含みます。
 
 ```cpp
 auto to_native_path(const path& value) -> std::expected<native_path_string, error<void>>;
@@ -12768,104 +11924,104 @@ auto from_native_path(native_path_view value) -> std::expected<path, error<void>
 auto from_native_path(const native_path_char_t* value) -> std::expected<path, error<void>>;
 ```
 
-### Purpose
+### 目的
 
-These functions exist so that xer's internal UTF-8 lexical model can interoperate with platform-native path strings.
+これらの関数は、xer の内部 UTF-8 字句モデルをプラットフォームネイティブのパス文字列と相互運用させるためにあります。
 
-### Role of the Native Types
+### ネイティブ型の役割
 
-* `native_path_char_t` represents the platform-native path character type
-* `native_path_string` represents the owned native path string type
-* `native_path_view` represents a view form of the native path type
+* `native_path_char_t` はプラットフォームネイティブのパス文字型を表す
+* `native_path_string` は所有するネイティブパス文字列型を表す
+* `native_path_view` はネイティブパス型のビュー形式を表す
 
-This keeps platform-specific details localized to the conversion boundary.
+これにより、プラットフォーム固有の詳細を変換境界に局所化できます。
 
-### Error Handling
+### エラー処理
 
-Conversion failures are reported explicitly.
+変換失敗は明示的に報告されます。
 
-This is especially important when conversion involves:
+これはとくに次を伴う変換で重要です。
 
-* UTF-8 validation
-* UTF-16 conversion
-* platform-native character constraints
-
----
-
-## Lexical Model vs Actual Filesystem
-
-A central design principle of `<xer/path.h>` is that path handling is primarily lexical.
-
-### Lexical Operations
-
-The following belong naturally in the lexical path layer:
-
-* joining paths
-* extracting basename
-* extracting extension
-* extracting stem
-* computing lexical parent paths
-* classifying absolute vs relative form
-
-### Filesystem-Dependent Operations
-
-The following are conceptually separate and should not be confused with lexical path handling:
-
-* resolving relative paths against current working context
-* converting to actual absolute paths
-* resolving symbolic links
-* normalization based on real filesystem state
-
-This separation is deliberate and important.
+* UTF-8 検証
+* UTF-16 変換
+* プラットフォームネイティブ文字の制約
 
 ---
 
-## Relationship to Other Headers
+## 字句モデルと実際のファイルシステム
 
-`<xer/path.h>` should be understood together with:
+`<xer/path.h>` の中心的な設計原則は、パス処理を主に字句的なものとして扱うことです。
+
+### 字句的操作
+
+次のものは自然に字句的パス層に属します。
+
+* パスの結合
+* basename の抽出
+* extension の抽出
+* stem の抽出
+* 字句的な親パスの計算
+* 絶対 / 相対形式の分類
+
+### ファイルシステム依存操作
+
+次のものは概念的に別であり、字句的パス処理と混同すべきではありません。
+
+* 相対パスを現在の作業文脈に照らして解決する
+* 実際の絶対パスへ変換する
+* シンボリックリンクを解決する
+* 実ファイルシステム状態に基づく正規化
+
+この分離は意図的で重要です。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/path.h>` は次と合わせて理解してください。
 
 * `policy_project_outline.md`
 * `policy_path.md`
 * `header_stdio.md`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-* `<xer/path.h>` handles path representation and lexical path operations
-* `<xer/stdio.h>` handles stream and file-entry operations that make use of paths
+* `<xer/path.h>` はパス表現と字句的パス操作を扱う
+* `<xer/stdio.h>` はパスを利用するストリームおよびファイルエントリ操作を扱う
 
-This makes `<xer/path.h>` a foundational header for path-aware APIs elsewhere in the library.
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that xer uses its own UTF-8 lexical path type
-* that separators are normalized to `/`
-* that Windows lexical distinctions are preserved
-* that most path utilities are free functions
-* that native path conversion is explicit and fallible
-
-Detailed joining rules and edge cases belong in the detailed reference or generated API documentation.
+これにより、`<xer/path.h>` はライブラリ内のパス対応 API の基礎ヘッダーになります。
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+生成マニュアルでこのヘッダーを説明するときは、通常は次を説明すれば十分です。
 
-* constructing a `path` from UTF-8 text
-* joining two paths with `/`
-* retrieving `basename`, `extension`, or `stem`
-* retrieving `parent_path`
-* converting to and from native paths
+* xer は独自の UTF-8 字句パス型を使うこと
+* 区切り文字は `/` に正規化されること
+* Windows の字句的な区別を保持すること
+* ほとんどのパスユーティリティは自由関数であること
+* ネイティブパス変換は明示的で失敗可能であること
 
-These are good candidates for executable examples in `examples/`.
+詳細な結合規則や端のケースは、詳細リファレンスまたは生成 API ドキュメントに属します。
 
 ---
 
-## Example
+## 例として示す価値が高い題材
+
+このヘッダーでは、次のような例が特に適しています。
+
+* UTF-8 テキストから `path` を構築する
+* `/` で 2 つのパスを結合する
+* `basename`、`extension`、`stem` を得る
+* `parent_path` を得る
+* ネイティブパスとの相互変換を行う
+
+これらは `examples/` の実行可能例のよい候補です。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/path.h>
@@ -12888,15 +12044,15 @@ auto main() -> int
 }
 ```
 
-This example shows the normal xer style:
+この例は通常の xer スタイルを示しています。
 
-* construct paths from UTF-8 text
-* use lexical path composition
-* check `xer::result` explicitly for fallible operations
+* UTF-8 テキストからパスを構築する
+* 字句的パス結合を使う
+* 失敗可能な操作では `xer::result` を明示的に確認する
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_path.md`
@@ -12904,33 +12060,27 @@ This example shows the normal xer style:
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/dirent.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/dirent.h>`
 
-## Purpose
+## 目的
 
-`<xer/dirent.h>` provides directory stream operations in xer.
+`<xer/dirent.h>` は xer のディレクトリストリーム操作を提供します。
 
-This header covers PHP/POSIX-style directory traversal facilities such as opening a directory, reading entry names, rewinding the directory stream, and closing it.
+このヘッダーは、ディレクトリを開く、エントリ名を読む、ディレクトリストリームを巻き戻す、閉じる、といった PHP/POSIX 風のディレクトリ走査機能を扱います。
 
-The purpose is not to reproduce POSIX `dirent.h` exactly.
-Instead, xer provides a small C++23-friendly directory stream API that uses:
+目的は POSIX `dirent.h` を正確に再現することではありません。
+代わりに、xer は次のものを使う C++23 向けの小さなディレクトリストリーム API を提供します。
 
-- `xer::path` for path names
-- UTF-8 strings for directory entry names
-- `xer::result` for ordinary failure
-- a move-only RAII handle for directory streams
+- パス名には `xer::path`
+- ディレクトリエントリ名には UTF-8 文字列
+- 通常の失敗には `xer::result`
+- ディレクトリストリームにはムーブ専用の RAII ハンドル
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/dirent.h>` provides the following entities:
+少なくとも、`<xer/dirent.h>` は次のエンティティを提供します。
 
 ```cpp
 class xer::dir;
@@ -12943,37 +12093,37 @@ auto xer::rewinddir(dir& directory) noexcept -> result<void>;
 
 ---
 
-## Design Role
+## 設計上の役割
 
-This header exists for directory stream traversal.
+このヘッダーはディレクトリストリーム走査のために存在します。
 
-It is separated from `<xer/stdio.h>` because directory streams are stateful traversal handles rather than ordinary file streams.
-Although the names are familiar from POSIX and PHP, the API is adapted to xer's own path, string, and error-handling model.
+ディレクトリストリームは通常のファイルストリームではなく、状態を持つ走査ハンドルであるため、`<xer/stdio.h>` から分離されています。
+名前は POSIX や PHP で見慣れたものですが、API は xer 独自のパス、文字列、エラー処理モデルに合わせて調整されています。
 
 ---
 
 ## `xer::dir`
 
-`xer::dir` is a move-only directory stream handle.
+`xer::dir` はムーブ専用のディレクトリストリームハンドルです。
 
-It owns a native directory stream handle internally and closes it automatically when destroyed.
+内部でネイティブディレクトリストリームハンドルを所有し、破棄時に自動的に閉じます。
 
 ```cpp
 class xer::dir;
 ```
 
-### Basic Properties
+### 基本性質
 
-* move-only
-* non-copyable
-* RAII-based
-* represents either an open directory stream or an empty/closed state
+* ムーブ専用
+* コピー不可
+* RAII ベース
+* 開いているディレクトリストリームまたは空/閉じた状態を表す
 
-### Explicit Close
+### 明示的なクローズ
 
-The destructor closes the directory stream automatically, but failures from a destructor cannot be observed.
+デストラクタはディレクトリストリームを自動的に閉じますが、デストラクタからの失敗は観測できません。
 
-When the caller needs to observe close errors, `xer::closedir` should be called explicitly.
+呼び出し側がクローズエラーを観測する必要がある場合は、`xer::closedir` を明示的に呼び出してください。
 
 ---
 
@@ -12983,20 +12133,20 @@ When the caller needs to observe close errors, `xer::closedir` should be called 
 auto opendir(const path& dirname) noexcept -> result<dir>;
 ```
 
-`opendir` opens a directory stream for the specified path.
+`opendir` は指定されたパスに対するディレクトリストリームを開きます。
 
-The path is converted from xer's UTF-8 `xer::path` representation to the platform-native path representation before the underlying directory API is called.
+基礎となるディレクトリ API を呼び出す前に、パスは xer の UTF-8 `xer::path` 表現からプラットフォームネイティブのパス表現に変換されます。
 
-### Return Value
+### 返り値
 
-On success, it returns an open `xer::dir`.
+成功時は、開いている `xer::dir` を返します。
 
-On failure, it returns `xer::result` failure.
+失敗時は、`xer::result` の失敗を返します。
 
-### Notes
+### 注意
 
-The returned directory stream is a snapshot-like traversal handle.
-If the directory contents are modified while the directory is being read, the observed behavior is platform- and filesystem-dependent.
+返されるディレクトリストリームは、スナップショットに近い走査ハンドルです。
+ディレクトリを読んでいる間に内容が変更された場合、観測される動作はプラットフォームおよびファイルシステム依存です。
 
 ---
 
@@ -13006,21 +12156,21 @@ If the directory contents are modified while the directory is being read, the ob
 auto closedir(dir& directory) noexcept -> result<void>;
 ```
 
-`closedir` closes a directory stream.
+`closedir` はディレクトリストリームを閉じます。
 
-After this function is called, the `xer::dir` object is treated as closed.
+この関数を呼び出した後、`xer::dir` オブジェクトは閉じたものとして扱われます。
 
-### Return Value
+### 返り値
 
-On success, it returns an empty success value.
+成功時は空の成功値を返します。
 
-On failure, it returns `xer::result` failure.
+失敗時は `xer::result` の失敗を返します。
 
-### Notes
+### 注意
 
-Calling `closedir` for an already closed or empty `xer::dir` is treated as a no-op success.
+すでに閉じられている、または空の `xer::dir` に対する `closedir` 呼び出しは、何もしない成功として扱われます。
 
-The destructor of `xer::dir` also closes the directory stream, but explicit `closedir` is useful when the caller wants to observe close errors.
+`xer::dir` のデストラクタもディレクトリストリームを閉じますが、明示的な `closedir` は呼び出し側がクローズエラーを観測したい場合に有用です。
 
 ---
 
@@ -13030,52 +12180,52 @@ The destructor of `xer::dir` also closes the directory stream, but explicit `clo
 auto readdir(dir& directory) noexcept -> result<std::u8string>;
 ```
 
-`readdir` reads the next entry name from a directory stream.
+`readdir` はディレクトリストリームから次のエントリ名を読み取ります。
 
-The returned string is a UTF-8 directory entry name.
+返される文字列は UTF-8 のディレクトリエントリ名です。
 
-### Return Value
+### 返り値
 
-On success, it returns the next entry name.
+成功時は、次のエントリ名を返します。
 
-At the end of the directory stream, it returns failure with:
+ディレクトリストリームの終端に達した場合は、次のエラーで失敗を返します。
 
 ```cpp
 error_t::end_of_file
 ```
 
-Other failures are reported through `xer::result` in the usual way.
+その他の失敗は、通常どおり `xer::result` で報告されます。
 
-### Important Notes
+### 重要な注意
 
-`readdir` returns only the entry name.
+`readdir` が返すのはエントリ名だけです。
 
-It does not return a full path.
+フルパスは返しません。
 
-For example, if the directory contains:
-
-```text
-example.txt
-```
-
-then `readdir` returns:
+たとえば、ディレクトリに次のファイルが含まれる場合、
 
 ```text
 example.txt
 ```
 
-not:
+`readdir` は次を返します。
+
+```text
+example.txt
+```
+
+次ではありません。
 
 ```text
 directory/example.txt
 ```
 
-The special entries `"."` and `".."` are not filtered out.
-This follows the PHP/POSIX-style behavior more closely.
-Callers that do not want these entries should skip them explicitly.
+特殊エントリ `"."` と `".."` は除外されません。
+これは PHP/POSIX 風の動作により近いものです。
+これらのエントリが不要な呼び出し側は、明示的に読み飛ばしてください。
 
-Entry order is platform- and filesystem-dependent.
-Code must not rely on a specific order unless it sorts the entries itself.
+エントリ順はプラットフォームおよびファイルシステム依存です。
+自分でソートしない限り、コードは特定の順序に依存してはいけません。
 
 ---
 
@@ -13085,32 +12235,32 @@ Code must not rely on a specific order unless it sorts the entries itself.
 auto rewinddir(dir& directory) noexcept -> result<void>;
 ```
 
-`rewinddir` rewinds a directory stream to the beginning.
+`rewinddir` はディレクトリストリームを先頭に巻き戻します。
 
-After this function succeeds, subsequent calls to `readdir` read entries again from the beginning of the directory stream.
+この関数が成功した後、以降の `readdir` 呼び出しはディレクトリストリームの先頭から再びエントリを読みます。
 
-### Return Value
+### 返り値
 
-On success, it returns an empty success value.
+成功時は空の成功値を返します。
 
-On failure, it returns `xer::result` failure.
+失敗時は `xer::result` の失敗を返します。
 
-### Notes
+### 注意
 
-The order after rewinding is still platform- and filesystem-dependent.
-xer does not guarantee a stable ordering of directory entries.
+巻き戻し後の順序も、依然としてプラットフォームおよびファイルシステム依存です。
+xer はディレクトリエントリの安定した順序を保証しません。
 
 ---
 
-## End-of-Directory Handling
+## ディレクトリ終端の扱い
 
-In xer, reaching the end of a directory stream is represented as:
+xer では、ディレクトリストリームの終端到達を次のように表します。
 
 ```cpp
 error_t::end_of_file
 ```
 
-Typical usage is:
+典型的な使い方は次のとおりです。
 
 ```cpp
 for (;;) {
@@ -13123,55 +12273,55 @@ for (;;) {
         return 1;
     }
 
-    // Use *entry.
+    // *entry を使う。
 }
 ```
 
-This keeps end-of-directory separate from ordinary successful reads while still using the normal `xer::result` failure channel.
+これにより、ディレクトリ終端を通常の成功読み取りから分離しつつ、通常の `xer::result` 失敗経路を使えます。
 
 ---
 
-## Relationship to Path Handling
+## パス処理との関係
 
-`<xer/dirent.h>` uses `xer::path` for directory paths.
+`<xer/dirent.h>` はディレクトリパスに `xer::path` を使います。
 
-The `path` object stores a UTF-8 path in xer's normalized internal form.
-When `opendir` is called, the path is converted to the platform-native representation before being passed to the underlying directory API.
+`path` オブジェクトは、xer の正規化された内部形式で UTF-8 パスを保持します。
+`opendir` が呼び出されると、基礎となるディレクトリ API に渡す前に、パスはプラットフォームネイティブ表現に変換されます。
 
-The names returned by `readdir` are converted back into UTF-8 strings.
+`readdir` が返す名前は UTF-8 文字列へ変換されます。
 
 ---
 
-## Relationship to Other Headers
+## 他のヘッダーとの関係
 
-`<xer/dirent.h>` is related to:
+`<xer/dirent.h>` は次のヘッダーと関係します。
 
 * `<xer/path.h>`
 * `<xer/stdio.h>`
 * `<xer/error.h>`
 
-The rough boundary is:
+大まかな境界は次のとおりです。
 
-* `<xer/path.h>` handles lexical path representation and path utilities
-* `<xer/stdio.h>` handles ordinary file streams and file-related operations
-* `<xer/dirent.h>` handles directory stream traversal
-
----
-
-## Documentation Notes
-
-When documenting this header, the most important points are:
-
-* `xer::dir` is a move-only RAII directory stream handle
-* `readdir` returns entry names, not full paths
-* `"."` and `".."` are not filtered out
-* end-of-directory is represented by `error_t::end_of_file`
-* entry order is filesystem-dependent
-* modifications during traversal have platform-dependent results
+* `<xer/path.h>` は字句的なパス表現とパスユーティリティを扱います。
+* `<xer/stdio.h>` は通常のファイルストリームとファイル関連操作を扱います。
+* `<xer/dirent.h>` はディレクトリストリーム走査を扱います。
 
 ---
 
-## Example
+## ドキュメント上の注意
+
+このヘッダーを文書化するときに最も重要な点は次のとおりです。
+
+* `xer::dir` はムーブ専用の RAII ディレクトリストリームハンドルであること
+* `readdir` はフルパスではなくエントリ名を返すこと
+* `"."` と `".."` は除外されないこと
+* ディレクトリ終端は `error_t::end_of_file` で表されること
+* エントリ順はファイルシステム依存であること
+* 走査中の変更結果はプラットフォーム依存であること
+
+---
+
+## 例
 
 ```cpp
 #include <xer/dirent.h>
@@ -13214,7 +12364,7 @@ auto main() -> int
 
 ---
 
-## See Also
+## 関連項目
 
 * `<xer/path.h>`
 * `<xer/stdio.h>`
@@ -13224,35 +12374,29 @@ auto main() -> int
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/socket.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/socket.h>`
 
-## Purpose
+## 目的
 
-`<xer/socket.h>` provides a small socket API for TCP and UDP networking.
+`<xer/socket.h>` は TCP および UDP ネットワーク用の小さなソケット API を提供します。
 
-The API is intentionally low-level enough to stay understandable, but it wraps platform differences and reports ordinary failure through `xer::result`.
-
----
-
-## Main Role
-
-This header provides:
-
-- a move-only RAII socket handle
-- IPv4 and IPv6 socket creation
-- TCP connection, bind, listen, and accept operations
-- UDP send/receive operations
-- conversion of sockets to xer binary or text streams
+この API は理解しやすい程度に低水準に保ちつつ、プラットフォーム差を包み込み、通常の失敗を `xer::result` で報告します。
 
 ---
 
-## Main Types
+## 主な役割
+
+このヘッダーは次の機能を提供します。
+
+- ムーブ専用の RAII ソケットハンドル
+- IPv4 および IPv6 ソケットの作成
+- TCP の接続、バインド、リッスン、受け入れ操作
+- UDP の送受信操作
+- ソケットから xer のバイナリストリームまたはテキストストリームへの変換
+
+---
+
+## 主な型
 
 ```cpp
 enum class socket_family;
@@ -13278,7 +12422,7 @@ udp
 
 ### `socket_address`
 
-`socket_address` stores a textual address and a port number.
+`socket_address` はテキスト形式のアドレスとポート番号を保持します。
 
 ```cpp
 std::u8string address;
@@ -13287,15 +12431,15 @@ std::uint16_t port;
 
 ### `socket_recvfrom_result`
 
-`socket_recvfrom_result` stores the number of bytes read and the remote endpoint address.
+`socket_recvfrom_result` は読み取ったバイト数とリモートエンドポイントアドレスを保持します。
 
 ---
 
-## Socket Handle
+## ソケットハンドル
 
-`socket` is a move-only RAII type.
+`socket` はムーブ専用の RAII 型です。
 
-Important operations include:
+重要な操作には次のものがあります。
 
 ```cpp
 auto is_open() const noexcept -> bool;
@@ -13306,11 +12450,11 @@ auto release() noexcept -> native_socket_t;
 auto native_handle() const noexcept -> native_socket_t;
 ```
 
-The destructor closes the socket if it is still open.
+ソケットがまだ開いている場合、デストラクタはそのソケットを閉じます。
 
 ---
 
-## Socket Operations
+## ソケット操作
 
 ```cpp
 auto socket_create(socket_family family, socket_type type) noexcept -> xer::result<socket>;
@@ -13328,50 +12472,44 @@ auto socket_recvfrom(socket& s, std::span<std::byte> data) noexcept -> xer::resu
 
 ---
 
-## Stream Conversion
+## ストリーム変換
 
-Sockets can be converted into xer streams:
+ソケットは xer のストリームに変換できます。
 
 ```cpp
 auto socket_open(socket&& s) noexcept -> xer::result<binary_stream>;
 auto socket_open(socket&& s, encoding_t encoding) noexcept -> xer::result<text_stream>;
 ```
 
-The binary stream form is suitable for byte-oriented protocols.
-The text stream form is suitable for UTF-8 or CP932 text-oriented communication.
+バイナリストリーム形式はバイト指向のプロトコルに適しています。
+テキストストリーム形式は UTF-8 または CP932 のテキスト指向通信に適しています。
 
 ---
 
-## Notes
+## 注意
 
-- Network-related ordinary failures are represented mainly with `error_t::network_error`.
-- The API does not use command shells or external utilities.
-- Host names are accepted as UTF-8 strings and converted to ordinary narrow strings for resolver APIs.
-- `socket_open` transfers ownership from the socket object into the resulting stream.
+- ネットワーク関連の通常の失敗は主に `error_t::network_error` で表されます。
+- この API はコマンドシェルや外部ユーティリティを使用しません。
+- ホスト名は UTF-8 文字列として受け取り、リゾルバ API 用の通常のナロー文字列に変換されます。
+- `socket_open` はソケットオブジェクトから結果のストリームへ所有権を移します。
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/tk.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/tk.h>`
 
-## Purpose
+## 目的
 
-`<xer/tk.h>` provides the initial Tcl/Tk integration layer for xer.
+`<xer/tk.h>` は、xer の初期 Tcl/Tk 連携層を提供します。
 
-The first purpose of this header is to make it possible to create and control a Tcl interpreter from C++ code, register C++ callables as Tcl commands, and then use that foundation for Tk-based GUI facilities.
+このヘッダーの第一の目的は、C++コードから Tcl インタープリターを作成・制御し、C++の呼び出し可能オブジェクトを Tcl コマンドとして登録し、その基盤を Tk ベースの GUI 機能に利用できるようにすることです。
 
-The design deliberately avoids `Tk_Main`. `Tk_Main` owns too much of the process lifetime and may terminate the whole process when the main function exits. xer instead exposes interpreter creation, initialization, script evaluation, command registration, variable access, and event-loop helpers as ordinary C++ APIs.
+この設計では、意図的に `Tk_Main` を避けています。`Tk_Main` はプロセス寿命の多くを所有し、main 関数が終了するとプロセス全体を終了させる可能性があります。xer ではその代わりに、インタープリター作成、初期化、スクリプト評価、コマンド登録、変数アクセス、イベントループ補助を通常の C++ API として公開します。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/tk.h>` provides the following entities:
+少なくとも、`<xer/tk.h>` は次のエンティティを提供します。
 
 ```cpp
 namespace xer::tk {
@@ -13531,29 +12669,29 @@ auto do_one_event(event_flag_t flags = event_all) -> int;
 }
 ```
 
-The exact set of supported callable argument and return types may expand as the Tcl/Tk layer develops.
+Tcl/Tk 層の発展に伴い、対応する呼び出し可能オブジェクトの引数型と戻り値型の正確な集合は拡張される可能性があります。
 
 ---
 
-## Namespace
+## 名前空間
 
-All public Tcl/Tk integration APIs are placed in:
+公開 Tcl/Tk 連携 API はすべて次の名前空間に配置されます。
 
 ```cpp
 namespace xer::tk
 ```
 
-The initial public API does not provide a separate `xer::tcl` namespace. Tcl is treated as the scripting foundation used by the Tk integration layer.
+初期公開 API では、独立した `xer::tcl` 名前空間は提供しません。Tcl は Tk 連携層で使われるスクリプト基盤として扱います。
 
-If a future version provides a public Tcl-only header, a separate namespace may be reconsidered at that time.
+将来のバージョンで Tcl 専用の公開ヘッダーを提供する場合は、その時点で独立した名前空間を再検討できます。
 
 ---
 
-## Result Codes and Flags
+## 結果コードとフラグ
 
-Tcl exposes result codes and flags through C macros such as `TCL_OK`, `TCL_ERROR`, and `TCL_GLOBAL_ONLY`.
+Tcl は `TCL_OK`、`TCL_ERROR`、`TCL_GLOBAL_ONLY` などの C マクロを通じて結果コードとフラグを公開します。
 
-xer does not require ordinary users to refer to those macros directly. Instead, `<xer/tk.h>` provides xer-named constants such as:
+xer では、通常の利用者がそれらのマクロを直接参照する必要はありません。代わりに、`<xer/tk.h>` は次のような xer 名の定数を提供します。
 
 ```cpp
 xer::tk::result_ok
@@ -13564,11 +12702,11 @@ xer::tk::eval_direct
 xer::tk::event_all
 ```
 
-These constants preserve the native integer values used by Tcl/Tk while keeping the public API vocabulary under `xer::tk`.
+これらの定数は、Tcl/Tk が使用するネイティブの整数値を保ちながら、公開 API の語彙を `xer::tk` の下に置きます。
 
 ---
 
-## Error Detail
+## エラー詳細
 
 ```cpp
 struct error_detail {
@@ -13576,17 +12714,17 @@ struct error_detail {
 };
 ```
 
-`error_detail` stores the Tcl/Tk result code associated with a failed operation.
+`error_detail` は、失敗した操作に関連付けられた Tcl/Tk の結果コードを保持します。
 
-For `eval`, the stored code is the return value of `Tcl_EvalObjEx` when it is not `result_ok`. For operations that fail through a null Tcl return value, `result_error` is used.
+`eval` では、保存されるコードは `Tcl_EvalObjEx` が `result_ok` 以外を返したときの戻り値です。null の Tcl 戻り値によって失敗する操作では、`result_error` が使用されます。
 
-The current Tcl result string is not stored inside `error_detail`. When the caller needs the current interpreter result text, it can call:
+現在の Tcl 結果文字列は `error_detail` の内部には保存されません。呼び出し側が現在のインタープリター結果テキストを必要とする場合は、次を呼び出せます。
 
 ```cpp
 auto get_result(interpreter& interp) -> std::u8string;
 ```
 
-This keeps the error detail small and avoids copying Tcl result text unless it is actually needed.
+これにより、エラー詳細を小さく保ち、実際に必要な場合以外は Tcl 結果テキストのコピーを避けられます。
 
 ---
 
@@ -13596,71 +12734,71 @@ This keeps the error detail small and avoids copying Tcl result text unless it i
 class interpreter;
 ```
 
-`interpreter` is a move-only RAII wrapper around `Tcl_Interp*`.
+`interpreter` は、`Tcl_Interp*` を包むムーブ専用の RAII ラッパーです。
 
-### Creation
+### 作成
 
 ```cpp
 auto interpreter::create() -> xer::result<interpreter, error_detail>;
 ```
 
-`interpreter::create` initializes Tcl executable information if necessary and then creates a new Tcl interpreter.
+`interpreter::create` は、必要であれば Tcl 実行可能ファイル情報を初期化し、その後で新しい Tcl インタープリターを作成します。
 
-Ordinary code should create interpreters through this static member function:
+通常のコードでは、この静的メンバー関数を通じてインタープリターを作成するべきです。
 
 ```cpp
 auto interp = xer::tk::interpreter::create();
 ```
 
-### Lifetime
+### 寿命
 
-The interpreter owns its native `Tcl_Interp*` handle.
+インタープリターは、ネイティブの `Tcl_Interp*` ハンドルを所有します。
 
-When the `interpreter` object is destroyed, the native interpreter is deleted. The type is move-only so that ownership remains explicit.
+`interpreter` オブジェクトが破棄されると、ネイティブインタープリターも削除されます。この型はムーブ専用であり、所有権が明示的に保たれるようにしています。
 
-### Validity
+### 妥当性
 
 ```cpp
 auto valid() const noexcept -> bool;
 ```
 
-`valid()` returns whether the wrapper currently owns a native interpreter handle.
+`valid()` は、ラッパーが現在ネイティブインタープリターハンドルを所有しているかどうかを返します。
 
 ---
 
-## Initialization
+## 初期化
 
 ```cpp
 auto init(interpreter& interp) -> xer::result<void, error_detail>;
 ```
 
-`init` initializes both Tcl and Tk for the specified interpreter.
+`init` は、指定されたインタープリターに対して Tcl と Tk の両方を初期化します。
 
-It calls `Tcl_Init` and then `Tk_Init`. xer intentionally does not provide a public API that calls only `Tcl_Init` in the `xer::tk` layer.
+この関数は `Tcl_Init` を呼び出し、その後で `Tk_Init` を呼び出します。xer は、`xer::tk` 層では `Tcl_Init` だけを呼び出す公開 API を意図的に提供していません。
 
-If a caller needs direct Tcl-only initialization behavior, the native handle can be obtained through `to_native_handle` and the Tcl C API can be called explicitly.
+呼び出し側が Tcl のみの初期化動作を直接必要とする場合は、`to_native_handle` でネイティブハンドルを取得し、Tcl C API を明示的に呼び出せます。
 
 ---
 
-## Native Handle Escape Hatch
+## ネイティブハンドルへの脱出口
 
 ```cpp
 auto to_native_handle(interpreter& interp) noexcept -> Tcl_Interp*;
 ```
 
-`to_native_handle` returns the underlying `Tcl_Interp*`.
+`to_native_handle` は、背後にある `Tcl_Interp*` を返します。
 
-This function is an escape hatch for direct Tcl/Tk C API use. It is intentionally not named like an ordinary accessor such as `get`, because using the native handle bypasses part of xer's abstraction.
+この関数は、Tcl/Tk C API を直接使うための脱出口です。`get` のような通常のアクセサ名には意図的にしていません。ネイティブハンドルを使うと、xer の抽象化の一部を迂回するためです。
 
-There is no overload for `const interpreter&`. Tcl interpreter handles are commonly used for state-changing operations, and a const overload would not provide meaningful const safety.
+`const interpreter&` 用のオーバーロードはありません。Tcl インタープリターハンドルは状態を変更する操作で使われることが多く、const オーバーロードを用意しても意味のある const 安全性は得られません。
 
 ---
 
-## Photo Image Helpers
+## Photo Image 補助
 
-`<xer/tk.h>` provides thin wrappers for Tk photo image APIs such as `Tk_FindPhoto`, `Tk_PhotoGetImage`, `Tk_PhotoPutBlock`, and related size operations.
+`<xer/tk.h>` は、`Tk_FindPhoto`、`Tk_PhotoGetImage`、`Tk_PhotoPutBlock`、および関連するサイズ操作など、Tk photo image API の薄いラッパーを提供します。
 
-These helpers are intentionally part of the Tk integration layer rather than the general image-processing layer. Pure image processing and framebuffer manipulation belong in `<xer/image.h>`, while `<xer/tk.h>` only handles the bridge to Tk photo images.
+これらの補助は、一般的な画像処理層ではなく、意図的に Tk 連携層の一部です。純粋な画像処理とフレームバッファ操作は `<xer/image.h>` に属し、`<xer/tk.h>` は Tk photo image への橋渡しだけを扱います。
 
 ### `photo_image`
 
@@ -13668,32 +12806,32 @@ These helpers are intentionally part of the Tk integration layer rather than the
 class photo_image;
 ```
 
-`photo_image` is a non-owning handle for an existing Tk photo image.
+`photo_image` は、既存の Tk photo image に対する非所有ハンドルです。
 
-A `photo_image` value cannot be default-constructed. It is created only by `find_photo`, so it does not represent a null photo handle in ordinary xer code.
+`photo_image` 値はデフォルト構築できません。これは `find_photo` によってのみ作成されるため、通常の xer コードでは null photo ハンドルを表しません。
 
-The type does not own the underlying Tk image. The caller must ensure that the Tcl/Tk photo image outlives any `photo_image` handle referring to it. If the image is deleted on the Tcl/Tk side, an existing `photo_image` becomes invalid by the native Tk lifetime rules.
+この型は背後の Tk image を所有しません。呼び出し側は、その `photo_image` ハンドルが参照する Tcl/Tk photo image の寿命がハンドルより長く続くことを保証しなければなりません。Tcl/Tk 側で image が削除された場合、既存の `photo_image` はネイティブ Tk の寿命規則により無効になります。
 
-The native escape hatch is:
+ネイティブへの脱出口は次のとおりです。
 
 ```cpp
 auto to_native_handle(photo_image image) noexcept -> Tk_PhotoHandle;
 ```
 
-### Finding a Photo Image
+### Photo Image の検索
 
 ```cpp
 auto find_photo(interpreter& interp, const char8_t* name)
     -> xer::result<photo_image, error_detail>;
 ```
 
-`find_photo` searches for an existing Tk photo image by name.
+`find_photo` は、既存の Tk photo image を名前で検索します。
 
-The `name` argument is a null-terminated UTF-8 string. This follows the native Tk API, which accepts a `const char*` image name. Unlike `eval`, this function does not take `std::u8string_view`, because the native API requires a null-terminated string rather than an object with an explicit length.
+`name` 引数は、ヌル終端 UTF-8 文字列です。これは、`const char*` の image 名を受け取るネイティブ Tk API に従っています。`eval` と違い、この関数は `std::u8string_view` を受け取りません。ネイティブ API が明示的な長さを持つオブジェクトではなく、ヌル終端文字列を要求するためです。
 
-If `name` is null, the function fails with `error_t::invalid_argument`. If the named image does not exist or is not a photo image, the function fails with `error_t::not_found`.
+`name` が null の場合、この関数は `error_t::invalid_argument` で失敗します。指定された名前の image が存在しない、または photo image ではない場合、この関数は `error_t::not_found` で失敗します。
 
-### Size Operations
+### サイズ操作
 
 ```cpp
 struct photo_size {
@@ -13710,15 +12848,15 @@ auto photo_set_size(interpreter& interp, photo_image image, int width, int heigh
     -> xer::result<void, error_detail>;
 ```
 
-`photo_get_size` returns the current Tk photo size.
+`photo_get_size` は現在の Tk photo サイズを返します。
 
-`photo_expand` expands the photo image to at least the requested size. If the photo image has an explicit `-width` or `-height` set on the Tcl/Tk side, Tk may preserve that explicit dimension instead of expanding it.
+`photo_expand` は、photo image を少なくとも要求されたサイズまで拡張します。Tcl/Tk 側で photo image に明示的な `-width` または `-height` が設定されている場合、Tk はその明示的な寸法を拡張せず保持することがあります。
 
-`photo_set_size` sets the explicit size of the photo image. Passing zero for both dimensions can be used to clear the explicit size in the same manner as the native Tk API.
+`photo_set_size` は、photo image の明示的なサイズを設定します。両方の寸法に 0 を渡すと、ネイティブ Tk API と同じ方法で明示的なサイズを解除するために使えます。
 
-Negative dimensions are rejected as `error_t::invalid_argument` before calling Tk.
+負の寸法は、Tk を呼び出す前に `error_t::invalid_argument` として拒否されます。
 
-### Blank and Block Operations
+### クリア操作とブロック操作
 
 ```cpp
 using photo_image_block = Tk_PhotoImageBlock;
@@ -13757,25 +12895,25 @@ auto photo_put_zoomed_block(interpreter& interp,
     -> xer::result<void, error_detail>;
 ```
 
-`photo_blank` clears the photo image.
+`photo_blank` は photo image を消去します。
 
-`photo_get_image` fills a `photo_image_block` descriptor for the current Tk photo image. The block points to Tk-managed memory and should be treated according to Tk's lifetime rules.
+`photo_get_image` は、現在の Tk photo image に対する `photo_image_block` 記述子を埋めます。このブロックは Tk が管理するメモリを指すため、Tk の寿命規則に従って扱う必要があります。
 
-`photo_put_block` writes a block into the photo image.
+`photo_put_block` は、ブロックを photo image に書き込みます。
 
-`photo_put_zoomed_block` writes a block while applying integer zooming and subsampling.
+`photo_put_zoomed_block` は、整数ズームとサブサンプリングを適用しながらブロックを書き込みます。
 
-The block pointer must not be null. Coordinates, width, and height must not be negative. Zoom and subsample factors must be positive. Invalid arguments are rejected before calling Tk.
+ブロックポインターは null であってはいけません。座標、幅、高さは負であってはいけません。ズーム係数とサブサンプル係数は正でなければなりません。不正な引数は、Tk を呼び出す前に拒否されます。
 
-### Relationship to xer Image Facilities
+### xer 画像機能との関係
 
-The photo block helpers are low-level Tk wrappers. They intentionally expose `Tk_PhotoImageBlock` through the alias `photo_image_block` so that code can use the native Tk block layout when needed.
+photo block 補助は低水準の Tk ラッパーです。必要なときにコードがネイティブ Tk のブロックレイアウトを使えるように、`Tk_PhotoImageBlock` を `photo_image_block` という別名で意図的に公開しています。
 
-Higher-level conversion between Tk photo images and xer image or framebuffer types should be built separately on top of these helpers. The ordinary image-processing algorithms themselves should not depend on Tcl/Tk.
+Tk photo image と xer の image 型またはフレームバッファ型の間の高水準変換は、これらの補助の上に別途構築するべきです。通常の画像処理アルゴリズム自体は、Tcl/Tk に依存するべきではありません。
 
 ---
 
-## Tcl Objects
+## Tcl オブジェクト
 
 ```cpp
 class obj;
@@ -13791,30 +12929,30 @@ auto make_list_obj(std::initializer_list<std::u8string_view> values)
 auto to_native_handle(obj& value) noexcept -> Tcl_Obj*;
 ```
 
-`obj` is a RAII wrapper for `Tcl_Obj*`. It owns one Tcl reference to the wrapped object. Construction and copying increment the Tcl reference count, destruction decrements it, and moving transfers the owned reference without changing the Tcl reference count.
+`obj` は、`Tcl_Obj*` に対する RAII ラッパーです。ラップされたオブジェクトに対する Tcl 参照を 1 つ所有します。構築とコピーでは Tcl 参照カウントを増やし、破棄では参照カウントを減らし、ムーブでは Tcl 参照カウントを変えずに所有参照を移動します。
 
-`obj` has no public constructor from `Tcl_Obj*`. Ordinary code should create objects through factory functions such as `make_string_obj`, `make_int_obj`, and `make_list_obj`.
+`obj` には、`Tcl_Obj*` からの公開コンストラクターはありません。通常のコードでは、`make_string_obj`、`make_int_obj`、`make_list_obj` などのファクトリ関数を通じてオブジェクトを作成するべきです。
 
-`to_native_handle(obj&)` returns a borrowed `Tcl_Obj*` and does not change the Tcl reference count. The returned pointer should not be released by the caller.
+`to_native_handle(obj&)` は借用された `Tcl_Obj*` を返し、Tcl 参照カウントを変更しません。返されたポインターを呼び出し側が解放してはいけません。
 
-`make_list_obj` creates a real Tcl list object. It is useful when a value must behave as a Tcl list rather than as a manually joined string.
+`make_list_obj` は本物の Tcl リストオブジェクトを作成します。値を手作業で結合した文字列ではなく Tcl リストとして振る舞わせる必要がある場合に有用です。
 
 ---
 
-## Tcl Result Handling
+## Tcl 結果の扱い
 
 ```cpp
 auto get_result(interpreter& interp) -> std::u8string;
 auto reset_result(interpreter& interp) noexcept -> void;
 ```
 
-`get_result` returns the current Tcl interpreter result as UTF-8 text. Internally, it retrieves the result object with `Tcl_GetObjResult` and converts it to text with `Tcl_GetStringFromObj`.
+`get_result` は、現在の Tcl インタープリター結果を UTF-8 テキストとして返します。内部では、`Tcl_GetObjResult` で結果オブジェクトを取得し、`Tcl_GetStringFromObj` でテキストに変換します。
 
-`reset_result` clears the current interpreter result.
+`reset_result` は、現在のインタープリター結果をクリアします。
 
 ---
 
-## Script Evaluation
+## スクリプト評価
 
 ```cpp
 auto eval(interpreter& interp,
@@ -13823,17 +12961,17 @@ auto eval(interpreter& interp,
     -> xer::result<std::u8string, error_detail>;
 ```
 
-`eval` evaluates Tcl script text using `Tcl_EvalObjEx`.
+`eval` は、`Tcl_EvalObjEx` を使って Tcl スクリプトテキストを評価します。
 
-The script is first converted into a Tcl object. On success, the current Tcl result is returned as a `std::u8string`. On failure, the returned error detail stores the Tcl result code.
+スクリプトはまず Tcl オブジェクトに変換されます。成功時には、現在の Tcl 結果が `std::u8string` として返されます。失敗時には、返されるエラー詳細が Tcl 結果コードを保持します。
 
-The default evaluation flag is `eval_direct`.
+既定の評価フラグは `eval_direct` です。
 
 ---
 
-## Variable Access
+## 変数アクセス
 
-`<xer/tk.h>` provides variable access based on Tcl object APIs.
+`<xer/tk.h>` は、Tcl オブジェクト API に基づく変数アクセスを提供します。
 
 ```cpp
 auto set_var(interpreter& interp,
@@ -13848,11 +12986,11 @@ auto get_var(interpreter& interp,
     -> xer::result<std::u8string, error_detail>;
 ```
 
-These functions use `Tcl_ObjSetVar2` and `Tcl_ObjGetVar2`.
+これらの関数は、`Tcl_ObjSetVar2` と `Tcl_ObjGetVar2` を使用します。
 
-In addition to UTF-8 text values, `set_var` can accept `xer::tk::obj`. This allows callers to assign Tcl objects such as list objects without converting them into manually joined strings.
+UTF-8 テキスト値に加えて、`set_var` は `xer::tk::obj` も受け取れます。これにより、呼び出し側はリストオブジェクトなどの Tcl オブジェクトを、手作業で結合した文字列に変換せずに代入できます。
 
-Array-variable forms are also provided:
+配列変数形式も提供されます。
 
 ```cpp
 auto set_var(interpreter& interp,
@@ -13869,9 +13007,9 @@ auto get_var(interpreter& interp,
     -> xer::result<std::u8string, error_detail>;
 ```
 
-The default variable flag is `var_global_only`.
+既定の変数フラグは `var_global_only` です。
 
-For example, a Tcl list can be assigned as follows:
+たとえば、Tcl リストは次のように代入できます。
 
 ```cpp
 auto list = xer::tk::make_list_obj({u8"first value", u8"second"});
@@ -13884,11 +13022,11 @@ if (!xer::tk::set_var(interp, u8"argv", *list).has_value()) {
 }
 ```
 
-Tcl code can then use ordinary list operations such as `llength $argv` and `lindex $argv 0`.
+その後 Tcl コードでは、`llength $argv` や `lindex $argv 0` などの通常のリスト操作を使用できます。
 
 ---
 
-## Command Registration
+## コマンド登録
 
 ```cpp
 template <class F>
@@ -13898,11 +13036,11 @@ auto create_command(interpreter& interp,
     -> xer::result<void, error_detail>;
 ```
 
-`create_command` registers a C++ callable as a Tcl object command.
+`create_command` は、C++の呼び出し可能オブジェクトを Tcl オブジェクトコマンドとして登録します。
 
-The command name is UTF-8 text. The callable may be a function object, function pointer, or lambda expression.
+コマンド名は UTF-8 テキストです。呼び出し可能オブジェクトは、関数オブジェクト、関数ポインター、ラムダ式のいずれでも構いません。
 
-A simple example is:
+簡単な例は次のとおりです。
 
 ```cpp
 auto created = xer::tk::create_command(
@@ -13913,15 +13051,15 @@ auto created = xer::tk::create_command(
     });
 ```
 
-After registration, Tcl script can call:
+登録後、Tcl スクリプトは次のように呼び出せます。
 
 ```tcl
 add 10 20
 ```
 
-The initial command bridge supports a practical subset of argument and return types.
+初期コマンドブリッジは、実用的な一部の引数型と戻り値型をサポートします。
 
-Supported callback argument types include:
+対応するコールバック引数型には次が含まれます。
 
 - `Tcl_Obj*`
 - `xer::tk::obj`
@@ -13938,7 +13076,7 @@ Supported callback argument types include:
 - `std::u8string`
 - `std::u8string_view`
 
-Supported callback return types include:
+対応するコールバック戻り値型には次が含まれます。
 
 - `void`
 - `bool`
@@ -13957,97 +13095,97 @@ Supported callback return types include:
 - `Tcl_Obj*`
 - `xer::tk::obj`
 - `xer::result<T, xer::tk::error_detail>`
-- `xer::result<T>` where supported by the implementation
+- `xer::result<T>` のうち実装が対応するもの
 - `xer::tk::result_code_t`
 
-In unsupported cases, users can fall back to `Tcl_Obj*` or the native Tcl/Tk API.
+未対応の場合、利用者は `Tcl_Obj*` またはネイティブ Tcl/Tk API にフォールバックできます。
 
-### `std::u8string_view` callback arguments
+### `std::u8string_view` コールバック引数
 
-When a C++ command callback takes `std::u8string_view`, the view refers to the string representation of the corresponding `Tcl_Obj`.
-The view is valid only while the callback is running.
+C++コマンドコールバックが `std::u8string_view` を受け取る場合、そのビューは対応する `Tcl_Obj` の文字列表現を参照します。
+このビューは、コールバックの実行中に限って有効です。
 
-If the value must be stored, captured, returned later, or otherwise used after the callback returns, the callback must copy it into an owning object such as `std::u8string`.
+値を保存する、キャプチャする、あとで返す、またはコールバックが戻った後で使用する必要がある場合、コールバックはそれを `std::u8string` などの所有オブジェクトにコピーしなければなりません。
 
-Returning `std::u8string_view` from a callback is different: xer copies the referenced text into the Tcl interpreter result before the command handler returns.
-The returned view only needs to remain valid until the command handler has finished setting the Tcl result.
+コールバックから `std::u8string_view` を返す場合は話が異なります。xer は、コマンドハンドラーが戻る前に、参照されたテキストを Tcl インタープリター結果へコピーします。
+返されるビューは、コマンドハンドラーが Tcl 結果の設定を終えるまで有効であれば十分です。
 
 ---
 
-## Tcl/Tk Main Helper
+## Tcl/Tk main 補助
 
 ```cpp
 template <class F>
 auto main(F&& callback) -> xer::result<void>;
 ```
 
-`xer::tk::main` is a Tcl/Tk execution block, not a replacement for the C++ global `main` function. It may be called from the program's main thread or from another user-managed thread.
+`xer::tk::main` は Tcl/Tk 実行ブロックであり、C++のグローバル `main` 関数を置き換えるものではありません。これはプログラムのメインスレッドから呼び出しても、利用者が管理する別スレッドから呼び出しても構いません。
 
-The callback should have the following basic form:
+コールバックは、基本的に次の形を持つべきです。
 
 ```cpp
 auto callback(xer::tk::interpreter& interp) -> xer::result<void>;
 ```
 
-The helper performs the ordinary setup sequence: executable discovery, interpreter creation, Tcl/Tk initialization, setup of Tcl startup variables, callback invocation, and then `main_loop()` if the callback succeeds. The interpreter is destroyed by RAII after the event loop returns.
+この補助は、通常のセットアップ手順を実行します。実行可能ファイルの検出、インタープリター作成、Tcl/Tk 初期化、Tcl 起動変数の設定、コールバック呼び出し、そしてコールバックが成功した場合の `main_loop()` です。イベントループが戻った後、インタープリターは RAII によって破棄されます。
 
-The helper sets Tcl variables so that Tcl scripts can use the ordinary names:
+この補助は、Tcl スクリプトが通常の名前を使えるように Tcl 変数を設定します。
 
 - `argc`
 - `argv`
 - `argv0`
 - `env`
 
-`argv` is set as a real Tcl list object. `env` is set as a Tcl array variable.
+`argv` は本物の Tcl リストオブジェクトとして設定されます。`env` は Tcl 配列変数として設定されます。
 
 ---
 
-## Event Loop
+## イベントループ
 
 ```cpp
 auto main_loop() -> void;
 auto do_one_event(event_flag_t flags = event_all) -> int;
 ```
 
-`main_loop` runs the Tk main event loop through `Tk_MainLoop`.
+`main_loop` は、`Tk_MainLoop` によって Tk のメインイベントループを実行します。
 
-`do_one_event` processes one event through `Tcl_DoOneEvent`.
+`do_one_event` は、`Tcl_DoOneEvent` によってイベントを 1 つ処理します。
 
-xer does not use `Tk_Main`, because `Tk_Main` controls too much of the process lifetime. Programs should create and initialize an interpreter explicitly, then run the event loop in the desired thread.
-
----
-
-## Threading Policy
-
-xer aims to allow Tcl/Tk to run on a thread chosen by the user.
-
-However, an interpreter is treated as thread-affine. It should normally be created, initialized, used, and destroyed on the same thread.
-
-This rule applies to ordinary operations such as evaluation, variable access, command registration, event-loop use related to that interpreter, and destruction.
-
-This means xer supports the idea of running Tcl/Tk on a non-main thread, but it does not make one interpreter freely callable from arbitrary threads.
-
-A safe pattern is to create an interpreter inside a worker thread, use it only inside that worker thread, and let it be destroyed before that thread exits.
-
-xer does not currently provide cross-thread invocation helpers, event posting helpers, or a thread-safe dispatch queue for Tcl/Tk.
+xer は `Tk_Main` を使用しません。`Tk_Main` はプロセス寿命を制御しすぎるためです。プログラムは、インタープリターを明示的に作成・初期化し、その後で望むスレッド上でイベントループを実行するべきです。
 
 ---
 
-## Deferred Items
+## スレッド方針
 
-The following items are intentionally deferred from the initial Tcl/Tk layer:
+xer は、利用者が選んだスレッドで Tcl/Tk を実行できるようにすることを目指します。
 
-* widget wrapper classes
-* callback substitution values such as `%w`
-* cross-thread invocation helpers
-* full event-dispatch abstraction
-* TomMath integration
-* complete coverage of Tcl object types
-* Tcl-only public header and namespace separation
+ただし、インタープリターはスレッドに属するものとして扱います。通常は、同じスレッドで作成、初期化、使用、破棄するべきです。
+
+この規則は、評価、変数アクセス、コマンド登録、そのインタープリターに関連するイベントループ使用、破棄などの通常操作に適用されます。
+
+つまり、xer は Tcl/Tk をメインスレッド以外で実行するという考え方をサポートしますが、1 つのインタープリターを任意のスレッドから自由に呼び出せるようにはしません。
+
+安全なパターンは、ワーカースレッド内でインタープリターを作成し、そのワーカースレッド内だけで使用し、そのスレッドが終了する前に破棄させることです。
+
+xer は現在、スレッド間呼び出し補助、イベント投稿補助、Tcl/Tk 用のスレッド安全なディスパッチキューを提供していません。
 
 ---
 
-## Example
+## 後回しにしている項目
+
+次の項目は、初期 Tcl/Tk 層では意図的に後回しにしています。
+
+* widget ラッパークラス
+* `%w` などのコールバック置換値
+* スレッド間呼び出し補助
+* 完全なイベントディスパッチ抽象化
+* TomMath 連携
+* Tcl オブジェクト型の完全な網羅
+* Tcl 専用の公開ヘッダーと名前空間分離
+
+---
+
+## 例
 
 ```cpp
 #include <xer/stdio.h>
@@ -14083,11 +13221,11 @@ auto main() -> int
 }
 ```
 
-This example creates a Tcl interpreter and registers a C++ callable as a Tcl command. It does not initialize Tk because no GUI widget is used.
+この例では、Tcl インタープリターを作成し、C++の呼び出し可能オブジェクトを Tcl コマンドとして登録しています。GUI widget を使っていないため、Tk は初期化していません。
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_tk.md`
 * `policy_project_outline.md`
@@ -14096,66 +13234,60 @@ This example creates a Tcl interpreter and registers a C++ callable as a Tcl com
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/stdint.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/stdint.h>`
 
-## Purpose
+## 目的
 
-`<xer/stdint.h>` provides fixed-width integer facilities and closely related numeric utilities in xer.
+`<xer/stdint.h>` は、固定幅整数機能と、それに密接に関連する数値ユーティリティを xer で提供します。
 
-Its role is similar in spirit to the C standard library `<stdint.h>`, but it is not limited to merely re-exporting integer typedefs.
-Instead, it also serves as the home for practical integer-oriented helpers that fit xer's overall design.
+その役割は C 標準ライブラリの `<stdint.h>` に近いものですが、単に整数 typedef を再公開するだけに限られません。
+むしろ、xer 全体の設計に合う実用的な整数向けヘルパーの置き場所としても機能します。
 
-This header is especially important because it provides:
+このヘッダーは、特に次のものを提供するため重要です。
 
-- fixed-width integer type aliases
-- pointer-sized integer types
-- optional 128-bit integer aliases where supported
-- compile-time numeric helper constants
-- integer literal suffixes for convenient typed integer constants
-
----
-
-## Main Role
-
-The main role of `<xer/stdint.h>` is to provide a stable and explicit integer vocabulary for the rest of xer.
-
-In particular, it exists to make the following easy and clear:
-
-- writing code with explicitly sized integer types
-- referring to implementation-sized integer types such as pointer-sized integers
-- expressing integer limits and bit widths in a unified xer style
-- writing typed integer literals directly in source code
-
-This makes the header useful both as a foundational type header and as a practical utility header for integer-heavy code.
+- 固定幅整数型の別名
+- ポインターサイズ整数型
+- 対応環境で利用できる任意の 128 ビット整数別名
+- コンパイル時数値ヘルパー定数
+- 型付き整数定数を便利に書くための整数リテラルサフィックス
 
 ---
 
-## Main Entities
+## 主な役割
 
-At minimum, `<xer/stdint.h>` provides the following kinds of entities:
+`<xer/stdint.h>` の主な役割は、xer の残りの部分で使う、安定した明示的な整数語彙を提供することです。
 
-- fixed-width signed integer types
-- fixed-width unsigned integer types
-- least-width and fast-width integer types where appropriate
-- pointer-sized integer types
-- maximum-width integer types
-- optional 128-bit integer types where available
-- compile-time helper constants
-- user-defined integer literal suffixes
+具体的には、次のことを簡単かつ明確にします。
 
-The exact exposed set follows the implementation and project policy, but these are the intended public categories.
+- 明示的なサイズを持つ整数型でコードを書く
+- ポインターサイズ整数など、実装サイズに依存する整数型を参照する
+- 整数の限界値やビット幅を統一された xer らしい形で表現する
+- ソースコード中で型付き整数リテラルを直接書く
+
+これにより、このヘッダーは基礎的な型ヘッダーとしても、整数を多用するコード向けの実用ユーティリティヘッダーとしても有用になります。
 
 ---
 
-## Fixed-Width Integer Types
+## 主な要素
 
-`<xer/stdint.h>` provides the familiar fixed-width integer types, including at least forms such as:
+少なくとも、`<xer/stdint.h>` は次の種類の要素を提供します。
+
+- 固定幅符号付き整数型
+- 固定幅符号なし整数型
+- 必要に応じた最小幅整数型および高速整数型
+- ポインターサイズ整数型
+- 最大幅整数型
+- 利用可能な場合の任意の 128 ビット整数型
+- コンパイル時ヘルパー定数
+- ユーザー定義整数リテラルサフィックス
+
+正確に公開される集合は実装とプロジェクト方針に従いますが、これらが意図している公開カテゴリです。
+
+---
+
+## 固定幅整数型
+
+`<xer/stdint.h>` は、少なくとも次のような、なじみのある固定幅整数型を提供します。
 
 ```cpp
 int8_t
@@ -14169,27 +13301,27 @@ uint32_t
 uint64_t
 ```
 
-### Role of These Types
+### これらの型の役割
 
-These types are used when the width of the integer value matters explicitly.
+これらの型は、整数値の幅が明示的に重要な場合に使います。
 
-Typical use cases include:
+典型的な用途には次のものがあります。
 
-* binary formats
-* protocol definitions
-* packed data structures
-* arithmetic with explicit size expectations
-* cross-platform code that should not depend on implementation-defined plain `int` width
+* バイナリ形式
+* プロトコル定義
+* パックされたデータ構造
+* 明示的なサイズ期待を伴う算術
+* 通常の `int` の幅が実装定義であることに依存したくないクロスプラットフォームコード
 
-### Notes
+### 注記
 
-These names are meant to be straightforward and familiar to users coming from C and C++.
+これらの名前は、C や C++ から来た利用者にとって素直でなじみやすいものを意図しています。
 
 ---
 
-## Pointer-Sized and Maximum-Width Integer Types
+## ポインターサイズ整数型と最大幅整数型
 
-This header also provides integer types associated with pointer size or maximum practical width, such as:
+このヘッダーは、ポインターサイズや実用上の最大幅に関連する整数型も提供します。
 
 ```cpp
 intptr_t
@@ -14198,50 +13330,50 @@ intmax_t
 uintmax_t
 ```
 
-### Role of These Types
+### これらの型の役割
 
-They are useful when code needs to:
+これらは、コードで次のことが必要な場合に有用です。
 
-* convert pointers to integer form safely where appropriate
-* reason about the widest practical integer category
-* write generic numeric code that should adapt to the implementation
+* 適切な場面でポインターを安全に整数形式へ変換する
+* 実用上もっとも広い整数カテゴリについて考える
+* 実装に適応する汎用数値コードを書く
 
-### Notes
+### 注記
 
-These types are especially useful in low-level code and implementation-support code.
+これらの型は、低レベルコードや実装補助コードで特に有用です。
 
 ---
 
-## Optional 128-Bit Integer Types
+## 任意の 128 ビット整数型
 
-Where the implementation supports `__int128`, xer may provide:
+実装が `__int128` をサポートしている場合、xer は次を提供することがあります。
 
 ```cpp
 int128_t
 uint128_t
 ```
 
-### Role of These Types
+### これらの型の役割
 
-These types are useful when:
+これらの型は次の場合に有用です。
 
-* 64-bit range is insufficient
-* intermediate arithmetic should avoid overflow
-* larger integer constants should remain explicit in type
+* 64 ビット範囲では不十分である
+* 中間算術でオーバーフローを避けたい
+* より大きな整数定数の型を明示したい
 
-### Availability
+### 利用可能性
 
-These types are implementation-dependent.
+これらの型は実装依存です。
 
-They are available only where the compiler and target support the necessary underlying integer type.
+必要な基礎整数型をコンパイラとターゲットがサポートしている場合にのみ利用できます。
 
-Documentation should therefore describe them as optional rather than universally guaranteed.
+したがって、ドキュメントでは普遍的に保証されるものではなく、任意の機能として説明するべきです。
 
 ---
 
-## Compile-Time Numeric Helpers
+## コンパイル時数値ヘルパー
 
-`<xer/stdint.h>` may also provide helper constants such as:
+`<xer/stdint.h>` は、次のようなヘルパー定数も提供することがあります。
 
 ```cpp
 min_of<T>
@@ -14251,38 +13383,38 @@ bit_width_of<T>
 
 ### `min_of<T>`
 
-`min_of<T>` represents the minimum value of the integer type `T`.
+`min_of<T>` は、整数型 `T` の最小値を表します。
 
 ### `max_of<T>`
 
-`max_of<T>` represents the maximum value of the integer type `T`.
+`max_of<T>` は、整数型 `T` の最大値を表します。
 
 ### `bit_width_of<T>`
 
-`bit_width_of<T>` represents the bit width of `T`.
+`bit_width_of<T>` は、`T` のビット幅を表します。
 
-### Role of These Helpers
+### これらのヘルパーの役割
 
-These helpers exist so that integer-type metadata can be referred to in a compact, readable, and xer-consistent way.
+これらのヘルパーは、整数型メタデータを、簡潔で読みやすく、xer として一貫した形で参照できるようにするためにあります。
 
-They are especially useful in:
+特に次の場面で有用です。
 
-* compile-time checks
-* generic numeric utilities
-* range-sensitive code
-* documentation examples
+* コンパイル時チェック
+* 汎用数値ユーティリティ
+* 範囲に敏感なコード
+* ドキュメント例
 
-### Design Direction
+### 設計方針
 
-These helpers are intended to be simple compile-time facilities, not large abstraction layers.
+これらのヘルパーは単純なコンパイル時機能を意図しており、大きな抽象化層ではありません。
 
 ---
 
-## Integer Literal Suffixes
+## 整数リテラルサフィックス
 
-One of the most visible user-facing features of `<xer/stdint.h>` is the integer literal suffix set.
+`<xer/stdint.h>` の利用者向け機能の中で特に目に見えやすいものの一つが、整数リテラルサフィックス群です。
 
-At minimum, xer may provide literal suffixes such as:
+少なくとも、xer は次のようなリテラルサフィックスを提供することがあります。
 
 ```cpp
 _i8   _i16   _i32   _i64
@@ -14290,17 +13422,17 @@ _u8   _u16   _u32   _u64
 _i128 _u128
 ```
 
-typically under:
+これらは通常、次の名前空間下に置かれます。
 
 ```cpp
 xer::literals::integer_literals
 ```
 
-### Role of These Suffixes
+### これらのサフィックスの役割
 
-These suffixes make it possible to write typed integer constants directly and readably.
+これらのサフィックスにより、型付き整数定数を直接、読みやすく書けます。
 
-For example:
+例です。
 
 ```cpp
 using namespace xer::literals::integer_literals;
@@ -14309,32 +13441,32 @@ constexpr auto x = 123_i32;
 constexpr auto y = 255_u8;
 ```
 
-This improves clarity in code where the intended integer type matters.
+これにより、意図した整数型が重要なコードで明瞭さが高まります。
 
-### Design Direction
+### 設計方針
 
-These literal suffixes are intended to be:
+これらのリテラルサフィックスは、次の性質を意図しています。
 
-* explicit
-* readable
-* convenient in tests and examples
-* useful in compile-time contexts
+* 明示的である
+* 読みやすい
+* テストや例で便利である
+* コンパイル時文脈で有用である
 
-They are especially attractive in a project like xer, which emphasizes explicitness and type clarity.
+明示性と型の明確さを重視する xer のようなプロジェクトでは、特に相性のよい機能です。
 
 ---
 
-## Supported Literal Forms
+## 対応するリテラル形式
 
-The literal-parsing facilities behind the suffixes may support at least the following textual forms:
+サフィックスの背後にあるリテラル解析機能は、少なくとも次のテキスト形式をサポートすることがあります。
 
-* decimal
-* octal
-* hexadecimal
-* binary with `0b...`
-* digit separators using `'`
+* 10 進
+* 8 進
+* 16 進
+* `0b...` による 2 進
+* `'` による桁区切り
 
-### Examples
+### 例
 
 ```cpp
 using namespace xer::literals::integer_literals;
@@ -14345,92 +13477,92 @@ constexpr auto c = 0b1010_u8;
 constexpr auto d = 1'000'000_i64;
 ```
 
-### Notes
+### 注記
 
-These features are especially useful for:
+これらの機能は、特に次の用途で有用です。
 
-* tests
-* binary and bit-oriented code
-* examples where the intended numeric type should remain obvious
-
----
-
-## Range Checking
-
-An important design point of the integer literal facilities is that range checking is performed explicitly.
-
-### Meaning
-
-When a literal suffix requests a specific destination type, the literal should fit in that type.
-
-If it does not fit, the program should fail to compile rather than silently narrowing the value.
-
-### Why This Matters
-
-This makes typed integer literals trustworthy and avoids hidden truncation.
-
-It also aligns with xer's broader design preference for explicit failure over surprising implicit behavior.
+* テスト
+* バイナリやビット指向のコード
+* 意図した数値型を例の中で明確に保ちたい場合
 
 ---
 
-## Relationship to Other Headers
+## 範囲チェック
 
-`<xer/stdint.h>` should be understood together with:
+整数リテラル機能の重要な設計点は、範囲チェックが明示的に行われることです。
+
+### 意味
+
+リテラルサフィックスが特定の変換先型を要求する場合、そのリテラルはその型に収まるべきです。
+
+収まらない場合は、値を暗黙に縮小するのではなく、プログラムがコンパイルに失敗するべきです。
+
+### これが重要な理由
+
+これにより、型付き整数リテラルを信頼できるものにし、隠れた切り捨てを避けられます。
+
+また、意外な暗黙動作よりも明示的な失敗を好む、xer のより広い設計方針とも一致します。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/stdint.h>` は次とあわせて理解してください。
 
 * `policy_project_outline.md`
 * `header_arithmetic.md`
 
-The rough boundary is:
+大まかな境界は次のとおりです。
 
-* `<xer/stdint.h>` provides integer types, numeric limits/helpers, and typed integer literals
-* `<xer/arithmetic.h>` provides arithmetic and comparison helpers built on top of explicit numeric types
+* `<xer/stdint.h>` は整数型、数値限界値やヘルパー、型付き整数リテラルを提供する
+* `<xer/arithmetic.h>` は、明示的な数値型の上に構築される算術および比較ヘルパーを提供する
 
-This makes `<xer/stdint.h>` foundational, while `<xer/arithmetic.h>` handles higher-level numeric operations.
-
----
-
-## Relationship to xer's Numeric Design
-
-Although `<xer/stdint.h>` looks like a basic type header, it plays an important role in xer's numeric design.
-
-In particular, it helps make the following explicit:
-
-* the exact type of integer values
-* the intended width of constants
-* the range assumptions of numeric code
-* implementation-dependent availability of wider integer types
-
-This is especially valuable in a library that also provides mixed-type arithmetic helpers and explicit range checking.
+これにより `<xer/stdint.h>` は基礎となり、`<xer/arithmetic.h>` はより高水準の数値操作を扱います。
 
 ---
 
-## Documentation Notes
+## xer の数値設計との関係
 
-When this header is used in generated documentation, it is usually enough to explain:
+`<xer/stdint.h>` は基本的な型ヘッダーに見えますが、xer の数値設計では重要な役割を持ちます。
 
-* that it provides fixed-width integer types and related aliases
-* that it may provide optional 128-bit aliases where supported
-* that it includes simple compile-time integer helpers
-* that it provides user-defined literal suffixes for typed integer constants
+特に、次のことを明示する助けになります。
 
-Detailed parsing rules and edge cases for literal suffixes belong in the detailed reference or generated API sections.
+* 整数値の正確な型
+* 定数の意図した幅
+* 数値コードの範囲前提
+* より広い整数型の実装依存の利用可能性
 
----
-
-## Example Topics Commonly Worth Showing
-
-The following kinds of examples are especially suitable for this header:
-
-* declaring values with fixed-width integer types
-* using `bit_width_of<T>`
-* writing typed integer literals with `_i32` or `_u64`
-* showing compile-time range-safe constant expression use
-
-These are good candidates for executable examples in `examples/`.
+これは、型混在算術ヘルパーや明示的な範囲チェックも提供するライブラリでは特に価値があります。
 
 ---
 
-## Example
+## ドキュメント上の注記
+
+このヘッダーを生成ドキュメントで扱う場合、通常は次の点を説明すれば十分です。
+
+* 固定幅整数型と関連する別名を提供すること
+* 対応環境では任意の 128 ビット別名を提供することがあること
+* 単純なコンパイル時整数ヘルパーを含むこと
+* 型付き整数定数のためのユーザー定義リテラルサフィックスを提供すること
+
+リテラルサフィックスの詳細な解析規則や境界事例は、詳細リファレンスまたは生成された API 節に属します。
+
+---
+
+## 例として示すのに適した話題
+
+このヘッダーでは、次のような例が特に適しています。
+
+* 固定幅整数型で値を宣言する
+* `bit_width_of<T>` を使う
+* `_i32` や `_u64` で型付き整数リテラルを書く
+* コンパイル時に範囲安全な定数式の使用を示す
+
+これらは `examples/` 以下の実行可能サンプルのよい候補です。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/stdint.h>
@@ -14449,15 +13581,15 @@ auto main() -> int
 }
 ```
 
-This example shows the normal style:
+この例は、通常の使い方を示しています。
 
-* use explicit xer integer types
-* use typed integer literal suffixes
-* keep integer width visible in the code itself
+* 明示的な xer 整数型を使う
+* 型付き整数リテラルサフィックスを使う
+* 整数幅をコード自体の中で見える状態に保つ
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `header_arithmetic.md`
@@ -14465,15 +13597,15 @@ This example shows the normal style:
 
 ---
 
-## Integer Literal Suffixes
+## 整数リテラルサフィックス
 
-Integer literal suffixes are provided in:
+整数リテラルサフィックスは次の名前空間で提供されます。
 
 ```cpp
 xer::literals::integer_literals
 ```
 
-The fixed-width suffixes include:
+固定幅サフィックスには次のものがあります。
 
 ```cpp
 _i8   _i16   _i32   _i64
@@ -14481,59 +13613,53 @@ _u8   _u16   _u32   _u64
 _i128 _u128  // when supported
 ```
 
-The least-width suffixes include:
+最小幅サフィックスには次のものがあります。
 
 ```cpp
 _il8   _il16   _il32   _il64
 _ul8   _ul16   _ul32   _ul64
 ```
 
-The least-width suffixes produce the corresponding `int_leastN_t` or `uint_leastN_t` type and are useful when exact storage width is less important than a guaranteed minimum range.
+最小幅サフィックスは、対応する `int_leastN_t` または `uint_leastN_t` 型を生成します。正確な保存幅より、保証される最小範囲が重要な場合に有用です。
 
 ---
 
-## Numeric Limit Helpers
+## 数値限界値ヘルパー
 
-`min_of<T>` and `max_of<T>` are implemented through a shared numeric-limits helper so that they can also be reused by floating-point facilities such as `<xer/stdfloat.h>`.
+`min_of<T>` と `max_of<T>` は、共有の数値限界値ヘルパーを通じて実装されています。そのため、`<xer/stdfloat.h>` のような浮動小数点機能からも再利用できます。
 
-`bit_width_of<T>` remains available from `<xer/stdint.h>` for integer-oriented bit width queries.
+`bit_width_of<T>` は、整数向けのビット幅問い合わせとして `<xer/stdint.h>` から引き続き利用できます。
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/stdfloat.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/stdfloat.h>`
 
-## Purpose
+## 目的
 
-`<xer/stdfloat.h>` provides floating-point type aliases and floating-point user-defined literals in the same spirit as `<xer/stdint.h>`.
+`<xer/stdfloat.h>` は、`<xer/stdint.h>` と同じ考え方で、浮動小数点型の別名と浮動小数点ユーザー定義リテラルを提供します。
 
-The header is intended to make floating-point width and minimum-width intent explicit while still remaining usable on implementations where C++23 `<stdfloat>` support is incomplete.
-
----
-
-## Main Role
-
-This header provides:
-
-- fixed-width floating-point aliases where the implementation provides them
-- practical fallback aliases for `float32_t` and `float64_t`
-- optional aliases for 80-bit and 128-bit floating-point formats
-- least-width and fast-width floating-point aliases
-- optional decimal floating-point aliases when the implementation provides them
-- floating-point user-defined literals under `xer::literals::floating_literals`
+このヘッダーは、C++23 の `<stdfloat>` 対応が不完全な実装でも使いやすさを保ちながら、浮動小数点の幅や最小幅に対する意図を明示できるようにすることを目的としています。
 
 ---
 
-## Availability Macros
+## 主な役割
 
-The header defines availability macros for optional types.
+このヘッダーは次のものを提供します。
 
-Examples include:
+- 実装が提供している場合の固定幅浮動小数点別名
+- `float32_t` と `float64_t` の実用的なフォールバック別名
+- 80 ビットおよび 128 ビット浮動小数点形式の任意の別名
+- 最小幅および高速幅の浮動小数点別名
+- 実装が提供している場合の任意の十進浮動小数点別名
+- `xer::literals::floating_literals` 下の浮動小数点ユーザー定義リテラル
+
+---
+
+## 利用可能性マクロ
+
+このヘッダーは、任意の型に対する利用可能性マクロを定義します。
+
+例です。
 
 ```cpp
 XER_HAS_FLOAT16_T
@@ -14549,13 +13675,13 @@ XER_HAS_DECIMAL64_T
 XER_HAS_DECIMAL128_T
 ```
 
-These macros allow code and tests to guard features that depend on implementation support.
+これらのマクロにより、コードやテストは実装サポートに依存する機能をガードできます。
 
 ---
 
-## Binary Floating-Point Aliases
+## 二進浮動小数点別名
 
-At minimum, the following aliases are provided when possible:
+少なくとも、可能な場合には次の別名が提供されます。
 
 ```cpp
 float16_t
@@ -14566,15 +13692,15 @@ float128_t
 bfloat16_t
 ```
 
-`float32_t` and `float64_t` are always available in xer. If the standard `<stdfloat>` aliases are not available, they fall back to `float` and `double` respectively.
+`float32_t` と `float64_t` は xer では常に利用できます。標準の `<stdfloat>` 別名が利用できない場合、それぞれ `float` と `double` にフォールバックします。
 
-`float80_t`, `float128_t`, and `bfloat16_t` are optional and are available only when the implementation provides a suitable underlying type.
+`float80_t`、`float128_t`、`bfloat16_t` は任意であり、実装が適切な基礎型を提供している場合にのみ利用できます。
 
 ---
 
-## Least and Fast Floating-Point Aliases
+## 最小幅および高速幅の浮動小数点別名
 
-The header provides least-width and fast-width aliases such as:
+このヘッダーは、次のような最小幅および高速幅の別名を提供します。
 
 ```cpp
 float_least16_t
@@ -14590,23 +13716,23 @@ float_fast80_t
 float_fast128_t
 ```
 
-`float_least80_t` uses `float80_t` when available, and otherwise uses `float128_t` when that is available.
+`float_least80_t` は、利用可能な場合は `float80_t` を使い、そうでなければ利用可能な場合に `float128_t` を使います。
 
 ---
 
-## Maximum Floating-Point Alias
+## 最大浮動小数点別名
 
 ```cpp
 floatmax_t
 ```
 
-`floatmax_t` is selected from the widest practical binary floating-point type available to xer.
+`floatmax_t` は、xer が利用できる実用上もっとも広い二進浮動小数点型から選ばれます。
 
 ---
 
-## Decimal Floating-Point Aliases
+## 十進浮動小数点別名
 
-When the implementation provides `<decimal/decimal>`, xer exposes decimal floating-point aliases such as:
+実装が `<decimal/decimal>` を提供している場合、xer は次のような十進浮動小数点別名を公開します。
 
 ```cpp
 decimal32_t
@@ -14624,19 +13750,19 @@ decimal_fast128_t
 decimalmax_t
 ```
 
-These aliases are optional and should be guarded with the corresponding `XER_HAS_DECIMAL...` macros.
+これらの別名は任意であり、対応する `XER_HAS_DECIMAL...` マクロでガードするべきです。
 
 ---
 
-## Floating-Point Literals
+## 浮動小数点リテラル
 
-Floating-point user-defined literals are placed under:
+浮動小数点ユーザー定義リテラルは次の名前空間に置かれます。
 
 ```cpp
 xer::literals::floating_literals
 ```
 
-Examples include:
+例です。
 
 ```cpp
 _f32
@@ -14651,77 +13777,66 @@ _fl128
 _bf16
 ```
 
-Only literals whose destination type is available are provided.
+変換先の型が利用できるリテラルだけが提供されます。
 
 ---
 
-## Notes
+## 注記
 
-- This header is intentionally capability-based.
-- Optional types are not promised on every compiler or target.
-- Code that depends on optional formats should check the corresponding availability macro.
-- The least-width literal suffixes are useful when the exact underlying available type may vary by platform.
+- このヘッダーは意図的に能力ベースです。
+- 任意の型は、すべてのコンパイラやターゲットで保証されるものではありません。
+- 任意形式に依存するコードは、対応する利用可能性マクロを確認するべきです。
+- 最小幅リテラルサフィックスは、利用可能な正確な基礎型がプラットフォームによって変わり得る場合に有用です。
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/arithmetic.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/arithmetic.h>`
 
-## Purpose
+## 目的
 
-`<xer/arithmetic.h>` provides arithmetic and comparison helper functions in xer.
+`<xer/arithmetic.h>` は、算術演算と比較の補助関数を提供します。
 
-Its purpose is not merely to wrap built-in operators with different names.
-Instead, it provides a numeric utility layer designed to avoid common problems of ordinary C++ arithmetic, especially in cases such as:
+このヘッダーの目的は、組み込み演算子に別名を付けることではありません。符号付き整数型と符号無し整数型の混在、明示的な失敗処理との統合、範囲外の結果の可視化、xer 独自の数値規則に沿った比較など、通常の C++ 算術で起こりやすい問題を避けるための数値ユーティリティ層を提供します。
 
-- mixing signed and unsigned integer types
-- integrating arithmetic with explicit failure handling
-- making range failure visible
-- expressing comparisons in a way that follows xer's own numeric rules
-
-This header is therefore a central part of xer's numeric design.
+そのため、このヘッダーは xer の数値設計の中核に位置します。
 
 ---
 
-## Main Role
+## 主な役割
 
-The main role of `<xer/arithmetic.h>` is to provide arithmetic and comparison operations that are:
+`<xer/arithmetic.h>` の主な役割は、次のような算術演算と比較演算を提供することです。
 
-- explicit
-- predictable
-- easier to chain safely than raw built-in operators
-- better aligned with xer's error model
+- 明示的であること
+- 予測しやすいこと
+- 生の組み込み演算子より安全に連鎖しやすいこと
+- xer のエラーモデルと整合していること
 
-In particular, it exists to make the following easier:
+特に、次の用途を扱いやすくします。
 
-- mixed-type integer arithmetic without surprising implicit conversions
-- explicit range-aware arithmetic
-- explicit comparison helpers for use in generic code
-- utility functions such as `min`, `max`, `clamp`, and `in_range`
-
----
-
-## Main Function Groups
-
-At a high level, `<xer/arithmetic.h>` contains the following groups of functionality:
-
-- integer arithmetic helpers
-- comparison helpers
-- approximate floating-point comparison
-- range and bounds helpers
-- absolute-value helpers
-- floating-point and complex-number support within the same general design
+- 符号付き整数型と符号無し整数型を混在させた整数演算
+- 範囲を意識した明示的な算術演算
+- ジェネリックコードで使いやすい比較補助関数
+- `min`, `max`, `clamp`, `in_range` などの実用的なユーティリティ
 
 ---
 
-## Integer Arithmetic Helpers
+## 主な関数群
 
-At minimum, this header provides the following integer-oriented arithmetic helpers:
+`<xer/arithmetic.h>` には、大きく分けて次の機能群があります。
+
+- 整数算術補助関数
+- 比較補助関数
+- 浮動小数点数の近似比較
+- 範囲・境界補助関数
+- 絶対値補助関数
+- 平方・立方補助関数
+- 同じ設計に基づく浮動小数点数および複素数のサポート
+
+---
+
+## 整数算術補助関数
+
+このヘッダーは、少なくとも次の整数向け算術補助関数を提供します。
 
 ```cpp
 add
@@ -14736,28 +13851,28 @@ mod
 umod
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions provide arithmetic operations whose behavior is designed explicitly rather than inherited automatically from C++'s usual arithmetic conversions.
+これらの関数は、C++ の通常の算術変換から自動的に継承される動作ではなく、明示的に設計された算術演算を提供します。
 
-This is especially important when signed and unsigned integer types are mixed.
+これは、符号付き整数型と符号無し整数型を混在させる場合に特に重要です。
 
-### Design Direction
+### 設計方針
 
-The design goals of this group include:
+このグループの設計目標は次のとおりです。
 
-* allow mixed signed/unsigned input where that is mathematically meaningful
-* return explicit failure when the result does not fit in the target result domain
-* avoid silent narrowing or surprising wraparound
-* make division and remainder behavior explicit
+- 数学的に意味がある場合は、符号付き・符号無しの混在入力を許す
+- 結果が対象の結果領域に収まらない場合は明示的に失敗を返す
+- 暗黙の狭小化や予期しないラップアラウンドを避ける
+- 除算と剰余の動作を明示する
 
 ---
 
-## `add`, `sub`, and `mul`
+## `add`, `sub`, `mul`
 
-### Signed-Domain Variants
+### 符号付き領域の変種
 
-The following helpers conceptually operate in the signed result domain:
+次の補助関数は、概念的に符号付きの結果領域で動作します。
 
 ```cpp
 add
@@ -14765,33 +13880,31 @@ sub
 mul
 ```
 
-These functions generally return:
+整数値に対しては、通常、次を返します。
 
 ```cpp
 xer::result<std::int64_t>
 ```
 
-when operating on integer values.
+### 意味
 
-### Meaning
+- `add(a, b)` は加算を行います。
+- `sub(a, b)` は減算を行います。
+- `mul(a, b)` は乗算を行います。
 
-* `add(a, b)` performs addition
-* `sub(a, b)` performs subtraction
-* `mul(a, b)` performs multiplication
+### エラー処理
 
-### Error Handling
+結果が意図した符号付き結果領域で表現できない場合、これらの関数は失敗を返します。
 
-If the result cannot be represented in the intended signed result domain, these functions return failure.
-
-This makes overflow and out-of-range situations explicit.
+これにより、オーバーフローや範囲外の状況が明示されます。
 
 ---
 
-## `uadd`, `usub`, and `umul`
+## `uadd`, `usub`, `umul`
 
-### Unsigned-Domain Variants
+### 符号無し領域の変種
 
-The following helpers conceptually operate in the unsigned result domain:
+次の補助関数は、概念的に符号無しの結果領域で動作します。
 
 ```cpp
 uadd
@@ -14799,31 +13912,29 @@ usub
 umul
 ```
 
-These functions generally return:
+整数値に対しては、通常、次を返します。
 
 ```cpp
 xer::result<std::uint64_t>
 ```
 
-when operating on integer values.
+### 意味
 
-### Meaning
+- `uadd(a, b)` は符号無し結果領域で加算を行います。
+- `usub(a, b)` は符号無し結果領域で減算を行います。
+- `umul(a, b)` は符号無し結果領域で乗算を行います。
 
-* `uadd(a, b)` performs addition in the unsigned result domain
-* `usub(a, b)` performs subtraction in the unsigned result domain
-* `umul(a, b)` performs multiplication in the unsigned result domain
+### エラー処理
 
-### Error Handling
+数学的に選ばれた結果が意図した符号無し結果領域で表現できない場合、これらの関数は失敗を返します。
 
-If the mathematically selected result cannot be represented in the intended unsigned result domain, these functions return failure.
-
-For example, a negative result is an error for `usub` or `umul`.
+たとえば、`usub` や `umul` で負の結果になる場合はエラーです。
 
 ---
 
-## `div`, `udiv`, `mod`, and `umod`
+## `div`, `udiv`, `mod`, `umod`
 
-This header also provides division and remainder helpers:
+このヘッダーは、除算と剰余の補助関数も提供します。
 
 ```cpp
 div
@@ -14834,42 +13945,42 @@ umod
 
 ### `div`
 
-`div` performs division in the signed result domain.
+`div` は符号付き結果領域で除算を行います。
 
-For integer input:
+整数入力では、次の規則に従います。
 
-* the quotient is rounded toward zero
-* division by zero is an error
-* out-of-range results are errors
-* a remainder output may also be supported
+- 商は 0 方向に丸められます。
+- 0 除算はエラーです。
+- 範囲外の結果はエラーです。
+- 剰余出力もサポートされる場合があります。
 
 ### `udiv`
 
-`udiv` performs division in the unsigned result domain.
+`udiv` は符号無し結果領域で除算を行います。
 
-For integer input:
+整数入力では、次の規則に従います。
 
-* division by zero is an error
-* out-of-range results are errors
-* a remainder output may also be supported
+- 0 除算はエラーです。
+- 範囲外の結果はエラーです。
+- 剰余出力もサポートされる場合があります。
 
 ### `mod`
 
-`mod` returns the signed remainder according to the same rule family as `div`.
+`mod` は `div` と同じ規則系に基づく符号付き剰余を返します。
 
 ### `umod`
 
-`umod` returns the unsigned remainder according to the same rule family as `udiv`.
+`umod` は `udiv` と同じ規則系に基づく符号無し剰余を返します。
 
-### Why These Matter
+### 重要性
 
-These helpers make quotient/remainder behavior explicit and keep it aligned with xer's own arithmetic policy rather than leaving everything to built-in operator behavior.
+これらの補助関数は、商と剰余の動作を明示し、組み込み演算子の動作に任せきるのではなく、xer 独自の算術ポリシーと整合させます。
 
 ---
 
-## Comparison Helpers
+## 比較補助関数
 
-At minimum, `<xer/arithmetic.h>` provides the following comparison helpers:
+`<xer/arithmetic.h>` は、少なくとも次の比較補助関数を提供します。
 
 ```cpp
 eq
@@ -14880,131 +13991,71 @@ gt
 ge
 ```
 
-### Role of This Group
+### このグループの役割
 
-These functions provide explicit comparison in a way that fits xer's numeric rules.
+これらの関数は、xer の数値規則に合う形で明示的な比較を提供します。
 
-They are especially useful when:
+特に次の場合に有用です。
 
-* mixed integer types are involved
-* generic code should not depend directly on built-in operator behavior
-* the project wants one consistent comparison layer across arithmetic helpers
+- 異なる整数型が混在する
+- ジェネリックコードで組み込み比較演算子に直接依存したくない
+- 算術補助関数全体で一貫した比較層を使いたい
 
-### Return Type
+### 戻り値型
 
-Comparison helpers return:
+比較補助関数は通常 `bool` を返します。
 
-```cpp
-bool
-```
+比較は通常の失敗を表す操作ではありません。比較可能な入力に対しては、結果は `true` または `false` のどちらかです。
 
-They do **not** return `xer::result<bool>` in the ordinary design.
+### `xer::result<bool>` を使わない理由
 
-### Why `xer::result<bool>` Is Not Used
+これらの比較補助関数は、通常の範囲外エラーやオーバーフローを報告するための API ではありません。比較の意味は型と値から決まり、失敗を通常の制御フローとして返す必要はありません。
 
-Returning `xer::result<bool>` from ordinary comparison helpers would make conditional use too awkward and too easy to misuse.
-
-For example, code such as:
-
-```cpp
-if (eq(a, b)) {
-    ...
-}
-```
-
-should remain straightforward.
-
-For that reason, comparison helpers use `bool` and instead restrict their intended argument domain appropriately.
+比較が成り立たない型の組み合わせは、原則としてコンパイル時の問題として扱われます。
 
 ---
 
-## Approximate Floating-Point Comparison
+## 浮動小数点数の近似比較
 
-`<xer/arithmetic.h>` provides an approximate comparison helper for floating-point-oriented checks:
-
-```cpp
-is_close
-```
+このヘッダーは、浮動小数点数の近似比較を行う補助関数を提供します。
 
 ### `is_close`
 
+`is_close` は、2つの浮動小数点値が指定した許容範囲内で十分近いかを判定します。
+
+概念的には次のような用途に使います。
+
 ```cpp
-template<typename A, typename B, typename E>
-constexpr auto is_close(A lhs, B rhs, E epsilon) noexcept -> bool;
-
-template<typename A, typename B, typename E>
-constexpr auto is_close(
-    const result<A>& lhs,
-    B rhs,
-    E epsilon) noexcept -> result<bool>;
-
-template<typename A, typename B, typename E>
-constexpr auto is_close(
-    A lhs,
-    const result<B>& rhs,
-    E epsilon) noexcept -> result<bool>;
-
-template<typename A, typename B, typename E>
-constexpr auto is_close(
-    const result<A>& lhs,
-    const result<B>& rhs,
-    E epsilon) noexcept -> result<bool>;
+xer::is_close(a, b, tolerance)
 ```
 
-`is_close(lhs, rhs, epsilon)` tests whether two arithmetic values are close enough under an absolute tolerance.
+`a` と `b` の差が許容値以下であれば `true` を返します。
 
-Conceptually, the comparison is:
+この関数は、丸め誤差を含む計算結果を比較するための実用的な補助関数です。厳密な等価比較の代替として、数値計算やテストで使うことを想定しています。
 
-```text
-abs(lhs - rhs) <= epsilon
-```
+### 丸め余裕
 
-The comparison is inclusive. Therefore, values exactly at the specified tolerance boundary are treated as close.
+浮動小数点演算では、数学的には等しい値でも、丸め誤差によって完全には一致しないことがあります。
 
-### Rounding Margin
+`is_close` は、そのような場合に「十分近い」ことを明示的に判定するための関数です。
 
-For positive tolerance values, the implementation may apply a small rounding margin based on the common arithmetic type.
+### 無効値
 
-This is intended to avoid rejecting values that are mathematically on the tolerance boundary but become slightly larger due to floating-point representation and subtraction rounding.
+`NaN` などの無効値は、近似比較の対象として特別な注意が必要です。具体的な扱いは実装の仕様に従いますが、通常の用途では有限値同士の比較を想定します。
 
-For example, a difference that is mathematically `0.05` should not be rejected merely because the computed floating-point difference is slightly greater than `0.05`.
+### `xer::result` 引数
 
-When `epsilon` is zero, this extra rounding margin is not applied.
-A zero tolerance therefore behaves as an exact comparison after conversion to the internal comparison type.
+`<xer/arithmetic.h>` は、xer の中でも特別に `xer::result` を引数として扱う関数を持つ場合があります。これは、算術演算を連鎖させるための実用上の例外です。
 
-### Invalid Values
+### 名前
 
-`is_close` returns `false` when any of the following apply:
-
-- `lhs` is NaN or infinity
-- `rhs` is NaN or infinity
-- `epsilon` is NaN or infinity
-- `epsilon` is negative
-- the computed difference is not finite
-
-This keeps approximate comparison simple and avoids treating invalid floating-point states as ordinary closeness.
-
-### `xer::result` Arguments
-
-As part of `<xer/arithmetic.h>`, `is_close` may accept `xer::result` operands for `lhs` and `rhs`.
-
-If a result operand contains a success value, that value is compared.
-If a result operand contains an error, the error is propagated and the return type is `xer::result<bool>`.
-
-The tolerance argument is intentionally kept as an ordinary value.
-The tolerance is normally a fixed decision made by the caller, and accepting a result for it would add little practical value.
-
-### Naming
-
-The name `is_close` is used instead of shorter names such as `near`.
-
-This avoids collision with legacy platform macros while keeping the purpose of the function clear at the call site.
+近似比較の関数名は、意味が曖昧になりにくいように `is_close` としています。
 
 ---
 
-## Range and Bounds Helpers
+## 範囲・境界補助関数
 
-This header also provides utility helpers such as:
+このヘッダーは、範囲や境界を扱う補助関数を提供します。
 
 ```cpp
 in_range
@@ -15015,66 +14066,31 @@ clamp
 
 ### `in_range`
 
-`in_range<T>(value)` checks whether `value` lies within the representable numeric range of type `T`.
+`in_range<T>(value)` は、`value` が型 `T` の表現可能範囲に収まるかどうかを判定します。
 
-```cpp
-template<typename T, typename U>
-auto in_range(U value) noexcept -> bool;
+これは、明示的なキャストや代入の前に、値が安全に収まるかを確認したい場合に有用です。
 
-template<typename T, typename U, typename Detail>
-auto in_range(const xer::result<U, Detail>& value) noexcept -> bool;
-```
+### `min` と `max`
 
-Its role is to make explicit range-checking available in ordinary code.
-This is especially important before conversion or when generic code works across multiple numeric types.
+`min` と `max` は、値の大小関係に基づいて小さい方または大きい方を返します。
 
-If `value` is a floating-point NaN, the function returns `false`.
-`bool` is intentionally rejected as the target type `T`.
-When a `xer::result` argument contains an error, the result overload returns `false`.
-
-### `min` and `max`
-
-`min` and `max` return the smaller or larger of two arithmetic values according to xer's comparison rules.
-
-```cpp
-template<typename A, typename B>
-auto min(A lhs, B rhs) -> xer::result<result-type>;
-
-template<typename A, typename B>
-auto max(A lhs, B rhs) -> xer::result<result-type>;
-```
-
-They are not intended to be mere clones of the standard library forms.
-Instead, they are designed for mixed-type use under xer's own numeric policy.
-
-For integer operands, the result type follows xer's promoted integer result rules.
-For non-integer arithmetic combinations, the result type is based on `std::common_type_t`.
-If the selected value cannot be represented in the selected result type, the function returns `error_t::out_of_range`.
-
-As part of `<xer/arithmetic.h>`, these helpers also accept `xer::result` operands and propagate existing errors.
+xer の比較規則に沿うことで、異なる数値型が混在する場合でも、組み込み演算子の暗黙変換に起因する驚きを減らします。
 
 ### `clamp`
 
-`clamp(value, lo, hi)` constrains a value to the closed interval `[lo, hi]`.
+`clamp(value, low, high)` は、`value` を `[low, high]` の範囲に収めます。
 
-```cpp
-template<typename T, typename Lo, typename Hi>
-auto clamp(T value, Lo lo, Hi hi) -> xer::result<T>;
-```
+- `value < low` なら `low`
+- `value > high` なら `high`
+- それ以外なら `value`
 
-The return type is always the type of the first argument `value`.
-If `hi < lo`, the function returns `error_t::invalid_argument`.
-If the selected value or selected bound cannot be represented in the first-argument type, the function returns `error_t::out_of_range`.
-
-As part of `<xer/arithmetic.h>`, this helper also accepts a `xer::result` value argument and propagates existing errors.
-
-Its purpose is to provide an explicit and predictable clamping helper that works consistently with xer's comparison model.
+を返します。
 
 ---
 
-## Absolute-Value Helpers
+## 絶対値補助関数
 
-At minimum, this header provides:
+このヘッダーは、絶対値を扱う補助関数を提供します。
 
 ```cpp
 abs
@@ -15083,39 +14099,25 @@ uabs
 
 ### `abs`
 
-`abs(value)` returns the absolute value in the signed-domain design.
+`abs` は、符号付き領域で絶対値を返します。
 
-For integer input, it generally returns:
-
-```cpp
-xer::result<std::int64_t>
-```
-
-and reports failure if the result cannot be represented.
+結果が表現できない場合は失敗を返します。たとえば、2の補数表現で最小の負数を正に反転できない場合が該当します。
 
 ### `uabs`
 
-`uabs(value)` returns the nonnegative absolute value in the unsigned-domain design.
+`uabs` は、絶対値を符号無し領域で返します。
 
-For integer input, it generally returns:
+符号付き最小値のように、符号付き領域では表現できない絶対値も、符号無し領域では表現できる場合があります。
 
-```cpp
-xer::result<std::uint64_t>
-```
+### 重要性
 
-and reports failure if the result cannot be represented.
-
-### Why These Helpers Matter
-
-These helpers are important because even "simple" absolute-value operations can fail in fixed-width signed integer domains.
-
-xer therefore makes that failure explicit.
+絶対値は単純に見えますが、整数型では最小値の扱いに落とし穴があります。これらの補助関数は、その問題を明示的に扱うために用意されています。
 
 ---
 
-## Square and Cube Helpers
+## 平方・立方補助関数
 
-`<xer/arithmetic.h>` also provides small power helpers:
+このヘッダーは、平方と立方を計算する補助関数も提供します。
 
 ```cpp
 sq
@@ -15124,188 +14126,136 @@ cb
 
 ### `sq`
 
-`sq(value)` returns the square of `value`.
-
-For integer input, it generally returns:
-
-```cpp
-xer::result<xer::int64_t>
-```
-
-and reports failure if the squared value cannot be represented in the signed result domain.
-
-For floating-point input, it follows the floating-point arithmetic rules of this header and returns a result whose success value is `long double`.
+`sq(value)` は `value * value` を表します。
 
 ### `cb`
 
-`cb(value)` returns the cube of `value`.
+`cb(value)` は `value * value * value` を表します。
 
-It follows the same result and error-handling policy as `sq`.
-For integer input, overflow and out-of-range results are reported explicitly.
+### 連鎖利用
 
-### Chained Use
-
-As arithmetic helpers, `sq` and `cb` may also accept `xer::result` arguments.
-This allows forms such as:
-
-```cpp
-const auto value = xer::sq(xer::add(2, 3));
-```
-
-If the argument result already contains an error, that error is propagated.
----
-
-## Acceptance of `xer::result`
-
-One of the most important design points of `<xer/arithmetic.h>` is that arithmetic helpers may accept `xer::result` arguments.
-
-### Why This Header Is Special
-
-In the general xer API policy, ordinary public APIs are not supposed to take `xer::result` as an argument.
-
-However, `<xer/arithmetic.h>` is the main exception.
-
-This is because arithmetic chaining has clear value when intermediate failures should propagate naturally.
-
-### Meaning
-
-If an arithmetic helper receives a `xer::result` argument:
-
-* if it contains a success value, that value is used
-* if it contains an error, that error is propagated
-
-This makes it easier to write chained arithmetic expressions without manually unwrapping every intermediate step.
-
-### Important Boundary
-
-This exception is specific to the arithmetic area.
-It should not be treated as the default design for ordinary public APIs elsewhere in the library.
+これらの関数は、算術補助関数の結果を扱いやすくし、式の意図を読み取りやすくするための小さなユーティリティです。
 
 ---
 
-## Floating-Point Support
+## `xer::result` の受け入れ
 
-`<xer/arithmetic.h>` also covers floating-point arithmetic within the same general design.
+### このヘッダーが特別である理由
 
-### General Direction
+通常の xer の公開 API は、`xer::result` を引数として受け取ることを避けます。失敗は呼び出し側で明示的に処理するのが基本です。
 
-For floating-point input:
+しかし算術補助関数では、演算を安全に連鎖したい場面が多いため、`xer::result` を受け取る特別な設計が採用される場合があります。
 
-* results may be represented in `long double`
-* explicit failure handling is still used where appropriate
-* non-computable cases may be treated as failure
+### 意味
 
-### Why This Matters
+前段の演算が失敗している場合、後続の演算もその失敗を伝播します。前段が成功している場合は、その値を使って演算を続けます。
 
-This allows xer arithmetic helpers to remain usable across both integer and floating-point code while keeping a unified design direction.
+### 重要な境界
 
----
-
-## Complex-Number Support
-
-Within a reasonable scope, this header may also support arithmetic on complex values.
-
-### General Direction
-
-For complex-number input:
-
-* addition, subtraction, multiplication, and division may be supported
-* the result type may be based on `std::complex<long double>`
-* comparison operations are generally not provided
-
-### Why Comparison Is Different
-
-Order comparison is not part of the ordinary complex-number model.
-For that reason, the comparison helper family does not extend mechanically to complex numbers.
+この設計は算術補助関数のための実用的な例外です。すべての公開 API が `xer::result` 引数を受け取るべきだという意味ではありません。
 
 ---
 
-## Relationship Between Arithmetic and Comparison
+## 浮動小数点数のサポート
 
-A central design principle of this header is that arithmetic helpers should use xer's comparison helpers internally where ordering matters.
+### 一般方針
 
-### Meaning
+浮動小数点数についても、整数と同じく、明示的で読みやすい補助関数を提供します。
 
-When arithmetic utilities such as:
+ただし、浮動小数点数ではオーバーフロー、無限大、NaN、丸め誤差など、整数とは異なる性質があります。そのため、整数演算と完全に同じ意味にはなりません。
 
-* `min`
-* `max`
-* `clamp`
+### 重要性
 
-need ordering, they should use `xer::lt` and related helpers rather than relying directly on built-in `<`.
-
-### Why This Matters
-
-This keeps the numeric model internally consistent, especially for mixed signed/unsigned cases.
+同じ名前の補助関数で整数と浮動小数点数の両方を扱えると、ジェネリックコードで使いやすくなります。一方で、比較やエラー処理ではそれぞれの型の性質を尊重します。
 
 ---
 
-## Relationship to Other Headers
+## 複素数のサポート
 
-`<xer/arithmetic.h>` should be understood together with:
+### 一般方針
 
-* `policy_project_outline.md`
-* `policy_arithmetic.md`
-* `policy_result_arguments.md`
-* `header_stdint.md`
-* `header_error.md`
+複素数についても、可能な範囲で同じ算術補助関数の設計に含めます。
 
-The rough boundary is:
+加算、減算、乗算、除算などは自然に定義できます。
 
-* `<xer/stdint.h>` provides integer types, limits/helpers, and typed integer literals
-* `<xer/error.h>` provides `xer::result` and error machinery
-* `<xer/arithmetic.h>` provides arithmetic and comparison operations built on top of those foundations
+### 比較が異なる理由
+
+複素数には自然な大小関係がありません。そのため、`lt` や `gt` のような順序比較は通常の実数とは同じようには扱えません。
+
+等価性と順序性は別の問題として扱います。
 
 ---
 
-## Documentation Notes
+## 算術と比較の関係
 
-When this header is used in generated documentation, it is usually enough to explain:
+### 意味
 
-* that it provides explicit arithmetic and comparison helpers
-* that mixed integer types are an important design target
-* that ordinary failure is represented explicitly through `xer::result`
-* that this header is the main public exception to the general "no `xer::result` arguments" rule
+算術補助関数と比較補助関数は、どちらも xer の数値規則を支える層です。
 
-Detailed per-function numeric rules belong in the detailed reference or generated API sections.
+算術は値を生成し、比較は値の関係を判定します。どちらも、型変換や範囲の扱いをできるだけ明示的にします。
 
----
+### 重要性
 
-## Example Topics Commonly Worth Showing
-
-The following kinds of examples are especially suitable for this header:
-
-* adding signed and unsigned integers with `add`
-* propagating failure through chained arithmetic helpers
-* checking representability with `in_range`
-* using `min`, `max`, or `clamp` with mixed numeric types
-* using `abs` or `uabs` with explicit result checking
-* using `sq` or `cb` with explicit result checking
-* comparing floating-point values with `is_close`
-* comparing floating-point values with `is_close`
-
-These are good candidates for executable examples in `examples/`.
+この関係をそろえることで、数値 API 全体の予測可能性が高まります。
 
 ---
 
-## Example
+## 他のヘッダーとの関係
+
+`<xer/arithmetic.h>` は次のヘッダーやポリシーと関係します。
+
+- `<xer/error.h>`
+- `<xer/quantity.h>`
+- `<xer/interval.h>`
+- `<xer/cyclic.h>`
+- `policy_arithmetic.md`
+- `policy_project_outline.md`
+
+---
+
+## ドキュメント上の注意
+
+このヘッダーを生成リファレンスで扱う場合は、次の点を説明するのが重要です。
+
+- 組み込み演算子の単なる別名ではないこと
+- 符号付き・符号無しの混在を明示的に扱うこと
+- 範囲外やオーバーフローを `xer::result` で表すこと
+- 比較補助関数は通常 `bool` を返すこと
+- `xer::result` 引数を受け取るのは算術連鎖のための限定的な例外であること
+
+---
+
+## 例として示す価値がある題材
+
+このヘッダーでは、次のような例が適しています。
+
+- `add` や `sub` による範囲安全な整数演算
+- `uabs` による安全な絶対値取得
+- `is_close` による浮動小数点数の近似比較
+- `in_range` による代入前チェック
+- `min`, `max`, `clamp` の異種数値型での利用
+
+---
+
+## 例
 
 ```cpp
 #include <xer/arithmetic.h>
 
+#include <cstdint>
+
 auto main() -> int
 {
-    const auto sum = xer::add(10u, -3);
+    const auto sum = xer::add(std::int64_t{40}, std::uint64_t{2});
     if (!sum.has_value()) {
         return 1;
     }
 
-    const auto limited = xer::clamp(*sum, -5, 5);
-    if (!limited.has_value()) {
+    if (*sum != 42) {
         return 1;
     }
 
-    if (*limited != 5) {
+    if (!xer::is_close(1.0, 1.0 + 1e-9, 1e-8)) {
         return 1;
     }
 
@@ -15313,70 +14263,58 @@ auto main() -> int
 }
 ```
 
-This example shows the normal xer style:
-
-* use explicit arithmetic helpers instead of raw operators where policy matters
-* check `xer::result` explicitly
-* use utility helpers such as `clamp` in the same model
-
 ---
 
-## See Also
+## 関連項目
 
-* `policy_project_outline.md`
-* `policy_arithmetic.md`
-* `policy_result_arguments.md`
-* `header_stdint.md`
-* `header_error.md`
+- `policy_arithmetic.md`
+- `policy_project_outline.md`
+- `header_error.md`
+- `header_quantity.md`
+- `header_interval.md`
+- `header_cyclic.md`
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/cyclic.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/cyclic.h>`
 
-## Purpose
+## 目的
 
-`<xer/cyclic.h>` provides the `cyclic` type and related helpers for handling circular values in xer.
+`<xer/cyclic.h>` は、xer における循環値を扱うための `cyclic` 型と関連する補助機能を提供します。
 
-This header is intended for values such as:
+このヘッダーは、次のような値を対象にします。
 
-- angles
-- phases
-- directions
-- time-of-day-like circular positions
-- other quantities defined relative to one full turn
+- 角度
+- 位相
+- 方向
+- 時刻のような循環位置
+- 1 周を基準として定義されるその他の量
 
-Its role is not merely to provide modular arithmetic.
-Instead, it provides a lightweight value type that makes circular semantics explicit, especially concepts such as clockwise and counterclockwise distance.
-
----
-
-## Main Role
-
-The main role of `<xer/cyclic.h>` is to provide a compact and explicit model for circular values that:
-
-- are normalized to one full turn
-- need wraparound behavior
-- benefit from shortest-difference operations
-- should expose clockwise and counterclockwise interpretation directly
-
-This makes the header especially useful for code involving:
-
-- angles and rotations
-- periodic control values
-- UI or graphics direction handling
-- other one-turn-based quantities
+その役割は単なる剰余算を提供することではありません。代わりに、時計回り距離や反時計回り距離のような概念を含め、循環的な意味を明示する軽量な値型を提供します。
 
 ---
 
-## Main Entities
+## 主な役割
 
-At minimum, `<xer/cyclic.h>` provides the following entities:
+`<xer/cyclic.h>` の主な役割は、次の性質を持つ循環値のための、小さく明示的なモデルを提供することです。
+
+- 1 周に正規化される
+- 折り返し挙動が必要である
+- 最短差分操作が有用である
+- 時計回り / 反時計回りの解釈を直接表したい
+
+このため、このヘッダーは次のようなコードで特に有用です。
+
+- 角度と回転
+- 周期的な制御値
+- UI やグラフィックスにおける方向処理
+- その他の 1 周基準の量
+
+---
+
+## 主なエンティティ
+
+少なくとも、`<xer/cyclic.h>` は次のエンティティを提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -15395,19 +14333,19 @@ template <std::floating_point T>
 auto to_radian(cyclic<T> value) noexcept -> T;
 ```
 
-The exact overload set may grow, but this is the essential public shape.
+正確なオーバーロード集合は今後増える可能性がありますが、これが本質的な公開形です。
 
 ---
 
 ## `cyclic<T>`
 
-`cyclic<T>` is the central type of the header.
+`cyclic<T>` はこのヘッダーの中心となる型です。
 
-It represents a circular value normalized to one full turn.
+これは 1 周に正規化された循環値を表します。
 
-### Basic Shape
+### 基本形
 
-At minimum, the class is expected to have a form like the following:
+少なくとも、このクラスは次のような形を持つことが想定されます。
 
 ```cpp id="0r4t03"
 template <std::floating_point T>
@@ -15441,89 +14379,88 @@ public:
 };
 ```
 
-This header is therefore centered on one small, value-oriented class template rather than on a large framework.
+したがって、このヘッダーは大きなフレームワークではなく、小さな値指向のクラステンプレートを中心とします。
 
 ---
 
-## Internal Representation
+## 内部表現
 
-`cyclic<T>` uses a normalized internal representation where one full turn is `1`.
+`cyclic<T>` は、1 周を `1` とする正規化済み内部表現を使います。
 
-### Basic Rule
+### 基本規則
 
-The stored value always belongs to the half-open interval:
+保存される値は常に半開区間に属します。
 
 ```text
 [0, 1)
 ```
 
-That means:
+つまり、
 
-* `0` is the reference position
-* `1` is identified with `0`
-* values are normalized after construction and arithmetic updates
+* `0` は基準位置
+* `1` は `0` と同一視される
+* 構築後および算術更新後に値は正規化される
 
-### Why This Matters
+### なぜ重要か
 
-By using `[0, 1)` internally, the circular nature of the value is separated cleanly from external units such as:
+内部的に `[0, 1)` を使うことで、値の循環的性質を次のような外部単位からきれいに分離できます。
 
-* degrees
-* radians
-* any other one-turn-based external scale
+* 度
+* ラジアン
+* その他の 1 周基準の外部尺度
 
-This makes the type compact and unit-independent.
+これにより、この型は小さく単位非依存になります。
 
 ---
 
-## Supported Value Types
+## 対応する値型
 
-`cyclic<T>` is parameterized by a floating-point type.
+`cyclic<T>` は浮動小数点型をテンプレート引数に取ります。
 
-The intended template arguments are:
+想定されるテンプレート引数は次です。
 
 * `float`
 * `double`
 * `long double`
 
-Integer types are not accepted.
+整数型は受け付けません。
 
-### Why Floating-Point Types
+### なぜ浮動小数点型か
 
-Circular values are naturally modeled as continuous values rather than discrete modular integers in the main intended use cases.
+主な用途では、循環値は離散的な剰余整数ではなく、連続値としてモデル化するのが自然です。
 
-This is especially appropriate for:
+これは特に次に適しています。
 
-* direction control
-* angle interpolation
-* phase-related processing
-* real-time graphics and UI work
+* 方向制御
+* 角度補間
+* 位相関連処理
+* リアルタイムグラフィックスや UI 処理
 
 ---
 
-## Normalization
+## 正規化
 
-A `cyclic<T>` object always stores a normalized value.
+`cyclic<T>` オブジェクトは常に正規化済みの値を保存します。
 
-### Meaning
+### 意味
 
-Conceptually, normalization means mapping an arbitrary value into the interval `[0, 1)`.
+概念的には、正規化とは任意の値を `[0, 1)` に写すことです。
 
-Examples:
+例です。
 
-* `0.3` stays `0.3`
-* `1.3` becomes `0.3`
-* `-0.2` becomes `0.8`
+* `0.3` は `0.3` のまま
+* `1.3` は `0.3` になる
+* `-0.2` は `0.8` になる
 
-### Design Direction
+### 設計方針
 
-The exact implementation is not the public concern.
-What matters is the invariant:
+具体的な実装は公開上の関心事ではありません。重要なのは次の不変条件です。
 
 ```text
 0 <= value < 1
 ```
 
-This invariant is fundamental to all operations provided by the type.
+この不変条件は、この型が提供するすべての操作の基礎です。
 
 ---
 
@@ -15533,28 +14470,27 @@ This invariant is fundamental to all operations provided by the type.
 auto value() const noexcept -> T;
 ```
 
-### Purpose
+### 目的
 
-`value()` returns the internal normalized representation.
+`value()` は内部の正規化済み表現を返します。
 
-### Meaning
+### 意味
 
-The returned value is always in `[0, 1)`.
+返される値は常に `[0, 1)` にあります。
 
-This is the raw circular representation used by the type itself.
+これは型自身が使う生の循環表現です。
 
-### Notes
+### 注意
 
-This is not the same thing as a degree or radian value.
-Those conversions are handled by separate helper functions.
+これは度やラジアン値とは別物です。それらの変換は別の補助関数が扱います。
 
 ---
 
-## Clockwise and Counterclockwise Distance
+## 時計回り距離と反時計回り距離
 
-One of the defining features of `cyclic<T>` is that it makes direction along the circle explicit.
+`cyclic<T>` の特徴の 1 つは、円周上の方向を明示することです。
 
-At minimum, this is expressed by:
+少なくとも、これは次の関数で表されます。
 
 ```cpp id="ca9elv"
 auto cw(cyclic to) const noexcept -> T;
@@ -15563,23 +14499,23 @@ auto ccw(cyclic to) const noexcept -> T;
 
 ### `cw`
 
-`cw(to)` returns the clockwise distance from `this` to `to`.
+`cw(to)` は `this` から `to` までの時計回り距離を返します。
 
 ### `ccw`
 
-`ccw(to)` returns the counterclockwise distance from `this` to `to`.
+`ccw(to)` は `this` から `to` までの反時計回り距離を返します。
 
-### Range
+### 範囲
 
-These distances are returned in the range:
+これらの距離は次の範囲で返されます。
 
 ```text
 [0, 1)
 ```
 
-### Why This Matters
+### なぜ重要か
 
-This explicit directional model is one of the main reasons `cyclic<T>` exists as its own type rather than simply using a floating-point value with manual modulo arithmetic.
+この明示的な方向モデルは、`cyclic<T>` が単なる浮動小数点値と手作業の剰余算ではなく、独自の型として存在する主な理由の 1 つです。
 
 ---
 
@@ -15589,40 +14525,40 @@ This explicit directional model is one of the main reasons `cyclic<T>` exists as
 auto diff(cyclic to) const noexcept -> T;
 ```
 
-### Purpose
+### 目的
 
-`diff(to)` returns the shortest signed difference from `this` to `to`.
+`diff(to)` は `this` から `to` までの最短の符号付き差分を返します。
 
-### Meaning of the Sign
+### 符号の意味
 
-* positive means counterclockwise
-* negative means clockwise
+* 正は反時計回り
+* 負は時計回り
 
-### Range
+### 範囲
 
-The returned value lies in:
+返される値は次の範囲にあります。
 
 ```text
 [-0.5, 0.5)
 ```
 
-If the difference is exactly half a turn, it is normalized to the `-0.5` side.
+差分がちょうど半周の場合は、`-0.5` 側へ正規化されます。
 
-### Why This Matters
+### なぜ重要か
 
-This operation is especially useful in practical code that wants:
+この操作は、実用的なコードで次のことを行いたい場合に特に有用です。
 
-* shortest-angle movement
-* compact directional difference logic
-* comparison on a circle without manual wraparound handling
+* 最短角度移動
+* 簡潔な方向差分ロジック
+* 折り返しを手作業で扱わない円周上の比較
 
 ---
 
-## Equality Testing
+## 等価判定
 
-`cyclic<T>` does not use strict bitwise equality as its main equality model.
+`cyclic<T>` は、厳密なビット単位等価を主な等価モデルとして使いません。
 
-Instead, it provides explicit approximate equality helpers:
+代わりに、明示的な近似等価補助関数を提供します。
 
 ```cpp id="v86flg"
 auto eq(cyclic to) const noexcept -> bool;
@@ -15632,59 +14568,58 @@ auto eq(cyclic to, T epsilon) const noexcept -> bool;
 auto ne(cyclic to, T epsilon) const noexcept -> bool;
 ```
 
-### Why `eq` / `ne` Exist
+### なぜ `eq` / `ne` があるか
 
-This design makes it clear that equality is tolerance-based rather than strict.
+この設計により、等価が厳密ではなく許容誤差に基づくことを明確にします。
 
-### Why `==` and `!=` Are Not the Main API
+### なぜ `==` と `!=` が主 API ではないか
 
-If ordinary comparison operators were used for approximate equality, it would be too easy to misread them as strict equality.
+通常の比較演算子を近似等価に使うと、厳密等価であるかのように誤読しやすくなります。
 
-xer therefore prefers explicit named functions.
+そのため、xer では明示的な名前付き関数を優先します。
 
-### Default Tolerance
+### 既定の許容誤差
 
-The default tolerance is stored in:
+既定の許容誤差は次に保存されます。
 
 ```cpp id="tvnkmz"
 static constexpr T default_epsilon;
 ```
 
-This provides a practical default width appropriate to the floating-point type.
+これにより、浮動小数点型に応じた実用的な既定幅を提供します。
 
 ---
 
-## Arithmetic Operators
+## 算術演算子
 
-At minimum, `cyclic<T>` may provide the following operators:
+少なくとも、`cyclic<T>` は次の演算子を提供する可能性があります。
 
-* unary `+`
-* unary `-`
-* binary `+`
-* binary `-`
+* 単項 `+`
+* 単項 `-`
+* 二項 `+`
+* 二項 `-`
 * `+=`
 * `-=`
 
-### Meaning
+### 意味
 
-These operators are interpreted as arithmetic on a circle.
+これらの演算子は円周上の算術として解釈されます。
 
-This means:
+つまり、
 
-* results are always normalized back into `[0, 1)`
-* addition means moving forward around the circle
-* subtraction means moving backward around the circle
+* 結果は常に `[0, 1)` に正規化される
+* 加算は円周上を前へ進むことを意味する
+* 減算は円周上を後ろへ戻ることを意味する
 
-### Important Note
+### 重要な注意
 
-These are not ordinary real-number operators in the abstract mathematical sense.
-They are circular operations defined by the type's normalization rule.
+これらは抽象的な数学上の普通の実数演算子ではありません。型の正規化規則によって定義される循環演算です。
 
 ---
 
-## Comparison Operators Not Provided
+## 比較演算子を提供しない理由
 
-Order-comparison operators such as:
+次のような順序比較演算子は、意図したモデルに含まれません。
 
 * `<`
 * `<=`
@@ -15692,21 +14627,19 @@ Order-comparison operators such as:
 * `>=`
 * `<=>`
 
-are not part of the intended model.
+### 理由
 
-### Why
+順序比較は、通常の実数と同じ意味では循環値に本質的なものではありません。
 
-Order comparison is not intrinsic to circular values in the same way it is for ordinary real numbers.
-
-Similarly, `==` and `!=` are not the preferred public equality model because approximate comparison is the intended design.
+同様に、`==` と `!=` も推奨される公開等価モデルではありません。意図した設計は近似比較だからです。
 
 ---
 
-## Unit Conversion Helpers
+## 単位変換補助関数
 
-`<xer/cyclic.h>` provides free functions for conversion to and from ordinary angular units.
+`<xer/cyclic.h>` は、通常の角度単位との相互変換のための自由関数を提供します。
 
-At minimum:
+少なくとも次があります。
 
 ```cpp id="rwmkpt"
 template <std::floating_point T>
@@ -15722,94 +14655,93 @@ template <std::floating_point T>
 auto to_radian(cyclic<T> value) noexcept -> T;
 ```
 
-### Why Free Functions
+### なぜ自由関数か
 
-Unit conversion is not treated as the responsibility of the `cyclic` object itself.
+単位変換は `cyclic` オブジェクト自身の責務とは扱いません。
 
-This keeps the type unitless internally while allowing conversion at the API boundary.
+これにより、型の内部を単位非依存に保ちつつ、API 境界で変換できます。
 
-### Meaning
+### 意味
 
-These functions translate between:
+これらの関数は次の間で変換します。
 
-* external degree/radian values
-* the internal one-turn-based representation
-
----
-
-## Relationship to Mathematical Constants
-
-Radian conversion naturally depends on π.
-
-In xer's design, mathematical constants such as π are not embedded directly into `cyclic<T>` as members.
-Instead, they are treated as separate supporting facilities, conceptually associated with dedicated internal constant support.
-
-This keeps `cyclic<T>` itself focused on circular value handling rather than on general constant provision.
+* 外部の度 / ラジアン値
+* 内部の 1 周基準表現
 
 ---
 
-## Relationship to Other Headers
+## 数学定数との関係
 
-`<xer/cyclic.h>` should be understood together with:
+ラジアン変換は自然に π に依存します。
+
+xer の設計では、π のような数学定数を `cyclic<T>` のメンバーとして直接埋め込みません。代わりに、それらは専用の内部定数支援と概念的に関係する別の支援機能として扱います。
+
+これにより、`cyclic<T>` 自体は一般的な定数提供ではなく、循環値処理へ集中できます。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/cyclic.h>` は次と合わせて理解してください。
 
 * `policy_project_outline.md`
 * `policy_cyclic.md`
 * `header_quantity.md`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-* `<xer/cyclic.h>` handles circular values and circular operations
-* `<xer/quantity.h>` handles physical quantities and units
-* angular quantities may be represented as ordinary quantities, while `cyclic` is used when circular semantics are needed explicitly
+* `<xer/cyclic.h>` は循環値と循環操作を扱う
+* `<xer/quantity.h>` は物理量と単位を扱う
+* 角度量は通常の量として表せる一方、`cyclic` は循環的意味が明示的に必要なときに使う
 
-This distinction is important in xer's design.
-
----
-
-## Relationship to Angle Quantities
-
-A central point in xer's design is that `cyclic<T>` is **not** the universal storage model for all angle quantities.
-
-### Meaning
-
-* ordinary angle quantities, including turn counts, are better modeled as quantities with units
-* `cyclic<T>` is for circular interpretation
-* conversion into `cyclic<T>` happens when shortest-difference, clockwise distance, or counterclockwise distance is the real concern
-
-This makes `cyclic<T>` a focused and practical tool rather than a universal replacement for every angle-like value.
+この区別は xer の設計で重要です。
 
 ---
 
-## Documentation Notes
+## 角度量との関係
 
-When this header is used in generated documentation, it is usually enough to explain:
+xer の設計で重要なのは、`cyclic<T>` がすべての角度量の普遍的な保存モデルでは **ない** という点です。
 
-* that `cyclic<T>` stores values normalized to one turn
-* that clockwise and counterclockwise distance are explicit operations
-* that shortest signed difference is provided by `diff`
-* that equality is approximate and expressed by `eq` / `ne`
-* that degree/radian conversion is handled by free functions
+### 意味
 
-Detailed numeric edge cases belong in the detailed reference or generated API sections.
+* 回転数を含む通常の角度量は、単位付きの量としてモデル化する方がよい
+* `cyclic<T>` は循環的解釈のためのもの
+* 最短差分、時計回り距離、反時計回り距離が本当の関心事であるときに `cyclic<T>` へ変換する
 
----
-
-## Example Topics Commonly Worth Showing
-
-The following kinds of examples are especially suitable for this header:
-
-* constructing a `cyclic<float>` from a raw turn-based value
-* converting from degrees with `from_degree`
-* converting to degrees with `to_degree`
-* measuring clockwise and counterclockwise distance
-* computing the shortest difference with `diff`
-* comparing values with `eq`
-
-These are good candidates for executable examples in `examples/`.
+これにより、`cyclic<T>` はあらゆる角度風の値を置き換えるものではなく、焦点を絞った実用的な道具になります。
 
 ---
 
-## Example
+## ドキュメント上の注意
+
+生成マニュアルでこのヘッダーを説明するときは、通常は次を説明すれば十分です。
+
+* `cyclic<T>` は値を 1 周に正規化して保存すること
+* 時計回り距離と反時計回り距離が明示的な操作であること
+* 最短の符号付き差分は `diff` で提供されること
+* 等価は近似的で、`eq` / `ne` で表すこと
+* 度 / ラジアン変換は自由関数で扱うこと
+
+詳細な数値上の端のケースは、詳細リファレンスまたは生成 API 節に属します。
+
+---
+
+## 例として示す価値が高い題材
+
+このヘッダーでは、次のような例が特に適しています。
+
+* 生の 1 周基準値から `cyclic<float>` を構築する
+* `from_degree` で度から変換する
+* `to_degree` で度へ変換する
+* 時計回り距離と反時計回り距離を測る
+* `diff` で最短差分を計算する
+* `eq` で値を比較する
+
+これらは `examples/` の実行可能例のよい候補です。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/cyclic.h>
@@ -15833,15 +14765,15 @@ auto main() -> int
 }
 ```
 
-This example shows the normal xer style:
+この例は通常の xer スタイルを示しています。
 
-* create circular values through free conversion helpers
-* use circular operations explicitly
-* treat direction on the circle as part of the API itself
+* 自由変換補助関数で循環値を作る
+* 循環操作を明示的に使う
+* 円周上の方向を API 自身の一部として扱う
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_cyclic.md`
@@ -15849,19 +14781,18 @@ This example shows the normal xer style:
 
 ---
 
-## Ratio Conversion
+## 比率変換
 
-`cyclic<T>` provides ratio-oriented member functions for symmetry with `interval`.
+`cyclic<T>` は `interval` との対称性のために、比率指向のメンバー関数を提供します。
 
 ```cpp
 constexpr auto ratio() const noexcept -> T;
 static constexpr auto from_ratio(T ratio) noexcept -> cyclic;
 ```
 
-`ratio()` returns the normalized internal position in `[0, 1)`.
-It is an alias of `value()`.
+`ratio()` は `[0, 1)` の正規化済み内部位置を返します。これは `value()` の別名です。
 
-`from_ratio()` constructs a cyclic value from a turn-based ratio and applies normal cyclic normalization.
+`from_ratio()` は 1 周基準の比率から循環値を構築し、通常の循環正規化を適用します。
 
 ```cpp
 auto a = xer::cyclic<float>::from_ratio(1.25f);
@@ -15870,46 +14801,38 @@ auto a = xer::cyclic<float>::from_ratio(1.25f);
 
 ---
 
-## Explicit Conversion with `interval`
+## `interval` との明示的変換
 
-Implicit conversion between `cyclic` and `interval` is not provided.
-The endpoint semantics are different, so conversion should be visible in the source code.
+`cyclic` と `interval` の暗黙変換は提供しません。端点の意味が異なるため、変換はソースコード上で見えるべきです。
 
-The interval header provides explicit helpers:
+interval ヘッダーは明示的な補助関数を提供します。
 
 ```cpp
 auto to_cyclic(interval<T, Min, Max> value) noexcept -> cyclic<T>;
 auto to_interval(cyclic<T> value) -> interval<T>;
 ```
 
-`to_cyclic` maps an interval through its ratio.
-`to_interval` maps a cyclic value to the default interval `[0, 1]`.
+`to_cyclic` は interval をその比率を通じて写します。`to_interval` は cyclic 値を既定 interval `[0, 1]` へ写します。
 
-For custom interval bounds, use `interval<T, Min, Max>::from_ratio(value.ratio())`.
+カスタム境界の interval には、`interval<T, Min, Max>::from_ratio(value.ratio())` を使ってください。
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/interval.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/interval.h>`
 
-## Purpose
+## 目的
 
-`<xer/interval.h>` provides bounded floating-point value types.
+`<xer/interval.h>` は、境界付き浮動小数点値型を提供します。
 
-The main entity is `xer::interval<T, Min, Max>`, a lightweight value type that stores a finite scalar value constrained to a fixed closed interval.
+主なエンティティは `xer::interval<T, Min, Max>` です。これは、固定された閉区間内に制約された有限スカラー値を格納する軽量な値型です。
 
-The default interval is `[0, 1]`, which is useful for values such as color components, alpha values, normalized ratios, opacity, brightness, gain, and other bounded control values.
+既定の区間は `[0, 1]` です。この区間は、色成分、アルファ値、正規化比率、不透明度、明るさ、ゲインなど、境界を持つ制御値に有用です。
 
 ---
 
-## Main Entity
+## 主なエンティティ
 
-At minimum, `<xer/interval.h>` provides the following entity:
+`<xer/interval.h>` は、少なくとも次のエンティティを提供します。
 
 ```cpp
 template <
@@ -15919,13 +14842,13 @@ template <
 class interval;
 ```
 
-The implementation is provided through the corresponding internal header:
+実装は対応する内部ヘッダーで提供されます。
 
 ```cpp
 #include <xer/bits/interval.h>
 ```
 
-Users should normally include the public header:
+ユーザーコードでは、通常、公開ヘッダーをインクルードします。
 
 ```cpp
 #include <xer/interval.h>
@@ -15933,56 +14856,54 @@ Users should normally include the public header:
 
 ---
 
-## Design Role
+## 設計上の役割
 
-`interval` is a small numeric value type whose main purpose is to preserve an invariant.
+`interval` は、不変条件を維持することを主な目的とする小さな数値値型です。
 
-For `interval<T, Min, Max>`, the stored value always satisfies:
+`interval<T, Min, Max>` では、格納値は常に次を満たします。
 
 ```text
 Min <= value() <= Max
 ```
 
-The stored value is always finite.
+格納値は常に有限値です。
 
-Finite out-of-range values are clamped to the nearest bound.
-Invalid floating-point values such as `NaN` and infinity are rejected by throwing an exception.
+有限の範囲外値は、もっとも近い境界値へクランプされます。`NaN` や無限大のような無効な浮動小数点値は、例外を投げて拒否されます。
 
-This makes `interval` useful for values that should never escape a known range during ordinary use.
-
----
-
-## Relationship to `cyclic`
-
-`interval` is closely related to `cyclic`, but the two types represent different concepts.
-
-`cyclic<T>` represents a circular value normalized into `[0, 1)`.
-
-Typical examples include:
-
-- hue
-- angle
-- phase
-- direction
-
-`interval<T, Min, Max>` represents a linear bounded value in `[Min, Max]`.
-
-Typical examples include:
-
-- red, green, and blue components
-- alpha values
-- grayscale values
-- brightness
-- gain
-- opacity
-- normalized ratios
-
-This distinction is especially important in color handling.
-Hue naturally wraps around, while color components do not.
+これにより、通常の使用中に既知の範囲から逸脱してはいけない値を扱いやすくなります。
 
 ---
 
-## Template Parameters
+## `cyclic` との関係
+
+`interval` は `cyclic` と近い関係にありますが、表す概念は異なります。
+
+`cyclic<T>` は `[0, 1)` に正規化される循環値を表します。
+
+典型例は次のとおりです。
+
+- 色相
+- 角度
+- 位相
+- 方向
+
+`interval<T, Min, Max>` は `[Min, Max]` 内の線形な境界付き値を表します。
+
+典型例は次のとおりです。
+
+- 赤、緑、青の成分
+- アルファ値
+- グレースケール値
+- 明るさ
+- ゲイン
+- 不透明度
+- 正規化比率
+
+この区別は、色処理では特に重要です。色相は自然に循環しますが、色成分は循環しません。
+
+---
+
+## テンプレートパラメータ
 
 ```cpp
 template <
@@ -15994,85 +14915,85 @@ class interval;
 
 ### `T`
 
-`T` is the stored floating-point type.
+`T` は格納される浮動小数点型です。
 
-The main intended types are:
+主に想定される型は次のとおりです。
 
 - `float`
 - `double`
 - `long double`
 
-Integer types are not accepted.
+整数型は受け付けません。
 
 ### `Min`
 
-`Min` is the inclusive lower bound.
+`Min` は下限値です。下限は区間に含まれます。
 
 ### `Max`
 
-`Max` is the inclusive upper bound.
+`Max` は上限値です。上限は区間に含まれます。
 
-The type requires:
+この型は次を要求します。
 
 ```cpp
 Min < Max
 ```
 
-An empty interval or reversed interval is not accepted.
+空の区間や逆向きの区間は受け付けません。
 
 ---
 
-## Default Interval
+## 既定の区間
 
-The default form:
+既定の形式は次のとおりです。
 
 ```cpp
 xer::interval<float>
 ```
 
-means:
+これは次を意味します。
 
 ```cpp
 xer::interval<float, 0.0f, 1.0f>
 ```
 
-This is the most common form for normalized values.
+これは正規化値にもっともよく使われる形式です。
 
-Example:
+例:
 
 ```cpp
 using component = xer::interval<float>;
 
-auto r = component(1.25f);  // stored as 1.0f
-auto g = component(0.5f);   // stored as 0.5f
-auto b = component(-0.25f); // stored as 0.0f
+auto r = component(1.25f);  // 1.0f として格納
+auto g = component(0.5f);   // 0.5f として格納
+auto b = component(-0.25f); // 0.0f として格納
 ```
 
 ---
 
-## Custom Intervals
+## カスタム区間
 
-Custom bounds can be specified as floating-point non-type template parameters.
+浮動小数点の非型テンプレートパラメータとして、独自の境界を指定できます。
 
-Example:
+例:
 
 ```cpp
 using gain = xer::interval<float, -1.0f, 1.0f>;
 
 auto center = gain(0.0f);
-auto upper = gain(2.0f);   // clamped to 1.0f
-auto lower = gain(-2.0f);  // clamped to -1.0f
+auto upper = gain(2.0f);   // 1.0f にクランプ
+auto lower = gain(-2.0f);  // -1.0f にクランプ
 ```
 
-This is useful when a value has a natural range other than `[0, 1]`.
+これは、値が `[0, 1]` 以外の自然な範囲を持つ場合に有用です。
 
 ---
 
-## Construction
+## 構築
 
-### Default Construction
+### 既定構築
 
-Default construction initializes the stored value to `Min`.
+既定構築では、格納値は `Min` に初期化されます。
 
 ```cpp
 xer::interval<float> x;
@@ -16082,17 +15003,17 @@ xer::interval<float, -1.0f, 1.0f> y;
 // y.value() == -1.0f
 ```
 
-### Construction from a Raw Value
+### 生の値からの構築
 
-Construction from a raw scalar is explicit.
+生のスカラー値からの構築は明示的です。
 
 ```cpp
 explicit constexpr interval(T value);
 ```
 
-Finite values are accepted and clamped into the interval.
+有限値は受け付けられ、区間内へクランプされます。
 
-For `xer::interval<float>`:
+`xer::interval<float>` の場合:
 
 ```cpp
 auto a = xer::interval<float>(0.5f);   // 0.5f
@@ -16100,474 +15021,257 @@ auto b = xer::interval<float>(-0.5f);  // 0.0f
 auto c = xer::interval<float>(1.5f);   // 1.0f
 ```
 
-`NaN` and infinity are rejected by exception.
+`NaN` と無限大は例外で拒否されます。
 
 ---
 
-## Exception Policy
+## 例外ポリシー
 
-`interval` throws `std::domain_error` for values that cannot be represented as valid finite interval values.
+`interval` は、有効な有限区間値として表現できない値に対して `std::domain_error` を投げます。
 
-At minimum, the following cases throw:
+少なくとも次の場合は例外になります。
 
-- construction from `NaN`
-- construction from positive infinity
-- construction from negative infinity
-- assignment from `NaN`
-- assignment from infinity
-- arithmetic that produces `NaN`
-- arithmetic that produces infinity
-- division by zero
+- `NaN` からの構築
+- 正の無限大からの構築
+- 負の無限大からの構築
+- `NaN` の代入
+- 無限大の代入
 
-This is intentional.
-Silently clamping `NaN` or infinity would hide a serious numeric error.
+有限の範囲外値は例外ではなく、境界値へクランプされます。
 
 ---
 
-## Member Types and Constants
+## メンバー型と定数
 
-`interval` provides the following public members:
+`interval` は、格納型や境界値を参照するためのメンバー型および定数を提供します。
+
+概念的には次のような情報を利用できます。
 
 ```cpp
 using value_type = T;
-
 static constexpr T min_value = Min;
 static constexpr T max_value = Max;
 ```
 
-`value_type` is the stored floating-point type.
-
-`min_value` and `max_value` expose the compile-time interval bounds.
+これにより、ジェネリックコードで区間の値型や境界を扱いやすくなります。
 
 ---
 
-## Value Access
+## 値へのアクセス
 
 ### `value`
 
 ```cpp
-constexpr auto value() const noexcept -> T;
+auto value() const noexcept -> T;
 ```
 
-Returns the stored scalar value.
+`value()` は、格納されている生の浮動小数点値を返します。
 
-The returned value is always finite and always inside `[Min, Max]`.
+戻り値は常に有限で、`[Min, Max]` の範囲内です。
 
 ---
 
-## Assignment
+## 代入
 
 ### `assign`
 
-```cpp
-constexpr auto assign(T value) -> void;
-```
+`assign` は、新しい値を割り当てます。
 
-Assigns a raw scalar value.
+有限値は区間内へクランプされます。`NaN` や無限大は例外で拒否されます。
 
-Finite values are clamped into `[Min, Max]`.
-`NaN` and infinity throw `std::domain_error`.
+### `T` からの代入
 
-### Assignment from `T`
+`interval` は、格納型 `T` からの代入をサポートします。
 
 ```cpp
-constexpr auto operator=(T value) -> interval&;
+xer::interval<float> x;
+x = 1.5f; // 1.0f にクランプ
 ```
 
-Assigns a raw scalar value and returns `*this`.
-
-This behaves the same as `assign`.
-
-Example:
-
-```cpp
-auto x = xer::interval<float>();
-
-x = 0.75f; // stored as 0.75f
-x = 2.0f;  // stored as 1.0f
-```
+代入後も、不変条件は維持されます。
 
 ---
 
-## Ratio Conversion
+## 比率変換
 
 ### `ratio`
 
-```cpp
-constexpr auto ratio() const noexcept -> T;
-```
-
-Returns the relative position of the stored value in the interval.
-
-The result is in `[0, 1]`.
-
-Conceptually:
-
-```text
-(value() - Min) / (Max - Min)
-```
-
-Example:
+`ratio()` は、現在の値を既定の `[0, 1]` 比率に変換します。
 
 ```cpp
-using level = xer::interval<float, 10.0f, 20.0f>;
-
-auto x = level(15.0f);
-auto r = x.ratio(); // 0.5f
+auto r = value.ratio();
 ```
+
+`Min` は `0` に、`Max` は `1` に対応します。
 
 ### `from_ratio`
 
-```cpp
-static constexpr auto from_ratio(T ratio) -> interval;
-```
-
-Creates an interval value from a relative position.
-
-The input ratio is treated as a bounded value in `[0, 1]`.
-
-Finite input is clamped into `[0, 1]`.
-`NaN` and infinity throw `std::domain_error`.
-
-Conceptually:
-
-```text
-Min + ratio * (Max - Min)
-```
-
-Example:
+`from_ratio` は、`[0, 1]` 比率から区間値を作ります。
 
 ```cpp
-using gain = xer::interval<float, -1.0f, 1.0f>;
-
-auto center = gain::from_ratio(0.5f);
-// center.value() == 0.0f
+auto x = my_interval::from_ratio(0.5f);
 ```
+
+比率が範囲外の場合は、通常の構築と同じく境界へクランプされます。`NaN` や無限大は拒否されます。
 
 ---
 
-## Comparison
+## 比較
 
-`interval` represents a linear bounded value, so comparison operators are provided.
+`interval` は、同じ区間型同士の比較をサポートします。
 
-At minimum, the type supports:
+比較は格納値に基づいて行われます。
 
-```cpp
-operator==
-operator<=>
-```
-
-The remaining comparison operators are available through ordinary C++ comparison rewriting.
-
-Comparison is based on the stored scalar value.
-
-Unlike `cyclic`, `interval` does not use tolerance-based equality.
-Since `interval` rejects `NaN`, ordinary linear ordering is meaningful.
-
-Example:
-
-```cpp
-auto a = xer::interval<float>(0.25f);
-auto b = xer::interval<float>(0.75f);
-
-if (a < b) {
-    // true
-}
-```
+値型であるため、等価比較や順序比較は自然に扱えます。ただし、異なる区間型同士の比較については、意味を慎重に扱う必要があります。
 
 ---
 
-## Arithmetic Between Interval Values
+## interval 値同士の算術演算
 
-Arithmetic between values of the same `interval` type is supported.
+`interval` 値同士の算術演算では、演算結果も同じ区間型として格納されます。
 
-```cpp
-operator+
-operator-
-operator*
-operator/
-```
-
-The operation is ordinary scalar arithmetic on the stored values, followed by validation and clamping.
-
-Example:
-
-```cpp
-using component = xer::interval<float>;
-
-auto a = component(0.8f);
-auto b = component(0.5f);
-
-auto sum = a + b;       // 1.0f
-auto product = a * b;   // 0.4f
-auto diff = b - a;      // 0.0f
-```
-
-Division by an interval value whose stored value is zero throws `std::domain_error`.
+結果が区間外に出る場合は、通常の代入・構築と同じく境界値へクランプされます。無効な浮動小数点結果は例外で拒否されます。
 
 ---
 
-## Arithmetic with Right-Hand Scalar Values
+## 右辺スカラー値との算術演算
 
-The following forms are supported:
-
-```cpp
-interval + scalar
-interval - scalar
-interval * scalar
-interval / scalar
-```
-
-They are useful for increasing, decreasing, scaling, and dividing bounded values.
-
-Example:
-
-```cpp
-using component = xer::interval<float>;
-
-auto brightness = component(0.5f);
-
-brightness += 0.25f; // 0.75f
-brightness *= 2.0f;  // 1.0f
-brightness -= 2.0f;  // 0.0f
-```
-
-The scalar is converted to the interval's value type and then validated.
-
-`NaN`, infinity, and division by zero throw `std::domain_error`.
-
----
-
-## Left-Hand Scalar Multiplication
-
-Scalar multiplication is also supported in the left-hand form:
-
-```cpp
-scalar * interval
-```
-
-Example:
-
-```cpp
-using component = xer::interval<float>;
-
-auto brightness = component(0.75f);
-auto dimmed = 0.5f * brightness;
-// dimmed.value() == 0.375f
-```
-
-This form is provided because multiplication is natural in either order.
-
----
-
-## Unsupported Left-Hand Scalar Forms
-
-The following forms are intentionally not provided:
-
-```cpp
-scalar + interval
-scalar - interval
-scalar / interval
-```
-
-Scalar addition and subtraction are intended to express increasing or decreasing the interval value.
-For readability, the interval value should appear on the left-hand side.
-
-Scalar division by an interval value has a reciprocal-like meaning and is not considered a common bounded-value operation.
-
-If such behavior is needed, callers can use `value()` explicitly.
-
----
-
-## Compound Assignment
-
-`interval` provides compound assignment operators.
-
-With another interval value:
-
-```cpp
-operator+=
-operator-=
-operator*=
-operator/=
-```
-
-With a right-hand scalar value:
-
-```cpp
-operator+=
-operator-=
-operator*=
-operator/=
-```
-
-Each operation preserves the interval invariant.
-
-Example:
-
-```cpp
-using component = xer::interval<float>;
-
-auto x = component(0.5f);
-
-x += 0.2f; // 0.7f
-x *= 2.0f; // 1.0f
-x /= 4.0f; // 0.25f
-```
-
----
-
-## Unary Operators
-
-Unary plus and unary minus are provided.
-
-```cpp
-+x
--x
-```
-
-Unary plus returns the value unchanged.
-
-Unary minus negates the stored value and then constructs a new interval value from the result.
-For the default `[0, 1]` interval, this usually clamps to `0`.
-
-Example:
-
-```cpp
-auto x = xer::interval<float>(0.25f);
-auto y = -x;
-// y.value() == 0.0f
-```
-
-For a symmetric interval, unary minus behaves more naturally.
-
-```cpp
-using gain = xer::interval<float, -1.0f, 1.0f>;
-
-auto x = gain(0.25f);
-auto y = -x;
-// y.value() == -0.25f
-```
-
----
-
-## Error Handling Model
-
-`interval` uses exceptions only for exceptional numeric conditions.
-
-This differs from ordinary xer APIs that return `xer::result` for normal recoverable failures.
-
-The reason is that `interval` is a value type with a simple invariant.
-`NaN`, infinity, and division by zero are treated as invalid numeric states rather than ordinary input failures.
-
-This design keeps normal arithmetic expressions readable:
+`interval` 値と右辺スカラー値の演算もサポートされます。
 
 ```cpp
 auto x = xer::interval<float>(0.5f);
-auto y = x + 0.25f;
-auto z = 0.5f * y;
+auto y = x * 2.0f;
 ```
+
+演算結果は区間内へ収められます。
 
 ---
 
-## Typical Uses
+## 左辺スカラー値との乗算
 
-### Color Components
+スカラー値を左辺に置いた乗算も、意味が明確なものについてはサポートされます。
+
+```cpp
+auto y = 2.0f * x;
+```
+
+これは、係数を掛ける操作として自然に読めるためです。
+
+---
+
+## サポートしない左辺スカラー形式
+
+一方、左辺スカラーの加算や減算など、意味が曖昧になりやすい形は意図的に提供しない場合があります。
+
+`interval` は任意の数値の代替ではなく、境界付き値を表す型です。演算子の範囲は、その意味が自然であるものに限定されます。
+
+---
+
+## 複合代入
+
+`interval` は、対応する算術演算に合わせて複合代入を提供します。
+
+```cpp
+x += y;
+x -= y;
+x *= scalar;
+x /= scalar;
+```
+
+各操作後も、不変条件は維持されます。
+
+---
+
+## 単項演算子
+
+`interval` は、値型として自然な単項演算子を提供する場合があります。
+
+ただし、単項マイナスのように結果が区間外へ出やすい操作では、通常のクランプ規則や例外規則に従います。
+
+---
+
+## エラー処理モデル
+
+`interval` は値型であり、通常の範囲外入力はエラーではなくクランプで処理します。
+
+一方、`NaN` や無限大は、有効な区間値として意味を持たないため例外で拒否します。
+
+この設計により、通常の UI 値や色成分などでは扱いやすく、異常な浮動小数点値は早期に検出できます。
+
+---
+
+## 典型的な用途
+
+### 色成分
 
 ```cpp
 using component = xer::interval<float>;
-
-auto r = component(1.25f);  // 1.0f
-auto g = component(0.5f);   // 0.5f
-auto b = component(-0.25f); // 0.0f
 ```
 
-### Gain
+RGB や CMY のような正規化色成分に適しています。
+
+### ゲイン
 
 ```cpp
 using gain = xer::interval<float, -1.0f, 1.0f>;
-
-auto center = gain::from_ratio(0.5f);
-// center.value() == 0.0f
 ```
 
-### Brightness Adjustment
+中心値を持つ制御量に適しています。
 
-```cpp
-using component = xer::interval<float>;
+### 明るさ調整
 
-auto brightness = component(0.5f);
-brightness += 0.25f;
-brightness *= 2.0f;
-```
+明るさ、不透明度、正規化比率など、有限範囲内で扱いたい値にも適しています。
 
 ---
 
-## Relationship to Other Headers
+## 他のヘッダーとの関係
 
-`<xer/interval.h>` is related to the following headers:
+`<xer/interval.h>` は次のヘッダーやポリシーと関係します。
 
 - `<xer/cyclic.h>`
+- `<xer/color.h>`
 - `<xer/arithmetic.h>`
-- `<xer/stdfloat.h>`
-
-The rough boundary is:
-
-- `<xer/cyclic.h>` handles circular normalized values
-- `<xer/interval.h>` handles linear bounded values
-- `<xer/arithmetic.h>` provides arithmetic helper functions
-- `<xer/stdfloat.h>` provides floating-point type aliases and literals
-
-`interval` is not absorbed into `<xer/arithmetic.h>` because it is a value type with an invariant, not merely an arithmetic helper function group.
+- `policy_interval.md`
+- `policy_color.md`
 
 ---
 
-## Documentation Notes
+## ドキュメント上の注意
 
-When documenting `interval`, it is important to make the following points explicit:
+このヘッダーを説明するときは、次の点を明確にします。
 
-- the interval is closed
-- the default interval is `[0, 1]`
-- finite out-of-range values are clamped
-- `NaN` and infinity throw
-- division by zero throws
-- arithmetic is scalar arithmetic followed by clamping
-- this is not mathematical interval arithmetic
-- `interval` is linear and non-wrapping, unlike `cyclic`
+- `interval` は境界付き浮動小数点値型であること
+- 既定の区間は `[0, 1]` であること
+- 有限の範囲外値はクランプされること
+- `NaN` と無限大は例外で拒否されること
+- `cyclic` とは異なり、循環値ではなく線形境界値であること
 
 ---
 
-## Example
+## 例
 
 ```cpp
 #include <xer/interval.h>
-#include <xer/stdio.h>
+
+#include <stdexcept>
 
 auto main() -> int
 {
     using component = xer::interval<float>;
 
-    const auto r = component(1.25f);
-    const auto g = component(0.5f);
-    const auto b = component(-0.25f);
+    const auto a = component(0.5f);
+    const auto b = component(1.5f);
+    const auto c = component(-0.5f);
 
-    if (!xer::printf(u8"r = %g\n", static_cast<double>(r.value())).has_value()) {
-        return 1;
-    }
-    if (!xer::printf(u8"g = %g\n", static_cast<double>(g.value())).has_value()) {
-        return 1;
-    }
-    if (!xer::printf(u8"b = %g\n", static_cast<double>(b.value())).has_value()) {
+    if (a.value() != 0.5f) {
         return 1;
     }
 
-    auto brightness = component(0.5f);
-    brightness += 0.25f;
+    if (b.value() != 1.0f) {
+        return 1;
+    }
 
-    if (!xer::printf(
-            u8"brightness = %g\n",
-            static_cast<double>(brightness.value()))
-            .has_value()) {
+    if (c.value() != 0.0f) {
         return 1;
     }
 
@@ -16575,95 +15279,56 @@ auto main() -> int
 }
 ```
 
-This example shows the basic xer style:
-
-- use the public header
-- construct bounded values naturally
-- let finite out-of-range input clamp
-- use xer formatted output for examples
-- check fallible output operations explicitly
-
 ---
 
-## See Also
+## 関連項目
 
 - `policy_interval.md`
-- `policy_cyclic.md`
+- `policy_color.md`
 - `header_cyclic.md`
-- `policy_arithmetic.md`
+- `header_color.md`
 - `header_arithmetic.md`
 
 ---
 
-## Explicit Conversion with `cyclic`
+## `cyclic` との明示的な変換
 
-`interval` provides explicit helper functions for conversion with `cyclic`.
+`interval` と `cyclic` は、どちらも `[0, 1]` 付近の値を扱うため、表面上は似ています。
 
-```cpp
-template <std::floating_point T, T Min, T Max>
-constexpr auto to_cyclic(interval<T, Min, Max> value) noexcept -> cyclic<T>;
+しかし、意味は異なります。
 
-template <std::floating_point T>
-constexpr auto to_interval(cyclic<T> value) -> interval<T>;
-```
+- `interval` は線形な境界付き値です。
+- `cyclic` は循環する正規化値です。
 
-`to_cyclic(interval)` first maps the interval value to `[0, 1]` using `ratio()`, then constructs a cyclic value from that ratio.
-Because `cyclic` uses `[0, 1)`, the upper endpoint of an interval maps to the zero position of the cycle.
-
-```cpp
-using level = xer::interval<float, 10.0f, 20.0f>;
-
-auto a = xer::to_cyclic(level(10.0f)); // 0.0f
-auto b = xer::to_cyclic(level(15.0f)); // 0.5f
-auto c = xer::to_cyclic(level(20.0f)); // 0.0f
-```
-
-`to_interval(cyclic)` maps a cyclic value to the default interval `[0, 1]`.
-
-For custom interval bounds, use `from_ratio` explicitly.
-
-```cpp
-using gain = xer::interval<float, -1.0f, 1.0f>;
-
-auto value = gain::from_ratio(hue.ratio());
-```
-
-Implicit conversion constructors are intentionally not provided.
+そのため、両者を暗黙に混ぜるのではなく、必要に応じて明示的に変換するのが安全です。
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/color.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/color.h>`
 
-## Purpose
+## 目的
 
-`<xer/color.h>` provides color-system value types and color conversion functions.
+`<xer/color.h>` は、色体系の値型と色変換関数を提供します。
 
-The purpose of this header is to support practical formula-based color representation and conversion in a lightweight xer style.
+このヘッダーの目的は、軽量な xer らしい形で、実用的な数式ベースの色表現と変換を支援することです。
 
-The initial supported color systems are:
+初期段階でサポートする色体系は次のとおりです。
 
 - RGB
-- Grayscale
+- グレースケール
 - CMY
 - HSV
 - CIE 1931 XYZ
 - CIE 1976 L*a*b*
 - CIE 1976 L*u*v*
 
-This header does not attempt to become a complete color management system.
-It does not handle ICC profiles, chromatic adaptation, spectral data, named colors, or color palette management.
+このヘッダーは、完全なカラーマネジメントシステムを目指していません。ICC プロファイル、色順応、分光データ、名前付き色、カラーパレット管理などは扱いません。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/color.h>` provides the following class templates:
+`<xer/color.h>` は、少なくとも次のクラステンプレートを提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -16688,7 +15353,7 @@ template <std::floating_point T>
 struct basic_luv;
 ```
 
-It also provides ordinary `float` aliases:
+通常用途向けに、`float` を使う別名も提供します。
 
 ```cpp
 using rgb = basic_rgb<float>;
@@ -16700,49 +15365,49 @@ using lab = basic_lab<float>;
 using luv = basic_luv<float>;
 ```
 
-The public header is:
+公開ヘッダーは次のとおりです。
 
 ```cpp
 #include <xer/color.h>
 ```
 
-The implementation is provided through:
+実装は次の内部ヘッダーで提供されます。
 
 ```cpp
 #include <xer/bits/color.h>
 ```
 
-Users should include the public header.
+ユーザーコードでは公開ヘッダーをインクルードしてください。
 
 ---
 
-## Design Role
+## 設計上の役割
 
-`<xer/color.h>` provides small value types and conversion functions for common color systems.
+`<xer/color.h>` は、一般的な色体系のための小さな値型と変換関数を提供します。
 
-The design is based on these ideas:
+設計は次の考え方に基づきます。
 
-- color values are simple structs with public data members
-- ordinary aliases use `float`
-- normalized bounded components use `xer::interval<T>`
-- hue uses `xer::cyclic<T>`
-- colorimetric spaces such as XYZ, Lab, and Luv use raw floating-point members
-- conversion functions are free functions
-- deterministic arithmetic conversions return the destination value directly
+- 色値は公開データメンバーを持つ単純な構造体にする
+- 通常の別名は `float` を使う
+- 正規化された境界付き成分には `xer::interval<T>` を使う
+- 色相には `xer::cyclic<T>` を使う
+- XYZ、Lab、Luv のような測色系では生の浮動小数点メンバーを使う
+- 変換関数は自由関数にする
+- 決定的な算術変換は変換先の値を直接返す
 
 ---
 
-## Float Aliases
+## `float` 別名
 
-Although the templates can use `float`, `double`, or `long double`, practical color handling usually uses `float`.
+テンプレート自体は `float`、`double`、`long double` を使えますが、実用的な色処理では通常 `float` を使います。
 
-For this reason, the ordinary aliases use `float`.
+そのため、通常の別名は `float` を使います。
 
 ```cpp
 xer::rgb color(0.25f, 0.5f, 0.75f);
 ```
 
-If a different precision is needed, use the corresponding template directly.
+別の精度が必要な場合は、対応するテンプレートを直接使います。
 
 ```cpp
 xer::basic_rgb<double> color(0.25, 0.5, 0.75);
@@ -16766,9 +15431,9 @@ struct basic_rgb {
 };
 ```
 
-`basic_rgb<T>` represents an RGB color with normalized red, green, and blue components.
+`basic_rgb<T>` は、正規化された赤、緑、青の成分を持つ RGB 色を表します。
 
-Each component is represented by `interval<T>` and is therefore kept in `[0, 1]`.
+各成分は `interval<T>` で表されるため、`[0, 1]` に保たれます。
 
 ```cpp
 auto color = xer::rgb(1.25f, 0.5f, -0.25f);
@@ -16778,32 +15443,30 @@ auto color = xer::rgb(1.25f, 0.5f, -0.25f);
 // color.b.value() == 0.0f
 ```
 
-### sRGB Assumption
+### sRGB の仮定
 
-The public type name is `rgb`, not `srgb`.
+公開型名は `rgb` であり、`srgb` ではありません。
 
-However, conversion between RGB and XYZ assumes sRGB with the D65 white point.
+ただし、RGB と XYZ の変換では、D65 白色点の sRGB を仮定します。
 
-That means:
+つまり、次の意味になります。
 
-- `to_xyz(rgb)` treats RGB components as nonlinear sRGB components
-- `to_rgb(xyz)` produces nonlinear sRGB components
+- `to_xyz(rgb)` は RGB 成分を非線形 sRGB 成分として扱います。
+- `to_rgb(xyz)` は非線形 sRGB 成分を生成します。
 
-This assumption must be kept in mind when using RGB together with XYZ, Lab, or Luv.
+RGB を XYZ、Lab、Luv と組み合わせて使う場合は、この仮定に注意してください。
 
-### Alpha
+### アルファ
 
-Alpha is not part of `basic_rgb`.
+アルファは `basic_rgb` には含まれません。
 
-Alpha is mainly useful for graphics, compositing, and image processing.
-It is not a general component of color itself and is unnecessary for areas such as printing, coating, lighting, and colorimetry.
+アルファは、主にグラフィックス、合成、画像処理で有用です。色そのものの一般的な成分ではなく、印刷、塗装、照明、測色などの分野では不要です。
 
-If alpha support becomes necessary later, it should be provided as a separate type such as `basic_rgba<T>`.
-It should not be mixed into `basic_rgb<T>`.
+将来アルファ対応が必要になった場合は、`basic_rgba<T>` のような別型として提供するのがよいです。`basic_rgb<T>` に混ぜるべきではありません。
 
 ---
 
-## Grayscale
+## グレースケール
 
 ## `basic_gray`
 
@@ -16817,9 +15480,11 @@ struct basic_gray {
 };
 ```
 
-`basic_gray<T>` represents a display-oriented grayscale value. The component is represented by `interval<T>` and is kept in `[0, 1]`.
+`basic_gray<T>` は、表示指向のグレースケール値を表します。成分は `interval<T>` で表され、`[0, 1]` に保たれます。
 
-`to_luma_gray` computes simple luma directly from nonlinear sRGB components. `to_luminance_gray` computes relative luminance after sRGB decoding and then encodes it back to a display grayscale value. `to_gray` is an alias for `to_luma_gray`. `to_rgb(gray)` duplicates the grayscale component into RGB.
+`to_luma_gray` は、非線形 sRGB 成分から単純なルーマを直接計算します。`to_luminance_gray` は、sRGB をデコードして相対輝度を求め、それを表示グレースケール値へ再エンコードします。`to_gray` は `to_luma_gray` の別名です。`to_rgb(gray)` はグレースケール成分を RGB の各成分へ複製します。
+
+---
 
 ## CMY
 
@@ -16837,13 +15502,13 @@ struct basic_cmy {
 };
 ```
 
-`basic_cmy<T>` represents a simple normalized CMY color.
+`basic_cmy<T>` は、単純な正規化 CMY 色を表します。
 
-Each component is represented by `interval<T>` and is therefore kept in `[0, 1]`.
+各成分は `interval<T>` で表されるため、`[0, 1]` に保たれます。
 
-CMY in xer is the simple complement model of RGB.
+xer の CMY は RGB の単純な補色モデルです。
 
-Conceptually:
+概念的には次の関係です。
 
 ```text
 C = 1 - R
@@ -16851,7 +15516,7 @@ M = 1 - G
 Y = 1 - B
 ```
 
-and:
+および:
 
 ```text
 R = 1 - C
@@ -16859,8 +15524,7 @@ G = 1 - M
 B = 1 - Y
 ```
 
-This is not a complete printer color-management model.
-It does not represent CMYK, ink behavior, ICC profiles, or device-specific calibration.
+CMYK や印刷用のカラーマネジメントは扱いません。
 
 ---
 
@@ -16881,18 +15545,9 @@ struct basic_hsv {
 };
 ```
 
-`basic_hsv<T>` represents hue, saturation, and value.
+`basic_hsv<T>` は、色相、彩度、明度を持つ HSV 色を表します。
 
-The components are:
-
-- `h`: hue, represented by `cyclic<T>` in `[0, 1)`
-- `s`: saturation, represented by `interval<T>` in `[0, 1]`
-- `v`: value, represented by `interval<T>` in `[0, 1]`
-
-Hue is circular, so it uses `cyclic<T>` rather than `interval<T>`.
-
-For grayscale colors, where saturation is zero, hue is not meaningful.
-The current conversion from RGB to HSV sets hue to zero in that case.
+色相 `h` は循環値なので `cyclic<T>` で表されます。彩度 `s` と明度 `v` は `[0, 1]` の境界付き値なので `interval<T>` で表されます。
 
 ---
 
@@ -16911,14 +15566,11 @@ struct basic_xyz {
 };
 ```
 
-`basic_xyz<T>` represents CIE 1931 XYZ tristimulus values.
+`basic_xyz<T>` は CIE 1931 XYZ 色を表します。
 
-XYZ is used as the central connection point between RGB and the CIE Lab/Luv spaces.
+XYZ は正規化成分型ではなく、測色値として生の浮動小数点値を保持します。
 
-XYZ components are raw floating-point values.
-They are not represented by `interval<T>` because XYZ values are colorimetric quantities rather than normalized UI components.
-
-The initial implementation uses D65 as the reference white for conversions.
+RGB との変換では、sRGB と D65 白色点を仮定します。
 
 ---
 
@@ -16937,21 +15589,11 @@ struct basic_lab {
 };
 ```
 
-`basic_lab<T>` represents CIE 1976 L*a*b* values.
+`basic_lab<T>` は CIE 1976 L*a*b* 色を表します。
 
-The member names are lowercase ASCII identifiers:
+`l` は明度、`a` と `b` は色度成分です。
 
-- `l`
-- `a`
-- `b`
-
-The public API does not use identifiers such as `L*`, `a*`, or `b*`.
-
-Lab components are raw floating-point values.
-They are not represented by `interval<T>`.
-
-Although `L*` is commonly in `[0, 100]`, the initial implementation does not force it into an interval wrapper.
-The `a*` and `b*` components are signed and do not have a simple universal fixed range.
+Lab は、RGB のような `[0, 1]` 成分ではありません。値域は変換元や白色点に依存するため、生の浮動小数点値として表します。
 
 ---
 
@@ -16970,390 +15612,233 @@ struct basic_luv {
 };
 ```
 
-`basic_luv<T>` represents CIE 1976 L*u*v* values.
+`basic_luv<T>` は CIE 1976 L*u*v* 色を表します。
 
-The member names are lowercase ASCII identifiers:
+`l` は明度、`u` と `v` は色度成分です。
 
-- `l`
-- `u`
-- `v`
-
-The public API does not use identifiers such as `L*`, `u*`, or `v*`.
-
-Luv components are raw floating-point values.
-They are not represented by `interval<T>`.
+Lab と同様に、正規化区間値ではなく生の浮動小数点値として表します。
 
 ---
 
-## Constructors
-
-Each color type supports default construction and construction from component values.
+## コンストラクタ
 
 ### RGB
 
-```cpp
-constexpr basic_rgb();
-constexpr basic_rgb(T r, T g, T b);
-constexpr basic_rgb(component_type r, component_type g, component_type b) noexcept;
-```
-
-Default construction creates black.
+RGB は、赤、緑、青の値から構築できます。
 
 ```cpp
-xer::rgb color;
-// r == 0, g == 0, b == 0
+xer::rgb color(0.25f, 0.5f, 0.75f);
 ```
 
-Construction from raw component values clamps finite out-of-range values through `interval<T>`.
+入力値は `interval<T>` の規則に従って `[0, 1]` にクランプされます。`NaN` や無限大は例外で拒否されます。
 
 ### CMY
 
-```cpp
-constexpr basic_cmy();
-constexpr basic_cmy(T c, T m, T y);
-constexpr basic_cmy(component_type c, component_type m, component_type y) noexcept;
-```
+CMY は、シアン、マゼンタ、イエローの値から構築できます。
 
-Construction from raw component values clamps finite out-of-range values through `interval<T>`.
+```cpp
+xer::cmy color(0.0f, 0.5f, 1.0f);
+```
 
 ### HSV
 
-```cpp
-constexpr basic_hsv();
-constexpr basic_hsv(T h, T s, T v);
-constexpr basic_hsv(hue_type h, component_type s, component_type v) noexcept;
-```
-
-Hue is normalized through `cyclic<T>`.
-Saturation and value are clamped through `interval<T>`.
-
-### XYZ, Lab, and Luv
-
-XYZ, Lab, and Luv store raw floating-point values.
+HSV は、色相、彩度、明度から構築できます。
 
 ```cpp
-constexpr basic_xyz(T x, T y, T z) noexcept;
-constexpr basic_lab(T l, T a, T b) noexcept;
-constexpr basic_luv(T l, T u, T v) noexcept;
+xer::hsv color(0.5f, 1.0f, 0.75f);
 ```
 
-The initial implementation does not add special validation to these raw colorimetric values.
+色相は `cyclic<T>` として扱われ、循環正規化されます。彩度と明度は `interval<T>` として扱われます。
+
+### XYZ、Lab、Luv
+
+XYZ、Lab、Luv は、対応する成分値から構築できます。
+
+これらの測色系では、成分は生の浮動小数点値です。正規化成分ではありません。
 
 ---
 
-## Conversion Functions
+## 変換関数
 
-Conversions are provided as free functions.
+変換関数は自由関数として提供されます。
 
-## RGB and CMY
+---
 
-```cpp
-template <std::floating_point T>
-constexpr auto to_cmy(basic_rgb<T> value) -> basic_cmy<T>;
+## RGB と CMY
 
-template <std::floating_point T>
-constexpr auto to_rgb(basic_cmy<T> value) -> basic_rgb<T>;
+RGB と CMY の相互変換は、単純な補色関係に基づきます。
+
+```text
+C = 1 - R
+M = 1 - G
+Y = 1 - B
 ```
 
-RGB and CMY conversion uses simple normalized complement conversion.
+および:
 
-Example:
-
-```cpp
-const auto cmy = xer::to_cmy(xer::rgb(0.25f, 0.5f, 0.75f));
-
-// cmy.c.value() == 0.75f
-// cmy.m.value() == 0.5f
-// cmy.y.value() == 0.25f
+```text
+R = 1 - C
+G = 1 - M
+B = 1 - Y
 ```
 
 ---
 
-## RGB and HSV
+## RGB と HSV
 
-```cpp
-template <std::floating_point T>
-constexpr auto to_hsv(basic_rgb<T> value) -> basic_hsv<T>;
+RGB と HSV の変換は、一般的な数式に基づきます。
 
-template <std::floating_point T>
-constexpr auto to_rgb(basic_hsv<T> value) -> basic_rgb<T>;
-```
+HSV の色相は循環値として扱われ、彩度と明度は `[0, 1]` に保たれます。
 
-RGB and HSV conversion uses the common normalized HSV model.
-
-- RGB components are in `[0, 1]`
-- hue is normalized to `[0, 1)`
-- saturation is in `[0, 1]`
-- value is in `[0, 1]`
-
-For grayscale RGB colors, `to_hsv` sets hue to zero.
-
-Example:
-
-```cpp
-const auto hsv = xer::to_hsv(xer::rgb(0.25f, 0.5f, 0.75f));
-const auto rgb = xer::to_rgb(hsv);
-```
+グレースケールに近い入力では、色相の意味が弱くなる点に注意してください。
 
 ---
 
-## RGB and XYZ
+## RGB と XYZ
 
-```cpp
-template <std::floating_point T>
-auto to_xyz(basic_rgb<T> value) -> basic_xyz<T>;
+RGB と XYZ の変換では、sRGB と D65 白色点を仮定します。
 
-template <std::floating_point T>
-auto to_rgb(basic_xyz<T> value) -> basic_rgb<T>;
-```
+RGB から XYZ への変換では、非線形 sRGB 成分を線形化してから変換します。
 
-RGB and XYZ conversion assumes sRGB with the D65 white point.
-
-`to_xyz(rgb)` performs:
-
-1. sRGB transfer-function decoding from nonlinear RGB to linear RGB
-2. matrix conversion from linear RGB to XYZ
-
-`to_rgb(xyz)` performs:
-
-1. matrix conversion from XYZ to linear RGB
-2. sRGB transfer-function encoding
-3. clamping into RGB component intervals
-
-The public names are `to_xyz(rgb)` and `to_rgb(xyz)`, not `to_xyz(srgb)` or `to_srgb(xyz)`.
-
-Example:
-
-```cpp
-const auto xyz = xer::to_xyz(xer::rgb(1.0f, 1.0f, 1.0f));
-
-// approximately D65 white:
-// x == 0.95047f
-// y == 1.0f
-// z == 1.08883f
-```
+XYZ から RGB への変換では、線形 RGB へ変換した後、sRGB エンコードを行います。結果の RGB 成分は `interval<T>` によって `[0, 1]` に収められます。
 
 ---
 
-## XYZ and Lab
+## XYZ と Lab
 
-```cpp
-template <std::floating_point T>
-auto to_lab(basic_xyz<T> value) -> basic_lab<T>;
+XYZ と Lab の相互変換は、CIE 1976 L*a*b* の式に基づきます。
 
-template <std::floating_point T>
-constexpr auto to_xyz(basic_lab<T> value) -> basic_xyz<T>;
-```
-
-XYZ and Lab conversion uses CIE 1976 L*a*b* formulas with D65 as the reference white.
-
-Example:
-
-```cpp
-const auto lab = xer::to_lab(xer::xyz(0.95047f, 1.0f, 1.08883f));
-
-// approximately:
-// l == 100
-// a == 0
-// b == 0
-```
+白色点は、RGB/XYZ 変換と整合するように扱われます。
 
 ---
 
-## XYZ and Luv
+## XYZ と Luv
 
-```cpp
-template <std::floating_point T>
-auto to_luv(basic_xyz<T> value) -> basic_luv<T>;
+XYZ と Luv の相互変換は、CIE 1976 L*u*v* の式に基づきます。
 
-template <std::floating_point T>
-auto to_xyz(basic_luv<T> value) -> basic_xyz<T>;
-```
-
-XYZ and Luv conversion uses CIE 1976 L*u*v* formulas with D65 as the reference white.
-
-Example:
-
-```cpp
-const auto luv = xer::to_luv(xer::xyz(0.95047f, 1.0f, 1.08883f));
-
-// approximately:
-// l == 100
-// u == 0
-// v == 0
-```
+Luv も測色系であり、成分は正規化区間値ではありません。
 
 ---
 
-## Direct Conversion Policy
+## 直接変換ポリシー
 
-The initial API does not provide direct conversion functions for every possible pair of supported color systems.
+直接変換関数は、必要に応じて中間色空間を経由しても構いません。
 
-For example, RGB to Lab can be written explicitly through XYZ:
+たとえば、RGB から Lab への変換は、概念的には RGB から XYZ、XYZ から Lab への変換を組み合わせたものです。
 
-```cpp
-const auto xyz = xer::to_xyz(color);
-const auto lab = xer::to_lab(xyz);
-```
-
-This keeps the public API small and avoids unnecessary duplication.
-
-Direct conversion functions may be added later if they become clearly useful.
+公開 API として重要なのは、呼び出し側が意図する変換を直接書けることです。
 
 ---
 
-## Error and Exception Policy
+## エラーと例外のポリシー
 
-Color conversion functions generally return the destination color value directly.
+決定的な算術変換は、通常、変換先の値を直接返します。
 
-They do not return `xer::result`, because the supported conversions are deterministic arithmetic operations and do not have ordinary recoverable failure modes.
+正規化成分では、`interval<T>` が範囲外値をクランプし、`NaN` や無限大を例外で拒否します。
 
-However:
-
-- RGB, grayscale, CMY, and HSV normalized components use `interval<T>`
-- hue uses `cyclic<T>`
-
-Therefore, invalid finite-state cases such as `NaN` or infinity may be rejected according to the policies of `interval<T>` and `cyclic<T>`.
-
-For raw colorimetric types such as XYZ, Lab, and Luv, the initial implementation stores raw floating-point values directly and does not add special validation.
+色変換そのものは、通常の失敗を `xer::result` で返す操作としてではなく、値変換として扱います。
 
 ---
 
-## Supported and Unsupported Color Systems
+## サポートする色体系とサポートしない色体系
 
-### Supported
+### サポート対象
 
-The initial supported color systems are:
+現在サポートする色体系は次のとおりです。
 
 - RGB
-- Grayscale
+- グレースケール
 - CMY
 - HSV
 - CIE 1931 XYZ
 - CIE 1976 L*a*b*
 - CIE 1976 L*u*v*
 
-### Unsupported
+### サポート対象外
 
-The following systems are outside the scope of xer:
+現在サポートしないものは次のとおりです。
 
-- Munsell color system
-- PCCS
-- Ostwald color system
-- NCS
-- ABC tone system
-
-This is not merely a temporary omission.
-Unless there is a major reason to reconsider, these systems should remain outside the scope of xer.
-
-The main reason is that they are color-order, color-notation, perceptual, or tone-classification systems rather than lightweight formula-based numeric color spaces suitable for xer's core API.
-
----
-
-## Deferred Items
-
-The following items are deferred:
-
-- alpha / RGBA
+- ICC プロファイル
 - CMYK
 - HSL
 - HWB
-- linear RGB
-- configurable white points
-- chromatic adaptation
-- ICC profile handling
-- color appearance models
-- spectral color representation
-- color difference formulas such as Delta E
-- color temperature
-- named colors
-- palette utilities
-- direct conversion functions for every pair of supported spaces
-
-Some of these may be useful later, but they are not part of the initial color-system facility.
+- スペクトル色
+- 名前付き色
+- カラーパレット管理
+- デバイス依存の詳細なカラーマネジメント
 
 ---
 
-## Relationship to Other Headers
+## 後回しにしている項目
 
-`<xer/color.h>` is related to:
+次の項目は、初期実装では意図的に後回しにしています。
+
+- アルファ付き色型
+- ICC プロファイル対応
+- 色順応
+- CMYK
+- HSL や HWB などの追加色体系
+- 色差計算
+- 名前付き色
+- パレット処理
+
+これらは、必要性が明確になってから別の型や関数として追加するのがよいです。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/color.h>` は次のヘッダーやポリシーと関係します。
 
 - `<xer/interval.h>`
 - `<xer/cyclic.h>`
-- `<xer/stdfloat.h>`
+- `<xer/arithmetic.h>`
+- `policy_color.md`
+- `policy_interval.md`
 
-The rough boundary is:
-
-- `<xer/interval.h>` handles bounded linear scalar values
-- `<xer/cyclic.h>` handles circular scalar values such as hue
-- `<xer/color.h>` composes these into color-system value types and conversions
-- `<xer/stdfloat.h>` provides floating-point type aliases and literals
+`interval` は正規化成分に使われ、`cyclic` は色相に使われます。
 
 ---
 
-## Documentation Notes
+## ドキュメント上の注意
 
-When documenting `<xer/color.h>`, it is important to state:
+このヘッダーを説明するときは、次の点を明確にします。
 
-- `rgb` is used as the code name, not `srgb`
-- RGB/XYZ conversion assumes sRGB/D65
-- RGB, grayscale, CMY, and HSV normalized components use `interval<T>`
-- HSV hue uses `cyclic<T>`
-- XYZ, Lab, and Luv use raw floating-point members
-- alpha is not part of RGB
-- the facility is not a complete color management system
-- unsupported color systems are intentionally outside the scope
+- 色値は単純な構造体であること
+- 正規化成分は `interval<T>` を使うこと
+- 色相は `cyclic<T>` を使うこと
+- RGB/XYZ 変換では sRGB と D65 を仮定すること
+- 完全なカラーマネジメントシステムではないこと
 
 ---
 
-## Example
+## 例
 
 ```cpp
 #include <xer/color.h>
-#include <xer/stdio.h>
+
+#include <xer/arithmetic.h>
 
 auto main() -> int
 {
-    const xer::rgb color(0.25f, 0.5f, 0.75f);
+    const auto color = xer::rgb(1.25f, 0.5f, -0.25f);
+
+    if (color.r.value() != 1.0f) {
+        return 1;
+    }
+
+    if (color.g.value() != 0.5f) {
+        return 1;
+    }
+
+    if (color.b.value() != 0.0f) {
+        return 1;
+    }
 
     const auto cmy = xer::to_cmy(color);
-    const auto hsv = xer::to_hsv(color);
-    const auto xyz = xer::to_xyz(color);
-    const auto lab = xer::to_lab(xyz);
+    const auto rgb = xer::to_rgb(cmy);
 
-    if (!xer::printf(
-             u8"RGB: r=%g, g=%g, b=%g\n",
-             static_cast<double>(color.r.value()),
-             static_cast<double>(color.g.value()),
-             static_cast<double>(color.b.value()))
-             .has_value()) {
-        return 1;
-    }
-
-    if (!xer::printf(
-             u8"CMY: c=%g, m=%g, y=%g\n",
-             static_cast<double>(cmy.c.value()),
-             static_cast<double>(cmy.m.value()),
-             static_cast<double>(cmy.y.value()))
-             .has_value()) {
-        return 1;
-    }
-
-    if (!xer::printf(
-             u8"HSV: h=%g, s=%g, v=%g\n",
-             static_cast<double>(hsv.h.value()),
-             static_cast<double>(hsv.s.value()),
-             static_cast<double>(hsv.v.value()))
-             .has_value()) {
-        return 1;
-    }
-
-    if (!xer::printf(
-             u8"Lab: l=%g, a=%g, b=%g\n",
-             static_cast<double>(lab.l),
-             static_cast<double>(lab.a),
-             static_cast<double>(lab.b))
-             .has_value()) {
+    if (!xer::is_close(rgb.r.value(), 1.0f, 1e-6f)) {
         return 1;
     }
 
@@ -17361,62 +15846,47 @@ auto main() -> int
 }
 ```
 
-This example shows the basic xer style:
-
-- use the public header
-- construct an `rgb` value directly
-- convert through free functions
-- use `value()` when printing interval components
-- use `<xer/stdio.h>` for output in examples
-- check fallible output operations explicitly
-
 ---
 
-## See Also
+## 関連項目
 
 - `policy_color.md`
 - `policy_interval.md`
-- `policy_cyclic.md`
 - `header_interval.md`
 - `header_cyclic.md`
+- `header_arithmetic.md`
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/quantity.h`
-> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/quantity.h>`
 
-## Purpose
+## 目的
 
-`<xer/quantity.h>` provides physical quantity and unit facilities in xer.
+`<xer/quantity.h>` は、xer の物理量および単位のための機能を提供します。
 
-Its purpose is to allow quantities with dimensions to be handled in a type-safe and practical way.
-This includes:
+このヘッダーの目的は、次元を持つ量を型安全かつ実用的に扱えるようにすることです。
+これには、次のような内容が含まれます。
 
-- preventing meaningless arithmetic between different dimensions
-- making unit conversion explicit
-- allowing natural notation with unit objects
-- keeping the design lightweight and easy to understand
+- 異なる次元同士の意味のない算術を防ぐ
+- 単位変換を明示的にする
+- 単位オブジェクトを使った自然な記法を可能にする
+- 設計を軽量で理解しやすく保つ
 
-This header is not intended to reproduce an existing quantity library as it is.
-Instead, it follows xer's own design priorities.
+このヘッダーは、既存の quantity ライブラリをそのまま再現することを意図していません。
+かわりに、xer 独自の設計上の優先事項に従います。
 
 ---
 
-## Main Role
+## 主な役割
 
-The main role of `<xer/quantity.h>` is to provide a compact framework for:
+`<xer/quantity.h>` の主な役割は、次のもののためのコンパクトな枠組みを提供することです。
 
-- dimensions
-- units
-- quantities
-- practical predefined units under `xer::units`
+- 次元
+- 単位
+- 量
+- `xer::units` 配下の実用的な定義済み単位
 
-This makes it possible to write code such as:
+これにより、次のようなコードを書けます。
 
 ```cpp
 using namespace xer::units;
@@ -17426,13 +15896,13 @@ auto t = 2.0 * sec;
 auto v = x / t;
 ```
 
-while preserving dimension safety and explicit conversion rules.
+同時に、次元安全性と明示的な変換規則が保たれます。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/quantity.h>` provides the following entities:
+少なくとも、`<xer/quantity.h>` は次のエンティティを提供します。
 
 ```cpp
 template <int L, int M, int T, int I>
@@ -17450,51 +15920,51 @@ sq
 cb
 ```
 
-In addition, it provides predefined unit objects under the `xer::units` namespace.
+これに加えて、`xer::units` 名前空間の下に定義済み単位オブジェクトを提供します。
 
 ---
 
 ## `dimension`
 
-`dimension` represents the dimension of a physical quantity.
+`dimension` は、物理量の次元を表します。
 
-### Basic Shape
+### 基本形
 
 ```cpp
 template <int L, int M, int T, int I>
 struct dimension;
 ```
 
-### Meaning of the Parameters
+### パラメータの意味
 
-The template arguments represent exponents of the base dimensions:
+テンプレート引数は、基底次元の指数を表します。
 
-* `L`: length
-* `M`: mass
-* `T`: time
-* `I`: electric current
+* `L`: 長さ
+* `M`: 質量
+* `T`: 時間
+* `I`: 電流
 
-### Examples
+### 例
 
-Typical examples include:
+典型的な例は次のとおりです。
 
 ```cpp
-dimension<1, 0, 0, 0>   // length
-dimension<0, 1, 0, 0>   // mass
-dimension<0, 0, 1, 0>   // time
-dimension<0, 0, 0, 1>   // electric current
-dimension<1, 0, -1, 0>  // velocity
-dimension<1, 1, -2, 0>  // force
+dimension<1, 0, 0, 0>   // 長さ
+dimension<0, 1, 0, 0>   // 質量
+dimension<0, 0, 1, 0>   // 時間
+dimension<0, 0, 0, 1>   // 電流
+dimension<1, 0, -1, 0>  // 速度
+dimension<1, 1, -2, 0>  // 力
 ```
 
-### Role
+### 役割
 
-`dimension` exists to make dimensional correctness part of the type system.
+`dimension` は、次元の正しさを型システムの一部にするために存在します。
 
-This prevents invalid combinations such as:
+これにより、次のような不正な組み合わせを防げます。
 
-* adding length and time
-* comparing mass and electric current directly
+* 長さと時間を加算する
+* 質量と電流を直接比較する
 
 ---
 
@@ -17504,185 +15974,185 @@ This prevents invalid combinations such as:
 using dimensionless = dimension<0, 0, 0, 0>;
 ```
 
-### Role
+### 役割
 
-`dimensionless` represents a quantity with no physical dimension.
+`dimensionless` は、物理次元を持たない量を表します。
 
-This is useful for values such as:
+これは次のような値に有用です。
 
-* pure ratios
-* normalized coefficients
-* angular-unit-related scale values when treated dimensionlessly
+* 純粋な比
+* 正規化された係数
+* 無次元として扱う場合の角度単位関連のスケール値
 
-### Notes
+### 注意
 
-Even dimensionless quantities remain quantities in the type system.
-They are not automatically the same thing as raw scalar values.
+無次元量であっても、型システム上は量のままです。
+生のスカラー値と自動的に同じものになるわけではありません。
 
 ---
 
 ## `quantity<T, Dim>`
 
-`quantity<T, Dim>` is the central value type of the header.
+`quantity<T, Dim>` は、このヘッダーの中心的な値型です。
 
-It represents a numeric value together with a dimension.
+数値と次元を組み合わせて表します。
 
-### Basic Shape
+### 基本形
 
 ```cpp
 template <std::floating_point T, typename Dim>
 class quantity;
 ```
 
-### Role
+### 役割
 
-A `quantity<T, Dim>` stores:
+`quantity<T, Dim>` は次のものを保持します。
 
-* a numeric value
-* a physical dimension
+* 数値
+* 物理次元
 
-This allows arithmetic to preserve dimensional correctness.
+これにより、算術演算で次元の正しさを保てます。
 
-### Stored Value Type
+### 格納値の型
 
-At least in the current design direction, `T` is restricted to floating-point types such as:
+少なくとも現在の設計方針では、`T` は次のような浮動小数点型に制限されます。
 
 * `float`
 * `double`
 * `long double`
 
-Integer storage is not the primary model.
+整数による格納は、主なモデルではありません。
 
-### Why Floating-Point Storage
+### 浮動小数点格納を採用する理由
 
-This is because:
+理由は次のとおりです。
 
-* unit conversion naturally produces fractional values
-* some unit scales are non-rational
-* internal normalization to base units is not generally integral
-* keeping the design simple is more important than supporting every numeric form initially
-
----
-
-## Internal Quantity Representation
-
-A `quantity<T, Dim>` stores its value normalized to the base unit system.
-
-### Base Unit System
-
-At minimum, the base dimensions are:
-
-* meter
-* kilogram
-* second
-* ampere
-
-This means the internal system is effectively MKSA.
-
-### Examples
-
-Conceptually:
-
-* `1 km` is stored as `1000 m`
-* `1 g` is stored as `0.001 kg`
-* `1 msec` is stored as `0.001 sec`
-
-### Why This Matters
-
-Normalizing stored values to base units simplifies:
-
-* arithmetic
-* comparison
-* conversion between units
-* reasoning about mixed units of the same dimension
+* 単位変換では自然に小数値が発生する
+* 一部の単位スケールは有理数ではない
+* 基底単位への内部正規化は一般には整数にならない
+* 最初からあらゆる数値形式に対応するより、設計を単純に保つことを重視する
 
 ---
 
-## Construction and Value Retrieval
+## quantity の内部表現
 
-The intended usage model includes at least the following ideas:
+`quantity<T, Dim>` は、基底単位系に正規化した値を格納します。
 
-* constructing directly from a base-unit value
-* constructing from a scalar multiplied by a unit object
-* retrieving the normalized base-unit value
-* retrieving the value converted to a specified unit
+### 基底単位系
 
-Typical forms include:
+少なくとも、基底次元は次の単位に基づきます。
+
+* メートル
+* キログラム
+* 秒
+* アンペア
+
+つまり、内部体系は実質的に MKSA です。
+
+### 例
+
+概念的には次のようになります。
+
+* `1 km` は `1000 m` として格納される
+* `1 g` は `0.001 kg` として格納される
+* `1 msec` は `0.001 sec` として格納される
+
+### これが重要な理由
+
+格納値を基底単位に正規化すると、次の処理が単純になります。
+
+* 算術
+* 比較
+* 単位間の変換
+* 同じ次元を持つ混在単位についての推論
+
+---
+
+## 構築と値の取得
+
+想定される使用モデルには、少なくとも次の考え方が含まれます。
+
+* 基底単位値から直接構築する
+* スカラーと単位オブジェクトの乗算から構築する
+* 正規化された基底単位値を取得する
+* 指定した単位に変換した値を取得する
+
+典型的な形は次のとおりです。
 
 ```cpp
 auto value() const noexcept -> T;
 auto value(unit_type u) const noexcept -> T;
 ```
 
-The exact signatures may vary, but this is the intended public direction.
+正確なシグネチャは変わる可能性がありますが、これが意図している公開 API の方向性です。
 
-### Example
+### 例
 
 ```cpp
 using namespace xer::units;
 
 auto x = 1.5 * km;
-auto a = x.value();    // base-unit value
-auto b = x.value(km);  // value expressed in km
+auto a = x.value();    // 基底単位値
+auto b = x.value(km);  // km で表した値
 ```
 
 ---
 
-## Raw Value Access for Dimensionless Quantities
+## 無次元量の生値アクセス
 
-Dimensionless quantities sometimes need to be converted back to raw scalars.
+無次元量は、生のスカラー値へ戻す必要がある場合があります。
 
-### Design Direction
+### 設計方針
 
-This should be possible, but it should remain explicit.
+それは可能であるべきですが、明示的であるべきです。
 
-### Why Explicit
+### 明示的であるべき理由
 
-Implicit conversion from a dimensionless quantity to a raw scalar weakens the type system and makes code less clear.
+無次元量から生のスカラーへの暗黙変換は、型システムを弱め、コードの明確さを下げます。
 
-For that reason, explicit conversion or explicit value retrieval is preferred.
+そのため、明示的な変換、または明示的な値取得を優先します。
 
 ---
 
 ## `unit<Dim, Scale>`
 
-`unit<Dim, Scale>` represents a unit.
+`unit<Dim, Scale>` は単位を表します。
 
-### Basic Shape
+### 基本形
 
 ```cpp
 template <typename Dim, typename Scale = std::ratio<1>>
 class unit;
 ```
 
-### Role
+### 役割
 
-A unit represents:
+単位は次のものを表します。
 
-* a dimension
-* a scale relative to the base unit of that dimension
+* 次元
+* その次元の基底単位に対するスケール
 
-### Nature of `unit`
+### `unit` の性質
 
-The intended design is that `unit` should be primarily type-level information.
+意図している設計では、`unit` は主に型レベルの情報であるべきです。
 
-That means:
+つまり、次のことを意味します。
 
-* unit information should ideally be carried by template arguments
-* unit objects should remain lightweight
-* unnecessary runtime data members should be avoided
+* 単位情報は理想的にはテンプレート引数で保持する
+* 単位オブジェクトは軽量に保つ
+* 不要な実行時データメンバーは避ける
 
-In practice, predefined unit objects should behave like empty or near-empty compile-time objects.
+実際には、定義済み単位オブジェクトは空、またはほぼ空のコンパイル時オブジェクトのように振る舞うべきです。
 
 ---
 
-## Scale Representation
+## スケール表現
 
-One important design point is that unit scales are **not** limited to rational values.
+重要な設計点のひとつは、単位スケールが有理数値に**限定されない**ことです。
 
-### Rational-Scale Examples
+### 有理数スケールの例
 
-Many units can be represented naturally with rational scales:
+多くの単位は、有理数スケールで自然に表せます。
 
 * `mm`
 * `cm`
@@ -17693,34 +16163,34 @@ Many units can be represented naturally with rational scales:
 * `kHz`
 * `hPa`
 
-### Non-Rational-Scale Example
+### 非有理数スケールの例
 
-Some units, such as `rad` relative to `taurad`, are not naturally representable by a purely rational scale.
+`taurad` に対する `rad` のように、純粋な有理数スケールでは自然に表せない単位もあります。
 
-### Design Direction
+### 設計方針
 
-Therefore:
+したがって、次の方針を取ります。
 
-* `std::ratio`-like rational scales are the default
-* floating-point-based scale representation may also be necessary for some units
-* the template default should not be interpreted as a permanent restriction of the entire design
+* `std::ratio` 風の有理数スケールをデフォルトとする
+* 一部の単位では、浮動小数点ベースのスケール表現も必要になる可能性がある
+* テンプレートのデフォルトを、設計全体の恒久的な制限と解釈してはならない
 
-This point is especially important for understanding `unit<Dim, Scale>` correctly.
+この点は、`unit<Dim, Scale>` を正しく理解するうえで特に重要です。
 
 ---
 
-## Unit Arithmetic
+## 単位の算術
 
-Units may be multiplied and divided.
+単位は乗算および除算できます。
 
-### Meaning
+### 意味
 
-When units are multiplied or divided:
+単位を乗算または除算すると、次のものが結合されます。
 
-* dimensions are combined
-* scales are combined
+* 次元
+* スケール
 
-This allows natural construction of derived quantities such as:
+これにより、次のような派生量を自然に構築できます。
 
 ```cpp
 using namespace xer::units;
@@ -17730,15 +16200,15 @@ auto a = 9.8 * m / sq(sec);
 auto f = 2.0 * kg * m / sq(sec);
 ```
 
-### Why This Matters
+### これが重要な理由
 
-This avoids the need to define every composite unit as a separate fixed name.
+すべての合成単位を個別の固定名として定義する必要がなくなります。
 
 ---
 
-## Square and Cube Helpers for Units and Quantities
+## 単位と量の平方・立方ヘルパー
 
-`<xer/quantity.h>` provides `sq` and `cb` for units and quantities.
+`<xer/quantity.h>` は、単位と量のために `sq` と `cb` を提供します。
 
 ```cpp
 sq(unit)
@@ -17747,10 +16217,10 @@ sq(quantity)
 cb(quantity)
 ```
 
-### Role
+### 役割
 
-These helpers make repeated multiplication easier to read in unit expressions.
-For example:
+これらのヘルパーは、単位式での繰り返し乗算を読みやすくします。
+たとえば次のように書けます。
 
 ```cpp
 using namespace xer::units;
@@ -17758,17 +16228,17 @@ using namespace xer::units;
 auto acceleration = 9.8 * m / sq(sec);
 ```
 
-This is equivalent in meaning to:
+これは意味としては次と同等です。
 
 ```cpp
 auto acceleration = 9.8 * m / (sec * sec);
 ```
 
-For quantities, `sq` and `cb` multiply the stored value and combine the dimension exponents accordingly.
+量に対しては、`sq` と `cb` は格納値を乗算し、次元指数も対応して結合します。
 
-### Symbolic Unit Aliases
+### 記号付き単位エイリアス
 
-For common base units, symbolic aliases are also provided under `xer::units`:
+一般的な基底単位については、`xer::units` 配下に記号付きエイリアスも提供されます。
 
 ```cpp
 m²
@@ -17777,7 +16247,7 @@ sec²
 sec³
 ```
 
-These are aliases for the corresponding square or cube unit expressions:
+これらは、対応する平方または立方の単位式のエイリアスです。
 
 ```cpp
 m²   // sq(m)
@@ -17786,33 +16256,34 @@ sec² // sq(sec)
 sec³ // cb(sec)
 ```
 
-They are intended as readable symbolic notation.
-The ASCII forms `sq(m)`, `cb(m)`, `sq(sec)`, and `cb(sec)` remain available as the portable spelling.
+読みやすい記号表記として用意されています。
+移植性の高い綴りとして、ASCII 形式の `sq(m)`, `cb(m)`, `sq(sec)`, `cb(sec)` も引き続き利用できます。
+
 ---
 
 ## `xer::units`
 
-Predefined unit objects are provided under the `xer::units` namespace.
+定義済み単位オブジェクトは、`xer::units` 名前空間の下で提供されます。
 
-### Role
+### 役割
 
-This namespace groups common unit names in one predictable place.
+この名前空間は、よく使う単位名を予測しやすい場所にまとめます。
 
-### Basic Direction
+### 基本方針
 
-Units are intentionally **not** placed directly under `xer`.
+単位は意図的に `xer` 直下には置きません。
 
-This makes it possible to write:
+これにより、必要な場所でだけ次のように書けます。
 
 ```cpp
 using namespace xer::units;
 ```
 
-only where needed, without polluting the main namespace.
+メインの名前空間を汚染せずに済みます。
 
-### Examples of Base Units
+### 基底単位の例
 
-At minimum, the following base units are provided:
+少なくとも、次の基底単位が提供されます。
 
 ```cpp
 xer::units::m
@@ -17823,31 +16294,31 @@ xer::units::A
 
 ---
 
-## Predefined Units
+## 定義済み単位
 
-The header is expected to provide a practical set of common units.
+このヘッダーは、実用的な共通単位の集合を提供することが期待されます。
 
-### Base Units
+### 基底単位
 
-At minimum:
+少なくとも次のものがあります。
 
 * `m`
 * `kg`
 * `sec`
 * `A`
 
-### Squared and Cubed Base Units
+### 平方・立方の基底単位
 
-At minimum:
+少なくとも次のものがあります。
 
 * `m²`
 * `m³`
 * `sec²`
 * `sec³`
 
-### Selected Prefixed Units
+### 選択された接頭辞付き単位
 
-Examples include:
+例は次のとおりです。
 
 * `mm`
 * `cm`
@@ -17864,9 +16335,9 @@ Examples include:
 * `GHz`
 * `hPa`
 
-### Selected Derived Units
+### 選択された派生単位
 
-Examples include:
+例は次のとおりです。
 
 * `Hz`
 * `N`
@@ -17875,9 +16346,9 @@ Examples include:
 * `V`
 * `Pa`
 
-### Conventional Units
+### 慣用単位
 
-Examples include:
+例は次のとおりです。
 
 * `ha`
 * `mL`
@@ -17887,144 +16358,144 @@ Examples include:
 * `cal`
 * `kcal`
 
-### Aliases
+### エイリアス
 
-Examples may include:
+例には次のものが含まれる場合があります。
 
 * `μm`
 * `μsec`
 * `cc`
 
-The exact set belongs to the detailed unit reference, but these are the main intended categories.
+正確な集合は詳細な単位リファレンスに属しますが、これらが主な意図カテゴリです。
 
 ---
 
-## Angular Units
+## 角度単位
 
-`<xer/quantity.h>` also covers angle-related units in coordination with the broader xer design.
+`<xer/quantity.h>` は、より広い xer の設計と連携して、角度関連の単位も扱います。
 
-### Important Units
+### 重要な単位
 
-At minimum:
+少なくとも次のものがあります。
 
 * `taurad`
 * `τrad`
 * `rad`
 
-### Design Meaning
+### 設計上の意味
 
-* `taurad` is the base unit for angle
-* `τrad` is an alias of `taurad`
-* `rad` is treated as a dimensionless unit for angle
+* `taurad` は角度の基底単位です
+* `τrad` は `taurad` のエイリアスです
+* `rad` は角度のための無次元単位として扱われます
 
-### Why This Matters
+### これが重要な理由
 
-This keeps angle quantities compatible with xer's design where one full turn corresponds naturally to the `cyclic` model.
-
----
-
-## Relationship to `cyclic`
-
-A key design point is that angle quantities and circular values are **not identical concepts**.
-
-### Quantity Side
-
-`quantity` handles ordinary angle quantities, including values such as:
-
-* multiple turns
-* negative turns
-* values used in ordinary arithmetic
-
-### `cyclic` Side
-
-`cyclic` handles explicitly circular semantics such as:
-
-* clockwise distance
-* counterclockwise distance
-* shortest difference on a circle
-
-### Design Boundary
-
-So the design direction is:
-
-* store ordinary angles as quantities
-* convert to `cyclic` when circular behavior is actually needed
-
-This keeps both abstractions focused.
+これにより、1回転が `cyclic` モデルと自然に対応するという xer の設計と、角度量を整合させられます。
 
 ---
 
-## User-Defined Literals
+## `cyclic` との関係
 
-User-defined literals are not the primary notation model here.
+重要な設計点は、角度量と循環値が**同一概念ではない**ことです。
 
-### Preferred Style
+### quantity 側
 
-The intended style is:
+`quantity` は、通常の角度量を扱います。
+これには次のような値が含まれます。
+
+* 複数回転
+* 負の回転
+* 通常の算術で使われる値
+
+### `cyclic` 側
+
+`cyclic` は、次のような明示的な循環意味論を扱います。
+
+* 時計回りの距離
+* 反時計回りの距離
+* 円上の最短差分
+
+### 設計上の境界
+
+したがって、設計方針は次のようになります。
+
+* 通常の角度は量として格納する
+* 循環的な振る舞いが実際に必要なときに `cyclic` へ変換する
+
+これにより、両方の抽象化の焦点を保てます。
+
+---
+
+## ユーザー定義リテラル
+
+ここでは、ユーザー定義リテラルを主要な記法モデルにはしません。
+
+### 推奨スタイル
+
+意図しているスタイルは、単位接尾辞リテラルではなく、次のような形です。
 
 ```cpp
 1.23f * msec
 ```
 
-rather than unit suffix literals.
+### 理由
 
-### Why
+この記法は次の性質を保ちます。
 
-This keeps the notation:
-
-* explicit
-* easy to read
-* consistent with the rest of xer
-* easier to extend without creating many special literal forms
+* 明示的
+* 読みやすい
+* xer の他の部分と一貫している
+* 多数の特別なリテラル形式を作らずに拡張しやすい
 
 ---
 
-## Relationship to Other Headers
+## 他のヘッダーとの関係
 
-`<xer/quantity.h>` should be understood together with:
+`<xer/quantity.h>` は、次のものとあわせて理解する必要があります。
 
 * `policy_project_outline.md`
 * `policy_quantity.md`
 * `header_cyclic.md`
 * `header_arithmetic.md`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-* `<xer/quantity.h>` handles units, dimensions, and quantities
-* `<xer/cyclic.h>` handles explicitly circular values
-* `<xer/arithmetic.h>` handles general arithmetic/comparison helpers not specific to physical dimensions
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that it provides dimensions, units, and quantities
-* that quantities are normalized internally to base units
-* that unit objects live under `xer::units`
-* that scale is not conceptually restricted to rational representation only
-* that ordinary angular quantities and `cyclic` values are distinct concepts
-
-Detailed unit catalogs and per-operator rules belong in the detailed reference or generated API sections.
+* `<xer/quantity.h>` は、単位、次元、量を扱う
+* `<xer/cyclic.h>` は、明示的に循環する値を扱う
+* `<xer/arithmetic.h>` は、物理次元に固有ではない一般的な算術・比較ヘルパーを扱う
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+このヘッダーを生成ドキュメントで扱う場合、通常は次の点を説明すれば十分です。
 
-* constructing a quantity from a scalar and a unit
-* converting a quantity to base units and to another unit
-* dividing distance by time to obtain velocity\n* using `sq`, `cb`, `m²`, `m³`, and `sec²` in unit expressions
-* using predefined units from `xer::units`
-* handling angle quantities with `taurad` or `rad`
+* 次元、単位、量を提供すること
+* 量は内部で基底単位に正規化されること
+* 単位オブジェクトは `xer::units` に置かれること
+* スケールは概念上、有理数表現だけに制限されないこと
+* 通常の角度量と `cyclic` 値は別概念であること
 
-These are good candidates for executable examples in `examples/`.
+詳細な単位カタログや演算子ごとの規則は、詳細リファレンスまたは生成 API セクションに属します。
 
 ---
 
-## Example
+## 例として示す価値がある話題
+
+このヘッダーには、次のような例が特に適しています。
+
+* スカラーと単位から量を構築する
+* 量を基底単位および別の単位へ変換する
+* 距離を時間で割って速度を得る
+* 単位式で `sq`, `cb`, `m²`, `m³`, `sec²` を使う
+* `xer::units` の定義済み単位を使う
+* `taurad` または `rad` で角度量を扱う
+
+これらは `examples/` 配下の実行可能な例のよい候補です。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/quantity.h>
@@ -18052,16 +16523,16 @@ auto main() -> int
 }
 ```
 
-This example shows the normal xer style:
+この例は、通常の xer スタイルを示しています。
 
-* use unit objects from `xer::units`
-* construct quantities with scalar × unit
-* retrieve values explicitly
-* keep dimensional meaning in the type system
+* `xer::units` の単位オブジェクトを使う
+* スカラー × 単位で量を構築する
+* 値を明示的に取得する
+* 次元上の意味を型システムに保持する
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_quantity.md`
@@ -18070,37 +16541,29 @@ This example shows the normal xer style:
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/matrix.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/matrix.h>`
 
-## Purpose
+## 目的
 
-`<xer/matrix.h>` provides fixed-size matrix and affine transform helpers in xer.
+`<xer/matrix.h>` は、xer における固定サイズ行列とアフィン変換補助機能を提供します。
 
-The initial purpose of this header is deliberately practical and limited.
-It is not intended to become a full linear algebra framework at the beginning.
-Instead, it provides enough functionality to express common 2D and 3D affine transforms and their inverse transforms in a clear, lightweight way.
+このヘッダーの最初の目的は、意図的に実用的かつ限定的です。最初から完全な線形代数フレームワークにすることは意図していません。代わりに、一般的な 2D / 3D アフィン変換とその逆変換を、明確で軽量な形で表現するのに十分な機能を提供します。
 
 ---
 
-## Main Role
+## 主な役割
 
-The main role of `<xer/matrix.h>` is to provide:
+`<xer/matrix.h>` の主な役割は次の機能を提供することです。
 
-- fixed-size row-major matrices
-- 3x3 and 4x4 matrix aliases
-- 3x1 and 4x1 column-vector aliases
-- ordinary matrix multiplication
-- identity matrix creation
-- inverse calculation for 3x3 and 4x4 matrices
-- helper functions for 2D and 3D affine transforms
+- 固定サイズの行優先行列
+- 3x3 および 4x4 行列エイリアス
+- 3x1 および 4x1 列ベクトルエイリアス
+- 通常の行列積
+- 単位行列の生成
+- 3x3 および 4x4 行列の逆行列計算
+- 2D / 3D アフィン変換用の補助関数
 
-This makes it possible to write transform code such as:
+これにより、次のような変換コードを書けます。
 
 ```cpp
 const xer::vector3<double> point{2.0, 3.0, 1.0};
@@ -18114,9 +16577,9 @@ const auto transformed = transform * point;
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/matrix.h>` provides the following entities:
+少なくとも、`<xer/matrix.h>` は次のエンティティを提供します。
 
 ```cpp
 template <std::floating_point T, std::size_t Rows, std::size_t Cols>
@@ -18135,51 +16598,50 @@ template <std::floating_point T>
 using vector4 = matrix<T, 4, 1>;
 ```
 
-It also provides multiplication, identity matrix creation, inverse calculation, and affine transform helper functions.
+また、乗算、単位行列生成、逆行列計算、アフィン変換補助関数も提供します。
 
 ---
 
 ## `matrix<T, Rows, Cols>`
 
-`matrix<T, Rows, Cols>` is the fundamental fixed-size matrix type.
+`matrix<T, Rows, Cols>` は基本となる固定サイズ行列型です。
 
-### Basic Shape
+### 基本形
 
 ```cpp
 template <std::floating_point T, std::size_t Rows, std::size_t Cols>
 class matrix;
 ```
 
-### Element Type
+### 要素型
 
-The element type is restricted to floating-point types.
+要素型は浮動小数点型に制限されます。
 
-The main intended types are:
+主に想定する型は次のとおりです。
 
 * `float`
 * `double`
 * `long double`
 
-This keeps the first implementation focused on geometric transforms and numeric operations where fractional values are normal.
+最初の実装を、幾何変換と小数値が自然に現れる数値演算へ集中させるためです。
 
-### Storage Model
+### ストレージモデル
 
-The matrix is stored as a fixed-size row-major value.
+行列は固定サイズの行優先値として保存されます。
 
-Conceptually, the element at row `r` and column `c` is accessed as:
+概念的には、行 `r`、列 `c` の要素は次のようにアクセスします。
 
 ```cpp
 m(r, c)
 ```
 
-Rows and columns are zero-based.
-Bounds are not checked by `operator()`.
+行と列は 0 始まりです。`operator()` では境界チェックを行いません。
 
-### Construction
+### 構築
 
-A default-constructed matrix is a zero matrix.
+既定構築された行列は零行列です。
 
-A matrix may also be constructed from exactly `Rows * Cols` values in row-major order:
+また、行優先順でちょうど `Rows * Cols` 個の値から構築できます。
 
 ```cpp
 xer::matrix<double, 2, 3> value{
@@ -18188,13 +16650,13 @@ xer::matrix<double, 2, 3> value{
 };
 ```
 
-The exact number of values is required so that incomplete or excessive matrix literals are detected at compile time.
+値の個数は正確でなければなりません。これにより、不完全または過剰な行列リテラルをコンパイル時に検出できます。
 
 ---
 
-## Matrix Aliases
+## 行列エイリアス
 
-The header provides aliases for the matrix sizes used by the initial affine-transform functionality.
+このヘッダーは、初期のアフィン変換機能で使うサイズの行列エイリアスを提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -18204,16 +16666,16 @@ template <std::floating_point T>
 using matrix4 = matrix<T, 4, 4>;
 ```
 
-### Role
+### 役割
 
-* `matrix3<T>` is primarily used for 2D homogeneous affine transforms.
-* `matrix4<T>` is primarily used for 3D homogeneous affine transforms.
+* `matrix3<T>` は主に 2D 同次アフィン変換に使います。
+* `matrix4<T>` は主に 3D 同次アフィン変換に使います。
 
 ---
 
-## Column Vector Aliases
+## 列ベクトルエイリアス
 
-The header also provides aliases for homogeneous column vectors.
+このヘッダーは、同次列ベクトルのエイリアスも提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -18223,19 +16685,18 @@ template <std::floating_point T>
 using vector4 = matrix<T, 4, 1>;
 ```
 
-### Role
+### 役割
 
-* `vector3<T>` is typically used as a 2D homogeneous column vector: `(x, y, 1)`.
-* `vector4<T>` is typically used as a 3D homogeneous column vector: `(x, y, z, 1)`.
+* `vector3<T>` は通常、2D 同次列ベクトル `(x, y, 1)` として使います。
+* `vector4<T>` は通常、3D 同次列ベクトル `(x, y, z, 1)` として使います。
 
-They are aliases of `matrix`, not separate vector classes.
-This keeps the first implementation simple and makes matrix-vector multiplication the ordinary matrix multiplication operation.
+これらは別個のベクトルクラスではなく、`matrix` のエイリアスです。最初の実装を単純に保ち、行列とベクトルの積を通常の行列積として扱えるようにします。
 
 ---
 
-## Matrix Multiplication
+## 行列積
 
-`<xer/matrix.h>` provides ordinary row-by-column matrix multiplication.
+`<xer/matrix.h>` は通常の行×列の行列積を提供します。
 
 ```cpp
 auto operator*(
@@ -18244,40 +16705,38 @@ auto operator*(
     -> matrix<T, R, K>;
 ```
 
-### Role
+### 役割
 
-This single operation covers:
+この 1 つの演算で次を扱います。
 
-* matrix × matrix
-* matrix × column vector
-* affine transform composition
-* applying an affine transform to a homogeneous point
+* 行列 × 行列
+* 行列 × 列ベクトル
+* アフィン変換の合成
+* 同次点へのアフィン変換の適用
 
-### Transform Composition Order
+### 変換合成の順序
 
-xer uses column vectors in this matrix facility.
-Therefore, in an expression such as:
+この行列機能では列ベクトルを使います。そのため、次のような式では、
 
 ```cpp
 const auto transform = translate2<double>(10.0, 20.0) * scale2<double>(2.0, 3.0);
 const auto result = transform * point;
 ```
 
-`point` is transformed by the rightmost transform first.
-In this example, scaling is applied first, and translation is applied afterward.
+`point` には右端の変換が先に適用されます。この例では、先に拡大縮小が適用され、その後に平行移動が適用されます。
 
 ---
 
-## Identity Matrices
+## 単位行列
 
-The header provides a generic identity matrix helper:
+このヘッダーは汎用の単位行列補助関数を提供します。
 
 ```cpp
 template <std::floating_point T, std::size_t N>
 auto identity_matrix() noexcept -> matrix<T, N, N>;
 ```
 
-It also provides convenience helpers for the two main affine-transform sizes:
+また、主要なアフィン変換サイズ向けの便利関数も提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -18289,9 +16748,9 @@ auto identity4() noexcept -> matrix4<T>;
 
 ---
 
-## Inverse Matrices
+## 逆行列
 
-The header provides inverse calculation for 3x3 and 4x4 matrices:
+このヘッダーは 3x3 および 4x4 行列の逆行列計算を提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -18303,18 +16762,17 @@ auto inverse(const matrix<T, 4, 4>& value) noexcept
     -> xer::result<matrix<T, 4, 4>>;
 ```
 
-### Error Handling
+### エラー処理
 
-If the matrix is singular or too close to singular for the implemented calculation, `inverse` returns failure.
+行列が特異である、または実装された計算に対して特異に近すぎる場合、`inverse` は失敗を返します。
 
-The current implementation reports this as `error_t::divide_by_zero`.
-This expresses the fact that the inverse operation requires division by a usable pivot value.
+現在の実装では、これを `error_t::divide_by_zero` として報告します。逆行列演算には使用可能なピボット値による除算が必要だからです。
 
 ---
 
-## 2D Affine Transform Helpers
+## 2D アフィン変換補助関数
 
-For 2D homogeneous column vectors, the header provides 3x3 transform helpers.
+2D 同次列ベクトル向けに、このヘッダーは 3x3 変換補助関数を提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -18327,15 +16785,15 @@ template <std::floating_point T>
 auto rotate2(T radian) noexcept -> matrix3<T>;
 ```
 
-### Rotation Direction
+### 回転方向
 
-`rotate2` uses radians and follows the ordinary mathematical convention: positive angles rotate counterclockwise.
+`rotate2` はラジアンを使い、通常の数学的慣習に従います。正の角度は反時計回りの回転です。
 
 ---
 
-## 3D Affine Transform Helpers
+## 3D アフィン変換補助関数
 
-For 3D homogeneous column vectors, the header provides 4x4 transform helpers.
+3D 同次列ベクトル向けに、このヘッダーは 4x4 変換補助関数を提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -18354,44 +16812,43 @@ template <std::floating_point T>
 auto rotate_z(T radian) noexcept -> matrix4<T>;
 ```
 
-### Rotation Units
+### 回転単位
 
-The rotation helpers take raw radian values.
+回転補助関数は生のラジアン値を受け取ります。
 
-Angle quantities, `cyclic`, and other higher-level angle abstractions are not mixed into the first matrix API.
-Callers may convert into radians before calling these functions when needed.
-
----
-
-## Scope of the Initial Matrix Facility
-
-The initial matrix facility is intentionally small.
-
-It focuses on:
-
-* 2D affine transforms using 3x3 matrices
-* 3D affine transforms using 4x4 matrices
-* homogeneous column vectors
-* inverse transforms for 3x3 and 4x4 matrices
-
-It does not initially try to provide a complete linear algebra library.
-
-Deferred or intentionally omitted items include:
-
-* dynamic-size matrices
-* decomposition algorithms
-* eigenvalues or eigenvectors
-* specialized vector classes
-* determinant APIs
-* full numerical linear algebra facilities
-
-These may be considered later only if they become necessary.
+角度量、`cyclic`、その他の高水準の角度抽象は、最初の行列 API には混ぜません。必要な場合、呼び出し側がこれらの関数を呼ぶ前にラジアンへ変換します。
 
 ---
 
-## Relationship to Other Headers
+## 初期行列機能の範囲
 
-`<xer/matrix.h>` should be understood together with:
+初期の行列機能は意図的に小さくしています。
+
+重点は次の項目です。
+
+* 3x3 行列による 2D アフィン変換
+* 4x4 行列による 3D アフィン変換
+* 同次列ベクトル
+* 3x3 および 4x4 行列の逆変換
+
+最初から完全な線形代数ライブラリを提供しようとはしません。
+
+後回しまたは意図的に省略している項目には次があります。
+
+* 動的サイズ行列
+* 分解アルゴリズム
+* 固有値または固有ベクトル
+* 専用ベクトルクラス
+* 行列式 API
+* 完全な数値線形代数機能
+
+これらは必要になった場合にだけ、後から検討します。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/matrix.h>` は次と合わせて理解してください。
 
 * `policy_project_outline.md`
 * `policy_arithmetic.md`
@@ -18399,43 +16856,43 @@ These may be considered later only if they become necessary.
 * `header_cyclic.md`
 * `header_quantity.md`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-* `<xer/arithmetic.h>` handles scalar arithmetic and comparison helpers
-* `<xer/cyclic.h>` handles circular values such as normalized angles and directions
-* `<xer/quantity.h>` handles physical quantities and units
-* `<xer/matrix.h>` handles fixed-size matrices and affine transforms
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that the matrix type is fixed-size and row-major
-* that column vectors are represented as `matrix<T, N, 1>` aliases
-* that the initial focus is 2D and 3D affine transforms
-* that inverse calculation is provided for 3x3 and 4x4 matrices
-* that rotation helpers take radians
-
-Detailed numerical behavior and future linear algebra expansion should be documented separately when those features are added.
+* `<xer/arithmetic.h>` はスカラー算術と比較補助機能を扱う
+* `<xer/cyclic.h>` は正規化角度や方向のような循環値を扱う
+* `<xer/quantity.h>` は物理量と単位を扱う
+* `<xer/matrix.h>` は固定サイズ行列とアフィン変換を扱う
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+生成マニュアルでこのヘッダーを説明するときは、通常は次を説明すれば十分です。
 
-* applying a 2D affine transform to a point
-* composing translation, scaling, and rotation transforms
-* applying a 3D affine transform to a point
-* computing an inverse transform and restoring the original point
+* 行列型は固定サイズで行優先であること
+* 列ベクトルは `matrix<T, N, 1>` のエイリアスで表されること
+* 初期の重点は 2D / 3D アフィン変換であること
+* 3x3 および 4x4 行列の逆行列計算を提供すること
+* 回転補助関数はラジアンを受け取ること
 
-These are good candidates for executable examples in `examples/`.
+詳細な数値挙動や将来の線形代数拡張は、それらの機能が追加された時点で別途文書化します。
 
 ---
 
-## Example
+## 例として示す価値が高い題材
+
+このヘッダーでは、次のような例が特に適しています。
+
+* 2D アフィン変換を点へ適用する
+* 平行移動、拡大縮小、回転変換を合成する
+* 3D アフィン変換を点へ適用する
+* 逆変換を計算して元の点を復元する
+
+これらは `examples/` の実行可能例のよい候補です。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/matrix.h>
@@ -18461,16 +16918,16 @@ auto main() -> int
 }
 ```
 
-This example shows the normal xer style:
+この例は通常の xer スタイルを示しています。
 
-* represent points as homogeneous column vectors
-* compose transforms with matrix multiplication
-* apply a transform by multiplying the matrix and the point
-* check `xer::result` explicitly when computing an inverse matrix
+* 点を同次列ベクトルとして表す
+* 行列積で変換を合成する
+* 行列と点を乗算して変換を適用する
+* 逆行列を計算するときは `xer::result` を明示的に確認する
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_arithmetic.md`
@@ -18480,36 +16937,30 @@ This example shows the normal xer style:
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/image.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/image.h>`
 
 
-## Purpose
+## 目的
 
-`<xer/image.h>` provides lightweight image and framebuffer facilities.
+`<xer/image.h>` は、軽量な画像およびフレームバッファ機能を提供します。
 
-The initial purpose of this header is not full photo editing or complete image-file handling. It is a small framebuffer-oriented layer for fixed-size canvases, VRAM-style emulation, simple drawing, image processing, and later integration with Tcl/Tk photo images.
+このヘッダーの初期目的は、本格的な写真編集や完全な画像ファイル処理ではありません。固定サイズキャンバス、VRAM風のエミュレーション、単純な描画、画像処理、および将来的な Tcl/Tk photo image 連携に向けた、小さなフレームバッファ指向レイヤーです。
 
-Pure image processing and drawing belong in `<xer/image.h>`. Tcl/Tk photo integration belongs in `<xer/tk.h>`.
-
----
-
-## Namespace
-
-Image-related types and functions are placed in the `xer::image` namespace.
-
-The primary framebuffer owner type is `xer::image::canvas` so that `xer::image` can serve as the namespace for image storage, drawing, and image processing.
+純粋な画像処理と描画は `<xer/image.h>` に属します。Tcl/Tk photo 連携は `<xer/tk.h>` に属します。
 
 ---
 
-## Main Entities
+## 名前空間
 
-At minimum, `<xer/image.h>` provides the following entities:
+画像関連の型と関数は `xer::image` 名前空間に配置されます。
+
+主要なフレームバッファ所有型は `xer::image::canvas` です。これにより、`xer::image` を画像ストレージ、描画、画像処理の名前空間として使えます。
+
+---
+
+## 主なエンティティ
+
+少なくとも `<xer/image.h>` は次のエンティティを提供します。
 
 ```cpp
 namespace xer::image {
@@ -18983,120 +17434,80 @@ template <std::size_t Width, std::size_t Height, class Policy, class F>
 
 ---
 
-## Geometry Types
+## 幾何型
 
-The geometry helper types are simple value types used by drawing and image-processing APIs.
+このヘッダーは、整数座標用と浮動小数点座標用の小さな幾何型を提供します。
 
 ```cpp
 struct point {
     int x;
     int y;
-
-    constexpr point() noexcept = default;
-    constexpr point(int x, int y) noexcept;
 };
 
 struct pointf {
     float x;
     float y;
-
-    constexpr pointf() noexcept = default;
-    constexpr pointf(float x, float y) noexcept;
 };
 
 struct size {
     int width;
     int height;
-
-    constexpr size() noexcept = default;
-    constexpr size(int width, int height) noexcept;
 };
 
 struct sizef {
     float width;
     float height;
-
-    constexpr sizef() noexcept = default;
-    constexpr sizef(float width, float height) noexcept;
 };
 
 struct rect {
-    int x;
-    int y;
-    int width;
-    int height;
-
-    constexpr rect() noexcept = default;
-    constexpr rect(int x, int y, int width, int height) noexcept;
-    constexpr rect(const point& origin, const size& extent) noexcept;
+    point origin;
+    size extent;
 };
 
 struct rectf {
-    float x;
-    float y;
-    float width;
-    float height;
-
-    constexpr rectf() noexcept = default;
-    constexpr rectf(float x, float y, float width, float height) noexcept;
-    constexpr rectf(const pointf& origin, const sizef& extent) noexcept;
+    pointf origin;
+    sizef extent;
 };
 ```
 
-Integer geometry types are intended for pixel-grid operations and clipping. Floating-point geometry types are intended for subpixel drawing, antialiasing, and future transformations.
+これらの型は、描画APIでスカラー座標と構造化座標の両方を自然に使うためのものです。
 
-`rect` and `rectf` can be constructed either from four scalar values or from an origin point plus an extent size:
-
-```cpp
-const auto area = xer::image::rect(
-    xer::image::point(10, 20),
-    xer::image::size(320, 240));
-```
-
-Geometry-type function parameters are passed by `const&` in public drawing and image-processing APIs. Scalar coordinates and `pixel` values remain ordinary value parameters.
-
-When `<xer/iostream.h>` is included, the geometry types use compact diagnostic stream forms:
-
-```text
-point  -> (x, y)
-size   -> {width, height}
-rect   -> (x, y) {width, height}
-```
-
-The floating-point variants use the same spelling.
+整数型は、ピクセル境界に基づく通常の描画に使います。浮動小数点型は、アンチエイリアス描画のようにピクセル中心やサブピクセル位置を扱うAPIで使います。
 
 ---
 
-## Filter Error Detail
+## フィルターエラー詳細
 
-`filter_pixels_error_detail` reports partial failures from `filter_pixels`.
+`filter_pixels_error_detail` は、ユーザー指定フィルターが例外を投げた場合の情報を保持します。
 
 ```cpp
 struct filter_pixels_error_detail {
-    point first_error_position{};
-    std::size_t error_count = 0;
+    point first_error_position;
+    std::size_t error_count;
 };
 ```
 
-`first_error_position` is the first pixel where the user-supplied filter threw an exception, expressed in canvas coordinates. `error_count` is the total number of pixels whose filter call failed.
+`first_error_position` は、フィルター呼び出しが最初に失敗したピクセル位置です。
 
-Only the first failing position is stored. This avoids allocating a potentially large list of failed pixels while still giving the caller a useful diagnostic location.
+`error_count` は、フィルター呼び出しに失敗したピクセル総数です。
+
+失敗位置は最初の1件だけを保存します。これにより、失敗ピクセルの巨大なリストを確保せずに、呼び出し側に有用な診断位置を返せます。
 
 ---
 
-## Logical Pixel
+## 論理ピクセル
 
-`xer::image::pixel` represents a logical color value.
+`xer::image::pixel` は論理色値を表します。
 
-It is not the same thing as the physical framebuffer storage element. The physical storage format is controlled by the canvas policy.
+これは物理フレームバッファのストレージ要素とは同じではありません。物理ストレージ形式は canvas policy によって制御されます。
 
-The logical representation is ARGB in a 32-bit integer:
+論理表現は32ビット整数のARGBです。
 
 ```text
 0xAARRGGBB
 ```
 
-The conceptual shape is:
+概念的な形は次のとおりです。
 
 ```cpp
 struct pixel {
@@ -19124,8 +17535,9 @@ struct pixel {
 };
 ```
 
-The three-argument constructor represents RGB and sets alpha to `0xff`.
-The four-argument constructor follows ARGB order:
+3引数コンストラクタはRGBを表し、アルファ値を `0xff` に設定します。
+
+4引数コンストラクタの順序はARGBです。
 
 ```text
 alpha, red, green, blue
@@ -19133,11 +17545,11 @@ alpha, red, green, blue
 
 ---
 
-## Framebuffer Storage Policies
+## フレームバッファストレージポリシー
 
-A canvas policy controls the physical framebuffer storage format.
+canvas policy は、物理フレームバッファのストレージ形式を制御します。
 
-A policy provides:
+ポリシーは次を提供します。
 
 ```cpp
 using storage_type = /* physical storage element type */;
@@ -19147,7 +17559,7 @@ static constexpr auto encode(pixel value) noexcept -> storage_type;
 static constexpr auto set(storage_type& dst, pixel value) noexcept -> void;
 ```
 
-The initial policies are:
+初期ポリシーは次のとおりです。
 
 ```cpp
 argb32_policy
@@ -19156,17 +17568,17 @@ rgb24_policy
 bgr24_policy
 ```
 
-`argb32_policy` stores `0xAARRGGBB` and therefore matches the logical `pixel` representation directly.
+`argb32_policy` は `0xAARRGGBB` を格納するため、論理 `pixel` 表現と直接一致します。
 
-`rgba32_policy` stores `0xRRGGBBAA`.
+`rgba32_policy` は `0xRRGGBBAA` を格納します。
 
-`rgb24_policy` and `bgr24_policy` store three 8-bit components and do not preserve alpha. Reading through these policies returns a logical pixel with alpha set to `0xff`.
+`rgb24_policy` と `bgr24_policy` は3つの8ビット成分を格納し、アルファ値は保持しません。これらのポリシーを通じて読み出すと、アルファ値が `0xff` の論理ピクセルが返ります。
 
 ---
 
 ## `canvas`
 
-The primary canvas type is:
+主要なキャンバス型は次のとおりです。
 
 ```cpp
 template <std::size_t Width,
@@ -19175,9 +17587,9 @@ template <std::size_t Width,
 class canvas;
 ```
 
-Fixed-size canvases are the main model because the initial use case is framebuffer-style handling such as VRAM emulation.
+固定サイズキャンバスが主モデルです。初期用途がVRAMエミュレーションのようなフレームバッファ風の処理だからです。
 
-Examples:
+例:
 
 ```cpp
 using screen = xer::image::canvas<256, 192>;
@@ -19185,33 +17597,33 @@ using sprite = xer::image::canvas<16, 16>;
 using rgba_screen = xer::image::canvas<256, 192, xer::image::rgba32_policy>;
 ```
 
-A dynamic-size canvas is represented as:
+動的サイズキャンバスは次の形で表します。
 
 ```cpp
 canvas<0, 0, Policy>
 ```
 
-The convenience alias is:
+便利な別名は次のとおりです。
 
 ```cpp
 template <class Policy = argb32_policy>
 using dynamic_canvas = canvas<0, 0, Policy>;
 ```
 
-Only these dimension forms are valid:
+有効な寸法指定は次の2種類だけです。
 
 ```text
 Width > 0 && Height > 0
 Width == 0 && Height == 0
 ```
 
-Partial dynamic dimensions such as `canvas<0, 192>` and `canvas<256, 0>` are invalid.
+`canvas<0, 192>` や `canvas<256, 0>` のように片方だけ動的な寸法は無効です。
 
 ---
 
-## Public Pixel Access
+## 公開ピクセルアクセス
 
-The public pixel API uses logical pixels:
+公開ピクセルAPIは論理ピクセルを使います。
 
 ```cpp
 auto get_pixel(std::size_t x, std::size_t y) const noexcept -> pixel;
@@ -19229,23 +17641,23 @@ auto set_pixel_unchecked(std::size_t x,
                          float coverage) noexcept -> void;
 ```
 
-`canvas::at()` is intentionally not provided.
+`canvas::at()` は意図的に提供していません。
 
-Returning a reference to the physical storage element would expose the framebuffer layout and would be incorrect when the storage policy is not ARGB. `pixel` is logical. `Policy::storage_type` is physical.
+物理ストレージ要素への参照を返すとフレームバッファレイアウトを露出してしまいます。また、ストレージポリシーがARGBでない場合には不正確です。`pixel` は論理値であり、`Policy::storage_type` は物理値です。
 
-`get_pixel` expects coordinates that are inside the canvas.
+`get_pixel` は、座標がキャンバス内にあることを期待します。
 
-`set_pixel` accepts signed coordinates and does nothing when the coordinates are outside the canvas boundary.
+`set_pixel` は符号付き座標を受け取り、座標がキャンバス境界外の場合は何もしません。
 
-The coverage overloads blend the source pixel over the destination. Coverage is clamped to `[0.0f, 1.0f]`. A coverage value of `0.0f` leaves the destination unchanged. A coverage value of `1.0f` applies the source pixel alpha normally.
+coverage付きオーバーロードは、元ピクセルを先ピクセルの上にブレンドします。coverage は `[0.0f, 1.0f]` に丸められます。`0.0f` は先ピクセルを変更しません。`1.0f` は元ピクセルのアルファ値を通常どおり適用します。
 
-`set_pixel_unchecked` does not perform boundary checks. The caller must guarantee that `x < width()` and `y < height()`. It is intended for code that has already performed clipping or bounds checks outside the inner drawing loop.
+`set_pixel_unchecked` は境界チェックを行いません。呼び出し側は `x < width()` かつ `y < height()` を保証しなければなりません。これは、内側の描画ループの外側でクリッピングや境界チェックを済ませたコード向けです。
 
 ---
 
-## Basic Member Functions
+## 基本メンバー関数
 
-`canvas` provides basic size and utility operations:
+`canvas` は基本的なサイズ取得とユーティリティ操作を提供します。
 
 ```cpp
 auto width() const noexcept -> std::size_t;
@@ -19258,13 +17670,13 @@ auto fill(pixel value) noexcept -> void;
 auto clear() noexcept -> void;
 ```
 
-`clear()` fills the canvas with opaque black.
+`clear()` はキャンバスを不透明な黒で塗りつぶします。
 
 ---
 
-## Bitmap Font Types
+## ビットマップフォント型
 
-`<xer/image.h>` defines a compact runtime representation for monospaced bitmap fonts loaded from XBF files.
+`<xer/image.h>` は、XBFファイルから読み込んだ等幅ビットマップフォントのコンパクトな実行時表現を定義します。
 
 ```cpp
 enum class bitmap_glyph_width : std::uint8_t {
@@ -19293,57 +17705,57 @@ struct text_draw_options {
 };
 ```
 
-`bitmap_font` stores:
+`bitmap_font` は次を格納します。
 
-- one half-width cell width
-- one full-width cell width
-- one glyph height shared by the whole font
-- sorted non-overlapping Unicode code point ranges
-- packed 1bpp glyph bitmap bytes
+- 半角セル幅
+- 全角セル幅
+- フォント全体で共有されるグリフ高さ
+- ソート済みで重なりのないUnicodeコードポイント範囲
+- パックされた1bppグリフビットマップバイト列
 
-Each range selects either the half-width cell or the full-width cell. The width kind is stored in the font data rather than inferred from Unicode code points.
+各範囲は半角セルまたは全角セルのいずれかを選択します。幅の種類はUnicodeコードポイントから推測せず、フォントデータに格納します。
 
-`text_draw_options` is a per-call layout control for `draw_text`.
+`text_draw_options` は `draw_text` の呼び出しごとのレイアウト制御です。
 
-- `letter_spacing` is added after each drawn glyph cell
-- `line_spacing` is added to `glyph_height` when a line break is processed
+- `letter_spacing` は描画された各グリフセルの後に加算されます
+- `line_spacing` は改行処理時に `glyph_height` へ加算されます
 
-Negative spacing values are permitted and may produce overlapping glyph cells.
+負の間隔値も許可され、グリフセルが重なる場合があります。
 
 ---
 
-## Bitmap Font Loading
+## ビットマップフォント読み込み
 
 ```cpp
 [[nodiscard]] auto bitmap_font_load(const xer::path& filename)
     -> xer::result<bitmap_font, xer::parse_error_detail>;
 ```
 
-`bitmap_font_load` reads an XBF bitmap-font file and returns a validated `bitmap_font`.
+`bitmap_font_load` はXBFビットマップフォントファイルを読み込み、検証済みの `bitmap_font` を返します。
 
-XBF is xer's compact binary bitmap-font format. It stores:
+XBFは xer のコンパクトなバイナリビットマップフォント形式です。XBFは次を格納します。
 
-- little-endian numeric fields
-- monospaced half-width and full-width glyph cells
-- one common glyph height
-- Unicode code point ranges
-- packed 1bpp bitmap data
+- リトルエンディアンの数値フィールド
+- 等幅の半角・全角グリフセル
+- 共通のグリフ高さ
+- Unicodeコードポイント範囲
+- パックされた1bppビットマップデータ
 
-The loader validates the XBF header, range table, bitmap spans, reserved fields, code point ranges, and related offsets before returning success.
+ローダーは、成功を返す前に、XBFヘッダー、範囲テーブル、ビットマップ範囲、予約フィールド、コードポイント範囲、および関連オフセットを検証します。
 
-### Errors
+### エラー
 
-If file I/O fails before XBF parsing begins, `bitmap_font_load` preserves the underlying file-related error code and returns an otherwise empty `parse_error_detail` whose reason is `parse_error_reason::none`.
+XBFの解析開始前にファイルI/Oが失敗した場合、`bitmap_font_load` は下位のファイル関連エラーコードを保持し、理由が `parse_error_reason::none` の空の `parse_error_detail` を返します。
 
-If XBF bytes are malformed, it returns `error_t::invalid_argument` together with `parse_error_detail`.
+XBFバイト列が不正な場合は、`parse_error_detail` とともに `error_t::invalid_argument` を返します。
 
-For XBF:
+XBFでは次のように扱います。
 
-- `offset` is a byte offset from the beginning of the binary input
-- `line` is `0`
-- `column` is `0`
+- `offset` はバイナリ入力先頭からのバイトオフセット
+- `line` は `0`
+- `column` は `0`
 
-The XBF loader may report reasons such as:
+XBFローダーは、たとえば次の理由を報告する場合があります。
 
 - `parse_error_reason::invalid_magic`
 - `parse_error_reason::unsupported_version`
@@ -19352,13 +17764,13 @@ The XBF loader may report reasons such as:
 - `parse_error_reason::invalid_offset`
 - `parse_error_reason::truncated_input`
 
-See `header_parse.md` and `policy_bitmap_font.md` for the shared parse-detail model and the XBF policy.
+共通の解析詳細モデルとXBF方針については、`header_parse.md` と `policy_bitmap_font.md` を参照してください。
 
 ---
 
-## Drawing Functions
+## 描画関数
 
-The initial drawing functions are simple framebuffer helpers:
+初期の描画関数は単純なフレームバッファヘルパーです。
 
 ```cpp
 draw_hline
@@ -19369,23 +17781,23 @@ draw_rect
 fill_rect
 ```
 
-Integer drawing coordinates use `int` rather than `std::size_t` because drawing often benefits from clipping negative coordinates.
+整数描画座標には `std::size_t` ではなく `int` を使います。描画では負の座標をクリッピングできる方が便利なことが多いためです。
 
-Drawing operations clip to the canvas bounds. If the target area is fully outside the canvas, nothing is drawn.
+描画操作はキャンバス境界でクリッピングされます。対象領域が完全にキャンバス外にある場合は何も描画しません。
 
-After clipping, `draw_hline`, `draw_vline`, and `fill_rect` write directly to framebuffer storage. They do not call `set_pixel` for every pixel. This keeps inner loops based on simple pointer or stride increments instead of repeated coordinate-to-offset calculation.
+クリッピング後、`draw_hline`、`draw_vline`、`fill_rect` はフレームバッファストレージへ直接書き込みます。各ピクセルごとに `set_pixel` を呼びません。これにより、内側ループを座標からオフセットへの繰り返し計算ではなく、単純なポインタまたはストライド加算にできます。
 
-`draw_line` uses a simple Bresenham-style integer line algorithm. It still checks each generated point against the canvas boundary, but writes through `set_pixel_unchecked` after that check.
+`draw_line` は単純なBresenham風の整数直線アルゴリズムを使います。生成された各点についてキャンバス境界の確認は行いますが、その確認後は `set_pixel_unchecked` で書き込みます。
 
-`draw_line_aa` uses floating-point pixel-center coordinates and draws an antialiased capsule-shaped stroke. The overload without a width argument draws a one-pixel-wide antialiased line. The width overload takes the width before the color argument. The `pointf` overloads are equivalent to the scalar-coordinate overloads.
+`draw_line_aa` は浮動小数点のピクセル中心座標を使い、アンチエイリアス付きのカプセル状ストロークを描画します。幅引数のないオーバーロードは1ピクセル幅のアンチエイリアス直線を描きます。幅付きオーバーロードでは、幅引数は色引数の前に置かれます。`pointf` オーバーロードはスカラー座標オーバーロードと等価です。
 
-`draw_line_aa` returns `xer::result<void>`. It returns `error_t::invalid_argument` when any coordinate is not finite, or when `width` is not finite or is less than or equal to zero. A line that lies completely outside the canvas is a successful no-op.
+`draw_line_aa` は `xer::result<void>` を返します。いずれかの座標が有限でない場合、または `width` が有限でないか0以下の場合、`error_t::invalid_argument` を返します。完全にキャンバス外にある直線は成功したno-opです。
 
-The `draw_rect` and `fill_rect` overloads accept either `point` plus `size`, or a single `rect`. The scalar-coordinate overloads remain available for callers that already have separate coordinate values.
+`draw_rect` と `fill_rect` のオーバーロードは、`point` と `size` の組、または単一の `rect` を受け取ります。すでに座標値を個別に持っている呼び出し側のために、スカラー座標オーバーロードも残されています。
 
 ---
 
-## Bitmap Text Drawing
+## ビットマップテキスト描画
 
 ```cpp
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -19408,417 +17820,116 @@ template <std::size_t Width, std::size_t Height, class Policy>
     -> xer::result<void>;
 ```
 
-`draw_text` draws UTF-8 text onto a canvas using a loaded `bitmap_font`.
+`draw_text` は、読み込み済みの `bitmap_font` を使ってUTF-8テキストをキャンバスへ描画します。
 
-The origin is the top-left position of the first glyph cell. Baseline-oriented placement is intentionally not part of the initial bitmap-font API.
+原点は最初のグリフセルの左上位置です。ベースライン指向の配置は、初期ビットマップフォントAPIには意図的に含めていません。
 
-### Layout Rules
+### レイアウト規則
 
-- ordinary glyphs are drawn from the loaded bitmap data
-- after a drawn glyph, the pen advances by that glyph cell width plus `letter_spacing`
-- `\n`, `\r`, and `\r\n` start a new line
-- a line break resets the x position to the original line origin
-- a line break advances the y position by `glyph_height + line_spacing`
-- a code point missing from the font is skipped without drawing and without advancing the pen
+- 通常のグリフは読み込み済みビットマップデータから描画されます
+- グリフを描画した後、ペン位置はグリフセル幅と `letter_spacing` の分だけ進みます
+- `\n`、`\r`、`\r\n` は新しい行を開始します
+- 改行は x 位置を元の行原点に戻します
+- 改行は y 位置を `glyph_height + line_spacing` だけ進めます
+- フォントに存在しないコードポイントは、描画せず、ペンも進めずにスキップされます
 
-The missing-glyph rule is deliberately minimal. The initial API does not infer fallback widths or substitute `?` automatically.
+欠落グリフ規則は意図的に最小限です。初期APIはフォールバック幅を推測したり、`?` を自動的に代用したりしません。
 
-### Clipping
+### クリッピング
 
-Drawing is clipped to the canvas boundary. Glyphs may start outside the canvas, and only visible set pixels are written.
+描画はキャンバス境界でクリッピングされます。グリフはキャンバス外から開始してもよく、見えているセットピクセルだけが書き込まれます。
 
-### Errors
+### エラー
 
-`draw_text` returns:
+`draw_text` は次を返します。
 
-- `error_t::encoding_error` when `text` is not valid UTF-8
-- `error_t::invalid_argument` when the supplied `bitmap_font` is structurally unusable for the requested glyph
+- `text` が妥当なUTF-8でない場合は `error_t::encoding_error`
+- 指定された `bitmap_font` が要求グリフに対して構造的に使用不能な場合は `error_t::invalid_argument`
 
-An empty canvas or empty text is a successful no-op.
+空のキャンバスまたは空のテキストは成功したno-opです。
 
 ---
 
-## Circle, Ellipse, and Arc Drawing
+## 円、楕円、円弧の描画
 
-The curved-shape APIs are divided into integer one-pixel drawing and floating-point antialiased drawing.
+曲線形状APIは、整数の1ピクセル描画と浮動小数点のアンチエイリアス描画に分かれます。
 
-- integer APIs use `point` or scalar `int` center coordinates
-- antialiased APIs use `pointf` or scalar `float` center coordinates
-- antialiased outline APIs accept an optional `width`
-- every curved-shape function returns `xer::result<void>` without `[[nodiscard]]`
+- 整数APIは `point` またはスカラー `int` 中心座標を使います
+- アンチエイリアスAPIは `pointf` またはスカラー `float` 中心座標を使います
+- アンチエイリアス輪郭APIは省略可能な `width` を受け取ります
+- すべての曲線形状関数は `[[nodiscard]]` なしで `xer::result<void>` を返します
 
-### Circle Drawing
+### 円描画
 
-```cpp
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle(canvas<Width, Height, Policy>& img,
-                 int cx,
-                 int cy,
-                 int radius,
-                 pixel color) noexcept
-    -> xer::result<void>;
+`draw_circle` は、クリッピングされた1ピクセル幅の円輪郭を描画します。`fill_circle` はクリッピングされた円の内部を塗りつぶし、境界も含みます。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle(canvas<Width, Height, Policy>& img,
-                 const point& center,
-                 int radius,
-                 pixel color) noexcept
-    -> xer::result<void>;
+`draw_circle_aa` はアンチエイリアス付き輪郭を描画します。幅引数のないオーバーロードは `1.0f` を使います。幅付きオーバーロードは太い円輪郭に対応します。`fill_circle_aa` は外側境界をアンチエイリアスしながら円を塗りつぶします。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_circle(canvas<Width, Height, Policy>& img,
-                 int cx,
-                 int cy,
-                 int radius,
-                 pixel color) noexcept
-    -> xer::result<void>;
+半径の扱いは次のとおりです。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_circle(canvas<Width, Height, Policy>& img,
-                 const point& center,
-                 int radius,
-                 pixel color) noexcept
-    -> xer::result<void>;
+- 負の半径は `error_t::invalid_argument` を返します
+- 整数半径0は、見えていれば中心ピクセルだけを書き込みます
+- アンチエイリアス輪郭の半径0は、直径が `width` に従う丸い点を描画します
+- アンチエイリアス塗りつぶしの半径0は中心点を描画します
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle_aa(canvas<Width, Height, Policy>& img,
-                    float cx,
-                    float cy,
-                    float radius,
-                    pixel color) noexcept
-    -> xer::result<void>;
+アンチエイリアス円描画では、中心座標、半径、幅は有限でなければなりません。`width` は0より大きくなければなりません。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle_aa(canvas<Width, Height, Policy>& img,
-                    float cx,
-                    float cy,
-                    float radius,
-                    float width,
-                    pixel color) noexcept
-    -> xer::result<void>;
+### 楕円描画
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle_aa(canvas<Width, Height, Policy>& img,
-                    const pointf& center,
-                    float radius,
-                    pixel color) noexcept
-    -> xer::result<void>;
+`draw_ellipse` は、クリッピングされた1ピクセル幅の楕円輪郭を描画します。`fill_ellipse` はクリッピングされた楕円の内部を塗りつぶし、境界も含みます。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle_aa(canvas<Width, Height, Policy>& img,
-                    const pointf& center,
-                    float radius,
-                    float width,
-                    pixel color) noexcept
-    -> xer::result<void>;
+`draw_ellipse_aa` はアンチエイリアス付き楕円輪郭を描画します。幅引数のないオーバーロードは `1.0f` を使います。幅付きオーバーロードは太い楕円輪郭に対応します。`fill_ellipse_aa` は外側境界をアンチエイリアスしながら楕円を塗りつぶします。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_circle_aa(canvas<Width, Height, Policy>& img,
-                    float cx,
-                    float cy,
-                    float radius,
-                    pixel color) noexcept
-    -> xer::result<void>;
+半径の扱いは次のとおりです。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_circle_aa(canvas<Width, Height, Policy>& img,
-                    const pointf& center,
-                    float radius,
-                    pixel color) noexcept
-    -> xer::result<void>;
-```
+- いずれかの半径が負なら `error_t::invalid_argument` を返します
+- 両方の整数半径が0なら、見えていれば中心ピクセルだけを書き込みます
+- 片方の整数半径だけが0なら、縦線または横線へ退化します
+- アンチエイリアス楕円でも同じ退化形を扱います
 
-`draw_circle` draws a clipped one-pixel circle outline. `fill_circle` fills the clipped circle interior and includes the boundary.
+アンチエイリアス楕円描画では、中心座標、半径、幅は有限でなければなりません。`width` は0より大きくなければなりません。
 
-`draw_circle_aa` draws an antialiased outline. The overload without a width argument uses `1.0f`; the width overload supports thick circular outlines. `fill_circle_aa` fills the circle while antialiasing the outer boundary.
+### 円弧描画
 
-Radius handling is:
+円弧APIは角度をラジアンで受け取ります。角度の向きは数学的な向きに近く、画面座標の y 軸が下向きであることを考慮します。
 
-- a negative radius returns `error_t::invalid_argument`
-- a zero integer radius writes only the center pixel, if visible
-- a zero antialiased outline radius draws a round point whose diameter follows `width`
-- a zero antialiased filled radius draws a point at the center
-
-For antialiased circle drawing, center coordinates, radius, and width must be finite. `width` must be greater than zero.
-
-### Ellipse Drawing
-
-```cpp
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse(canvas<Width, Height, Policy>& img,
-                  int cx,
-                  int cy,
-                  int radius_x,
-                  int radius_y,
-                  pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse(canvas<Width, Height, Policy>& img,
-                  const point& center,
-                  int radius_x,
-                  int radius_y,
-                  pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_ellipse(canvas<Width, Height, Policy>& img,
-                  int cx,
-                  int cy,
-                  int radius_x,
-                  int radius_y,
-                  pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_ellipse(canvas<Width, Height, Policy>& img,
-                  const point& center,
-                  int radius_x,
-                  int radius_y,
-                  pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     float cx,
-                     float cy,
-                     float radius_x,
-                     float radius_y,
-                     pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     float cx,
-                     float cy,
-                     float radius_x,
-                     float radius_y,
-                     float width,
-                     pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     const pointf& center,
-                     float radius_x,
-                     float radius_y,
-                     pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     const pointf& center,
-                     float radius_x,
-                     float radius_y,
-                     float width,
-                     pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     float cx,
-                     float cy,
-                     float radius_x,
-                     float radius_y,
-                     pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     const pointf& center,
-                     float radius_x,
-                     float radius_y,
-                     pixel color) noexcept
-    -> xer::result<void>;
-```
-
-Ellipse APIs use independent x and y radii. `draw_ellipse` draws a one-pixel outline, `fill_ellipse` fills the interior, `draw_ellipse_aa` supports antialiased and thick outlines, and `fill_ellipse_aa` antialiases the outer boundary of the filled shape.
-
-Degenerate ellipses are defined rather than rejected:
-
-- both radii zero: a point
-- `radius_x == 0`: a vertical line segment
-- `radius_y == 0`: a horizontal line segment
-
-The same policy applies to antialiased ellipses. Antialiased outline degeneration keeps the requested width; antialiased filled degeneration draws the corresponding one-pixel-equivalent antialiased point or line.
-
-A negative radius returns `error_t::invalid_argument`. Antialiased ellipse drawing also rejects non-finite center coordinates, radii, and width, and rejects `width <= 0.0f`.
-
-### Circular Arc Drawing
-
-```cpp
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc(canvas<Width, Height, Policy>& img,
-              int cx,
-              int cy,
-              int radius,
-              float start_angle,
-              float sweep_angle,
-              pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc(canvas<Width, Height, Policy>& img,
-              const point& center,
-              int radius,
-              float start_angle,
-              float sweep_angle,
-              pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc_aa(canvas<Width, Height, Policy>& img,
-                 float cx,
-                 float cy,
-                 float radius,
-                 float start_angle,
-                 float sweep_angle,
-                 pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc_aa(canvas<Width, Height, Policy>& img,
-                 float cx,
-                 float cy,
-                 float radius,
-                 float start_angle,
-                 float sweep_angle,
-                 float width,
-                 pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc_aa(canvas<Width, Height, Policy>& img,
-                 const pointf& center,
-                 float radius,
-                 float start_angle,
-                 float sweep_angle,
-                 pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc_aa(canvas<Width, Height, Policy>& img,
-                 const pointf& center,
-                 float radius,
-                 float start_angle,
-                 float sweep_angle,
-                 float width,
-                 pixel color) noexcept
-    -> xer::result<void>;
-```
-
-Arc angles are expressed in radians. `0` points right. Positive sweep angles move counterclockwise in the mathematical sense; because image y coordinates grow downward, the point formula is:
+概念的には次の座標式です。
 
 ```text
 x = cx + radius * cos(angle)
 y = cy - radius * sin(angle)
 ```
 
-A negative `sweep_angle` draws clockwise. When `abs(sweep_angle)` is at least one full turn, arc drawing is treated as full circle drawing. Multiple turns are not accumulated.
+`sweep_angle` が正の場合は反時計回り、負の場合は時計回りに描画します。絶対値が1回転以上の sweep は完全な円として扱われます。sweep が0の場合は開始点を描画します。
 
-Circular arc degeneration is:
+整数円弧描画は負の半径と有限でない角度を拒否します。アンチエイリアス円弧描画は、有限でない中心座標、半径、幅も拒否し、`width <= 0.0f` も拒否します。
 
-- `radius == 0`: the center point
-- `sweep_angle == 0`: the start point on the circle
-- `abs(sweep_angle) >= 2π`: a full circle
+### 楕円弧描画
 
-Antialiased arc endpoints use round caps. A zero-radius or zero-sweep antialiased arc therefore appears as a round point with the requested outline width.
-
-Arc drawing rejects negative radii and non-finite angles. Antialiased arc drawing also rejects non-finite center coordinates, radius, and width, and rejects `width <= 0.0f`.
-
-### Elliptical Arc Drawing
-
-```cpp
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc(canvas<Width, Height, Policy>& img,
-                      int cx,
-                      int cy,
-                      int radius_x,
-                      int radius_y,
-                      float start_angle,
-                      float sweep_angle,
-                      pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc(canvas<Width, Height, Policy>& img,
-                      const point& center,
-                      int radius_x,
-                      int radius_y,
-                      float start_angle,
-                      float sweep_angle,
-                      pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
-                         float cx,
-                         float cy,
-                         float radius_x,
-                         float radius_y,
-                         float start_angle,
-                         float sweep_angle,
-                         pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
-                         float cx,
-                         float cy,
-                         float radius_x,
-                         float radius_y,
-                         float start_angle,
-                         float sweep_angle,
-                         float width,
-                         pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
-                         const pointf& center,
-                         float radius_x,
-                         float radius_y,
-                         float start_angle,
-                         float sweep_angle,
-                         pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
-                         const pointf& center,
-                         float radius_x,
-                         float radius_y,
-                         float start_angle,
-                         float sweep_angle,
-                         float width,
-                         pixel color) noexcept
-    -> xer::result<void>;
-```
-
-Elliptical arc angles follow the same convention as circular arcs:
+楕円弧の角度は円弧と同じ規則に従います。
 
 ```text
 x = cx + radius_x * cos(angle)
 y = cy - radius_y * sin(angle)
 ```
 
-A sweep of at least one full turn is treated as a full ellipse. A zero sweep draws the start point. If both radii are zero, the result is the center point. If exactly one radius is zero, the arc degenerates onto the corresponding vertical or horizontal line while preserving the angle-based parameterization.
+1回転以上の sweep は完全な楕円として扱われます。sweep が0の場合は開始点を描画します。両方の半径が0の場合は中心点になります。片方の半径だけが0の場合は、角度に基づくパラメータ化を保ったまま、対応する縦線または横線へ退化します。
 
-Antialiased elliptical arcs use round caps and support thick strokes through `width`.
+アンチエイリアス楕円弧は丸い端点を使い、`width` による太線に対応します。
 
-Elliptical arc drawing rejects negative radii and non-finite angles. Antialiased elliptical arc drawing also rejects non-finite center coordinates, radii, and width, and rejects `width <= 0.0f`.
+楕円弧描画は負の半径と有限でない角度を拒否します。アンチエイリアス楕円弧描画は、有限でない中心座標、半径、幅も拒否し、`width <= 0.0f` も拒否します。
 
-### Clipping, Pixels, and Return Values
+### クリッピング、ピクセル、返却値
 
-All curved-shape drawing clips to the canvas boundary. A shape that lies completely outside the canvas is a successful no-op.
+すべての曲線形状描画はキャンバス境界でクリッピングされます。形状が完全にキャンバス外にある場合は成功したno-opです。
 
-Integer circle and ellipse drawing write the supplied logical `pixel` directly. Antialiased drawing uses coverage blending through the canvas pixel API.
+整数の円・楕円描画は、指定された論理 `pixel` を直接書き込みます。アンチエイリアス描画は canvas ピクセルAPIを通じて coverage ブレンドを使います。
 
-These drawing functions return `xer::result<void>`, but the return values are intentionally not marked `[[nodiscard]]`. This keeps drawing calls lightweight in rendering code while still allowing invalid arguments to be handled where needed.
+これらの描画関数は `xer::result<void>` を返しますが、返却値には意図的に `[[nodiscard]]` を付けていません。これにより、描画コードでの呼び出しを軽く保ちつつ、必要な場所では不正引数を扱えます。
 
 ---
 
-## Flood Fill
+## 塗りつぶし
 
 ```cpp
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -19835,39 +17946,39 @@ template <std::size_t Width, std::size_t Height, class Policy>
     -> xer::result<void>;
 ```
 
-`flood_fill` replaces the four-connected region that contains the start position.
+`flood_fill` は、開始位置を含む4近傍連結領域を置換します。
 
-The original logical `pixel` value at the start position is used as the target color. Every reachable pixel whose logical ARGB value exactly matches that original color is replaced with `color`.
+開始位置の元の論理 `pixel` 値が対象色として使われます。その元の色と論理ARGB値が完全一致する到達可能なすべてのピクセルが `color` に置換されます。
 
-### Connectivity
+### 連結性
 
-The initial implementation uses four-connected adjacency only:
+初期実装は4近傍のみを使います。
 
-- left
-- right
-- up
-- down
+- 左
+- 右
+- 上
+- 下
 
-Diagonal contact alone does not connect two regions.
+斜めに接しているだけでは、2つの領域は連結しているとはみなしません。
 
-### No-Op Cases
+### no-opの場合
 
-`flood_fill` is a successful no-op when:
+`flood_fill` は次の場合に成功したno-opです。
 
-- the start position is outside the canvas
-- the replacement color is equal to the original color at the start position
+- 開始位置がキャンバス外にある
+- 置換色が開始位置の元の色と等しい
 
-### Result
+### 結果
 
-`flood_fill` returns `xer::result<void>`.
+`flood_fill` は `xer::result<void>` を返します。
 
-The operation uses an internal pending-position buffer rather than recursive traversal, so it does not rely on call-stack depth for large filled regions.
+この操作は再帰探索ではなく、内部の保留位置バッファを使います。そのため、大きな塗りつぶし領域でもコールスタックの深さに依存しません。
 
 ---
 
-## Image Processing Functions
+## 画像処理関数
 
-`mosaic`, `box_blur`, and `filter_pixels` are in-place image-processing operations.
+`mosaic`、`box_blur`、`filter_pixels` はインプレース画像処理操作です。
 
 ```cpp
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -19889,21 +18000,21 @@ template <std::size_t Width, std::size_t Height, class Policy, class F>
     -> xer::result<void, filter_pixels_error_detail>;
 ```
 
-All three functions clip `area` to the canvas boundary. Empty areas and fully clipped areas are successful no-ops.
+3つの関数はいずれも `area` をキャンバス境界でクリッピングします。空領域や完全にクリップされた領域は成功したno-opです。
 
-`mosaic` divides the clipped area into blocks of `block_size`. Each block is replaced with the average logical ARGB color of the pixels in that block. Blocks at the right and bottom edges use their actual clipped size.
+`mosaic` は、クリップ後の領域を `block_size` のブロックに分割します。各ブロックは、そのブロック内ピクセルの平均論理ARGB色で置換されます。右端と下端のブロックは、実際にクリップされたサイズを使います。
 
-`box_blur` treats `box_size` as the averaging kernel size. For example, `size(3, 3)` applies a 3x3 average around each destination pixel. Source samples are taken from a copy of the original pixels in the clipped target area, so pixels outside the requested area do not affect the result. Kernel portions outside the clipped area are ignored.
+`box_blur` は `box_size` を平均化カーネルサイズとして扱います。たとえば `size(3, 3)` は各出力ピクセルの周囲に3x3平均を適用します。ソースサンプルは、クリップされた対象領域内の元ピクセルのコピーから取得されるため、要求領域外のピクセルは結果に影響しません。クリップ領域外に出るカーネル部分は無視されます。
 
-Even kernel dimensions are supported. In that case, the extra sample is placed on the left or top side of the current pixel.
+偶数のカーネル寸法にも対応します。この場合、余分なサンプルは現在ピクセルの左側または上側に置かれます。
 
-`mosaic` and `box_blur` return `error_t::invalid_argument` when either size dimension is not positive.
+`mosaic` と `box_blur` は、いずれかのサイズ寸法が正でない場合に `error_t::invalid_argument` を返します。
 
-`filter_pixels` applies a user-supplied per-pixel filter to the clipped area. For each pixel, the filter receives the current logical `pixel` value and returns the replacement logical `pixel` value. This supports grayscale conversion, thresholding, channel adjustment, inversion, and similar operations without adding a dedicated function for each effect.
+`filter_pixels` は、呼び出し側が指定したピクセル単位フィルターをクリップ後領域に適用します。各ピクセルについて、フィルターは現在の論理 `pixel` 値を受け取り、置換する論理 `pixel` 値を返します。これにより、グレースケール変換、しきい値処理、チャンネル調整、反転などを、効果ごとの専用関数を増やさずに実現できます。
 
-The operation is in-place and does not allocate a full temporary image. If the filter throws an exception for a pixel, that pixel is left unchanged and processing continues with the next pixel. If one or more pixels fail, the function returns `error_t::user_error` with `filter_pixels_error_detail`. Successfully filtered pixels remain updated.
+操作はインプレースで、画像全体の一時バッファは確保しません。フィルターがあるピクセルで例外を投げた場合、そのピクセルは変更されず、処理は次のピクセルへ進みます。1つ以上のピクセルで失敗した場合、関数は `filter_pixels_error_detail` 付きの `error_t::user_error` を返します。正常にフィルターされたピクセルは更新されたままです。
 
-Example grayscale-style use:
+グレースケール風の使用例:
 
 ```cpp
 auto result = xer::image::filter_pixels(
@@ -19921,30 +18032,30 @@ auto result = xer::image::filter_pixels(
 
 ---
 
-## Relationship to Tcl/Tk
+## Tcl/Tkとの関係
 
-`<xer/image.h>` does not depend on Tcl/Tk.
+`<xer/image.h>` はTcl/Tkに依存しません。
 
-Tk photo bridge functions should live in `<xer/tk.h>`. They may convert between Tk photo image blocks and `xer::image::canvas` or `xer::image::dynamic_canvas` later, but pure image storage, drawing, and image processing remain in `<xer/image.h>`.
-
----
-
-## Deferred Items
-
-The following items are deferred from the current implementation:
-
-- affine transformation
-- raster scroll
-- grayscale conversion
-- image flipping
-- file format loading and saving
-- direct Tk photo conversion helpers
-
-These can be added once the basic framebuffer type is stable.
+Tk photo ブリッジ関数は `<xer/tk.h>` に置くべきです。将来的には、Tk photo image block と `xer::image::canvas` または `xer::image::dynamic_canvas` の間の変換を提供する可能性がありますが、純粋な画像ストレージ、描画、画像処理は `<xer/image.h>` に残ります。
 
 ---
 
-## Example
+## 後回しにしている項目
+
+現在の実装では、次の項目を後回しにしています。
+
+- アフィン変換
+- ラスタスクロール
+- グレースケール変換
+- 画像反転
+- ファイル形式の読み込みと保存
+- 直接的なTk photo変換ヘルパー
+
+これらは、基本的なフレームバッファ型が安定してから追加できます。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/image.h>
@@ -19970,7 +18081,7 @@ auto main() -> int
 }
 ```
 
-Additional examples:
+追加の例:
 
 - `examples/example_image_basic.cpp`
 - `examples/example_image_geometry_io.cpp`
@@ -19983,7 +18094,7 @@ Additional examples:
 
 ---
 
-## See Also
+## 関連項目
 
 - `header_iostream.md`
 - `header_parse.md`
@@ -20106,32 +18217,26 @@ auto is_open() const noexcept -> bool;
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/cmdline.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/cmdline.h>`
 
-## Purpose
+## 目的
 
-`<xer/cmdline.h>` provides command-line argument handling facilities for the current process.
+`<xer/cmdline.h>` は現在のプロセスのコマンドライン引数処理機能を提供します。
 
-The purpose of this header is to make command-line arguments available as UTF-8 strings without requiring the caller to pass `main`'s `argc` and `argv` around manually.
+このヘッダーの目的は、呼び出し側が `main` の `argc` と `argv` を手作業で引き回さなくても、コマンドライン引数を UTF-8 文字列として利用できるようにすることです。
 
-This is useful in situations such as:
+これは次のような状況で有用です。
 
-* code that runs outside `main`
-* non-local object initialization
-* code running on threads other than the main thread
-* utility functions where carrying `argc` and `argv` explicitly would be awkward
+* `main` の外で実行されるコード
+* 非ローカルオブジェクトの初期化
+* メインスレッド以外のスレッドで動くコード
+* `argc` と `argv` を明示的に運ぶのが煩雑なユーティリティ関数
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/cmdline.h>` provides the following entities:
+少なくとも、`<xer/cmdline.h>` は次のエンティティを提供します。
 
 ```cpp
 using cmdline_arg =
@@ -20148,22 +18253,22 @@ auto get_cmdline() -> xer::result<cmdline>;
 
 ## `cmdline`
 
-`cmdline` owns an argv-like sequence of UTF-8 strings.
+`cmdline` は argv 風の UTF-8 文字列列を所有します。
 
 ```cpp
 class cmdline;
 ```
 
-Internally, it stores command-line arguments as:
+内部では、コマンドライン引数を次の形で保持します。
 
 ```cpp
 std::vector<std::u8string>
 ```
 
-The class itself does not interpret options.
-It is responsible only for owning and exposing the argument sequence.
+クラス自体はオプションを解釈しません。
+引数列を所有し公開することだけを担当します。
 
-### Basic Operations
+### 基本操作
 
 ```cpp
 auto size() const noexcept -> std::size_t;
@@ -20176,25 +18281,25 @@ auto at(std::size_t index) const -> xer::result<std::u8string_view>;
 
 ### `size`
 
-`size()` returns the number of stored arguments.
+`size()` は保持している引数の数を返します。
 
 ### `empty`
 
-`empty()` returns whether the argument list is empty.
+`empty()` は引数リストが空かどうかを返します。
 
-In normal successful use of `get_cmdline`, the command-line list is expected to contain at least the program name, but callers should not rely on that in manually constructed `cmdline` objects.
+`get_cmdline` の通常の成功利用では、コマンドラインリストは少なくともプログラム名を含むことが期待されますが、手動で構築された `cmdline` オブジェクトについて呼び出し側はそれに依存すべきではありません。
 
 ### `args`
 
-`args()` returns a span over the raw stored UTF-8 arguments.
+`args()` は保持されている生の UTF-8 引数への span を返します。
 
-The returned span and its string references are valid as long as the `cmdline` object remains alive and is not modified.
+返された span とその文字列参照は、`cmdline` オブジェクトが生存し、変更されない限り有効です。
 
 ### `at`
 
-`at(index)` returns one raw argument as `std::u8string_view`.
+`at(index)` は 1 つの生の引数を `std::u8string_view` として返します。
 
-If `index` is out of range, it returns an error through `xer::result`.
+`index` が範囲外の場合、`xer::result` を通じてエラーを返します。
 
 ---
 
@@ -20204,43 +18309,43 @@ If `index` is out of range, it returns an error through `xer::result`.
 auto parse_arg(std::u8string_view value) noexcept -> cmdline_arg;
 ```
 
-`parse_arg` parses one raw command-line argument according to xer's simple command-line rule.
+`parse_arg` は、xer の単純なコマンドライン規則に従って 1 つの生のコマンドライン引数を解析します。
 
-The return value is a pair:
+返り値は次のペアです。
 
 ```cpp
 { option_name, value }
 ```
 
-The meaning is:
+意味は次のとおりです。
 
-* if `first` is not empty, the argument is an option
-* if `first` is empty, the argument is an ordinary value
-* `second` contains the option value or the ordinary value
+* `first` が空でなければ、その引数はオプションです。
+* `first` が空であれば、その引数は通常の値です。
+* `second` にはオプション値または通常の値が入ります。
 
 ---
 
-## Supported Argument Forms
+## 対応する引数形式
 
-xer recognizes only simple long-option forms.
+xer は単純なロングオプション形式だけを認識します。
 
-Supported option forms are:
+対応するオプション形式は次のとおりです。
 
 ```text
 --option
 --option=value
 ```
 
-Ordinary values are also accepted:
+通常の値も受け付けます。
 
 ```text
 value
 ```
 
-A single-leading-hyphen form such as `-x` is not treated as an option.
-It is treated as an ordinary value.
+`-x` のようにハイフン 1 つで始まる形式はオプションとして扱いません。
+通常の値として扱います。
 
-### Examples
+### 例
 
 ```text
 --name        -> { "name", "" }
@@ -20252,37 +18357,37 @@ value         -> { "", "value" }
 --=value      -> { "", "--=value" }
 ```
 
-`--name` and `--name=` are intentionally treated the same.
+`--name` と `--name=` は意図的に同じ扱いです。
 
-Distinguishing “no value” from “empty value” would require a more complex representation, and xer's initial command-line helper deliberately avoids that complexity.
+「値なし」と「空の値」を区別するには、より複雑な表現が必要になります。xer の初期コマンドラインヘルパーは、その複雑さを意図的に避けています。
 
 ---
 
-## Why Short Options Are Not Special
+## 短いオプションを特別扱いしない理由
 
-`parse_arg` does not treat single-leading-hyphen arguments as options.
+`parse_arg` はハイフン 1 つで始まる引数をオプションとして扱いません。
 
-For example:
+たとえば、
 
 ```text
 -x
 ```
 
-is parsed as:
+は次のように解析されます。
 
 ```text
 { "", "-x" }
 ```
 
-This is intentional.
+これは意図的です。
 
-The initial command-line model supports only:
+初期のコマンドラインモデルは次だけをサポートします。
 
 * `--option`
 * `--option=value`
-* ordinary values
+* 通常の値
 
-This keeps the rule simple and avoids introducing a larger command-line parser at this stage.
+これにより規則を単純に保ち、この段階でより大きなコマンドラインパーサーを導入することを避けています。
 
 ---
 
@@ -20292,57 +18397,57 @@ This keeps the rule simple and avoids introducing a larger command-line parser a
 auto get_cmdline() -> xer::result<cmdline>;
 ```
 
-`get_cmdline` obtains the current process command-line arguments and returns them as a `cmdline` object.
+`get_cmdline` は現在のプロセスのコマンドライン引数を取得し、`cmdline` オブジェクトとして返します。
 
-The returned arguments are UTF-8 strings.
+返される引数は UTF-8 文字列です。
 
-### Windows Behavior
+### Windows での動作
 
-On Windows, the implementation obtains the raw command line through:
+Windows では、実装は次を使って生のコマンドラインを取得します。
 
 ```cpp
 GetCommandLineW
 ```
 
-and splits it through:
+そして次で分割します。
 
 ```cpp
 CommandLineToArgvW
 ```
 
-This avoids relying on CRT-specific globals such as `__wargv`.
+これにより、`__wargv` のような CRT 固有のグローバルに依存することを避けます。
 
-That choice is intentional because command-line access should not depend on details of how the C runtime library is linked.
+コマンドラインアクセスは C ランタイムライブラリのリンク方法の詳細に依存すべきではないため、この選択は意図的です。
 
-The resulting UTF-16 strings are converted to UTF-8.
+得られた UTF-16 文字列は UTF-8 に変換されます。
 
-### Linux Behavior
+### Linux での動作
 
-On Linux, the implementation reads:
+Linux では、実装は次を読みます。
 
 ```text
 /proc/self/cmdline
 ```
 
-This file contains the current process command-line arguments as NUL-separated byte strings.
+このファイルには、現在のプロセスのコマンドライン引数が NUL 区切りのバイト文字列として含まれます。
 
-The byte strings are interpreted as UTF-8 according to xer's Linux text assumptions.
-If an argument is not valid UTF-8, `get_cmdline` fails.
+そのバイト文字列は、xer の Linux テキスト前提に従って UTF-8 として解釈されます。
+引数が有効な UTF-8 でない場合、`get_cmdline` は失敗します。
 
-Reading `/proc/self/cmdline` can theoretically fail in unusual environments.
-In that case, `get_cmdline` returns an error through `xer::result`.
+通常でない環境では、理論上 `/proc/self/cmdline` の読み取りが失敗する場合があります。
+その場合、`get_cmdline` は `xer::result` を通じてエラーを返します。
 
 ---
 
-## Lifetime of Views
+## ビューの寿命
 
-`cmdline::at` and `parse_arg` return `std::u8string_view` values.
+`cmdline::at` と `parse_arg` は `std::u8string_view` 値を返します。
 
-These views do not own the underlying text.
+これらのビューは背後のテキストを所有しません。
 
-For views obtained from a `cmdline` object, the referenced data remains valid only while the `cmdline` object remains alive and unchanged.
+`cmdline` オブジェクトから得たビューの場合、参照先データが有効なのは `cmdline` オブジェクトが生存し、変更されない間だけです。
 
-Example:
+例:
 
 ```cpp
 const auto line = xer::get_cmdline();
@@ -20358,83 +18463,83 @@ if (!raw.has_value()) {
 const auto parsed = xer::parse_arg(*raw);
 ```
 
-Here, `parsed.first` and `parsed.second` refer to the string owned by `line`.
+ここで、`parsed.first` と `parsed.second` は `line` が所有する文字列を参照しています。
 
 ---
 
-## Error Handling
+## エラー処理
 
-`<xer/cmdline.h>` follows xer's ordinary failure model.
+`<xer/cmdline.h>` は xer の通常の失敗モデルに従います。
 
-`parse_arg` itself does not fail.
-It is a simple view-based parser and returns an ordinary `cmdline_arg`.
+`parse_arg` 自体は失敗しません。
+これは単純なビューベースのパーサーであり、通常の `cmdline_arg` を返します。
 
-`cmdline::at` can fail when the requested index is out of range.
+`cmdline::at` は要求されたインデックスが範囲外の場合に失敗することがあります。
 
-`get_cmdline` can fail when the platform-specific command-line retrieval fails or when command-line data cannot be converted to xer's UTF-8 representation.
+`get_cmdline` は、プラットフォーム固有のコマンドライン取得が失敗した場合、またはコマンドラインデータを xer の UTF-8 表現に変換できない場合に失敗することがあります。
 
-Typical failure conditions include:
+典型的な失敗条件には次のものがあります。
 
-* out-of-range argument access
-* failure to retrieve the platform command line
-* failure to read `/proc/self/cmdline`
-* invalid UTF-8 in Linux command-line byte strings
-* failure to convert Windows UTF-16 command-line strings to UTF-8
+* 範囲外の引数アクセス
+* プラットフォームのコマンドライン取得失敗
+* `/proc/self/cmdline` の読み取り失敗
+* Linux のコマンドラインバイト文字列に含まれる無効な UTF-8
+* Windows の UTF-16 コマンドライン文字列から UTF-8 への変換失敗
 
 ---
 
-## Relationship to `main`
+## `main` との関係
 
-The ordinary C and C++ way to receive command-line arguments is through `main`.
+通常の C および C++ でコマンドライン引数を受け取る方法は `main` です。
 
 ```cpp
 auto main(int argc, char** argv) -> int;
 ```
 
-xer does not reject that approach.
+xer はこの方法を否定しません。
 
-However, `<xer/cmdline.h>` exists for cases where explicit `argc` / `argv` propagation is inconvenient or unavailable.
+ただし、`<xer/cmdline.h>` は、明示的な `argc` / `argv` の伝播が不便または利用できない場合のために存在します。
 
-This means `get_cmdline` is a convenience facility for the current process, not a replacement for all uses of `main` arguments.
-
----
-
-## Relationship to Process Handling
-
-`<xer/cmdline.h>` handles the current process command line.
-
-`<xer/process.h>` handles child process creation and management.
-
-These are related topics, but they are intentionally separate:
-
-* `cmdline.h` observes how the current process was launched
-* `process.h` launches and controls child processes
-
-This separation keeps each header focused.
+つまり、`get_cmdline` は現在のプロセスのための便利機能であり、`main` 引数のすべての用途を置き換えるものではありません。
 
 ---
 
-## Design Role
+## プロセス処理との関係
 
-`<xer/cmdline.h>` is intentionally small.
+`<xer/cmdline.h>` は現在のプロセスのコマンドラインを扱います。
 
-It is not a full command-line option parser.
+`<xer/process.h>` は子プロセスの作成と管理を扱います。
 
-In particular, it does not currently provide:
+これらは関連する話題ですが、意図的に分離されています。
 
-* short option parsing such as `-x`
-* grouped short options such as `-abc`
-* option terminator handling such as `--`
-* automatic type conversion
-* required-option validation
-* help text generation
-* subcommand handling
+* `cmdline.h` は現在のプロセスがどのように起動されたかを観測します。
+* `process.h` は子プロセスを起動し制御します。
 
-The initial feature is only a small argv retrieval and simple long-option parsing facility.
+この分離により、それぞれのヘッダーの焦点を保っています。
 
 ---
 
-## Example
+## 設計上の役割
+
+`<xer/cmdline.h>` は意図的に小さく作られています。
+
+完全なコマンドラインオプションパーサーではありません。
+
+特に、現在は次の機能を提供しません。
+
+* `-x` のような短いオプションの解析
+* `-abc` のような短いオプションのグループ化
+* `--` のようなオプション終端の扱い
+* 自動的な型変換
+* 必須オプション検証
+* ヘルプテキスト生成
+* サブコマンド処理
+
+初期機能は、小さな argv 取得機能と単純なロングオプション解析機能だけです。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/cmdline.h>
@@ -20476,36 +18581,36 @@ auto main() -> int
 
 ---
 
-## Documentation Notes
+## ドキュメント上の注意
 
-When this header is used in generated documentation, it is usually enough to explain:
+このヘッダーを生成ドキュメントで使う場合、通常は次の点を説明すれば十分です。
 
-* that `cmdline` owns UTF-8 command-line arguments
-* that `get_cmdline` obtains the current process arguments without using `main` parameters
-* that Windows uses `GetCommandLineW` and `CommandLineToArgvW`
-* that Linux reads `/proc/self/cmdline`
-* that `parse_arg` recognizes only simple `--option` and `--option=value` forms
-* that single-leading-hyphen arguments are treated as ordinary values
+* `cmdline` は UTF-8 コマンドライン引数を所有すること
+* `get_cmdline` は `main` のパラメータを使わずに現在のプロセス引数を取得すること
+* Windows では `GetCommandLineW` と `CommandLineToArgvW` を使うこと
+* Linux では `/proc/self/cmdline` を読むこと
+* `parse_arg` は単純な `--option` と `--option=value` 形式だけを認識すること
+* ハイフン 1 つで始まる引数は通常の値として扱われること
 
-Detailed command-line parser behavior should not be implied.
-This header is intentionally not a full option parsing framework.
-
----
-
-## Example Topics Commonly Worth Showing
-
-The following kinds of examples are especially suitable for this header:
-
-* listing raw command-line arguments
-* parsing `--option` and `--option=value`
-* treating ordinary values separately from options
-* showing that `-x` is treated as a value
-
-These are good candidates for executable examples under `examples/`.
+詳細なコマンドラインパーサー動作を暗示すべきではありません。
+このヘッダーは意図的に完全なオプション解析フレームワークではありません。
 
 ---
 
-## See Also
+## 例として示す価値のある題材
+
+次のような例は、このヘッダーに特に適しています。
+
+* 生のコマンドライン引数を列挙する
+* `--option` と `--option=value` を解析する
+* 通常の値とオプションを分けて扱う
+* `-x` が値として扱われることを示す
+
+これらは `examples/` の実行可能例に適した候補です。
+
+---
+
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
@@ -20514,47 +18619,41 @@ These are good candidates for executable examples under `examples/`.
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/time.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/time.h>`
 
-## Purpose
+## 目的
 
-`<xer/time.h>` provides time-related facilities in xer.
+`<xer/time.h>` は、xer の時刻関連機能を提供します。
 
-Its purpose is not to reproduce the C standard library `time.h` as it is, nor to center the public API on `std::chrono`.
-Instead, it provides a simpler time library that preserves the approachability of C-style time handling while aligning with xer's own design.
+このヘッダーの目的は、C標準ライブラリの `time.h` をそのまま再現することでも、公開APIの中心に `std::chrono` を置くことでもありません。
+かわりに、C形式の時刻処理が持つ近づきやすさを保ちながら、xer 独自の設計に沿った、より単純な時刻ライブラリを提供します。
 
-This header is intended for tasks such as:
+このヘッダーは、次のような作業を対象としています。
 
-- retrieving the current time
-- converting between scalar time values and broken-down time
-- formatting time values as text
-- performing simple time-difference calculations
-
----
-
-## Main Role
-
-The main role of `<xer/time.h>` is to provide a practical and explicit time model based on the following ideas:
-
-- `time_t` is simple and arithmetic-friendly
-- ordinary failure is reported through `xer::result`
-- broken-down time is represented by a `tm` structure
-- sub-second precision is supported explicitly
-- formatting is UTF-8-oriented
-
-This makes the header suitable for code that wants simple time handling without the heavier expression style often associated with `std::chrono`.
+- 現在時刻の取得
+- スカラー時刻値と要素分解時刻の相互変換
+- 時刻値のテキスト書式化
+- 単純な時刻差の計算
 
 ---
 
-## Main Entities
+## 主な役割
 
-At minimum, `<xer/time.h>` provides the following entities:
+`<xer/time.h>` の主な役割は、次の考え方に基づく、実用的で明示的な時刻モデルを提供することです。
+
+- `time_t` は単純で算術演算に向いている
+- 通常の失敗は `xer::result` で報告する
+- 要素分解時刻は `tm` 構造体で表す
+- 秒未満の精度を明示的に扱う
+- 書式化はUTF-8指向とする
+
+これにより、このヘッダーは、`std::chrono` にありがちな重めの式表現を避けつつ、単純な時刻処理を行いたいコードに適したものになります。
+
+---
+
+## 主なエンティティ
+
+少なくとも、`<xer/time.h>` は次のエンティティを提供します。
 
 ```cpp
 using time_t = double;
@@ -20586,87 +18685,85 @@ auto ctime(const tm& value) -> std::u8string;
 auto strftime(std::u8string_view format, const tm& value) -> xer::result<std::u8string>;
 ```
 
-The exact helper functions may expand in the future, but this is the current core public shape.
+正確な補助関数群は将来拡張される可能性がありますが、これが現在の中核的な公開形状です。
 
 ---
 
 ## `xer::time_t`
 
-`xer::time_t` is the central scalar time type in xer.
+`xer::time_t` は、xer における中心的なスカラー時刻型です。
 
-### Basic Shape
+### 基本形
 
 ```cpp
 using time_t = double;
 ```
 
-### Meaning
+### 意味
 
-The unit of `xer::time_t` is seconds.
+`xer::time_t` の単位は秒です。
 
-Its interpretation is:
+その解釈は次のとおりです。
 
-* integer part: whole seconds
-* fractional part: fractions of a second
+* 整数部: 秒単位の整数部分
+* 小数部: 秒未満の部分
 
-### Why `double` Is Used
+### `double` を使う理由
 
-This design keeps time values:
+この設計により、時刻値は次の性質を持ちます。
 
-* easy to manipulate arithmetically
-* lightweight
-* suitable for microsecond-level practical precision
-* simpler to handle in ordinary code than heavier duration-style abstractions
+* 算術的に扱いやすい
+* 軽量である
+* 実用上のマイクロ秒レベル精度に適している
+* 重い duration 形式の抽象よりも通常のコードで扱いやすい
 
-### Precision Direction
+### 精度の方向性
 
-The practical target is microsecond-level handling, but the public design does not promise a strict fixed-point representation or guaranteed nanosecond precision.
+実用上の目標はマイクロ秒レベルの処理ですが、公開設計として、厳密な固定小数点表現や保証されたナノ秒精度を約束するものではありません。
 
 ---
 
-## Epoch
+## エポック
 
-xer fixes the epoch of `xer::time_t` to the POSIX epoch.
+xer は `xer::time_t` のエポックをPOSIXエポックに固定します。
 
-### Meaning
+### 意味
 
 ```text
 1970-01-01 00:00:00 UTC
 ```
 
-corresponds to:
+は、`xer::time_t` 値として次に対応します。
 
 ```text
 0.0
 ```
 
-as a `xer::time_t` value.
+### なぜ重要か
 
-### Why This Matters
-
-This avoids the implementation-defined ambiguity of traditional C `time_t` epoch interpretation and gives xer a stable project-wide rule.
+これにより、従来のCの `time_t` におけるエポック解釈の実装定義の曖昧さを避け、xer 全体で安定した規則を持てます。
 
 ---
 
-## Supported Range
+## 対応範囲
 
-At least in the initial design, times before the epoch are unsupported.
+少なくとも初期設計では、エポックより前の時刻は未対応です。
 
-### Meaning
+### 意味
 
-* negative `time_t` values are unsupported
-* pre-epoch broken-down times are unsupported
-* such inputs result in failure
+* 負の `time_t` 値は未対応
+* エポックより前の要素分解時刻は未対応
+* そのような入力は失敗になる
 
-This is a deliberate simplification in the initial stage.
+これは初期段階における意図的な単純化です。
 
 ---
 
 ## `xer::tm`
 
-`xer::tm` is xer's broken-down time structure.
+`xer::tm` は、xer の要素分解時刻構造体です。
 
-### Basic Shape
+### 基本形
 
 ```cpp
 struct tm {
@@ -20683,9 +18780,9 @@ struct tm {
 };
 ```
 
-### Relationship to C's `struct tm`
+### Cの `struct tm` との関係
 
-This structure is based on the C `struct tm`, but extends it by adding:
+この構造体はCの `struct tm` を基礎にしていますが、次のメンバーを追加しています。
 
 ```cpp
 tm_microsec
@@ -20693,17 +18790,17 @@ tm_microsec
 
 ### `tm_microsec`
 
-`tm_microsec` stores the fractional microseconds part of a second.
+`tm_microsec` は、1秒未満のマイクロ秒部分を保持します。
 
-Its intended range is:
+意図された範囲は次のとおりです。
 
 ```text
 0 .. 999999
 ```
 
-### Why This Matters
+### なぜ重要か
 
-This makes sub-second precision explicit without abandoning the familiar broken-down-time model.
+これにより、馴染みのある要素分解時刻モデルを捨てることなく、秒未満の精度を明示できます。
 
 ---
 
@@ -20713,15 +18810,15 @@ This makes sub-second precision explicit without abandoning the familiar broken-
 auto time() -> xer::result<time_t>;
 ```
 
-### Purpose
+### 目的
 
-`time()` returns the current calendar time as a `xer::time_t`.
+`time()` は、現在の暦時刻を `xer::time_t` として返します。
 
-### Design Direction
+### 設計方針
 
-Although failure is uncommon in practice, xer still treats it as an ordinary fallible operation and reports failure through `xer::result`.
+実際には失敗することはまれですが、xer はこれも通常の失敗しうる操作として扱い、`xer::result` で失敗を報告します。
 
-This keeps the header consistent with the rest of the library.
+これにより、このヘッダーはライブラリの他の部分と一貫します。
 
 ---
 
@@ -20731,13 +18828,13 @@ This keeps the header consistent with the rest of the library.
 auto clock() -> xer::result<clock_t>;
 ```
 
-### Purpose
+### 目的
 
-`clock()` returns processor-time or clock-related information in the style of the underlying C facility.
+`clock()` は、基盤となるC機能の形式に沿った、プロセッサ時間またはクロック関連情報を返します。
 
-### Design Direction
+### 設計方針
 
-As with `time()`, xer treats this as an ordinary fallible operation and reports failure explicitly.
+`time()` と同様に、xer はこれを通常の失敗しうる操作として扱い、失敗を明示的に報告します。
 
 ---
 
@@ -20747,17 +18844,17 @@ As with `time()`, xer treats this as an ordinary fallible operation and reports 
 auto difftime(time_t left, time_t right) noexcept -> double;
 ```
 
-### Purpose
+### 目的
 
-`difftime` returns the difference between two time values.
+`difftime` は、2つの時刻値の差を返します。
 
-### Meaning
+### 意味
 
-The result is a scalar difference in seconds.
+結果は秒単位のスカラー差です。
 
-### Notes
+### 補足
 
-This is one of the simpler parts of the header because its role is arithmetic rather than structural conversion.
+この部分は、役割が構造変換ではなく算術演算であるため、ヘッダーの中でも単純な部分のひとつです。
 
 ---
 
@@ -20767,18 +18864,18 @@ This is one of the simpler parts of the header because its role is arithmetic ra
 auto gmtime(time_t value) -> xer::result<tm>;
 ```
 
-### Purpose
+### 目的
 
-`gmtime` converts a scalar time value into broken-down UTC time.
+`gmtime` は、スカラー時刻値をUTCの要素分解時刻に変換します。
 
-### Behavior
+### 振る舞い
 
-* the fractional part is reflected in `tm_microsec`
-* negative values are unsupported and result in failure
+* 小数部は `tm_microsec` に反映される
+* 負の値は未対応であり、失敗になる
 
-### Role
+### 役割
 
-This is the main scalar-to-UTC broken-down conversion entry point.
+これは、スカラー値からUTCの要素分解時刻へ変換する主要な入口です。
 
 ---
 
@@ -20788,19 +18885,19 @@ This is the main scalar-to-UTC broken-down conversion entry point.
 auto localtime(time_t value) -> xer::result<tm>;
 ```
 
-### Purpose
+### 目的
 
-`localtime` converts a scalar time value into broken-down local time.
+`localtime` は、スカラー時刻値をローカル時刻の要素分解時刻に変換します。
 
-### Behavior
+### 振る舞い
 
-* the fractional part is reflected in `tm_microsec`
-* negative values are unsupported and result in failure
-* local conversion failure is reported explicitly
+* 小数部は `tm_microsec` に反映される
+* 負の値は未対応であり、失敗になる
+* ローカル時刻への変換失敗は明示的に報告される
 
-### Role
+### 役割
 
-This is the local-time counterpart of `gmtime`.
+これは `gmtime` に対応するローカル時刻版です。
 
 ---
 
@@ -20810,51 +18907,51 @@ This is the local-time counterpart of `gmtime`.
 auto mktime(const tm& value) -> xer::result<time_t>;
 ```
 
-### Purpose
+### 目的
 
-`mktime` converts a broken-down time value into scalar time.
+`mktime` は、要素分解時刻値をスカラー時刻に変換します。
 
-### Behavior
+### 振る舞い
 
-* `tm_microsec` contributes to the fractional part
-* out-of-range `tm_microsec` is an error
-* pre-epoch results are errors
+* `tm_microsec` は小数部に寄与する
+* 範囲外の `tm_microsec` はエラーになる
+* エポックより前の結果はエラーになる
 
-### Role
+### 役割
 
-This is the reverse conversion entry point from `tm` back to `time_t`.
+これは、`tm` から `time_t` へ戻す逆変換の入口です。
 
 ---
 
 ## `ctime`
 
-xer provides `ctime` in two overloads:
+xer は `ctime` を2つのオーバーロードで提供します。
 
 ```cpp
 auto ctime(time_t value) -> std::u8string;
 auto ctime(const tm& value) -> std::u8string;
 ```
 
-### Purpose
+### 目的
 
-`ctime` converts time values into human-readable UTF-8 text.
+`ctime` は、時刻値を人間が読めるUTF-8テキストに変換します。
 
-### Design Direction
+### 設計方針
 
-In xer, the roles traditionally associated with C's `ctime` and `asctime` are unified under the `ctime` name.
+xer では、従来Cの `ctime` と `asctime` が担っていた役割を、`ctime` という名前の下に統合しています。
 
-That means:
+つまり、次のようになります。
 
-* `ctime(time_t)` formats a scalar time value
-* `ctime(const tm&)` formats a broken-down time value
+* `ctime(time_t)` はスカラー時刻値を書式化する
+* `ctime(const tm&)` は要素分解時刻値を書式化する
 
-### Important Notes
+### 重要な補足
 
-* the return type is `std::u8string`
-* no static internal buffer is used
-* the broken-down-time overload takes `const tm&`, not a raw pointer
+* 返却型は `std::u8string`
+* 静的な内部バッファは使わない
+* 要素分解時刻版は生ポインターではなく `const tm&` を受け取る
 
-This reflects xer's C++-style redesign while keeping a familiar function name.
+これは、馴染みのある関数名を保ちながら、xer のC++形式の再設計を反映しています。
 
 ---
 
@@ -20864,177 +18961,171 @@ This reflects xer's C++-style redesign while keeping a familiar function name.
 auto strftime(std::u8string_view format, const tm& value) -> xer::result<std::u8string>;
 ```
 
-### Purpose
+### 目的
 
-`strftime` formats a broken-down time value according to a format string.
+`strftime` は、要素分解時刻値を、書式文字列に従って書式化します。
 
-### Format String Model
+### 書式文字列モデル
 
-The format string is UTF-8-oriented and uses:
+書式文字列はUTF-8指向であり、次を使います。
 
 ```cpp
 std::u8string_view
 ```
 
-This means it may contain:
+つまり、次のものを含めることができます。
 
-* ASCII format specifiers
-* fixed UTF-8 text
+* ASCIIの変換指定
+* 固定のUTF-8テキスト
 
-### Example
+### 例
 
-A format such as:
+次のような書式は受け入れ可能であることを意図しています。
 
 ```text
 %Y年%m月%d日 %H時%M分%S秒
 ```
 
-is intended to be acceptable.
+### 返却モデル
 
-### Return Model
+結果は `std::u8string` として返されます。
 
-The result is returned as:
+ただし、返却は `xer::result` 経由です。
 
-```cpp
-std::u8string
-```
+### xer固有の秒未満拡張
 
-through `xer::result`.
+基盤となるCライブラリへ委譲される変換指定に加えて、xer は次の秒未満拡張を提供します。
 
-### xer-Specific Fractional-Second Extensions
+* `%f`: マイクロ秒をちょうど6桁の10進数で出力する
+* `%L`: ミリ秒をちょうど3桁の10進数で出力する
 
-In addition to the conversion specifications delegated to the underlying C library, xer provides the following fractional-second extensions:
+これらの指定子は `tm_microsec` に基づきます。対応するのは単純な `%f` と `%L` の形だけです。`%3f` のような幅、フラグ、修飾子付きの形式は拒否されます。
 
-* `%f`: microseconds as exactly six decimal digits
-* `%L`: milliseconds as exactly three decimal digits
+### 現在の設計上の制限
 
-These specifiers are based on `tm_microsec`. They are supported only in their simple forms `%f` and `%L`; width, flag, and modifier forms such as `%3f` are rejected.
+少なくとも現在の段階では、次の制限があります。
 
-### Current Design Limits
-
-At least in the current stage:
-
-* advanced locale behavior is not the priority
-* advanced timezone extensions are deferred
+* 高度なロケール動作は優先事項ではない
+* 高度なタイムゾーン拡張は後回し
 
 ---
 
-## UTF-8-Oriented Formatting
+## UTF-8指向の書式化
 
-One important characteristic of `<xer/time.h>` is that formatting is designed around UTF-8 text.
+`<xer/time.h>` の重要な特徴のひとつは、書式化がUTF-8テキストを中心に設計されていることです。
 
-### Why This Matters
+### なぜ重要か
 
-This keeps the header aligned with xer's broader public text model:
+これにより、このヘッダーは xer のより広い公開テキストモデルと整合します。
 
-* public text APIs are UTF-8 oriented
-* `std::u8string` is the standard owned text type
-* `std::u8string_view` is the standard non-owning text input type
+* 公開テキストAPIはUTF-8指向である
+* `std::u8string` は標準の所有テキスト型である
+* `std::u8string_view` は標準の非所有テキスト入力型である
 
-This distinguishes xer's design from more locale-centered or narrow-character-only interpretations.
+これは、よりロケール中心または狭文字だけを前提とする解釈とは異なる、xer の設計上の特徴です。
 
 ---
 
-## Error Handling
+## エラー処理
 
-`<xer/time.h>` follows xer's ordinary failure model.
+`<xer/time.h>` は、xer の通常の失敗モデルに従います。
 
-### Meaning
+### 意味
 
-Operations that can fail report failure through `xer::result`.
+失敗しうる操作は、`xer::result` を通じて失敗を報告します。
 
-Typical cases include:
+典型的な例は次のとおりです。
 
-* retrieving time information
-* converting between scalar and broken-down time
-* invalid broken-down-time input
-* unsupported pre-epoch input
-* invalid format handling where applicable
+* 時刻情報の取得
+* スカラー時刻と要素分解時刻の相互変換
+* 無効な要素分解時刻入力
+* 未対応のエポック前入力
+* 該当する場合の無効な書式処理
 
-### Typical Error Categories
+### 典型的なエラーカテゴリ
 
-The detailed error taxonomy belongs to the implementation, but the intended design especially relates to categories such as:
+詳細なエラー分類は実装に属しますが、設計意図としては特に次のようなカテゴリと関係します。
 
 * `runtime_error`
 * `invalid_argument`
 
 ---
 
-## Deferred Features
+## 後回しにしている機能
 
-At least in the initial stage, the following are intentionally deferred or simplified:
+少なくとも初期段階では、次の機能は意図的に後回し、または単純化されています。
 
-* pre-epoch support
-* advanced timezone features in `strftime`
-* advanced locale control
-* advanced timezone features
-* C-style static-buffer behavior
-* separate exposure of `asctime`
+* エポック前の時刻対応
+* `strftime` における高度なタイムゾーン機能
+* 高度なロケール制御
+* 高度なタイムゾーン機能
+* C形式の静的バッファ動作
+* `asctime` の個別公開
 
-This is an intentional simplification, not an omission by accident.
+これは意図的な単純化であり、偶然の抜けではありません。
 
 ---
 
-## Relationship to Other Headers
+## 他のヘッダーとの関係
 
-`<xer/time.h>` should be understood together with:
+`<xer/time.h>` は、次の文書とあわせて理解してください。
 
 * `policy_project_outline.md`
 * `policy_time.md`
 * `header_error.md`
 
-The rough boundary is:
+大まかな境界は次のとおりです。
 
-* `<xer/time.h>` handles time retrieval, time conversion, and time formatting
-* `<xer/error.h>` provides the error/result model used by fallible time operations
+* `<xer/time.h>` は時刻取得、時刻変換、時刻書式化を扱う
+* `<xer/error.h>` は、失敗しうる時刻操作で使うエラー/結果モデルを提供する
 
-This header is largely self-contained in its domain, but it depends directly on xer's ordinary error model.
-
----
-
-## Relationship to xer's General Design
-
-`<xer/time.h>` reflects several important project-wide design decisions:
-
-* prefer explicit failure reporting
-* keep APIs approachable for users familiar with C
-* avoid unnecessary dependence on locale
-* use UTF-8 for public text output
-* avoid centering the public design on `std::chrono`
-
-This makes the header one of the clearest examples of xer's general philosophy.
+このヘッダーは、その領域内ではおおむね自己完結していますが、xer の通常のエラーモデルに直接依存します。
 
 ---
 
-## Documentation Notes
+## xer全体の設計との関係
 
-When this header is used in generated documentation, it is usually enough to explain:
+`<xer/time.h>` は、プロジェクト全体にわたる重要な設計判断をいくつか反映しています。
 
-* that `xer::time_t` is `double`-based and measured in seconds
-* that the epoch is fixed to the POSIX epoch
-* that `xer::tm` extends the familiar broken-down time structure with `tm_microsec`
-* that `ctime` returns `std::u8string`
-* that `strftime` uses UTF-8 format strings and returns `xer::result<std::u8string>`
+* 明示的な失敗報告を優先する
+* Cに馴染みのある利用者にとって近づきやすいAPIを保つ
+* ロケールへの不要な依存を避ける
+* 公開テキスト出力にはUTF-8を使う
+* 公開設計の中心を `std::chrono` に置かない
 
-Detailed formatting rules and conversion edge cases belong in the detailed reference or generated API sections.
-
----
-
-## Example Topics Commonly Worth Showing
-
-The following kinds of examples are especially suitable for this header:
-
-* retrieving the current time with `time()`
-* converting a scalar time value with `gmtime` or `localtime`
-* converting back with `mktime`
-* formatting with `ctime`
-* formatting with `strftime`
-
-These are good candidates for executable examples in `examples/`.
+これにより、このヘッダーは xer の一般的な哲学を示す分かりやすい例のひとつになっています。
 
 ---
 
-## Example
+## ドキュメント上の注意
+
+このヘッダーを生成ドキュメントで使う場合、通常は次の点を説明すれば十分です。
+
+* `xer::time_t` は `double` ベースであり、秒単位で測る
+* エポックはPOSIXエポックに固定されている
+* `xer::tm` は馴染みのある要素分解時刻構造体に `tm_microsec` を追加したものである
+* `ctime` は `std::u8string` を返す
+* `strftime` はUTF-8書式文字列を使い、`xer::result<std::u8string>` を返す
+
+詳細な書式規則や変換時の境界ケースは、詳細リファレンスまたは生成API節に属します。
+
+---
+
+## 例として示す価値がある主題
+
+次のような例は、このヘッダーに特に適しています。
+
+* `time()` による現在時刻の取得
+* `gmtime` または `localtime` によるスカラー時刻値の変換
+* `mktime` による逆変換
+* `ctime` による書式化
+* `strftime` による書式化
+
+これらは `examples/` の実行可能な例として良い候補です。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/time.h>
@@ -21060,16 +19151,16 @@ auto main() -> int
 }
 ```
 
-This example shows the normal xer style:
+この例は、通常の xer のスタイルを示しています。
 
-* retrieve time explicitly
-* convert explicitly
-* format explicitly
-* check `xer::result` at each fallible step
+* 時刻を明示的に取得する
+* 明示的に変換する
+* 明示的に書式化する
+* 失敗しうる各段階で `xer::result` を確認する
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_time.md`
@@ -21077,47 +19168,41 @@ This example shows the normal xer style:
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/version.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/version.h>`
 
-## Purpose
+## 目的
 
-`<xer/version.h>` provides compile-time version information for xer.
+`<xer/version.h>` は、xer のコンパイル時バージョン情報を提供します。
 
-Its purpose is to make the library version available in a simple and explicit form for:
+このヘッダーの目的は、ライブラリのバージョンを次の用途で、単純かつ明示的な形で利用できるようにすることです。
 
-- source-level conditional handling
-- diagnostics and reporting
-- build-time checks
-- generated documentation and example output when needed
+- ソースレベルの条件分岐
+- 診断と報告
+- ビルド時の確認
+- 必要に応じた生成ドキュメントやサンプル出力
 
-This header is intentionally small and focused.
-
----
-
-## Main Role
-
-The main role of `<xer/version.h>` is to provide a stable public way to query the version of the xer library.
-
-In particular, it exists to make the following easy:
-
-- checking the major, minor, and patch version numbers
-- checking the current suffix such as an alpha marker
-- retrieving the complete version string
-- keeping version information available both as macros and as inline constants
-
-This makes the header useful both in preprocessor contexts and in ordinary C++ code.
+このヘッダーは、意図的に小さく、焦点を絞ったものです。
 
 ---
 
-## Main Entities
+## 主な役割
 
-At minimum, `<xer/version.h>` provides entities such as the following:
+`<xer/version.h>` の主な役割は、xer ライブラリのバージョンを問い合わせるための、安定した公開手段を提供することです。
+
+具体的には、次のことを簡単にできるようにします。
+
+- メジャー、マイナー、パッチの各バージョン番号を確認する
+- α版を表す記号など、現在のサフィックスを確認する
+- 完全なバージョン文字列を取得する
+- バージョン情報をマクロとインライン定数の両方で利用できるようにする
+
+これにより、このヘッダーはプリプロセッサ文脈でも通常の C++ コードでも有用になります。
+
+---
+
+## 主な要素
+
+少なくとも、`<xer/version.h>` は次のような要素を提供します。
 
 ```cpp
 #define XER_VERSION_MAJOR <major>
@@ -21133,21 +19218,21 @@ inline constexpr std::string_view version_suffix;
 inline constexpr std::string_view version_string;
 ```
 
-The exact values naturally change from release to release, but this is the intended public shape.
+正確な値はリリースごとに当然変わりますが、これが意図している公開形状です。
 
 ---
 
-## Preprocessor Macros
+## プリプロセッサマクロ
 
-`<xer/version.h>` provides preprocessor macros for version information.
+`<xer/version.h>` は、バージョン情報用のプリプロセッサマクロを提供します。
 
-### Purpose
+### 目的
 
-The macro form exists for cases where version handling must happen before ordinary C++ constant evaluation or where preprocessor-based branching is desired.
+マクロ形式は、通常の C++ 定数評価より前にバージョン処理を行う必要がある場合や、プリプロセッサによる分岐を行いたい場合のためにあります。
 
-### Main Macros
+### 主なマクロ
 
-At minimum, the following macros are expected:
+少なくとも、次のマクロが想定されています。
 
 ```cpp id="gkdm5v"
 XER_VERSION_MAJOR
@@ -21157,36 +19242,36 @@ XER_VERSION_SUFFIX
 XER_VERSION_STRING
 ```
 
-### Meaning
+### 意味
 
-* `XER_VERSION_MAJOR`: major version number
-* `XER_VERSION_MINOR`: minor version number
-* `XER_VERSION_PATCH`: patch version number
-* `XER_VERSION_SUFFIX`: suffix such as `a3`
-* `XER_VERSION_STRING`: full version string such as `1.2.3-beta`
+* `XER_VERSION_MAJOR`: メジャーバージョン番号
+* `XER_VERSION_MINOR`: マイナーバージョン番号
+* `XER_VERSION_PATCH`: パッチバージョン番号
+* `XER_VERSION_SUFFIX`: `a3` などのサフィックス
+* `XER_VERSION_STRING`: `1.2.3-beta` などの完全なバージョン文字列
 
-### Notes
+### 注記
 
-These macros are useful in contexts such as:
+これらのマクロは、次のような場面で有用です。
 
-* conditional compilation
-* generated banners
-* simple compile-time checks
-* embedding version information into other generated artifacts
+* 条件付きコンパイル
+* 生成されるバナー
+* 単純なコンパイル時チェック
+* 他の生成物へのバージョン情報の埋め込み
 
 ---
 
-## Inline Constants
+## インライン定数
 
-`<xer/version.h>` also provides inline C++ constants corresponding to the macro-level version information.
+`<xer/version.h>` は、マクロレベルのバージョン情報に対応するインライン C++ 定数も提供します。
 
-### Purpose
+### 目的
 
-The inline constant form exists so that ordinary C++ code can use version information without needing to rely on macros.
+インライン定数形式は、通常の C++ コードでマクロに頼らずにバージョン情報を使えるようにするためにあります。
 
-### Main Constants
+### 主な定数
 
-At minimum, the following constants are expected:
+少なくとも、次の定数が想定されています。
 
 ```cpp id="0t63o7"
 inline constexpr int version_major;
@@ -21196,156 +19281,156 @@ inline constexpr std::string_view version_suffix;
 inline constexpr std::string_view version_string;
 ```
 
-### Meaning
+### 意味
 
-These constants correspond directly to the macro values, but in a form more natural for C++ code.
+これらの定数はマクロ値に直接対応しますが、C++ コードではより自然に扱える形になっています。
 
-### Notes
+### 注記
 
-This dual provision of macros and constants is useful because:
+マクロと定数の両方を提供することには、次の利点があります。
 
-* macros remain practical for preprocessing
-* constants are better suited to type-safe ordinary code
+* マクロはプリプロセッサ処理では引き続き実用的である
+* 定数は型安全な通常コードに適している
 
 ---
 
-## Version Components
+## バージョン構成要素
 
-The xer version is divided into several components.
+xer のバージョンはいくつかの構成要素に分かれています。
 
-### Major Version
+### メジャーバージョン
 
-The major version represents a large-scale compatibility or release-line change.
+メジャーバージョンは、大規模な互換性変更やリリース系列の変更を表します。
 
-### Minor Version
+### マイナーバージョン
 
-The minor version represents smaller feature-line progression within the same major line.
+マイナーバージョンは、同じメジャー系列内での、より小さな機能系列の進行を表します。
 
-### Patch Version
+### パッチバージョン
 
-The patch version represents smaller corrective or maintenance progression.
+パッチバージョンは、より小さな修正や保守上の進行を表します。
 
-### Suffix
+### サフィックス
 
-The suffix represents additional release-state information such as alpha-stage notation.
+サフィックスは、α段階表記など、追加のリリース状態情報を表します。
 
-For example:
+たとえば、次のような表記があります。
 
 ```text id="uh0aq6"
 1.2.3-beta
 ```
 
-may be interpreted as:
+これは次のように解釈できます。
 
 * major: `0`
 * minor: `2`
 * patch: `0`
 * suffix: `a3`
 
-### Full Version String
+### 完全なバージョン文字列
 
-The full version string combines these elements into a single human-readable version identifier.
-
----
-
-## Design Direction
-
-`<xer/version.h>` is intentionally simple.
-
-### Why It Is Small
-
-Version information is important, but it should remain easy to understand and easy to consume.
-
-This means the header should avoid:
-
-* excessive abstraction
-* overly clever compile-time metaprogramming
-* unnecessarily complicated parsing facilities
-
-The main goal is simply to expose the library version clearly.
+完全なバージョン文字列は、これらの要素を組み合わせた、人間が読みやすい単一のバージョン識別子です。
 
 ---
 
-## Intended Uses
+## 設計方針
 
-Typical uses of `<xer/version.h>` include:
+`<xer/version.h>` は意図的に単純です。
 
-* displaying the current xer version in logs or diagnostics
-* embedding the version into generated documentation
-* checking the library version in test code
-* simple conditional handling in source code
+### 小さくしている理由
 
-### Example Situations
+バージョン情報は重要ですが、理解しやすく利用しやすい状態を保つべきです。
 
-It is especially natural to use this header in:
+そのため、このヘッダーでは次のものを避けます。
 
-* documentation generation scripts or related examples
-* test output
-* release verification code
-* feature-gating code when version distinctions matter
+* 過度な抽象化
+* 必要以上に技巧的なコンパイル時メタプログラミング
+* 不必要に複雑な解析機能
+
+主な目標は、ライブラリのバージョンを明確に公開することだけです。
 
 ---
 
-## Relationship to Documentation
+## 想定される用途
 
-`<xer/version.h>` is especially relevant to generated documentation.
+`<xer/version.h>` の典型的な用途には、次のものがあります。
 
-### Why
+* 現在の xer バージョンをログや診断に表示する
+* 生成ドキュメントにバージョンを埋め込む
+* テストコードでライブラリバージョンを確認する
+* ソースコード内で単純な条件処理を行う
 
-The reference manual already records the target version explicitly.
-For example, if the reference manual records a specific target version, `<xer/version.h>` is the natural source of truth for keeping that information consistent. 
+### 具体的な場面
 
-### Design Direction
+このヘッダーは、特に次の場面で自然に使えます。
 
-In the long term, generated documentation should ideally remain aligned with the actual contents of `<xer/version.h>` so that version drift is minimized.
+* ドキュメント生成スクリプトや関連サンプル
+* テスト出力
+* リリース確認コード
+* バージョン差異が重要な場合の機能ゲート処理
 
 ---
 
-## Relationship to Other Headers
+## ドキュメントとの関係
 
-`<xer/version.h>` is largely independent from the rest of the public headers.
+`<xer/version.h>` は、生成ドキュメントと特に関係があります。
 
-However, it should be understood together with:
+### 理由
+
+リファレンスマニュアルは、すでに対象バージョンを明示的に記録しています。
+たとえば、リファレンスマニュアルが特定の対象バージョンを記録する場合、その情報を一貫させるための自然な正本は `<xer/version.h>` です。
+
+### 設計方針
+
+長期的には、生成ドキュメントは `<xer/version.h>` の実際の内容と一致していることが望ましく、これによりバージョンのずれを最小化できます。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/version.h>` は、ほかの公開ヘッダーからはおおむね独立しています。
+
+ただし、次の文書とあわせて理解してください。
 
 * `policy_project_outline.md`
 * `public_headers.md`
 
-The rough relationship is:
+大まかな関係は次のとおりです。
 
-* `<xer/version.h>` provides version metadata
-* other headers provide functional library facilities
+* `<xer/version.h>` はバージョンメタデータを提供する
+* ほかのヘッダーは機能的なライブラリ機能を提供する
 
-This header does not define behavior of the rest of the library, but it identifies the release state of that library.
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that it provides compile-time version information
-* that both macro and inline-constant forms are available
-* that the suffix is part of the public version model
-* that `version_string` / `XER_VERSION_STRING` provide the full human-readable version
-
-Detailed release-policy interpretation belongs in release notes or higher-level project documentation rather than in the per-header summary.
+このヘッダーはライブラリのほかの部分の振る舞いを定義しませんが、そのライブラリのリリース状態を識別します。
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注記
 
-The following kinds of examples are especially suitable for this header:
+このヘッダーを生成ドキュメントで扱う場合、通常は次の点を説明すれば十分です。
 
-* reading `version_string`
-* checking `version_major`
-* printing the current version
-* comparing against a known release-line expectation in test code
+* コンパイル時バージョン情報を提供すること
+* マクロ形式とインライン定数形式の両方が利用できること
+* サフィックスが公開バージョンモデルの一部であること
+* `version_string` / `XER_VERSION_STRING` が、人間が読める完全なバージョンを提供すること
 
-These are good candidates for executable examples in `examples/`.
+詳細なリリース方針の解釈は、ヘッダーごとの概要ではなく、リリースノートや上位のプロジェクト文書に属します。
 
 ---
 
-## Example
+## 例として示すのに適した話題
+
+このヘッダーでは、次のような例が特に適しています。
+
+* `version_string` を読む
+* `version_major` を確認する
+* 現在のバージョンを表示する
+* テストコードで既知のリリース系列の期待値と比較する
+
+これらは `examples/` 以下の実行可能サンプルのよい候補です。
+
+---
+
+## 例
 
 ```cpp id="yrg8u0"
 #include <xer/version.h>
@@ -21364,15 +19449,15 @@ auto main() -> int
 }
 ```
 
-This example shows the normal style:
+この例は、通常の使い方を示しています。
 
-* include the version header directly
-* use the inline constants in ordinary C++ code
-* treat the header as a simple source of library metadata
+* バージョンヘッダーを直接インクルードする
+* 通常の C++ コードでインライン定数を使う
+* このヘッダーを、単純なライブラリメタデータの提供元として扱う
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `public_headers.md`

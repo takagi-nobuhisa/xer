@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: fbf42d9b220e14bcb472675a22a7e4613d4e9ffc6f79b5dbaed3c2a78bc1fb33 -->
+<!-- xer-reference-source-sha256: 25b152238c7efc7d0cf9e297f4e831449486fca805ede1d6c1c96124c33fc1e1 -->
 
 # `<xer/quantity.h>`
 

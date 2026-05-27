@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 613d22de74032b202cf7c027c138e6f3fed7bdbf274a618b0f02fee810aedee3 -->
+<!-- xer-reference-source-sha256: 45ca1e3ce5829500bb3d5ea190b969afc7bda5d8276a92b59db04b35010a95f4 -->
 
 # `<xer/matrix.h>`
 

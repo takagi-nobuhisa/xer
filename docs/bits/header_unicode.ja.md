@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 7fecf4646206cbe6044d5cc58146fef00a36862e33018e0374b3a923298dd41f -->
+<!-- xer-reference-source-sha256: 92229fefe4d0a2a51466306ee2c3996e5007ffafc62e65f42a2152baeadc97d2 -->
+
 # `<xer/unicode.h>`
 
 ## 目的

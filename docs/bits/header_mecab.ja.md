@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 1de98d79db6238e5ea8546eba1080ad4a547c50d833ae6d4ea188c652f4356fd -->
+<!-- xer-reference-source-sha256: 88560c0f1fdf95b44976dbbfdeb9b95cbac4eb4d67dc80760f1c9ab876a031fb -->
 
 # `<xer/mecab.h>`
 

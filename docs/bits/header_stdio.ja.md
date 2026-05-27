@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 5e1b873b26cb06dff6a3f4703eb676c6c51844afb99e02857f541889dba7bec2 -->
+<!-- xer-reference-source-sha256: a0a8d4eda501a5e2f3dc70d7eeb9399931fcb098d31d8a1e479782a7a7a919ce -->
+
 # `<xer/stdio.h>`
 
 ## 目的
@@ -192,6 +193,15 @@ fputb
 
 そのため、`fgetc` と `fputc` は 1 バイトのバイナリ I/O インターフェイスではありません。
 代わりに、xer はその役割に `fgetb` と `fputb` を使用します。
+
+### EOF の扱い
+
+逐次入力関数は、入力ストリームを使い切った状態を `error_t::end_of_file` として報告します。
+これは、`fread`、`fgetb`、`fgetc`、`fgets` などで新しいデータを読めない場合に適用されます。
+
+部分読み取りは成功のままです。
+たとえば、`fread` が要求されたバイト数より少なくても 1 バイト以上を読み取った場合は、実際に読み取ったバイト数を返します。
+`stream_get_contents` は、内容を収集する際に `end_of_file` を自然な終了条件として扱います。
 
 ---
 

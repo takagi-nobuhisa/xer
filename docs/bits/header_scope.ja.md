@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 81844fc0b685070368ae85a49c46f6b356197cd83bf106529212c7ec4b98eb07 -->
+<!-- xer-reference-source-sha256: 81f80600b5b6e44ab109eec9448c87d3c8a11e84ffacb6b55484a81eb39cda09 -->
 
 # `<xer/scope.h>`
 

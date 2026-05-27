@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 53bc5bef4e34b99e8e8b3c92c89526966fea738f5099cc569fdf61af6a4d0118 -->
+<!-- xer-reference-source-sha256: 38bbcc7d2fd1fc31c3d2ecd8963524602220ce908261129350fffb0e414c1fe0 -->
+
 # `<xer/ini.h>`
 
 ## 目的

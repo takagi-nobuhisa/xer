@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: d6621f919af7c3c5df74c92951331f22c64433238b0f596446e5c3bc08945272 -->
+<!-- xer-reference-source-sha256: a846090ac9846e0512c596cd2e4c663878af679c963170bdd0219f5267d3bbd3 -->
+
 # `<xer/stdint.h>`
 
 ## 目的

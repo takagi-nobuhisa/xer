@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 9e5ed132b2b6086db4d0bf880d038949ea8478f15cdb2dfbc5f19af5550ef4de -->
+<!-- xer-reference-source-sha256: a5e980795d7ffd8331c15a65325c5b28c6688abf3801f2e258bda19bed541168 -->
+
 # `<xer/cmdline.h>`
 
 ## 目的

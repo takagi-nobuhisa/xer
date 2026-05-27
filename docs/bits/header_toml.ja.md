@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 21ed6e78be9e4691104ec73b137e6b90f34c9458448012285c90fe0eefb227d2 -->
+<!-- xer-reference-source-sha256: 19539783b61c6f38799105db2a400bddef5dd89640c5d2b749598bcfb9871e42 -->
 
 # `<xer/toml.h>`
 

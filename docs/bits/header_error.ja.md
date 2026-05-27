@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 19f54010ac61f555fb9cbf0599d522b27e0be1de656bac0780ebeb5b7d391daa -->
+<!-- xer-reference-source-sha256: b1e6545d0f261b31d31140540dd8b324cf86ecf3719836bb998b0e0e0244d523 -->
+
 # `<xer/error.h>`
 
 ## 目的
@@ -173,9 +174,12 @@ xer 固有のカテゴリの例には、次のようなものがあります。
 * `io_error`
 * `encoding_error`
 * `not_found`
+* `end_of_file`
 * `divide_by_zero`
 
 正確な列挙子の集合は実装で定義されます。
+
+逐次入力操作では、入力を使い切って次の項目を読めない場合に `end_of_file` を使用します。名前やキーで指定した対象が存在しない場合、検索操作では `not_found` を使用します。
 
 ---
 

@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 24d8c78f770fd62252a7508dc3cdafdd253c0bb9bfd19df02921469e6ccf593e -->
+<!-- xer-reference-source-sha256: cbd9fd9bd16bacc3abd7054a566af2193981cbf9c3d278ba036c60d88cedd92f -->
+
 # `<xer/ja.h>`
 
 ## 目的

@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: d935ec62b4a39e4f9f9ad33500514bd2fec1b669a6e591c7686f2bc10a73a39a -->
+<!-- xer-reference-source-sha256: e5d24a2c1ad5822dc071d67c552a6ad4d565d52ebcece33439dc1a64b8f01a1a -->
+
 # `<xer/diag.h>`
 
 ## 目的

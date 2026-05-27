@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: bc71b0b2d7bec45e6a6e9f82a31dedad581aef6510a5bb2f3f693e0820ee5954 -->
+<!-- xer-reference-source-sha256: 4b6b5a6bb7db934fe7fc782ae116406c1829e9b23ad831ffd3cb45b2958fe4ad -->
 
 # `<xer/iostream.h>`
 

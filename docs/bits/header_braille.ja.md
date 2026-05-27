@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 5246463f23fa4fe8df1b0d3346c7586ec2e85ab8f641b6e3826d3526783e1c4b -->
+<!-- xer-reference-source-sha256: 9d2702e419b3d317eec09f0cc68dc5c5a36a434e2701f2e5171206af7acbbffa -->
 
 # `<xer/braille.h>`
 

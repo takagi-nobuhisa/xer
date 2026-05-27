@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 243c22feff71768e96aa1f43491dc13cb628abf41dea6b098741259f0c83d5c6 -->
+<!-- xer-reference-source-sha256: 57465de8541ba18b35efbf641867cb7ca0e56ac8dc9c0bc515699da4965622c4 -->
+
 # `<xer/color.h>`
 
 ## 目的

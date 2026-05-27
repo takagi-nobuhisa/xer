@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 0ae01546d9ea5e6d4778f1e89085dcd691d783064cd1c2efbabad022688ecc3d -->
+<!-- xer-reference-source-sha256: 87892ce4f34880199eb555a88f945c844bbd3a22b779226d85e2dc6cbc4622b4 -->
 
 # `<xer/ctype.h>`
 

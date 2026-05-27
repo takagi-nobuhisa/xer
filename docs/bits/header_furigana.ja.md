@@ -1,4 +1,5 @@
 <!-- xer-reference-source-sha256: f3ffc20158865038d73ffe8f75f05c3700c93613e9ab0ebf598a10435103dba7 -->
+
 # `<xer/furigana.h>`
 
 ## 目的

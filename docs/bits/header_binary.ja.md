@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: c2065884ec49dea7236237091030fa120d3c3f9912a7f587aeb83996cd009dc7 -->
+<!-- xer-reference-source-sha256: f3a91bb6c8967447f9549f8b441a2f6ee216d7417428d4e4aa06379d5b8160bb -->
 
 # `<xer/binary.h>`
 

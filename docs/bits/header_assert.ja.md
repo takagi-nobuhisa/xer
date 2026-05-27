@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 7ce010e77a96b0cd583f750b50f493a5b5420b1458a8c950d051980963e34f11 -->
+<!-- xer-reference-source-sha256: 81dff97ae75d32b6246299dbe84f80c27b9fef639b5e7d1f9dc7969f517cff48 -->
+
 # `<xer/assert.h>`
 
 ## 目的

@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: ad1dd9d32be7699ffc78158d6b5145ff0a9dbb0a4f3a06943cf4825306c59287 -->
+<!-- xer-reference-source-sha256: f49258773b8216202cf3978f768afc4775dc944764bf29230b560a4c9f86139e -->
+
 # `<xer/stdfloat.h>`
 
 ## 目的

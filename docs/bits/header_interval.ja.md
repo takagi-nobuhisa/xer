@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: f7f8660889c1c2ff7f5d50e4c22a11b2ae2e5ed48815f6c64ed68b89ca53c5ec -->
+<!-- xer-reference-source-sha256: e0d345a79849f928d8c210deddf0c21e44641608fce243b64411817061dc58ae -->
+
 # `<xer/interval.h>`
 
 ## 目的

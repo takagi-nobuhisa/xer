@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: f8230759c9623c181491073db3fd3b392425efc159011f3263451e33715f4c33 -->
+<!-- xer-reference-source-sha256: 6670d63d7aef47d52f14cc19ce0a4a2f94cb5b9af12f419b4de59ef7e8b08197 -->
+
 # `<xer/json.h>`
 
 ## 目的
