@@ -369,6 +369,16 @@ struct zip_central_record {
     std::uint32_t local_header_offset = 0;
 };
 
+struct zip_central_entry {
+    std::u8string name;
+    std::uint64_t uncompressed_size = 0;
+    std::uint64_t compressed_size = 0;
+    std::uint16_t compression_method = 0;
+    std::uint16_t flags = 0;
+    std::uint64_t local_header_offset = 0;
+    std::uint64_t next_offset = 0;
+};
+
 } // namespace detail
 
 /**
@@ -574,6 +584,87 @@ private:
     return zip_archive(std::move(*stream));
 }
 
+namespace detail {
+
+[[nodiscard]] inline auto zip_read_central_entry_at(
+    zip_archive& archive,
+    std::uint64_t entry_offset) -> result<zip_central_entry>
+{
+    if (!archive.is_reading()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    if (entry_offset < archive.central_directory_offset() ||
+        entry_offset >= archive.central_directory_offset() + archive.central_directory_size()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    std::array<std::byte, 46> header{};
+    const auto header_result = zip_read_exact_at(archive.stream(), entry_offset, header);
+    if (!header_result.has_value()) {
+        return std::unexpected(header_result.error());
+    }
+
+    if (zip_read_u32(header, 0u) != zip_central_directory_file_header_signature) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const std::uint16_t flags = zip_read_u16(header, 8u);
+    const std::uint16_t method = zip_read_u16(header, 10u);
+    const std::uint32_t compressed_size32 = zip_read_u32(header, 20u);
+    const std::uint32_t uncompressed_size32 = zip_read_u32(header, 24u);
+    const std::uint16_t name_length = zip_read_u16(header, 28u);
+    const std::uint16_t extra_length = zip_read_u16(header, 30u);
+    const std::uint16_t comment_length = zip_read_u16(header, 32u);
+    const std::uint16_t disk_start = zip_read_u16(header, 34u);
+    const std::uint32_t local_header_offset32 = zip_read_u32(header, 42u);
+
+    if ((flags & zip_flag_encrypted) != 0u || disk_start != 0u) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    if (compressed_size32 == 0xffffffffu || uncompressed_size32 == 0xffffffffu ||
+        local_header_offset32 == 0xffffffffu) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const std::uint64_t variable_size = static_cast<std::uint64_t>(name_length) +
+        static_cast<std::uint64_t>(extra_length) +
+        static_cast<std::uint64_t>(comment_length);
+    const std::uint64_t next_offset = entry_offset + header.size() + variable_size;
+    if (next_offset < entry_offset ||
+        next_offset > archive.central_directory_offset() + archive.central_directory_size()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    std::vector<std::byte> name_bytes(name_length);
+    if (name_length != 0u) {
+        const auto name_result = zip_read_exact_at(
+            archive.stream(),
+            entry_offset + header.size(),
+            name_bytes);
+        if (!name_result.has_value()) {
+            return std::unexpected(name_result.error());
+        }
+    }
+
+    const auto name = zip_bytes_to_u8string(name_bytes, flags);
+    if (!name.has_value()) {
+        return std::unexpected(name.error());
+    }
+
+    return zip_central_entry{
+        *name,
+        uncompressed_size32,
+        compressed_size32,
+        method,
+        flags,
+        local_header_offset32,
+        next_offset};
+}
+
+} // namespace detail
+
 /**
  * @brief Reads the next ZIP entry metadata from an archive.
  *
@@ -593,73 +684,23 @@ private:
         return std::unexpected(make_error(error_t::end_of_file));
     }
 
-    std::array<std::byte, 46> header{};
-    const auto header_result = detail::zip_read_exact_at(
-        archive.stream(),
-        archive.next_entry_offset(),
-        header);
-    if (!header_result.has_value()) {
-        return std::unexpected(header_result.error());
+    const auto central_entry = detail::zip_read_central_entry_at(
+        archive,
+        archive.next_entry_offset());
+    if (!central_entry.has_value()) {
+        return std::unexpected(central_entry.error());
     }
 
-    if (detail::zip_read_u32(header, 0u) != detail::zip_central_directory_file_header_signature) {
-        return std::unexpected(make_error(error_t::invalid_argument));
-    }
-
-    const std::uint16_t flags = detail::zip_read_u16(header, 8u);
-    const std::uint16_t method = detail::zip_read_u16(header, 10u);
-    const std::uint32_t compressed_size32 = detail::zip_read_u32(header, 20u);
-    const std::uint32_t uncompressed_size32 = detail::zip_read_u32(header, 24u);
-    const std::uint16_t name_length = detail::zip_read_u16(header, 28u);
-    const std::uint16_t extra_length = detail::zip_read_u16(header, 30u);
-    const std::uint16_t comment_length = detail::zip_read_u16(header, 32u);
-    const std::uint16_t disk_start = detail::zip_read_u16(header, 34u);
-    const std::uint32_t local_header_offset32 = detail::zip_read_u32(header, 42u);
-
-    if ((flags & detail::zip_flag_encrypted) != 0u || disk_start != 0u) {
-        return std::unexpected(make_error(error_t::invalid_argument));
-    }
-
-    if (compressed_size32 == 0xffffffffu || uncompressed_size32 == 0xffffffffu ||
-        local_header_offset32 == 0xffffffffu) {
-        return std::unexpected(make_error(error_t::invalid_argument));
-    }
-
-    const std::uint64_t variable_size = static_cast<std::uint64_t>(name_length) +
-        static_cast<std::uint64_t>(extra_length) +
-        static_cast<std::uint64_t>(comment_length);
-    const std::uint64_t next_offset = archive.next_entry_offset() + header.size() + variable_size;
-    if (next_offset < archive.next_entry_offset() ||
-        next_offset > archive.central_directory_offset() + archive.central_directory_size()) {
-        return std::unexpected(make_error(error_t::invalid_argument));
-    }
-
-    std::vector<std::byte> name_bytes(name_length);
-    if (name_length != 0u) {
-        const auto name_result = detail::zip_read_exact_at(
-            archive.stream(),
-            archive.next_entry_offset() + header.size(),
-            name_bytes);
-        if (!name_result.has_value()) {
-            return std::unexpected(name_result.error());
-        }
-    }
-
-    const auto name = detail::zip_bytes_to_u8string(name_bytes, flags);
-    if (!name.has_value()) {
-        return std::unexpected(name.error());
-    }
-
-    archive.set_next_entry_offset(next_offset);
+    archive.set_next_entry_offset(central_entry->next_offset);
     archive.increment_next_entry_index();
 
     return zip_entry(
-        *name,
-        uncompressed_size32,
-        compressed_size32,
-        method,
-        flags,
-        local_header_offset32);
+        central_entry->name,
+        central_entry->uncompressed_size,
+        central_entry->compressed_size,
+        central_entry->compression_method,
+        central_entry->flags,
+        central_entry->local_header_offset);
 }
 
 [[nodiscard]] inline auto zip_entry_name(const zip_entry& entry) -> result<std::u8string>
@@ -751,6 +792,69 @@ private:
     default:
         return std::unexpected(make_error(error_t::invalid_argument));
     }
+}
+
+/**
+ * @brief Locates a ZIP entry by name.
+ *
+ * This function scans the central directory and returns the first entry whose
+ * name exactly matches `entry_name`. The sequential position used by `zip_read`
+ * is not changed. Missing entries are reported as `error_t::not_found`.
+ *
+ * @param archive ZIP archive.
+ * @param entry_name Entry name to locate.
+ * @return Matching ZIP entry on success.
+ */
+[[nodiscard]] inline auto zip_locate_name(zip_archive& archive, std::u8string_view entry_name)
+    -> result<zip_entry>
+{
+    if (!archive.is_reading()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    std::uint64_t offset = archive.central_directory_offset();
+    for (std::uint64_t i = 0; i < archive.entry_count(); ++i) {
+        const auto central_entry = detail::zip_read_central_entry_at(archive, offset);
+        if (!central_entry.has_value()) {
+            return std::unexpected(central_entry.error());
+        }
+
+        if (central_entry->name == entry_name) {
+            return zip_entry(
+                central_entry->name,
+                central_entry->uncompressed_size,
+                central_entry->compressed_size,
+                central_entry->compression_method,
+                central_entry->flags,
+                central_entry->local_header_offset);
+        }
+
+        offset = central_entry->next_offset;
+    }
+
+    return std::unexpected(make_error(error_t::not_found));
+}
+
+/**
+ * @brief Locates a ZIP entry by name and reads its expanded body.
+ *
+ * This convenience function is equivalent to calling `zip_locate_name` and then
+ * `zip_entry_read`.
+ *
+ * @param archive ZIP archive.
+ * @param entry_name Entry name to read.
+ * @return Uncompressed entry bytes on success.
+ */
+[[nodiscard]] inline auto zip_entry_read_by_name(
+    zip_archive& archive,
+    std::u8string_view entry_name) -> result<std::vector<std::byte>>
+{
+    auto entry = zip_locate_name(archive, entry_name);
+    if (!entry.has_value()) {
+        return std::unexpected(entry.error());
+    }
+
+    return zip_entry_read(archive, *entry);
 }
 
 /**

@@ -6,7 +6,7 @@
 
 ZIP is technically an archive format, but in practical use it is also a familiar compression and expansion format. XER treats the initial ZIP API as a small compression-and-archive utility that can later support serialized data packages, bundled resources, and ordinary file exchange.
 
-The initial API is intentionally small. It supports sequential reading and simple archive creation. Extraction helpers, name lookup, comments, and ZIP64 support are deferred.
+The initial API is intentionally small. It supports sequential reading, name lookup, simple archive creation, and whole-entry reads. Extraction helpers, comments, and ZIP64 support are deferred.
 
 ---
 
@@ -26,6 +26,7 @@ The main role of `<xer/zip.h>` is to make it possible to:
 
 - open a ZIP archive
 - read entry metadata sequentially
+- locate entries by exact name
 - obtain entry names, sizes, and compression method names
 - read and expand entry data
 - create a ZIP archive
@@ -69,6 +70,13 @@ auto zip_entry_compression_method(const zip_entry& entry)
 
 auto zip_entry_read(zip_archive& archive, const zip_entry& entry)
     -> xer::result<std::vector<std::byte>>;
+
+auto zip_locate_name(zip_archive& archive, std::u8string_view entry_name)
+    -> xer::result<zip_entry>;
+
+auto zip_entry_read_by_name(
+    zip_archive& archive,
+    std::u8string_view entry_name) -> xer::result<std::vector<std::byte>>;
 
 auto zip_add_from_bytes(
     zip_archive& archive,
@@ -286,6 +294,13 @@ Reading data for an unsupported method fails with `error_t::invalid_argument`.
 auto zip_entry_read(zip_archive& archive, const zip_entry& entry)
     -> xer::result<std::vector<std::byte>>;
 
+auto zip_locate_name(zip_archive& archive, std::u8string_view entry_name)
+    -> xer::result<zip_entry>;
+
+auto zip_entry_read_by_name(
+    zip_archive& archive,
+    std::u8string_view entry_name) -> xer::result<std::vector<std::byte>>;
+
 auto zip_add_from_bytes(
     zip_archive& archive,
     std::u8string_view entry_name,
@@ -319,6 +334,55 @@ Stored entries are returned as-is. Deflated entries are expanded with raw deflat
 On success, the function returns a `std::vector<std::byte>` containing the uncompressed entry bytes.
 
 This is intentionally an owning byte vector. Streaming entry reads can be added later if large-entry use cases require them.
+
+---
+
+## `zip_locate_name`
+
+```cpp
+auto zip_locate_name(zip_archive& archive, std::u8string_view entry_name)
+    -> xer::result<zip_entry>;
+```
+
+### Purpose
+
+`zip_locate_name` searches the archive central directory for an entry whose name exactly matches `entry_name`.
+
+The function scans the central directory and returns the first matching entry. It does not change the sequential position used by `zip_read`, so callers may mix direct lookup with later sequential reads.
+
+### Failure Model
+
+If no entry has the requested name, the function returns:
+
+```cpp
+error_t::not_found
+```
+
+Malformed central-directory data is reported as `error_t::invalid_argument`, matching `zip_read`.
+
+---
+
+## `zip_entry_read_by_name`
+
+```cpp
+auto zip_entry_read_by_name(
+    zip_archive& archive,
+    std::u8string_view entry_name) -> xer::result<std::vector<std::byte>>;
+```
+
+### Purpose
+
+`zip_entry_read_by_name` locates an entry by name and reads its expanded body.
+
+It is a convenience wrapper around:
+
+```cpp
+auto entry = zip_locate_name(archive, entry_name);
+auto body = zip_entry_read(archive, *entry);
+```
+
+Missing entries are reported as `error_t::not_found`. Unsupported compression methods and malformed entry data are reported the same way as `zip_entry_read`.
+
 
 ---
 
@@ -399,7 +463,6 @@ The initial implementation does not provide detailed ZIP parse positions. If pos
 The following items are intentionally deferred:
 
 - file extraction helpers
-- name lookup
 - entry comments and archive comments
 - ZIP64
 - multi-disk archives

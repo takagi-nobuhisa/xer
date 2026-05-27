@@ -278,6 +278,43 @@ void test_zip_create_add_bytes_and_file()
     xer_assert_eq(end.error().code, xer::error_t::end_of_file);
 }
 
+void test_zip_locate_name_and_read_by_name()
+{
+    const std::array entries = {
+        sample_entry{u8"first.txt", bytes("first entry\n"), 0u},
+        sample_entry{u8"nested/target.txt", bytes("target body\n"), 8u},
+        sample_entry{u8"last.txt", bytes("last entry\n"), 0u},
+    };
+    make_zip("locate.zip", entries);
+
+    auto archive = xer::zip_open(u8"locate.zip");
+    xer_assert(archive.has_value());
+
+    auto target = xer::zip_locate_name(*archive, u8"nested/target.txt");
+    xer_assert(target.has_value());
+
+    auto target_name = xer::zip_entry_name(*target);
+    auto target_body = xer::zip_entry_read(*archive, *target);
+    xer_assert(target_name.has_value());
+    xer_assert(target_body.has_value());
+    xer_assert_eq(*target_name, u8"nested/target.txt");
+    assert_bytes_eq(*target_body, entries[1].data);
+
+    auto direct_body = xer::zip_entry_read_by_name(*archive, u8"last.txt");
+    xer_assert(direct_body.has_value());
+    assert_bytes_eq(*direct_body, entries[2].data);
+
+    auto missing = xer::zip_locate_name(*archive, u8"missing.txt");
+    xer_assert_not(missing.has_value());
+    xer_assert_eq(missing.error().code, xer::error_t::not_found);
+
+    auto first = xer::zip_read(*archive);
+    xer_assert(first.has_value());
+    auto first_name = xer::zip_entry_name(*first);
+    xer_assert(first_name.has_value());
+    xer_assert_eq(*first_name, u8"first.txt");
+}
+
 void test_zip_create_empty_archive()
 {
     auto writer = xer::zip_create(u8"empty.zip");
@@ -307,6 +344,7 @@ auto main() -> int
 {
     test_zip_read_store_and_deflate();
     test_zip_create_add_bytes_and_file();
+    test_zip_locate_name_and_read_by_name();
     test_zip_create_empty_archive();
     test_zip_open_rejects_invalid_file();
 }
