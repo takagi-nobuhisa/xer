@@ -38,6 +38,7 @@ xer::ja::is_name_kanji(U'凜');
 xer::ja::jis_kanji_level_of(U'亜');
 xer::ja::to_hiragana(u8"カタカナ");
 xer::ja::to_katakana(u8"ひらがな");
+xer::ja::normalize_kana(u8"ｶﾞｷﾞｸﾞｹﾞｺﾞ");
 xer::ja::mecab_parse(u8"私は猫です。");
 ```
 
@@ -158,7 +159,17 @@ const auto text = xer::ja::to_katakana(u8"ひらがなとゔ");
 // text == u8"ヒラガナトヴ"
 ```
 
-Both functions keep unrelated code points unchanged and return `xer::result<std::u8string>` so invalid UTF-8 input can be reported as `encoding_error`.
+`xer::ja::normalize_kana` normalizes practical kana spelling while preserving hiragana/katakana script choice. It converts halfwidth katakana to fullwidth katakana and composes separated voiced or semi-voiced sound marks when a composed kana exists.
+
+```cpp
+const auto text = xer::ja::normalize_kana(u8"ｶﾞｷﾞｸﾞｹﾞｺﾞ ﾊﾟﾋﾟﾌﾟﾍﾟﾎﾟ");
+// text == u8"ガギグゲゴ パピプペポ"
+
+const auto text2 = xer::ja::normalize_kana(u8"がハ゜");
+// text2 == u8"がパ"
+```
+
+These functions keep unrelated code points unchanged and return `xer::result<std::u8string>` so invalid UTF-8 input can be reported as `encoding_error`.
 
 These functions are defined in the internal implementation header `<xer/bits/ja_to.h>` and are available through `<xer/ja.h>`.
 

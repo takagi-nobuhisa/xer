@@ -3,11 +3,13 @@
 
 // XER_EXAMPLE_BEGIN: ja_to_basic
 //
-// This example converts between hiragana and fullwidth katakana.
+// This example converts between hiragana and fullwidth katakana and normalizes
+// practical kana spelling.
 //
 // Expected output:
 // hiragana: かたかなとゔ
 // katakana: ヒラガナトヴ
+// normalized: ガギグゲゴ パピプペポ
 
 auto main() -> int
 {
@@ -21,11 +23,20 @@ auto main() -> int
         return 1;
     }
 
+    const auto normalized = xer::ja::normalize_kana(u8"ｶﾞｷﾞｸﾞｹﾞｺﾞ ﾊﾟﾋﾟﾌﾟﾍﾟﾎﾟ");
+    if (!normalized.has_value()) {
+        return 1;
+    }
+
     if (!xer::printf(u8"hiragana: %@\n", *hiragana)) {
         return 1;
     }
 
     if (!xer::printf(u8"katakana: %@\n", *katakana)) {
+        return 1;
+    }
+
+    if (!xer::printf(u8"normalized: %@\n", *normalized)) {
         return 1;
     }
 
