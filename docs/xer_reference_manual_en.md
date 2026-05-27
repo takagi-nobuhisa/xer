@@ -4989,11 +4989,11 @@ xer::ja::mecab_parse(u8"私は猫です。");
 
 ## Character Classification
 
-`xer::ja::is_hiragana` checks whether a code point belongs to the Unicode Hiragana block.
+`xer::ja::is_hiragana` checks whether a code point is practical hiragana. It accepts the Unicode Hiragana block and the prolonged sound mark `U+30FC`.
 
-`xer::ja::is_katakana` checks whether a code point is katakana, including fullwidth katakana, halfwidth katakana, Katakana Phonetic Extensions, and Kana Supplement/Extended blocks.
+`xer::ja::is_katakana` checks whether a code point is practical katakana, including fullwidth katakana, halfwidth katakana, Katakana Phonetic Extensions, Kana Supplement/Extended blocks, and prolonged sound marks.
 
-`xer::ja::is_kana` checks whether a code point is hiragana or katakana.
+`xer::ja::is_kana` checks whether a code point is practical hiragana or practical katakana.
 
 `xer::ja::is_kanji` checks whether a code point belongs to the common CJK unified ideograph or CJK compatibility ideograph ranges. Unicode shares many kanji/hanzi/hanja code points, so this function does not attempt to identify language-specific usage.
 
@@ -5003,7 +5003,7 @@ xer::ja::mecab_parse(u8"私は猫です。");
 
 `xer::ja::is_all_hiragana`, `xer::ja::is_all_katakana`, and `xer::ja::is_all_kana` check whether all code points in a UTF-8 string belong to practical hiragana, katakana, or kana text. Empty input returns `false`. Invalid UTF-8 input returns `encoding_error`.
 
-The `is_all_*` kana predicates are intentionally practical rather than strictly block-only: they accept the prolonged sound mark and kana iteration marks. They do not accept spaces, punctuation, kanji, or Latin letters.
+The `is_all_*` kana predicates use the same practical character sets as `is_hiragana`, `is_katakana`, and `is_kana`. They do not accept spaces, punctuation, kanji, or Latin letters.
 
 ```cpp
 xer::ja::is_hiragana(U'あ'); // true

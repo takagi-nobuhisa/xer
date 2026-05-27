@@ -67,27 +67,34 @@ template<typename Predicate>
 namespace xer::ja {
 
 /**
- * @brief Checks whether a code point belongs to the Hiragana block.
+ * @brief Checks whether a code point is practical hiragana.
  *
- * This function uses the Unicode Hiragana block U+3040..U+309F.
+ * This function covers the Unicode Hiragana block U+3040..U+309F and the
+ * prolonged sound mark U+30FC. The prolonged sound mark is shared by
+ * hiragana and katakana in practical Japanese text, so it is accepted by
+ * both is_hiragana and is_katakana.
  */
 [[nodiscard]] constexpr auto is_hiragana(
     const char32_t value) noexcept -> bool
 {
-    return detail::is_in_unicode_range(value, U'぀', U'ゟ');
+    return detail::is_in_unicode_range(value, U'぀', U'ゟ')
+        || detail::is_hiragana_prolonged_sound_mark(value);
 }
 
 /**
- * @brief Checks whether a code point is katakana or halfwidth katakana.
+ * @brief Checks whether a code point is practical katakana.
  *
  * This function covers the Unicode Katakana block, Katakana Phonetic
  * Extensions, Kana Supplement, Kana Extended-A, Kana Extended-B, and
- * Halfwidth Katakana.
+ * Halfwidth Katakana. It also accepts the halfwidth prolonged sound mark
+ * U+FF70 because the fullwidth prolonged sound mark U+30FC is already in
+ * the Katakana block.
  */
 [[nodiscard]] constexpr auto is_katakana(
     const char32_t value) noexcept -> bool
 {
     return detail::is_in_unicode_range(value, U'゠', U'ヿ')
+        || detail::is_katakana_prolonged_sound_mark(value)
         || detail::is_in_unicode_range(value, U'ㇰ', U'ㇿ')
         || detail::is_in_unicode_range(value, U'𛀀', U'𛃿')
         || detail::is_in_unicode_range(value, U'𛄀', U'𛄯')
@@ -166,8 +173,8 @@ namespace xer::ja {
 /**
  * @brief Checks whether all UTF-8 code points are practical hiragana text.
  *
- * The accepted set is the Hiragana block plus the prolonged sound mark U+30FC.
- * Empty input returns false. Invalid UTF-8 returns encoding_error.
+ * The accepted set is the same as is_hiragana. Empty input returns false.
+ * Invalid UTF-8 returns encoding_error.
  */
 [[nodiscard]] inline auto is_all_hiragana(
     const std::u8string_view text) -> result<bool>
@@ -175,17 +182,15 @@ namespace xer::ja {
     return detail::is_all_utf8_code_points(
         text,
         [](const char32_t value) noexcept {
-            return is_hiragana(value)
-                || detail::is_hiragana_prolonged_sound_mark(value);
+            return is_hiragana(value);
         });
 }
 
 /**
  * @brief Checks whether all UTF-8 code points are practical katakana text.
  *
- * The accepted set is katakana, including fullwidth and halfwidth katakana,
- * plus prolonged sound marks. Empty input returns false. Invalid UTF-8 returns
- * encoding_error.
+ * The accepted set is the same as is_katakana. Empty input returns false.
+ * Invalid UTF-8 returns encoding_error.
  */
 [[nodiscard]] inline auto is_all_katakana(
     const std::u8string_view text) -> result<bool>
@@ -193,17 +198,15 @@ namespace xer::ja {
     return detail::is_all_utf8_code_points(
         text,
         [](const char32_t value) noexcept {
-            return is_katakana(value)
-                || detail::is_katakana_prolonged_sound_mark(value);
+            return is_katakana(value);
         });
 }
 
 /**
  * @brief Checks whether all UTF-8 code points are practical kana text.
  *
- * The accepted set is hiragana, katakana, prolonged sound marks, and kana
- * iteration marks covered by the Hiragana and Katakana blocks. Empty input
- * returns false. Invalid UTF-8 returns encoding_error.
+ * The accepted set is the same as is_kana. Empty input returns false.
+ * Invalid UTF-8 returns encoding_error.
  */
 [[nodiscard]] inline auto is_all_kana(
     const std::u8string_view text) -> result<bool>
@@ -211,9 +214,7 @@ namespace xer::ja {
     return detail::is_all_utf8_code_points(
         text,
         [](const char32_t value) noexcept {
-            return is_kana(value)
-                || detail::is_hiragana_prolonged_sound_mark(value)
-                || detail::is_katakana_prolonged_sound_mark(value);
+            return is_kana(value);
         });
 }
 
