@@ -244,6 +244,8 @@ Some headers are intentionally not provided as standalone public headers, and so
 
 Design documents and reference materials are available under `docs/`.
 
+- [Reference manual](docs/xer_reference_manual_en.md)
+
 These documents describe the current direction of the project, including:
 
 - project overview

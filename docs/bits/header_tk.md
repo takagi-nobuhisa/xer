@@ -1,4 +1,4 @@
-﻿# `<xer/tk.h>`
+# `<xer/tk.h>`
 
 ## Purpose
 
