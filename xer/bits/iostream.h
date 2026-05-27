@@ -149,6 +149,7 @@ inline auto write_u8_to_ostream(
     XER_DETAIL_PARSE_ERROR_NAME(divide_by_zero)
     XER_DETAIL_PARSE_ERROR_NAME(network_error)
     XER_DETAIL_PARSE_ERROR_NAME(process_error)
+    XER_DETAIL_PARSE_ERROR_NAME(end_of_file)
     XER_DETAIL_PARSE_ERROR_NAME(user_error)
 
 #undef XER_DETAIL_PARSE_ERROR_NAME

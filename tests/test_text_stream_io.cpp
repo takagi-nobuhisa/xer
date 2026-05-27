@@ -151,7 +151,7 @@ void test_fgetc_reads_ascii_and_unicode() {
     {
         const auto ch = xer::fgetc(stream);
         xer_assert(!ch.has_value());
-        xer_assert_eq(ch.error().code, xer::error_t::not_found);
+        xer_assert_eq(ch.error().code, xer::error_t::end_of_file);
     }
 }
 
@@ -187,7 +187,7 @@ void test_fgets_keep_newline_true() {
     {
         const auto line = xer::fgets(stream, true);
         xer_assert(!line.has_value());
-        xer_assert_eq(line.error().code, xer::error_t::not_found);
+        xer_assert_eq(line.error().code, xer::error_t::end_of_file);
     }
 }
 
@@ -209,7 +209,7 @@ void test_fgets_keep_newline_false() {
     {
         const auto line = xer::fgets(stream, false);
         xer_assert(!line.has_value());
-        xer_assert_eq(line.error().code, xer::error_t::not_found);
+        xer_assert_eq(line.error().code, xer::error_t::end_of_file);
     }
 }
 
@@ -328,7 +328,7 @@ void test_ungetc_clears_eof_state() {
     {
         const auto eof_result = xer::fgetc(stream);
         xer_assert(!eof_result.has_value());
-        xer_assert_eq(eof_result.error().code, xer::error_t::not_found);
+        xer_assert_eq(eof_result.error().code, xer::error_t::end_of_file);
         xer_assert(stream.eof());
     }
 
@@ -348,7 +348,7 @@ void test_ungetc_clears_eof_state() {
     {
         const auto eof_result = xer::fgetc(stream);
         xer_assert(!eof_result.has_value());
-        xer_assert_eq(eof_result.error().code, xer::error_t::not_found);
+        xer_assert_eq(eof_result.error().code, xer::error_t::end_of_file);
     }
 }
 

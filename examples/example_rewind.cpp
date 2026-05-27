@@ -27,7 +27,7 @@ namespace {
     for (;;) {
         const auto c = xer::fgetc(stream);
         if (!c.has_value()) {
-            if (c.error().code == xer::error_t::not_found) {
+            if (c.error().code == xer::error_t::end_of_file) {
                 break;
             }
             return std::unexpected(c.error());

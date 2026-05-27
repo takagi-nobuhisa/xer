@@ -172,6 +172,8 @@ Examples of XER-specific categories may include things such as:
 * `io_error`
 * `encoding_error`
 * `not_found`
+* `end_of_file`
+* `end_of_file`
 * `divide_by_zero`
 
 The exact enumerator set is defined by the implementation.

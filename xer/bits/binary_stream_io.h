@@ -42,6 +42,7 @@ namespace xer {
  *
  * This function attempts to read up to `buffer.size()` bytes into `buffer`.
  * A partial read is reported as success with the actual number of bytes read.
+ * Reaching EOF before reading any byte is reported as error_t::end_of_file.
  *
  * @param buffer Destination buffer.
  * @param stream Source stream.
@@ -61,9 +62,16 @@ namespace xer {
 
     const int result = stream.read_fn()(stream.handle(), buffer.data(), *count);
     if (result < 0) {
+        stream.set_error(true);
         return std::unexpected(make_error(error_t::io_error));
     }
 
+    if (result == 0) {
+        stream.set_eof(true);
+        return std::unexpected(make_error(error_t::end_of_file));
+    }
+
+    stream.set_eof(false);
     return static_cast<std::size_t>(result);
 }
 
@@ -100,7 +108,7 @@ namespace xer {
 /**
  * @brief Reads one byte from a binary stream.
  *
- * Reaching EOF is treated as failure for this one-byte input operation.
+ * Reaching EOF is reported as error_t::end_of_file.
  *
  * @param stream Source stream.
  * @return Read byte on success.
@@ -111,13 +119,16 @@ namespace xer {
     const int result = stream.read_fn()(stream.handle(), &value, 1);
 
     if (result < 0) {
+        stream.set_error(true);
         return std::unexpected(make_error(error_t::io_error));
     }
 
     if (result == 0) {
-        return std::unexpected(make_error(error_t::io_error));
+        stream.set_eof(true);
+        return std::unexpected(make_error(error_t::end_of_file));
     }
 
+    stream.set_eof(false);
     return value;
 }
 

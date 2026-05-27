@@ -292,7 +292,7 @@ private:
  * are changed while it is being read, the observed behavior is also
  * platform- and filesystem-dependent.
  *
- * End of directory is reported as error_t::not_found. Other failures are
+ * End of directory is reported as error_t::end_of_file. Other failures are
  * reported through xer::result in the usual way.
  *
  * @param directory Target directory stream.
@@ -308,7 +308,7 @@ private:
     if (entry == nullptr) {
         const int saved_errno = errno;
         if (saved_errno == 0) {
-            return std::unexpected(make_error(error_t::not_found));
+            return std::unexpected(make_error(error_t::end_of_file));
         }
 
         return std::unexpected(

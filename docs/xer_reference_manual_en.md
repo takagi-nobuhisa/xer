@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v0.5.0b1**
+Target version: **v0.6.0a1**
 
 ---
 
@@ -178,6 +178,8 @@ Examples of xer-specific categories may include things such as:
 * `io_error`
 * `encoding_error`
 * `not_found`
+* `end_of_file`
+* `end_of_file`
 * `divide_by_zero`
 
 The exact enumerator set is defined by the implementation.
@@ -9373,6 +9375,15 @@ Binary data is handled as raw byte-oriented data rather than as text.
 `fgetc` and `fputc` are therefore not the single-byte binary I/O interface.
 Instead, xer uses `fgetb` and `fputb` for that role.
 
+### EOF Handling
+
+Sequential input functions report an exhausted input stream as `error_t::end_of_file`.
+This applies to operations such as `fread`, `fgetb`, `fgetc`, and `fgets` when no new data can be read.
+
+Partial reads remain successful.
+For example, if `fread` reads at least one byte but fewer bytes than requested, it returns the number of bytes actually read.
+`stream_get_contents` treats `end_of_file` as the natural termination condition while collecting contents.
+
 ---
 
 ## Text I/O
@@ -11927,7 +11938,7 @@ On success, it returns the next entry name.
 At the end of the directory stream, it returns failure with:
 
 ```cpp
-error_t::not_found
+error_t::end_of_file
 ```
 
 Other failures are reported through `xer::result` in the usual way.
@@ -11993,7 +12004,7 @@ xer does not guarantee a stable ordering of directory entries.
 In xer, reaching the end of a directory stream is represented as:
 
 ```cpp
-error_t::not_found
+error_t::end_of_file
 ```
 
 Typical usage is:
@@ -12002,7 +12013,7 @@ Typical usage is:
 for (;;) {
     auto entry = xer::readdir(directory);
     if (!entry.has_value()) {
-        if (entry.error().code == xer::error_t::not_found) {
+        if (entry.error().code == xer::error_t::end_of_file) {
             break;
         }
 
@@ -12051,7 +12062,7 @@ When documenting this header, the most important points are:
 * `xer::dir` is a move-only RAII directory stream handle
 * `readdir` returns entry names, not full paths
 * `"."` and `".."` are not filtered out
-* end-of-directory is represented by `error_t::not_found`
+* end-of-directory is represented by `error_t::end_of_file`
 * entry order is filesystem-dependent
 * modifications during traversal have platform-dependent results
 
@@ -12074,7 +12085,7 @@ auto main() -> int
     for (;;) {
         auto entry = xer::readdir(*directory);
         if (!entry.has_value()) {
-            if (entry.error().code == xer::error_t::not_found) {
+            if (entry.error().code == xer::error_t::end_of_file) {
                 break;
             }
 

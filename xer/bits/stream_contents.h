@@ -85,11 +85,11 @@ namespace xer {
 
         const auto read_size = fread(std::span<std::byte>(buffer, chunk_size), stream);
         if (!read_size.has_value()) {
-            return std::unexpected(read_size.error());
-        }
+            if (read_size.error().code == error_t::end_of_file) {
+                break;
+            }
 
-        if (*read_size == 0) {
-            break;
+            return std::unexpected(read_size.error());
         }
 
         detail::append_stream_contents_chunk(result, buffer, *read_size);
@@ -120,7 +120,7 @@ namespace xer {
     for (;;) {
         const auto ch = fgetc(stream);
         if (!ch.has_value()) {
-            if (ch.error().code == error_t::not_found) {
+            if (ch.error().code == error_t::end_of_file) {
                 return result;
             }
 

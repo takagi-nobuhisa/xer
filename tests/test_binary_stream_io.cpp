@@ -152,6 +152,21 @@ void test_fread_zero_length_buffer() {
     xer_assert_eq(mock.last_read_count, -1);
 }
 
+void test_fread_eof_is_end_of_file() {
+    binary_stream_mock mock{};
+    mock.read_result = 0;
+
+    auto stream = make_stream(mock);
+    std::array<std::byte, 4> buffer{};
+
+    const auto result = xer::fread(std::span<std::byte>(buffer), stream);
+
+    xer_assert(!result.has_value());
+    xer_assert_eq(result.error().code, xer::error_t::end_of_file);
+    xer_assert(stream.eof());
+    xer_assert_eq(mock.last_read_count, 4);
+}
+
 void test_fread_failure() {
     binary_stream_mock mock{};
     mock.read_result = -1;
@@ -262,7 +277,8 @@ void test_fgetb_eof_is_failure() {
     const auto result = xer::fgetb(stream);
 
     xer_assert(!result.has_value());
-    xer_assert_eq(result.error().code, xer::error_t::io_error);
+    xer_assert_eq(result.error().code, xer::error_t::end_of_file);
+    xer_assert(stream.eof());
     xer_assert_eq(mock.last_read_count, 1);
 }
 
@@ -333,6 +349,7 @@ int main() {
     test_fread_reads_all_bytes();
     test_fread_partial_read_is_success();
     test_fread_zero_length_buffer();
+    test_fread_eof_is_end_of_file();
     test_fread_failure();
 
     test_fwrite_writes_all_bytes();

@@ -24,13 +24,13 @@ void test_error_t_output()
 
 void test_error_t_input()
 {
-    std::istringstream in("not_found");
+    std::istringstream in("end_of_file");
     auto code = xer::error_t::runtime_error;
 
     in >> code;
 
     xer_assert(in);
-    xer_assert(code == xer::error_t::not_found);
+    xer_assert(code == xer::error_t::end_of_file);
 }
 
 void test_error_t_input_unknown_fails()

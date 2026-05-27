@@ -129,7 +129,7 @@ On success, it returns the next entry name.
 At the end of the directory stream, it returns failure with:
 
 ```cpp
-error_t::not_found
+error_t::end_of_file
 ```
 
 Other failures are reported through `xer::result` in the usual way.
@@ -195,7 +195,7 @@ XER does not guarantee a stable ordering of directory entries.
 In XER, reaching the end of a directory stream is represented as:
 
 ```cpp
-error_t::not_found
+error_t::end_of_file
 ```
 
 Typical usage is:
@@ -204,7 +204,7 @@ Typical usage is:
 for (;;) {
     auto entry = xer::readdir(directory);
     if (!entry.has_value()) {
-        if (entry.error().code == xer::error_t::not_found) {
+        if (entry.error().code == xer::error_t::end_of_file) {
             break;
         }
 
@@ -253,7 +253,7 @@ When documenting this header, the most important points are:
 * `xer::dir` is a move-only RAII directory stream handle
 * `readdir` returns entry names, not full paths
 * `"."` and `".."` are not filtered out
-* end-of-directory is represented by `error_t::not_found`
+* end-of-directory is represented by `error_t::end_of_file`
 * entry order is filesystem-dependent
 * modifications during traversal have platform-dependent results
 
@@ -276,7 +276,7 @@ auto main() -> int
     for (;;) {
         auto entry = xer::readdir(*directory);
         if (!entry.has_value()) {
-            if (entry.error().code == xer::error_t::not_found) {
+            if (entry.error().code == xer::error_t::end_of_file) {
                 break;
             }
 

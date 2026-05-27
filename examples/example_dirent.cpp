@@ -96,7 +96,7 @@ auto main() -> int
     for (;;) {
         auto entry = xer::readdir(*dir);
         if (!entry) {
-            if (entry.error().code != xer::error_t::not_found) {
+            if (entry.error().code != xer::error_t::end_of_file) {
                 return 1;
             }
 

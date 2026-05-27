@@ -158,7 +158,7 @@ namespace xer::detail {
 [[nodiscard]] inline auto consume_optional_lf_after_cr(text_stream& stream) -> result<void> {
     const auto next = fgetc(stream);
     if (!next.has_value()) {
-        if (next.error().code == error_t::not_found) {
+        if (next.error().code == error_t::end_of_file) {
             return {};
         }
 
@@ -229,7 +229,7 @@ namespace xer {
     while (true) {
         const auto ch = fgetc(stream);
         if (!ch.has_value()) {
-            if (ch.error().code == error_t::not_found) {
+            if (ch.error().code == error_t::end_of_file) {
                 if (!read_anything && state == parse_state::field_start && field.empty() &&
                     fields.empty()) {
                     return std::unexpected(ch.error());
@@ -319,7 +319,7 @@ namespace xer {
             if (value == enclosure) {
                 const auto next = fgetc(stream);
                 if (!next.has_value()) {
-                    if (next.error().code == error_t::not_found) {
+                    if (next.error().code == error_t::end_of_file) {
                         detail::finalize_csv_field(fields, field);
                         return fields;
                     }

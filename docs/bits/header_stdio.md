@@ -192,6 +192,15 @@ Binary data is handled as raw byte-oriented data rather than as text.
 `fgetc` and `fputc` are therefore not the single-byte binary I/O interface.
 Instead, XER uses `fgetb` and `fputb` for that role.
 
+### EOF Handling
+
+Sequential input functions report an exhausted input stream as `error_t::end_of_file`.
+This applies to operations such as `fread`, `fgetb`, `fgetc`, and `fgets` when no new data can be read.
+
+Partial reads remain successful.
+For example, if `fread` reads at least one byte but fewer bytes than requested, it returns the number of bytes actually read.
+`stream_get_contents` treats `end_of_file` as the natural termination condition while collecting contents.
+
 ---
 
 ## Text I/O

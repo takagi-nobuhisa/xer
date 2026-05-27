@@ -37,7 +37,7 @@ namespace detail {
     std::u8string_view text,
     std::size_t& offset) -> result<char32_t> {
     if (offset >= text.size()) {
-        return std::unexpected(make_error(error_t::not_found));
+        return std::unexpected(make_error(error_t::end_of_file));
     }
 
     auto decoded = xer::next_code_point(text, offset);
@@ -113,7 +113,7 @@ namespace detail {
 
     if (result == 0) {
         stream.set_eof(true);
-        return std::unexpected(make_error(error_t::not_found));
+        return std::unexpected(make_error(error_t::end_of_file));
     }
 
     stream.set_eof(false);
@@ -162,7 +162,7 @@ namespace detail {
     while (true) {
         const auto ch = text_stream_read_char(stream);
         if (!ch.has_value()) {
-            if (ch.error().code == error_t::not_found && !result.empty()) {
+            if (ch.error().code == error_t::end_of_file && !result.empty()) {
                 return result;
             }
 

@@ -167,7 +167,7 @@ void test_text_rewind_clears_eof_and_error_indicators() {
 
     const auto eof = xer::fgetc(stream);
     xer_assert(!eof.has_value());
-    xer_assert_eq(eof.error().code, xer::error_t::not_found);
+    xer_assert_eq(eof.error().code, xer::error_t::end_of_file);
     xer_assert(xer::feof(stream));
 
     stream.set_error(true);

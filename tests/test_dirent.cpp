@@ -81,7 +81,7 @@ void write_text_file(const fs::path& path, const std::string& contents) {
     for (;;) {
         auto entry = xer::readdir(directory);
         if (!entry.has_value()) {
-            xer_assert_eq(entry.error().code, xer::error_t::not_found);
+            xer_assert_eq(entry.error().code, xer::error_t::end_of_file);
             break;
         }
 
@@ -119,7 +119,7 @@ void test_opendir_and_readdir_basic() {
     xer_assert(contains(entries, u8"child"));
 }
 
-void test_readdir_end_is_not_found() {
+void test_readdir_end_is_end_of_file() {
     const test_directory_guard guard(make_unique_test_root());
 
     const xer::path target(filesystem_path_to_u8string(guard.path));
@@ -129,7 +129,7 @@ void test_readdir_end_is_not_found() {
     for (;;) {
         const auto entry = xer::readdir(*directory);
         if (!entry.has_value()) {
-            xer_assert_eq(entry.error().code, xer::error_t::not_found);
+            xer_assert_eq(entry.error().code, xer::error_t::end_of_file);
             break;
         }
     }
@@ -207,7 +207,7 @@ void test_opendir_invalid_path_encoding() {
 
 int main() {
     test_opendir_and_readdir_basic();
-    test_readdir_end_is_not_found();
+    test_readdir_end_is_end_of_file();
     test_rewinddir_reads_again_from_beginning();
     test_closedir_closes_directory();
     test_opendir_missing_directory_fails();

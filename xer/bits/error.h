@@ -97,6 +97,7 @@ enum class error_t : std::int32_t {
     divide_by_zero = -13,
     network_error = -14,
     process_error = -15,
+    end_of_file = -16,
 
     user_error = -1000,
 };
@@ -373,6 +374,8 @@ namespace detail {
         return "network_error";
     case error_t::process_error:
         return "process_error";
+    case error_t::end_of_file:
+        return "end_of_file";
     case error_t::user_error:
         return "user_error";
     }

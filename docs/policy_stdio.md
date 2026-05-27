@@ -211,7 +211,13 @@ For one-byte input/output, the following are used:
 
 ### Handling of EOF
 
-When `fgetb` reaches EOF, that one-byte input operation is treated as failure and handled as an error.
+Sequential input functions report EOF as `error_t::end_of_file` when no new item can be read.
+This keeps EOF distinct from lookup failures such as `error_t::not_found`.
+
+For block input such as `fread`, a partial read is still successful when at least one byte was read.
+If no byte can be read because the stream is exhausted, the operation fails with `error_t::end_of_file`.
+
+Single-item input operations such as `fgetb` and `fgetc` also fail with `error_t::end_of_file` when the next item does not exist because the stream is exhausted.
 
 ### Position Operations
 

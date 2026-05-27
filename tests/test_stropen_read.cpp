@@ -26,7 +26,7 @@ auto test_stropen_u8string_view_read_simple() -> void {
 
     auto c4 = xer::fgetc(*stream_result);
     xer_assert(!c4.has_value());
-    xer_assert_eq(c4.error().code, xer::error_t::not_found);
+    xer_assert_eq(c4.error().code, xer::error_t::end_of_file);
 }
 
 auto test_stropen_u8string_view_read_newlines() -> void {
@@ -65,7 +65,7 @@ auto test_stropen_u8string_view_read_newlines() -> void {
 
     auto c8 = xer::fgetc(*stream_result);
     xer_assert(!c8.has_value());
-    xer_assert_eq(c8.error().code, xer::error_t::not_found);
+    xer_assert_eq(c8.error().code, xer::error_t::end_of_file);
 }
 
 auto test_stropen_u8string_view_read_utf8() -> void {
@@ -84,7 +84,7 @@ auto test_stropen_u8string_view_read_utf8() -> void {
 
     auto c3 = xer::fgetc(*stream_result);
     xer_assert(!c3.has_value());
-    xer_assert_eq(c3.error().code, xer::error_t::not_found);
+    xer_assert_eq(c3.error().code, xer::error_t::end_of_file);
 }
 
 auto test_stropen_u8string_view_ungetc() -> void {
@@ -164,7 +164,7 @@ auto test_stropen_u8string_read_simple() -> void {
 
     auto c4 = xer::fgetc(*stream_result);
     xer_assert(!c4.has_value());
-    xer_assert_eq(c4.error().code, xer::error_t::not_found);
+    xer_assert_eq(c4.error().code, xer::error_t::end_of_file);
 }
 
 auto test_stropen_u8string_empty_read() -> void {
@@ -175,7 +175,7 @@ auto test_stropen_u8string_empty_read() -> void {
 
     auto c1 = xer::fgetc(*stream_result);
     xer_assert(!c1.has_value());
-    xer_assert_eq(c1.error().code, xer::error_t::not_found);
+    xer_assert_eq(c1.error().code, xer::error_t::end_of_file);
 }
 
 auto test_stropen_u8string_invalid_mode_is_error() -> void {

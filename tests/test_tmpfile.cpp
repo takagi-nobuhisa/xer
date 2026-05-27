@@ -143,7 +143,7 @@ void test_tmpfile_text_cp932_round_trip() {
     {
         const auto ch = xer::fgetc(stream);
         xer_assert(!ch.has_value());
-        xer_assert_eq(ch.error().code, xer::error_t::not_found);
+        xer_assert_eq(ch.error().code, xer::error_t::end_of_file);
     }
 
     const auto close_result = xer::fclose(stream);

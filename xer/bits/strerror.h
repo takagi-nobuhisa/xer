@@ -178,6 +178,8 @@ namespace xer {
         return u8"network error";
     case error_t::process_error:
         return u8"process error";
+    case error_t::end_of_file:
+        return u8"end of file";
     case error_t::user_error:
         return u8"user error";
     }
@@ -316,6 +318,8 @@ namespace xer {
         return u8"network_error";
     case error_t::process_error:
         return u8"process_error";
+    case error_t::end_of_file:
+        return u8"end_of_file";
     case error_t::user_error:
         return u8"user_error";
     }
@@ -441,6 +445,7 @@ namespace xer {
     case error_t::divide_by_zero:
     case error_t::network_error:
     case error_t::process_error:
+    case error_t::end_of_file:
     case error_t::user_error:
         return detail::make_unexpected_error(error_t::not_found);
     }

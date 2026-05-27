@@ -67,6 +67,12 @@ void test_strerror_negative() {
         xer_assert(result.has_value());
         xer_assert_eq(result.value(), std::u8string_view(u8"encoding error"));
     }
+
+    {
+        const auto result = xer::strerror(xer::error_t::end_of_file);
+        xer_assert(result.has_value());
+        xer_assert_eq(result.value(), std::u8string_view(u8"end of file"));
+    }
 }
 
 /**
@@ -134,6 +140,12 @@ void test_get_error_name_negative() {
         xer_assert(result.has_value());
         xer_assert_eq(result.value(), std::u8string_view(u8"encoding_error"));
     }
+
+    {
+        const auto result = xer::get_error_name(xer::error_t::end_of_file);
+        xer_assert(result.has_value());
+        xer_assert_eq(result.value(), std::u8string_view(u8"end_of_file"));
+    }
 }
 
 /**
@@ -198,6 +210,12 @@ void test_get_errno_name_negative() {
 
     {
         const auto result = xer::get_errno_name(xer::error_t::encoding_error);
+        xer_assert(!result.has_value());
+        xer_assert_eq(result.error().code, xer::error_t::not_found);
+    }
+
+    {
+        const auto result = xer::get_errno_name(xer::error_t::end_of_file);
         xer_assert(!result.has_value());
         xer_assert_eq(result.error().code, xer::error_t::not_found);
     }
