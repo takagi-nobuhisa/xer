@@ -1,6 +1,6 @@
-# XER Reference Manual
+# xer C++ Utility Library Reference Manual
 
-Target version: **v0.5.0a5**
+Target version: **v0.5.0b1**
 
 ---
 
@@ -8,9 +8,9 @@ Target version: **v0.5.0a5**
 
 ## Purpose
 
-`<xer/error.h>` provides the core error and result facilities used throughout XER.
+`<xer/error.h>` provides the core error and result facilities used throughout xer.
 
-In XER, ordinary failure is represented explicitly rather than by exceptions or special sentinel values wherever practical.
+In xer, ordinary failure is represented explicitly rather than by exceptions or special sentinel values wherever practical.
 This header defines the common vocabulary used for that purpose.
 
 ---
@@ -47,7 +47,7 @@ The exact set of enumerators in `error_t` may grow as the library evolves, but t
 
 ## Design Role
 
-This header defines the basic error-reporting model for XER.
+This header defines the basic error-reporting model for xer.
 
 Its role is to make the following possible:
 
@@ -56,13 +56,13 @@ Its role is to make the following possible:
 * attach optional structured detail when needed
 * preserve source-location information for diagnostics
 
-In other words, `<xer/error.h>` is the foundation for XER-style failure handling.
+In other words, `<xer/error.h>` is the foundation for xer-style failure handling.
 
 ---
 
 ## `xer::result`
 
-`xer::result<T, Detail>` is the standard result type in XER.
+`xer::result<T, Detail>` is the standard result type in xer.
 
 For the common case:
 
@@ -90,7 +90,7 @@ std::expected<T, xer::error<Detail>>
 
 ### Basic Policy
 
-As a rule, fallible public APIs in XER return `xer::result`.
+As a rule, fallible public APIs in xer return `xer::result`.
 
 This keeps normal success and normal failure explicit in the type system.
 
@@ -156,22 +156,22 @@ The important point is not the internal representation itself, but that the extr
 
 ## `xer::error_t`
 
-`xer::error_t` is the common error-code enumeration used across XER.
+`xer::error_t` is the common error-code enumeration used across xer.
 
 ### Basic Direction
 
 Its design is guided primarily by the following ideas:
 
 * preserve practical compatibility with `errno`-style categories where useful
-* allow XER-specific error categories where necessary
+* allow xer-specific error categories where necessary
 * avoid using a success enumerator inside the error type itself
 
 ### General Interpretation
 
 * positive values correspond, where practical, to target-environment `errno`-style meanings
-* negative values are reserved for XER-specific categories
+* negative values are reserved for xer-specific categories
 
-Examples of XER-specific categories may include things such as:
+Examples of xer-specific categories may include things such as:
 
 * `logic_error`
 * `invalid_argument`
@@ -186,7 +186,7 @@ The exact enumerator set is defined by the implementation.
 
 ## `xer::make_error`
 
-`make_error` is the standard helper for constructing XER error objects.
+`make_error` is the standard helper for constructing xer error objects.
 
 ### Why `make_error` Exists
 
@@ -264,7 +264,7 @@ auto parse_positive(int value) -> xer::result<int>
 }
 ```
 
-This example shows the normal XER pattern:
+This example shows the normal xer pattern:
 
 * return a success value directly on success
 * return `std::unexpected(xer::make_error(...))` on failure
@@ -283,11 +283,11 @@ This example shows the normal XER pattern:
 
 ## Purpose
 
-`<xer/assert.h>` provides XER's assertion facilities.
+`<xer/assert.h>` provides xer's assertion facilities.
 
-These facilities are used primarily by XER's own test programs, but they may also be exposed to library users for lightweight checks.
+These facilities are used primarily by xer's own test programs, but they may also be exposed to library users for lightweight checks.
 
-Unlike the standard C `assert`, XER assertions do not terminate the process immediately.
+Unlike the standard C `assert`, xer assertions do not terminate the process immediately.
 Instead, they report failure by throwing an exception.
 
 ---
@@ -331,7 +331,7 @@ This makes the assertion facilities suitable for automated test execution and fo
 
 The standard C and C++ `assert` facility typically aborts the process when a condition fails.
 
-XER deliberately uses a different design.
+xer deliberately uses a different design.
 
 ### Standard `assert`
 
@@ -339,7 +339,7 @@ XER deliberately uses a different design.
 * is mainly intended for debugging internal assumptions
 * is not well suited to a test framework that wants structured failure reporting
 
-### XER Assertions
+### xer Assertions
 
 * report failure by throwing `xer::assertion_error`
 * are suitable for execution tests
@@ -352,7 +352,7 @@ This difference is intentional.
 
 ## `xer::assertion_error`
 
-`xer::assertion_error` is the exception type thrown when an XER assertion fails.
+`xer::assertion_error` is the exception type thrown when an xer assertion fails.
 
 ### Purpose
 
@@ -532,7 +532,7 @@ However, the assertion facilities are not intended to guarantee perfect formatti
 
 This point is important:
 
-* they are primarily for XER development and lightweight testing
+* they are primarily for xer development and lightweight testing
 * they should remain practical and readable
 * they should not accumulate excessive special handling for every conceivable output case
 
@@ -542,7 +542,7 @@ This point is important:
 
 These assertion macros are primarily intended for:
 
-* XER execution tests
+* xer execution tests
 * small utility checks during development
 * lightweight user-side verification when convenient
 
@@ -558,7 +558,7 @@ They are not intended to replace a full-featured external test framework in ever
 * `policy_testing_and_php.md`
 
 The project outline explains why assertion failure is treated separately from ordinary runtime failure.
-The testing policy explains the role of XER assertions in execution tests.
+The testing policy explains the role of xer assertions in execution tests.
 
 ---
 
@@ -566,7 +566,7 @@ The testing policy explains the role of XER assertions in execution tests.
 
 When this header is referenced from a generated manual, it is usually enough to explain:
 
-* that XER assertions throw instead of aborting
+* that xer assertions throw instead of aborting
 * the available macro names
 * the intended role of these macros in tests and lightweight verification
 
@@ -608,10 +608,10 @@ This example illustrates the general style:
 
 ## Purpose
 
-`<xer/typeinfo.h>` provides lightweight type information helpers for XER.
+`<xer/typeinfo.h>` provides lightweight type information helpers for xer.
 
 Its main purpose is to make type names usable in diagnostics, tracing, and other development-oriented output.
-The header wraps standard C++ type information in a form that fits XER's UTF-8-oriented text model.
+The header wraps standard C++ type information in a form that fits xer's UTF-8-oriented text model.
 
 ---
 
@@ -730,7 +730,7 @@ auto main() -> int
 
 ## Purpose
 
-`<xer/diag.h>` provides lightweight diagnostic facilities for XER.
+`<xer/diag.h>` provides lightweight diagnostic facilities for xer.
 
 It groups tracing and logging support under one public diagnostic header while keeping the shared category and level vocabulary common to both facilities.
 
@@ -782,7 +782,7 @@ Their output destinations and current levels are configured independently.
 * the diagnostic level
 * the source expression text
 * the statically derived type name
-* the value formatted through XER's `%@` printf conversion
+* the value formatted through xer's `%@` printf conversion
 
 The output form is conceptually:
 
@@ -798,7 +798,7 @@ When `NDEBUG` is defined, `xer_trace` expands to a no-op expression and does not
 
 `xer_log(category, level, message)` writes one simple log record.
 
-`xer_log(category, level, format, ...)` writes one formatted log record. The message body uses XER printf formatting rules, including `%@`.
+`xer_log(category, level, format, ...)` writes one formatted log record. The message body uses xer printf formatting rules, including `%@`.
 
 Unlike `xer_trace`, logging is not disabled merely because `NDEBUG` is defined. It can be disabled at compile time by defining `XER_ENABLE_LOG` to `0` before including `<xer/diag.h>`.
 
@@ -826,7 +826,7 @@ A typical log record is:
 2026-04-26 18:42:15.123,io,30,"opened sample.txt"
 ```
 
-The first three fields are generated by XER and are written without CSV quoting.
+The first three fields are generated by xer and are written without CSV quoting.
 The message field is always written as a quoted CSV field. Double quote characters in the message are escaped by doubling them.
 
 ## Log Cost Policy
@@ -852,7 +852,7 @@ They can be changed independently through the corresponding stream-setting funct
 ## Notes
 
 These facilities are intentionally small.
-They are not a full logging framework, but they provide a useful diagnostic foundation for XER itself and for small programs using XER.
+They are not a full logging framework, but they provide a useful diagnostic foundation for xer itself and for small programs using xer.
 
 ---
 
@@ -860,7 +860,7 @@ They are not a full logging framework, but they provide a useful diagnostic foun
 
 ## Purpose
 
-`<xer/scope.h>` provides small scope-based utility facilities for XER.
+`<xer/scope.h>` provides small scope-based utility facilities for xer.
 
 At present, this header provides `xer::scope_exit`, a lightweight scope guard that invokes a registered callable when the guard object is destroyed.
 
@@ -982,12 +982,12 @@ If the cleanup action can fail in a meaningful way, callers should normally hand
 
 ## Relationship to Standard and Experimental Facilities
 
-XER provides its own `scope_exit`.
+xer provides its own `scope_exit`.
 
 This is not a wrapper around a standard C++ `<scope>` header.
 Standard C++ does not currently provide such a header as part of the ordinary standard library.
 
-Some similar facilities exist in experimental or library-extension contexts, but XER keeps this utility small and self-contained so that it fits the library's header-only and GCC-oriented portability policy.
+Some similar facilities exist in experimental or library-extension contexts, but xer keeps this utility small and self-contained so that it fits the library's header-only and GCC-oriented portability policy.
 
 ---
 
@@ -1007,9 +1007,9 @@ The initial purpose is only to support the common “run this cleanup action whe
 
 ---
 
-## Relationship to XER's Error Model
+## Relationship to xer's Error Model
 
-XER generally represents ordinary fallible operations through `xer::result`.
+xer generally represents ordinary fallible operations through `xer::result`.
 
 However, `scope_exit` itself does not return a result from its destructor.
 
@@ -1056,7 +1056,7 @@ auto main() -> int
 }
 ```
 
-This example shows the typical XER style:
+This example shows the typical xer style:
 
 * acquire or record state explicitly
 * register cleanup with `scope_exit`
@@ -1104,7 +1104,7 @@ These are good candidates for executable examples under `examples/`.
 
 ## Purpose
 
-`<xer/string.h>` provides string-related utilities in XER.
+`<xer/string.h>` provides string-related utilities in xer.
 
 This header brings together several kinds of functionality:
 
@@ -1117,13 +1117,13 @@ This header brings together several kinds of functionality:
 - error text helpers
 
 The goal is not to reproduce the C standard library exactly.
-Instead, this header reorganizes practical string-related functionality into a form that fits XER's overall design.
+Instead, this header reorganizes practical string-related functionality into a form that fits xer's overall design.
 
 ---
 
 ## Main Role
 
-The main role of `<xer/string.h>` is to provide a practical collection of text and memory helpers centered on XER's UTF-8-oriented public string model.
+The main role of `<xer/string.h>` is to provide a practical collection of text and memory helpers centered on xer's UTF-8-oriented public string model.
 
 In particular, it serves the following purposes:
 
@@ -1173,14 +1173,14 @@ strcspn
 
 ### Role of This Group
 
-These functions provide familiar string-search and comparison operations in a form adapted to XER's public string model.
+These functions provide familiar string-search and comparison operations in a form adapted to xer's public string model.
 
 Some are close in spirit to C standard-library functions, while others are influenced more by PHP-style utility naming.
 
 ### Notes
 
 * not all functions are exact source-compatible reimplementations of their C or PHP namesakes
-* accepted argument forms are designed according to XER's own API policy
+* accepted argument forms are designed according to xer's own API policy
 * ordinary public APIs are documented in terms of ordinary values rather than `xer::result` arguments
 
 ---
@@ -1233,11 +1233,11 @@ strncat
 
 ### Role of This Group
 
-These functions provide familiar copy and concatenation operations, but their exact behavior follows XER's design rather than attempting perfect C compatibility.
+These functions provide familiar copy and concatenation operations, but their exact behavior follows xer's design rather than attempting perfect C compatibility.
 
 ### Notes
 
-* XER's design gives priority to natural and practical use in C++ code
+* xer's design gives priority to natural and practical use in C++ code
 * overloads may exist for arrays, pointers, and container-like targets
 * when automatic capacity growth is appropriate for dynamic containers, the design may favor that behavior over stricter historical C behavior
 
@@ -1291,7 +1291,7 @@ auto trim_view(std::u8string_view value, std::u8string_view characters = {})
 The owning forms return a new `std::u8string`.
 The `*_view` forms return a view into the original storage and do not allocate.
 
-When `characters` is empty, XER uses the PHP-compatible default trim set:
+When `characters` is empty, xer uses the PHP-compatible default trim set:
 
 ```text
 space, horizontal tab, line feed, carriage return, vertical tab, NUL
@@ -1372,7 +1372,7 @@ memset
 
 ### Role of This Group
 
-Although raw memory operations are not text operations in the narrow sense, XER groups them together with string-oriented helpers for practical convenience.
+Although raw memory operations are not text operations in the narrow sense, xer groups them together with string-oriented helpers for practical convenience.
 
 This reflects the historical closeness of string and memory functions in C-style programming, while still keeping the public-header structure compact.
 
@@ -1380,7 +1380,7 @@ This reflects the historical closeness of string and memory functions in C-style
 
 * these functions are low-level helpers
 * they are still part of the public surface when exposed through `<xer/string.h>`
-* their semantics should be read according to XER's own design and test coverage, not assumed solely from the standard library
+* their semantics should be read according to xer's own design and test coverage, not assumed solely from the standard library
 
 ---
 
@@ -1402,14 +1402,14 @@ They are useful in diagnostics, debugging output, and user-facing reporting when
 
 ### Notes
 
-* the exact mapping policy depends on XER's own error model
+* the exact mapping policy depends on xer's own error model
 * `get_error_name` and `get_errno_name` are especially useful where symbolic names are preferable to free-form text
 
 ---
 
 ## UTF-Oriented Public String Model
 
-`<xer/string.h>` should be understood in the context of XER's general text model.
+`<xer/string.h>` should be understood in the context of xer's general text model.
 
 ### Basic Expectations
 
@@ -1453,10 +1453,10 @@ The exact boundary is as follows:
 
 When this header is used as part of generated documentation, it is usually enough to explain:
 
-* that it combines C-style string utilities with XER-specific UTF-8-oriented helpers
+* that it combines C-style string utilities with xer-specific UTF-8-oriented helpers
 * that it includes both low-level and higher-level practical utilities
 * that trim/split/join helpers are an important user-facing part of the header
-* that accepted argument forms follow XER's own API policy
+* that accepted argument forms follow xer's own API policy
 
 Detailed per-function semantics should be described in the reference manual or generated API sections.
 
@@ -1470,7 +1470,7 @@ The following kinds of examples are especially suitable for this header:
 * splitting and joining text with `explode` / `implode`
 * replacing text with `str_replace`
 * searching for a Unicode scalar value in UTF-8 text
-* performing familiar C-style comparison or copying in XER style
+* performing familiar C-style comparison or copying in xer style
 
 This aligns well with the project direction that executable examples should become the canonical source for user-facing code snippets.
 
@@ -1499,7 +1499,7 @@ auto main() -> int
 }
 ```
 
-This example shows a typical XER style:
+This example shows a typical xer style:
 
 * use UTF-8-oriented string input
 * call an ordinary public API with an ordinary value
@@ -1643,20 +1643,20 @@ for these identifiers.
 
 ## Purpose
 
-`<xer/ctype.h>` provides character classification and character conversion facilities in XER.
+`<xer/ctype.h>` provides character classification and character conversion facilities in xer.
 
 This header covers two closely related areas:
 
 - classification of characters into categories such as alphabetic, digit, space, and printable
 - conversion of characters such as uppercase/lowercase conversion and related transformations
 
-Its role is similar in spirit to C's `<ctype.h>` and `<wctype.h>`, but the design follows XER's own text model and API policy rather than reproducing the standard library structure exactly.
+Its role is similar in spirit to C's `<ctype.h>` and `<wctype.h>`, but the design follows xer's own text model and API policy rather than reproducing the standard library structure exactly.
 
 ---
 
 ## Main Role
 
-The main role of `<xer/ctype.h>` is to provide a simple and explicit character-handling model that fits the rest of XER.
+The main role of `<xer/ctype.h>` is to provide a simple and explicit character-handling model that fits the rest of xer.
 
 In particular, it aims to provide:
 
@@ -1677,13 +1677,13 @@ The basic `is` functions and `to` functions are locale-independent.
 
 Their behavior corresponds to the `"C"` locale rather than to environment-dependent locale rules.
 
-This is important because XER's broader design tries to minimize dependence on locale.
+This is important because xer's broader design tries to minimize dependence on locale.
 
 ### Character Type
 
 The argument type for individual character classification and conversion functions is unified to `char32_t`.
 
-This matches XER's general policy that individual Unicode scalar values are handled as `char32_t`.
+This matches xer's general policy that individual Unicode scalar values are handled as `char32_t`.
 
 ### ASCII as the Basic Scope
 
@@ -1781,13 +1781,13 @@ Their behavior is:
 
 A traditional C-family `toascii` is not adopted at present.
 
-This is because `toascii` is often understood as a low-level bit-masking operation that extracts the lower 7 bits, and that does not fit naturally with XER's character-handling policy.
+This is because `toascii` is often understood as a low-level bit-masking operation that extracts the lower 7 bits, and that does not fit naturally with xer's character-handling policy.
 
 ---
 
 ## Dynamic Character Classification
 
-In addition to fixed `is` functions, XER provides a dynamic classifier:
+In addition to fixed `is` functions, xer provides a dynamic classifier:
 
 ```cpp
 enum class ctype_id;
@@ -1825,7 +1825,7 @@ This makes it possible, for example, to keep `isdigit` simple while still suppor
 
 ## Dynamic Character Conversion
 
-XER also provides a dynamic conversion function:
+xer also provides a dynamic conversion function:
 
 ```cpp
 enum class ctrans_id;
@@ -2160,7 +2160,7 @@ The detailed romanization behavior is documented in `header_string.md`.
 
 ## Purpose
 
-`<xer/braille.h>` provides low-level braille-related building blocks for XER.
+`<xer/braille.h>` provides low-level braille-related building blocks for xer.
 
 At the current stage, this header provides:
 
@@ -2943,10 +2943,10 @@ rather than including the `xer/bits/` headers directly.
 
 ## Purpose
 
-`<xer/stdlib.h>` provides a collection of general-purpose utilities in XER.
+`<xer/stdlib.h>` provides a collection of general-purpose utilities in xer.
 
 Its role is similar in spirit to the C standard library `<stdlib.h>`, but it is not intended to be a literal reproduction.
-Instead, it gathers practical facilities that fit XER's design, especially in the following areas:
+Instead, it gathers practical facilities that fit xer's design, especially in the following areas:
 
 - numeric conversion
 - multibyte character conversion
@@ -2977,7 +2977,7 @@ In particular, it serves as the home for:
 - pseudo-random utilities
 - environment variable access
 
-This matches the broad and somewhat heterogeneous role traditionally associated with `<stdlib.h>`, while adapting the details to XER's own policies.
+This matches the broad and somewhat heterogeneous role traditionally associated with `<stdlib.h>`, while adapting the details to xer's own policies.
 
 ---
 
@@ -3025,7 +3025,7 @@ They are useful when a division-style helper should return both values in a stru
 
 ### Notes
 
-* exact naming and type coverage follow XER's own design
+* exact naming and type coverage follow xer's own design
 * this is related conceptually to arithmetic helpers, but the utility-structure side belongs naturally in `<xer/stdlib.h>`
 
 ---
@@ -3045,11 +3045,11 @@ These functions provide classic general-purpose search and sorting operations in
 
 ### Design Direction
 
-Although the names are familiar, they should be understood according to XER's broader style:
+Although the names are familiar, they should be understood according to xer's broader style:
 
 * practical usability is preferred over strict historical fidelity
 * the surrounding type and error model may differ from traditional C expectations
-* documentation should describe actual XER behavior rather than relying on user assumptions from C alone
+* documentation should describe actual xer behavior rather than relying on user assumptions from C alone
 
 ---
 
@@ -3082,18 +3082,18 @@ strtof64
 
 These functions convert text into numeric values.
 
-They are especially important because XER uses explicit text and encoding policies rather than relying on locale-driven interpretation.
+They are especially important because xer uses explicit text and encoding policies rather than relying on locale-driven interpretation.
 
 ### Design Direction
 
 These facilities are not intended to reproduce the standard library exactly.
-Instead, they are reconstructed to fit XER's model.
+Instead, they are reconstructed to fit xer's model.
 
 Important characteristics may include:
 
 * support for UTF-8-oriented public text handling
 * explicit failure reporting
-* practical parsing features such as binary prefixes where adopted by XER
+* practical parsing features such as binary prefixes where adopted by xer
 * consistent behavior across the library's supported environments
 
 ### Notes
@@ -3109,7 +3109,7 @@ Integer conversion may also support practical forms such as:
 * decimal
 * octal
 * hexadecimal
-* binary with `0b...` where adopted by XER
+* binary with `0b...` where adopted by xer
 
 The precise accepted grammar belongs in detailed API documentation.
 
@@ -3117,7 +3117,7 @@ The precise accepted grammar belongs in detailed API documentation.
 
 ## Multibyte Conversion
 
-One of the most important roles of `<xer/stdlib.h>` in XER is multibyte character conversion.
+One of the most important roles of `<xer/stdlib.h>` in xer is multibyte character conversion.
 
 At minimum, this header provides the following state type and related facilities:
 
@@ -3140,11 +3140,11 @@ tcstombs
 
 These functions provide conversion between multibyte text and character-oriented representations.
 
-This is one of the clearest places where XER deliberately redesigns a standard-library area according to its own encoding policy.
+This is one of the clearest places where xer deliberately redesigns a standard-library area according to its own encoding policy.
 
 ### Basic Design Direction
 
-The multibyte conversion model in XER is based on the following ideas:
+The multibyte conversion model in xer is based on the following ideas:
 
 * supported encodings are limited and explicit
 * locale is not the center of the design
@@ -3192,7 +3192,7 @@ This is necessary because incomplete multibyte input cannot be interpreted corre
 
 ### Notes
 
-* XER does not use hidden internal static conversion state
+* xer does not use hidden internal static conversion state
 * if the caller wants independent conversion calls, the caller omits the state argument
 * if the caller wants continued stateful conversion, the caller provides `xer::mbstate_t*`
 
@@ -3250,7 +3250,7 @@ Entries without `=` and entries whose name part is empty are ignored.
 
 ### Notes
 
-As with other facilities in XER, the exact argument and return conventions should be read from XER documentation rather than assumed from the C standard library alone.
+As with other facilities in xer, the exact argument and return conventions should be read from xer documentation rather than assumed from the C standard library alone.
 
 ---
 
@@ -3271,7 +3271,7 @@ These functions and types provide simple pseudo-random number generation facilit
 ### Design Direction
 
 The purpose here is not to compete with the full generality of `<random>`.
-Instead, the goal is to provide a lighter, easier-to-approach utility layer in the style of traditional C facilities, while still fitting XER's design.
+Instead, the goal is to provide a lighter, easier-to-approach utility layer in the style of traditional C facilities, while still fitting xer's design.
 
 ### `rand_context`
 
@@ -3285,9 +3285,9 @@ The exact API belongs in the detailed reference documentation.
 
 ---
 
-## Relationship to XER's Text Model
+## Relationship to xer's Text Model
 
-`<xer/stdlib.h>` is closely tied to XER's text and encoding model.
+`<xer/stdlib.h>` is closely tied to xer's text and encoding model.
 
 This is especially true for:
 
@@ -3302,7 +3302,7 @@ This is especially true for:
 * multibyte conversion distinguishes `char`, `unsigned char`, and `char8_t` explicitly
 
 This means that `<xer/stdlib.h>` is not just a miscellaneous utility header.
-In XER, it is also one of the key headers for explicit encoding-aware text handling.
+In xer, it is also one of the key headers for explicit encoding-aware text handling.
 
 ---
 
@@ -3331,7 +3331,7 @@ When this header is used in generated documentation, it is usually enough to exp
 
 * that it serves as a utility header rather than a narrowly scoped abstraction
 * that numeric conversion and multibyte conversion are the most important parts of the header
-* that multibyte conversion follows XER's own encoding policy rather than locale-centered C behavior
+* that multibyte conversion follows xer's own encoding policy rather than locale-centered C behavior
 * that overloads distinguish byte-oriented and character-oriented types explicitly
 
 Detailed per-function semantics should be described in the reference manual or generated API sections.
@@ -3372,7 +3372,7 @@ auto main() -> int
 }
 ```
 
-This example shows the general XER style:
+This example shows the general xer style:
 
 * call the conversion API with an ordinary value
 * check `xer::result` explicitly
@@ -3415,7 +3415,7 @@ The main role of `<xer/kansuji.h>` is to make it possible to:
 - write large integers in Japanese large-unit notation
 - choose a readable output style explicitly
 - parse common Japanese numeric text without requiring callers to manually normalize it
-- report malformed text and overflow through XER's ordinary `xer::result` error model
+- report malformed text and overflow through xer's ordinary `xer::result` error model
 
 This facility is especially useful for Japanese text generation, parsing of user-facing text, vertical-writing-oriented notation, and practical Daiji-style output.
 
@@ -3749,7 +3749,7 @@ xer::ja::from_kansuji(u8"1844京6744兆737億955万1616");
 
 ## Error Model
 
-`from_kansuji` follows XER's ordinary failure model.
+`from_kansuji` follows xer's ordinary failure model.
 
 ```cpp
 const auto parsed = xer::ja::from_kansuji(u8"十二億三十四万五");
@@ -3790,7 +3790,7 @@ The following are intentionally outside the initial implementation.
 
 ## Purpose
 
-`<xer/mecab.h>` provides XER's initial MeCab-based Japanese text analysis API.
+`<xer/mecab.h>` provides xer's initial MeCab-based Japanese text analysis API.
 
 The current implementation focuses on the lowest-level public foundation:
 
@@ -3814,11 +3814,11 @@ Higher-level Japanese text processing such as ruby generation is planned to buil
 
 ## Main Role
 
-The main role of `<xer/mecab.h>` at the current stage is to expose MeCab's morphological analysis result in a form that XER users can inspect and reuse directly.
+The main role of `<xer/mecab.h>` at the current stage is to expose MeCab's morphological analysis result in a form that xer users can inspect and reuse directly.
 
-The raw feature string is preserved, and XER also splits it into `mecab_features` so that common items such as part of speech and reading can be accessed without reparsing the comma-separated feature string in user code.
+The raw feature string is preserved, and xer also splits it into `mecab_features` so that common items such as part of speech and reading can be accessed without reparsing the comma-separated feature string in user code.
 
-On top of the token layer, XER provides `mecab_split_phrases` to derive practical bunsetsu-like ranges and separate symbol ranges. MeCab itself does not return bunsetsu boundaries, so this layer is an XER rule-based approximation.
+On top of the token layer, xer provides `mecab_split_phrases` to derive practical bunsetsu-like ranges and separate symbol ranges. MeCab itself does not return bunsetsu boundaries, so this layer is an xer rule-based approximation.
 
 The kana layer uses `mecab_features::読み` where available and provides `mecab_to_kana` and `mecab_kana_wakati` as practical reading-based conversion helpers.
 
@@ -3830,10 +3830,10 @@ For callers that want to pass source text directly, `mecab_braille_translate` an
 
 The romaji layer builds on the kana layer and `strtoctrans`. It provides `mecab_romaji_wakati` as a practical romaji wakachi-gaki helper. Particle reading correction is performed before romanization, so particles such as `は`, `へ`, and `を` can become `wa`, `e`, and `o` in the final output.
 
-XER does not link against the MeCab library.
-Instead, it executes the `mecab` command as a child process using XER's process facilities.
+xer does not link against the MeCab library.
+Instead, it executes the `mecab` command as a child process using xer's process facilities.
 
-This keeps the integration compatible with XER's header-only model while making MeCab-derived analysis data available through ordinary `xer::result` APIs.
+This keeps the integration compatible with xer's header-only model while making MeCab-derived analysis data available through ordinary `xer::result` APIs.
 
 ---
 
@@ -3848,7 +3848,7 @@ The project has checked the ordinary target environments used for this feature:
 
 In both cases, `mecab -D` reported UTF-8 dictionary encoding during design verification.
 
-XER therefore:
+xer therefore:
 
 - sends UTF-8 input text to MeCab
 - validates MeCab output as UTF-8
@@ -3977,13 +3977,13 @@ struct mecab_options {
 };
 ```
 
-`mecab_options` controls how XER locates the MeCab executable.
+`mecab_options` controls how xer locates the MeCab executable.
 
 ### `program`
 
 `program` specifies the MeCab executable path explicitly.
 
-If `program` is empty, XER searches the `PATH` environment variable for the platform's ordinary executable name:
+If `program` is empty, xer searches the `PATH` environment variable for the platform's ordinary executable name:
 
 - Windows: `mecab.exe`
 - POSIX-like environments: `mecab`
@@ -4036,10 +4036,10 @@ The named members follow the ordinary MeCab/IPADIC-style feature order:
 `項目` stores all comma-separated fields in order, including dictionary-specific fields that do not have named members.
 If a field is missing, the corresponding named member is an empty string.
 
-For practical compatibility with dictionaries whose feature layout differs from IPADIC-style order, XER may supplement `読み` and `発音` by scanning the split `項目` fields for kana-only values when the direct IPADIC-style field is missing, `*`, or not kana-like. This is a convenience for higher-level helpers such as kana and romaji wakachi-gaki, not a complete dictionary-normalization layer.
+For practical compatibility with dictionaries whose feature layout differs from IPADIC-style order, xer may supplement `読み` and `発音` by scanning the split `項目` fields for kana-only values when the direct IPADIC-style field is missing, `*`, or not kana-like. This is a convenience for higher-level helpers such as kana and romaji wakachi-gaki, not a complete dictionary-normalization layer.
 
 The member names intentionally use Japanese identifiers because they correspond directly to MeCab feature terminology.
-XER does not restrict identifiers to ASCII.
+xer does not restrict identifiers to ASCII.
 Users are responsible for using a source-code environment that can handle these identifiers when they access the members directly.
 
 `mecab_features` owns its strings.
@@ -4068,7 +4068,7 @@ struct mecab_token {
 `feature` is the raw MeCab feature string emitted by MeCab's `%H` formatter.
 
 Its exact contents depend on the installed MeCab dictionary.
-XER preserves it as raw text for debugging and for users that need dictionary-specific data.
+xer preserves it as raw text for debugging and for users that need dictionary-specific data.
 
 ### `features`
 
@@ -4130,7 +4130,7 @@ auto mecab_split_phrases(
 
 `mecab_split_phrases` splits a MeCab token sequence into practical bunsetsu-like phrase ranges and symbol ranges.
 
-MeCab itself does not provide bunsetsu segmentation. XER therefore derives approximate phrase boundaries from the split feature fields in `mecab_token::features`.
+MeCab itself does not provide bunsetsu segmentation. xer therefore derives approximate phrase boundaries from the split feature fields in `mecab_token::features`.
 
 ### Basic Rules
 
@@ -4218,7 +4218,7 @@ The default is `mecab_kana_kind::mixed`.
 
 ### `particle_reading`
 
-When `particle_reading` is `true`, XER uses pronunciation-oriented readings for common particles:
+When `particle_reading` is `true`, xer uses pronunciation-oriented readings for common particles:
 
 | Surface | Condition | Hiragana output | Katakana output |
 |---|---|---|---|
@@ -4504,7 +4504,7 @@ auto mecab_parse(
 
 ### Output Format Used Internally
 
-XER explicitly asks MeCab to emit one token per line in this format:
+xer explicitly asks MeCab to emit one token per line in this format:
 
 ```text
 surface<TAB>feature
@@ -4512,7 +4512,7 @@ surface<TAB>feature
 
 The `EOS` marker is consumed internally and is not returned as a token.
 
-Conceptually, XER configures MeCab so that normal and unknown tokens use equivalent raw output structure:
+Conceptually, xer configures MeCab so that normal and unknown tokens use equivalent raw output structure:
 
 ```text
 %m<TAB>%H
@@ -4610,7 +4610,7 @@ This function is the convenient entry point for Japanese text that may contain c
 
 ## Executable Resolution
 
-If `mecab_options::program` is empty, XER:
+If `mecab_options::program` is empty, xer:
 
 1. reads `PATH`
 2. searches each path entry
@@ -4638,7 +4638,7 @@ The current implementation uses these errors:
 | automatic executable search cannot find MeCab | `error_t::not_found` |
 | MeCab cannot be executed, exits unsuccessfully, or emits unexpected output | `error_t::process_error` |
 
-Some lower-level process or stream failures may preserve their own XER error code when they arise before the final MeCab-level validation step.
+Some lower-level process or stream failures may preserve their own xer error code when they arise before the final MeCab-level validation step.
 
 ---
 
@@ -4652,10 +4652,10 @@ Different MeCab dictionaries may:
 - report different feature-column layouts
 - produce different readings or base-form fields
 
-XER splits the feature string according to the comma-separated structure emitted by `%H`, and fills named members using the ordinary MeCab/IPADIC-style field positions.
+xer splits the feature string according to the comma-separated structure emitted by `%H`, and fills named members using the ordinary MeCab/IPADIC-style field positions.
 This is a practical convenience, not a complete normalization layer for all possible dictionaries.
 
-Higher-level XER Japanese text processing facilities may later define their own supported interpretation strategy where needed.
+Higher-level xer Japanese text processing facilities may later define their own supported interpretation strategy where needed.
 
 ---
 
@@ -4946,7 +4946,7 @@ This separation keeps formatting logic reusable and keeps automatic reading logi
 
 ## Purpose
 
-`<xer/ja.h>` is a convenience umbrella header for Japanese-specific XER facilities.
+`<xer/ja.h>` is a convenience umbrella header for Japanese-specific xer facilities.
 
 It includes:
 
@@ -4967,7 +4967,7 @@ The APIs provided by these headers are placed under `xer::ja`.
 
 Japanese-specific APIs are collected under `xer::ja`.
 
-This keeps the main `xer` namespace focused on language-neutral utilities, while allowing XER to provide deeper Japanese support before v1.0.0.
+This keeps the main `xer` namespace focused on language-neutral utilities, while allowing xer to provide deeper Japanese support before v1.0.0.
 
 Examples:
 
@@ -5164,7 +5164,7 @@ At present, `<xer/unicode.h>` includes the ICU-based normalization implementatio
 
 The normalization implementation uses ICU C API functions such as `u_strFromUTF8`, `u_strToUTF8`, `unorm2_getNFCInstance`, `unorm2_normalize`, and `unorm2_isNormalized`.
 
-XER does not manage application build-system settings. Users must provide suitable include paths and link options for their environment.
+xer does not manage application build-system settings. Users must provide suitable include paths and link options for their environment.
 
 For example, on many Unix-like environments, the required link options are obtained through `pkg-config`:
 
@@ -5184,7 +5184,7 @@ On MSYS2 environments, the ICU data library may be named `icudt` rather than `ic
 g++ -std=c++23 -I. example.cpp -licuuc -licudt
 ```
 
-The XER test runner handles known environments separately.
+The xer test runner handles known environments separately.
 
 ---
 
@@ -5709,7 +5709,7 @@ auto grapheme_length(std::wstring_view text)
 
 `grapheme_length` counts extended grapheme clusters in the source string view.
 
-This is different from `text.size()`, which counts source code units. For UTF-8 Japanese text, `text.size()` is a byte count. `grapheme_length` is intended for user-visible character counts based on XER's practical grapheme cluster rules.
+This is different from `text.size()`, which counts source code units. For UTF-8 Japanese text, `text.size()` is a byte count. `grapheme_length` is intended for user-visible character counts based on xer's practical grapheme cluster rules.
 
 ### Return Model
 
@@ -5838,7 +5838,7 @@ auto is_emoji(std::wstring_view text)
 
 `is_emoji` provides practical emoji detection for English/Japanese user-facing text.
 
-The `char32_t` overload checks whether a Unicode scalar value is treated as an emoji base by XER. It is intended for quick code point classification.
+The `char32_t` overload checks whether a Unicode scalar value is treated as an emoji base by xer. It is intended for quick code point classification.
 
 The string-view overloads check whether the whole input is one emoji grapheme cluster. This is the overload to use for sequences such as flags, keycap emoji, emoji with variation selectors, skin-tone modifiers, and ZWJ emoji sequences.
 
@@ -5860,7 +5860,7 @@ They can fail when the input contains malformed UTF-8, UTF-16, or wide text.
 
 ### Scope
 
-This is a compact practical detector, not a complete generated implementation of every Unicode emoji property. It reuses XER's existing grapheme cluster handling and covers common emoji used in English/Japanese text, including pictographic emoji, flags, keycap emoji, variation-selector forms, emoji modifiers, and ZWJ sequences.
+This is a compact practical detector, not a complete generated implementation of every Unicode emoji property. It reuses xer's existing grapheme cluster handling and covers common emoji used in English/Japanese text, including pictographic emoji, flags, keycap emoji, variation-selector forms, emoji modifiers, and ZWJ sequences.
 
 ### Example
 
@@ -6028,9 +6028,9 @@ The code point traversal layer is small and table-free. It validates UTF-8 and U
 
 The grapheme cluster traversal layer is built on top of the code point layer. It is intended for practical user-visible character traversal while still returning source spans instead of copying text. The grapheme-cluster-based string operations provide convenient length and substring helpers while returning views into the original text. Emoji detection is also built on the same code point and grapheme cluster layers so that multi-code-point emoji sequences can be checked as one user-visible unit.
 
-The default language scope of this layer is English and Japanese text. It handles common sequences needed for practical English/Japanese user-facing text, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences. It is not a full Unicode text-boundary engine for every script and does not provide language-specific tailoring. Users who need broader script coverage can extend XER's public source code or use a dedicated Unicode boundary service.
+The default language scope of this layer is English and Japanese text. It handles common sequences needed for practical English/Japanese user-facing text, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences. It is not a full Unicode text-boundary engine for every script and does not provide language-specific tailoring. Users who need broader script coverage can extend xer's public source code or use a dedicated Unicode boundary service.
 
-Unicode normalization is heavier than simple UTF-8 string utilities because it requires Unicode normalization data. XER delegates this responsibility to ICU instead of embedding a large generated Unicode table in the header-only library.
+Unicode normalization is heavier than simple UTF-8 string utilities because it requires Unicode normalization data. xer delegates this responsibility to ICU instead of embedding a large generated Unicode table in the header-only library.
 
 The initial normalization API exposes only NFC because NFC is the most practical normalization form for many file-name, search-key, dictionary, and text-cleanup use cases. Other normalization forms can be added later without changing the basic API shape.
 
@@ -6159,7 +6159,7 @@ auto main() -> int
 
 `<xer/binary.h>` provides small binary-data utility functions.
 
-The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for XER's 128-bit unsigned integer type, simple checksum calculation, CRC calculation, binary-to-hex conversion, hex-to-binary conversion, and practical hash calculation for byte sequences and files.
+The current scope is intentionally narrow. This header covers fixed-width unsigned integer splitting and composition, bit-order reversal, byte-order reversal support for xer's 128-bit unsigned integer type, simple checksum calculation, CRC calculation, binary-to-hex conversion, hex-to-binary conversion, and practical hash calculation for byte sequences and files.
 
 These functions treat input values as fixed-width binary values. They do not depend on the CPU's native endian setting.
 
@@ -6264,7 +6264,7 @@ using std::byteswap;
 
 This makes standard C++23 byte swapping available as `xer::byteswap` for the standard unsigned integer types supported by `std::byteswap`.
 
-When `xer::uint128_t` is available, XER also provides a 128-bit overload:
+When `xer::uint128_t` is available, xer also provides a 128-bit overload:
 
 ```cpp
 auto byteswap(xer::uint128_t value) noexcept -> xer::uint128_t;
@@ -6282,7 +6282,7 @@ is byte-swapped to:
 0xffeeddccbbaa9988_7766554433221100
 ```
 
-The 128-bit overload is provided because C++23 `std::byteswap` does not cover XER's extended `uint128_t` type.
+The 128-bit overload is provided because C++23 `std::byteswap` does not cover xer's extended `uint128_t` type.
 
 ---
 
@@ -6938,7 +6938,7 @@ For empty input:
 
 ## Purpose
 
-`<xer/base64.h>` provides Base64 encode and decode facilities in XER.
+`<xer/base64.h>` provides Base64 encode and decode facilities in xer.
 
 Base64 is treated as a small binary-to-text conversion facility. It is not a structured data format like JSON, INI, or TOML, and it is not ordinary string processing either. Its role is to convert binary byte sequences into UTF-8 text that can be embedded in text-based data and to convert that text representation back into bytes.
 
@@ -6952,7 +6952,7 @@ The main role of `<xer/base64.h>` is to make it possible to:
 
 - encode binary data into standard Base64 text
 - decode standard Base64 text back into binary data
-- handle invalid encoded text through XER's ordinary `xer::result` error model
+- handle invalid encoded text through xer's ordinary `xer::result` error model
 - provide a compact public API that can be extended later without changing its basic shape
 
 This makes the header useful for simple binary payload handling, text-based interchange, configuration data, diagnostics, and small utility programs.
@@ -7107,7 +7107,7 @@ Whitespace is ignored only while decoding. The encoder does not generate whitesp
 
 ## Error Handling
 
-`<xer/base64.h>` follows XER's ordinary failure model.
+`<xer/base64.h>` follows xer's ordinary failure model.
 
 That means:
 
@@ -7296,7 +7296,7 @@ This example shows the general style:
 
 `<xer/parse.h>` provides common structured detail types for parsed input errors.
 
-The header is intentionally independent from JSON, INI, TOML, XBF bitmap-font data, and other individual parsers or loaders. A parse-failure position and a parse-failure reason are useful across multiple structured-input APIs, so XER provides a shared vocabulary rather than format-specific detail types.
+The header is intentionally independent from JSON, INI, TOML, XBF bitmap-font data, and other individual parsers or loaders. A parse-failure position and a parse-failure reason are useful across multiple structured-input APIs, so xer provides a shared vocabulary rather than format-specific detail types.
 
 ---
 
@@ -7388,7 +7388,7 @@ struct parse_error_detail {
 
 `column` is the one-based column number when column information is available. For UTF-8 text formats, it is counted in UTF-8 code units, not display cells, Unicode scalar values, or grapheme clusters. It is `0` when column information is not available.
 
-This rule keeps parser diagnostics aligned with XER's `char8_t`-based text model while also allowing binary loaders to report exact byte positions without inventing fake line or column values.
+This rule keeps parser diagnostics aligned with xer's `char8_t`-based text model while also allowing binary loaders to report exact byte positions without inventing fake line or column values.
 
 ---
 
@@ -7467,7 +7467,7 @@ When `reason` is not `none`:
 
 ## Purpose
 
-`<xer/json.h>` provides JSON value handling and JSON encode/decode facilities in XER.
+`<xer/json.h>` provides JSON value handling and JSON encode/decode facilities in xer.
 
 Its purpose is not merely to treat JSON as a string-processing convenience.
 Instead, it provides a structured representation of JSON data together with parsing and serialization functions.
@@ -7480,7 +7480,7 @@ This header is therefore positioned as a data-format facility rather than as par
 
 The main role of `<xer/json.h>` is to make it possible to:
 
-- parse JSON text into a structured XER value model
+- parse JSON text into a structured xer value model
 - inspect and manipulate JSON values in memory
 - serialize structured JSON values back into text
 
@@ -7508,7 +7508,7 @@ The exact helper members and constructors of `json_value` may evolve, but this i
 
 ## `json_value`
 
-`json_value` is the central value type for JSON in XER.
+`json_value` is the central value type for JSON in xer.
 
 It stores one JSON value in structured form.
 
@@ -7540,7 +7540,7 @@ This means that objects preserve insertion order rather than being normalized in
 
 This design keeps the JSON model lightweight and practical:
 
-* strings fit naturally into XER's UTF-8-oriented text model
+* strings fit naturally into xer's UTF-8-oriented text model
 * numbers use `double`
 * arrays remain straightforward recursive containers
 * objects preserve source order naturally
@@ -7605,7 +7605,7 @@ The input text is provided as:
 std::u8string_view
 ```
 
-This matches XER's general UTF-8-oriented public text policy.
+This matches xer's general UTF-8-oriented public text policy.
 
 ### Return Model
 
@@ -7709,7 +7709,7 @@ std::u8string
 
 ### Why This Matters
 
-This matches XER's broader text model:
+This matches xer's broader text model:
 
 * public text APIs are UTF-8 oriented
 * `char8_t`-based strings are the normal representation
@@ -7738,7 +7738,7 @@ Documentation should make clear that object behavior is based on ordered pairs, 
 
 ## Error Handling
 
-`<xer/json.h>` follows XER's ordinary failure model.
+`<xer/json.h>` follows xer's ordinary failure model.
 
 That means:
 
@@ -7748,7 +7748,7 @@ That means:
 
 ### Design Direction
 
-This keeps JSON processing aligned with the rest of XER's public APIs.
+This keeps JSON processing aligned with the rest of xer's public APIs.
 
 ---
 
@@ -7868,7 +7868,7 @@ The save helper combines encoding with UTF-8 file writing and returns `xer::resu
 
 ## Purpose
 
-`<xer/ini.h>` provides INI decode and encode facilities in XER.
+`<xer/ini.h>` provides INI decode and encode facilities in xer.
 
 INI is treated as a small configuration-file format rather than as a general structured data language.
 The purpose of this header is to support practical reading and writing of simple UTF-8 INI text while preserving the parts of the format that are important for ordinary configuration files.
@@ -7971,7 +7971,7 @@ Sectioned entries are stored in `sections`.
 ### Why Global Entries Are Separate
 
 Many INI files allow key-value entries before the first section.
-XER represents these entries explicitly instead of inventing an artificial section name.
+xer represents these entries explicitly instead of inventing an artificial section name.
 
 ### Preservation Policy
 
@@ -8151,7 +8151,7 @@ including the quote characters.
 
 This is intentional.
 INI dialects differ widely in quoting and escaping behavior.
-XER keeps the initial INI feature small and predictable, and leaves typed or strongly escaped configuration syntax to formats such as TOML.
+xer keeps the initial INI feature small and predictable, and leaves typed or strongly escaped configuration syntax to formats such as TOML.
 
 ---
 
@@ -8173,7 +8173,7 @@ The input text is provided as:
 std::u8string_view
 ```
 
-This follows XER's UTF-8-oriented public text model.
+This follows xer's UTF-8-oriented public text model.
 
 ### Return Model
 
@@ -8259,7 +8259,7 @@ This keeps `ini_encode` honest and avoids silently emitting ambiguous INI text.
 
 ## Error Handling
 
-`<xer/ini.h>` follows XER's ordinary failure model.
+`<xer/ini.h>` follows xer's ordinary failure model.
 
 That means:
 
@@ -8423,10 +8423,10 @@ The save helper combines encoding with UTF-8 file writing and returns `xer::resu
 
 ## Purpose
 
-`<xer/toml.h>` provides TOML decode and encode facilities in XER.
+`<xer/toml.h>` provides TOML decode and encode facilities in xer.
 
 TOML is treated as a typed configuration data format.
-The purpose of this header is to support practical reading and writing of simple UTF-8 TOML text while keeping the implementation small enough to fit XER's incremental development policy.
+The purpose of this header is to support practical reading and writing of simple UTF-8 TOML text while keeping the implementation small enough to fit xer's incremental development policy.
 
 The current implementation supports a practical subset of TOML.
 It does not claim complete TOML v1.0.0 compatibility.
@@ -8437,7 +8437,7 @@ It does not claim complete TOML v1.0.0 compatibility.
 
 The main role of `<xer/toml.h>` is to make it possible to:
 
-- parse UTF-8 TOML text into a structured XER value model
+- parse UTF-8 TOML text into a structured xer value model
 - inspect booleans, integers, floating-point numbers, strings, arrays, and tables
 - serialize the supported value model back into UTF-8 TOML text
 - use TOML as a typed configuration format distinct from INI
@@ -8467,7 +8467,7 @@ The exact helper functions and supported TOML syntax may expand later, but these
 
 ## `toml_value`
 
-`toml_value` is the central value type for TOML in XER.
+`toml_value` is the central value type for TOML in xer.
 
 It stores one TOML value in structured form.
 
@@ -8548,7 +8548,7 @@ Tables are represented as ordered key-value pairs rather than as a map-like cont
 
 This representation keeps the value model simple and preserves source order.
 
-It also matches the general XER tendency to avoid prematurely committing public data-format models to hash-map or tree-map semantics.
+It also matches the general xer tendency to avoid prematurely committing public data-format models to hash-map or tree-map semantics.
 
 ### Duplicate Keys
 
@@ -8931,7 +8931,7 @@ The input text is provided as:
 std::u8string_view
 ```
 
-This follows XER's UTF-8-oriented public text model.
+This follows xer's UTF-8-oriented public text model.
 
 ### Return Model
 
@@ -8961,7 +8961,7 @@ Malformed TOML structure is treated as an invalid argument.
 
 `toml_decode` returns `xer::result<toml_value, parse_error_detail>`.
 
-On parse failure, the error object contains the ordinary XER error code together with `offset`, `line`, `column`, and `reason` fields from `<xer/parse.h>`.
+On parse failure, the error object contains the ordinary xer error code together with `offset`, `line`, `column`, and `reason` fields from `<xer/parse.h>`.
 
 The position fields are counted in UTF-8 code units. `line` and `column` are one-based, while `offset` is zero-based.
 
@@ -9025,7 +9025,7 @@ For example, it rejects:
 
 ## Error Handling
 
-`<xer/toml.h>` follows XER's ordinary failure model.
+`<xer/toml.h>` follows xer's ordinary failure model.
 
 That means:
 
@@ -9042,7 +9042,7 @@ if (!decoded.has_value()) {
 }
 ```
 
-This follows XER's general policy that fallible public APIs return `xer::result`, while ordinary public APIs should accept ordinary values rather than `xer::result` arguments.
+This follows xer's general policy that fallible public APIs return `xer::result`, while ordinary public APIs should accept ordinary values rather than `xer::result` arguments.
 
 ---
 
@@ -9183,12 +9183,12 @@ The save helper combines encoding with UTF-8 file writing and returns `xer::resu
 
 ## Purpose
 
-`<xer/stdio.h>` provides stream-based input and output facilities in XER.
+`<xer/stdio.h>` provides stream-based input and output facilities in xer.
 
 Its role is similar in spirit to the C standard library `<stdio.h>`, but it is not intended to be a literal reproduction.
-Instead, it reconstructs practical I/O around explicit stream types, explicit encodings, and XER's ordinary failure model.
+Instead, it reconstructs practical I/O around explicit stream types, explicit encodings, and xer's ordinary failure model.
 
-This header is one of the most important public headers in XER because it provides the main user-facing path for:
+This header is one of the most important public headers in xer because it provides the main user-facing path for:
 
 - binary stream I/O
 - text stream I/O
@@ -9254,7 +9254,7 @@ It is used for:
 
 These two stream types are intentionally separate.
 
-XER does not model them as one stream class with a mode switch.
+xer does not model them as one stream class with a mode switch.
 Instead, the distinction between binary and text I/O is made explicit at the type level.
 
 ---
@@ -9276,7 +9276,7 @@ This implies at least the following:
 
 This makes stream ownership explicit and avoids many ambiguities associated with raw handle sharing.
 
-It also fits XER's broader design preference for explicit ownership and explicit failure handling.
+It also fits xer's broader design preference for explicit ownership and explicit failure handling.
 
 ---
 
@@ -9337,7 +9337,7 @@ enum class encoding_t {
 
 ### Important Notes
 
-* text I/O in XER is not locale-centered
+* text I/O in xer is not locale-centered
 * encoding is part of the stream-opening model
 * `auto_detect` is intended for input, not for general write-side behavior
 
@@ -9371,7 +9371,7 @@ These functions provide:
 Binary data is handled as raw byte-oriented data rather than as text.
 
 `fgetc` and `fputc` are therefore not the single-byte binary I/O interface.
-Instead, XER uses `fgetb` and `fputb` for that role.
+Instead, xer uses `fgetb` and `fputb` for that role.
 
 ---
 
@@ -9406,7 +9406,7 @@ These functions provide:
 
 ### Design Direction
 
-Text streams are normalized internally around XER's text model.
+Text streams are normalized internally around xer's text model.
 
 In particular:
 
@@ -9439,20 +9439,20 @@ These functions provide familiar formatted I/O in a style approachable to users 
 
 ### Design Direction
 
-Although the naming resembles the standard library, the surrounding design is XER's own:
+Although the naming resembles the standard library, the surrounding design is xer's own:
 
 * stream types are explicit
 * text model is UTF-8-oriented
-* ordinary failure is reported through XER-style result handling where applicable
-* integration with XER stream abstractions takes priority over strict source-level emulation of C
+* ordinary failure is reported through xer-style result handling where applicable
+* integration with xer stream abstractions takes priority over strict source-level emulation of C
 
 ### printf Format Details
 
-# XER printf Format Specifiers
+# xer printf Format Specifiers
 
 ## Scope
 
-This document describes the format strings used by the XER printf family.
+This document describes the format strings used by the xer printf family.
 
 Target functions:
 
@@ -9467,13 +9467,13 @@ snprintf
 
 ## Basic Policy
 
-XER printf-style functions are inspired by C printf, but they are not strict source-compatible reimplementations.
+xer printf-style functions are inspired by C printf, but they are not strict source-compatible reimplementations.
 
 - format strings are UTF-8 strings
 - fixed text in the format string is copied as UTF-8
 - conversion specifications start with `%`
 - ordinary failure is reported through `xer::result`
-- XER-specific extensions may exist
+- xer-specific extensions may exist
 
 A format string may contain ordinary UTF-8 text and conversion specifications.
 Ordinary text is copied to the output as-is.
@@ -9545,7 +9545,7 @@ hh h l ll j z t L
 ```
 
 They are accepted as part of the printf-style grammar.
-The actual effect depends on the conversion and on XER's internal argument normalization.
+The actual effect depends on the conversion and on xer's internal argument normalization.
 
 For floating-point conversions, `L` is used when constructing the intermediate narrow format passed to `std::snprintf`.
 
@@ -9574,9 +9574,9 @@ The following C-style conversion specifiers are supported:
 
 ---
 
-## XER Generic Display Conversion: `%@`
+## xer Generic Display Conversion: `%@`
 
-`%@` is XER's generic display specifier.
+`%@` is xer's generic display specifier.
 
 It is intended for diagnostics, examples, tracing, and simple output where precise base, padding, or precision control is not the main concern.
 When precise formatting is required, ordinary printf-style conversions should be used instead.
@@ -9596,9 +9596,9 @@ Arguments passed to `%@` are normalized to UTF-8 text according to the following
 
 Invalid UTF-16 or UTF-32 scalar data may be represented by the replacement character in diagnostic-oriented conversions.
 
-### XER Types
+### xer Types
 
-The following XER types are intended to be printable through `%@`:
+The following xer types are intended to be printable through `%@`:
 
 ```cpp
 xer::error_t
@@ -9610,9 +9610,9 @@ These types provide stream insertion support so that `%@` can display them throu
 
 ### Notes on `std::ostringstream`
 
-XER does not use iostreams as its primary public I/O model.
+xer does not use iostreams as its primary public I/O model.
 However, `%@` may use `std::ostringstream` internally as a practical interoperability mechanism.
-This keeps user-facing XER formatted I/O based on `xer::printf` and related functions while allowing types that support `operator<<` to be displayed conveniently.
+This keeps user-facing xer formatted I/O based on `xer::printf` and related functions while allowing types that support `operator<<` to be displayed conveniently.
 
 ---
 
@@ -9631,11 +9631,11 @@ When implementation details in `xer/bits/printf_format.h` change, this document 
 
 ### scanf Format Details
 
-# XER scanf Format Specifiers
+# xer scanf Format Specifiers
 
 ## Scope
 
-This document describes the format strings used by the XER scanf family.
+This document describes the format strings used by the xer scanf family.
 
 Target functions:
 
@@ -9651,16 +9651,16 @@ The printf family is documented separately in `stdio_printf_format.md`.
 
 ## Basic Policy
 
-XER scanf-style functions are inspired by C scanf, but they are not strict source-compatible reimplementations.
+xer scanf-style functions are inspired by C scanf, but they are not strict source-compatible reimplementations.
 
 - format strings are UTF-8 strings
-- input text is read as XER text and is processed as Unicode scalar values where appropriate
+- input text is read as xer text and is processed as Unicode scalar values where appropriate
 - ordinary fixed text in the format string must match the input
 - ASCII whitespace in the format string matches zero or more ASCII whitespace characters in the input
 - conversion specifications start with `%`
 - ordinary failure is reported through `xer::result`
 - match failure returns the number of successful assignments already completed
-- XER-specific extensions may exist
+- xer-specific extensions may exist
 
 A format string may contain ordinary UTF-8 text, whitespace, control tokens, and conversion specifications.
 
@@ -9735,7 +9735,7 @@ A conversion may specify an output argument position:
 Argument positions are one-based.
 
 When positional arguments are used, the format string is treated as positional.
-Sequential and positional argument selection must not be mixed in the same format string, except through the XER `%@` control token rules described below.
+Sequential and positional argument selection must not be mixed in the same format string, except through the xer `%@` control token rules described below.
 
 Examples:
 
@@ -9849,7 +9849,7 @@ The following conversion specifiers are supported:
 %%
 ```
 
-The `%@` token is also supported as an XER-specific control token.
+The `%@` token is also supported as an xer-specific control token.
 It is described separately below.
 
 ---
@@ -9950,7 +9950,7 @@ std::u32string
 std::wstring
 ```
 
-The input text is UTF-8 in the XER text model.
+The input text is UTF-8 in the xer text model.
 When the destination is `std::u16string`, `std::u32string`, or `std::wstring`, the collected UTF-8 text is converted to the corresponding character-string representation.
 
 For `std::wstring`, conversion follows the width of `wchar_t`:
@@ -10026,9 +10026,9 @@ It does not assign to an output argument and does not increment the assignment c
 
 ---
 
-## XER Control Token: `%@`
+## xer Control Token: `%@`
 
-`%@` is an XER-specific scanf control token.
+`%@` is an xer-specific scanf control token.
 
 It does not read input by itself.
 Instead, it controls argument selection for the following conversion specification.
@@ -10130,7 +10130,7 @@ This allows callers to ignore selected values without changing the input-matchin
 
 ## Match Failure vs Error
 
-XER scanf-style functions distinguish ordinary match failure from errors.
+xer scanf-style functions distinguish ordinary match failure from errors.
 
 ### Match Failure
 
@@ -10165,10 +10165,10 @@ Typical error cases include:
 
 ## Encoding Notes
 
-XER scanf-style input works in XER's text model.
+xer scanf-style input works in xer's text model.
 
 For `sscanf`, the input is a UTF-8 string.
-For `fscanf` and `scanf`, the source is a `text_stream`, whose external encoding is handled by the stream layer and whose characters are read as XER text characters.
+For `fscanf` and `scanf`, the source is a `text_stream`, whose external encoding is handled by the stream layer and whose characters are read as xer text characters.
 
 Collected string values are stored internally as UTF-8 before being assigned to the destination string type.
 
@@ -10234,7 +10234,7 @@ fputcsv
 
 ### Role of This Group
 
-These functions provide convenient CSV input and output on top of XER streams.
+These functions provide convenient CSV input and output on top of xer streams.
 
 They are particularly useful because CSV is a text-oriented format that benefits from integration with:
 
@@ -10299,7 +10299,7 @@ auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
 auto rewind(text_stream& stream) noexcept -> xer::result<void>;
 ```
 
-Unlike the C standard-library function, XER's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
+Unlike the C standard-library function, xer's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
 
 For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
 
@@ -10331,11 +10331,11 @@ auto stream_put_contents(
 
 ### Purpose
 
-`stream_get_contents` and `stream_put_contents` provide compact helpers for reading from and writing to an already-open XER stream.
+`stream_get_contents` and `stream_put_contents` provide compact helpers for reading from and writing to an already-open xer stream.
 
 They are the stream-level counterparts of `file_get_contents` and `file_put_contents`.
 
-Because they operate on streams rather than file names, they can be used with any stream source or destination supported by XER, including files, temporary files, memory streams, string streams, process pipes, and socket-derived streams where applicable.
+Because they operate on streams rather than file names, they can be used with any stream source or destination supported by xer, including files, temporary files, memory streams, string streams, process pipes, and socket-derived streams where applicable.
 
 ### Binary `stream_get_contents`
 
@@ -10354,13 +10354,13 @@ If `length` is zero, the function succeeds and returns an empty byte vector.
 
 ### No Offset Argument
 
-XER intentionally does not provide an offset parameter for `stream_get_contents`.
+xer intentionally does not provide an offset parameter for `stream_get_contents`.
 
 A stream already has a current position. If the caller needs to choose the starting position, the caller should use `fseek`, `fsetpos`, or another appropriate positioning function explicitly before calling `stream_get_contents`.
 
 This also avoids the confusing argument-order difference found in PHP, where `file_get_contents` and `stream_get_contents` place offset and length differently.
 
-In XER, the rule is simple:
+In xer, the rule is simple:
 
 * `file_get_contents` may take an offset because it opens the file internally
 * `stream_get_contents` reads from the stream's current position
@@ -10430,7 +10430,7 @@ The stream-level functions contain the reusable read/write logic, while the file
 
 ### Error Handling
 
-These functions follow XER's ordinary failure model.
+These functions follow xer's ordinary failure model.
 
 On success:
 
@@ -10549,7 +10549,7 @@ These functions are intentionally separate from stream objects themselves.
 
 They typically operate on `xer::path`, not on raw native path strings.
 
-This aligns them with XER's own path model, where path values are represented internally as UTF-8 strings with `/` as the normalized separator.
+This aligns them with xer's own path model, where path values are represented internally as UTF-8 strings with `/` as the normalized separator.
 
 Some functions in this group are simple predicates, while others perform actual filesystem operations.
 
@@ -10618,7 +10618,7 @@ auto getcwd() -> xer::result<path>;
 
 The returned value is a `xer::path`.
 
-The path is converted into XER's internal UTF-8 representation and uses `/` as the normalized separator.
+The path is converted into xer's internal UTF-8 representation and uses `/` as the normalized separator.
 
 The result is a snapshot of the process-wide current working directory at the time of the call.
 
@@ -10644,7 +10644,7 @@ Relative path components are resolved.
 Symbolic links and other filesystem-level indirections are resolved according to the behavior of the underlying platform.
 
 On POSIX-like environments, the behavior follows the platform `realpath` facility.
-On Windows, the implementation uses Windows path canonicalization facilities and converts the result back into XER's path representation.
+On Windows, the implementation uses Windows path canonicalization facilities and converts the result back into xer's path representation.
 
 ### Return Value
 
@@ -10654,7 +10654,7 @@ The returned path:
 
 * is absolute
 * refers to an existing filesystem entry
-* is converted to XER's UTF-8 path representation
+* is converted to xer's UTF-8 path representation
 * uses `/` as the internal separator
 
 On failure, it returns an error through `xer::result`.
@@ -10721,7 +10721,7 @@ auto file_put_contents(
 
 They are file-opening convenience wrappers around `stream_get_contents` and `stream_put_contents`. The reusable read/write behavior belongs to the stream-level helpers, while the file-level helpers additionally open the target file and apply file-specific options.
 
-They are inspired by PHP functions of the same names, but their behavior follows XER's stream and encoding model.
+They are inspired by PHP functions of the same names, but their behavior follows xer's stream and encoding model.
 
 ### Binary and Text Selection
 
@@ -10798,7 +10798,7 @@ This overload opens the file as text and writes the UTF-8 text in `contents` usi
 
 ### Why PHP-Style Flags Are Not Provided
 
-XER intentionally does not provide PHP-style `flags` arguments for these functions.
+xer intentionally does not provide PHP-style `flags` arguments for these functions.
 
 In particular, append behavior and locking behavior are not hidden inside `file_put_contents`.
 
@@ -10810,7 +10810,7 @@ If append-style output is required, the caller should use stream APIs directly, 
 
 ### Error Handling
 
-These functions follow XER's ordinary failure model.
+These functions follow xer's ordinary failure model.
 
 On success:
 
@@ -10857,7 +10857,7 @@ The header may also expose support related to native-handle access.
 
 ### Role
 
-This exists for cases where callers need to bridge XER stream abstractions to lower-level platform or runtime facilities.
+This exists for cases where callers need to bridge xer stream abstractions to lower-level platform or runtime facilities.
 
 ### Design Direction
 
@@ -10879,9 +10879,9 @@ These implementation ideas are important to understand the shape of the public A
 
 ---
 
-## Relationship to XER's Text Model
+## Relationship to xer's Text Model
 
-`<xer/stdio.h>` is one of the headers most tightly coupled to XER's overall text model.
+`<xer/stdio.h>` is one of the headers most tightly coupled to xer's overall text model.
 
 In particular:
 
@@ -10917,7 +10917,7 @@ The rough boundary is:
 
 When this header is used in generated documentation, it is usually enough to explain:
 
-* that XER distinguishes `binary_stream` and `text_stream`
+* that xer distinguishes `binary_stream` and `text_stream`
 * that text encodings are explicit rather than locale-driven
 * that stream objects are move-only RAII types
 * that both low-level I/O and higher-level facilities such as formatted I/O and CSV are included
@@ -10966,9 +10966,9 @@ auto main() -> int
 }
 ```
 
-This example shows the basic XER style:
+This example shows the basic xer style:
 
-* use XER text I/O directly
+* use xer text I/O directly
 * work with UTF-8-oriented text
 * check `xer::result` explicitly
 
@@ -10991,11 +10991,11 @@ This example shows the basic XER style:
 
 ## Purpose
 
-`<xer/iostream.h>` provides formatted iostream insertion and extraction operators for selected XER value types.
+`<xer/iostream.h>` provides formatted iostream insertion and extraction operators for selected xer value types.
 
-This header does not make iostreams the main input/output model of XER. XER's primary I/O model remains based on `binary_stream`, `text_stream`, and the functions provided by `<xer/stdio.h>`. The role of `<xer/iostream.h>` is narrower: it provides a bridge for diagnostics, tests, examples, and the implementation of generic `%@` formatting and scanning support.
+This header does not make iostreams the main input/output model of xer. xer's primary I/O model remains based on `binary_stream`, `text_stream`, and the functions provided by `<xer/stdio.h>`. The role of `<xer/iostream.h>` is narrower: it provides a bridge for diagnostics, tests, examples, and the implementation of generic `%@` formatting and scanning support.
 
-The header is intentionally opt-in. Users include it only when they want ordinary C++ iostream operators for XER value types.
+The header is intentionally opt-in. Users include it only when they want ordinary C++ iostream operators for xer value types.
 
 ---
 
@@ -11049,17 +11049,17 @@ Formatted extraction for matrices and color values is intentionally deferred bec
 
 ## Design Role
 
-The main design role of this header is to make XER-provided value types usable by generic stream-based formatting paths.
+The main design role of this header is to make xer-provided value types usable by generic stream-based formatting paths.
 
 In particular, it supports facilities that internally rely on stream insertion or extraction for default formatting, such as enhanced `%@` handling in the printf and scanf families.
 
-The operators are not intended to replace XER's own text I/O APIs.
+The operators are not intended to replace xer's own text I/O APIs.
 
 ---
 
 ## UTF-8 Handling
 
-XER uses `char8_t` and `std::u8string_view` for UTF-8 text. Ordinary iostreams use `char` streams.
+xer uses `char8_t` and `std::u8string_view` for UTF-8 text. Ordinary iostreams use `char` streams.
 
 For this reason, `<xer/iostream.h>` writes UTF-8 text to `std::ostream` by copying the underlying UTF-8 bytes to the stream without locale-dependent conversion. This applies to types such as `path` and `type_info`, whose display strings are UTF-8-oriented.
 
@@ -11251,7 +11251,7 @@ These types either need additional formatting policy or are not ordinary value t
 
 The rough boundary is:
 
-- `<xer/stdio.h>` remains the ordinary XER text I/O header
+- `<xer/stdio.h>` remains the ordinary xer text I/O header
 - `<xer/iostream.h>` provides opt-in compatibility with standard iostream formatting
 - individual value-type headers remain usable without pulling in iostream support
 
@@ -11325,17 +11325,17 @@ auto main() -> int
 
 ## Purpose
 
-`<xer/path.h>` provides XER's lexical path type and related path utilities.
+`<xer/path.h>` provides xer's lexical path type and related path utilities.
 
 Its role is not to wrap `std::filesystem::path`.
-Instead, XER provides its own UTF-8-based path model designed around the following ideas:
+Instead, xer provides its own UTF-8-based path model designed around the following ideas:
 
 - keep the internal representation simple and consistent
 - treat path handling primarily as a lexical operation
 - preserve important Windows-specific path distinctions
 - separate lexical path handling from actual filesystem-dependent resolution
 
-This header is therefore the public entry point for path representation and path-oriented utility functions in XER.
+This header is therefore the public entry point for path representation and path-oriented utility functions in xer.
 
 ---
 
@@ -11384,7 +11384,7 @@ The exact overload set may expand, but this is the core public shape.
 
 `path` is the central type of the header.
 
-It represents a path in XER's own lexical UTF-8 model.
+It represents a path in xer's own lexical UTF-8 model.
 
 ### Basic Shape
 
@@ -11462,7 +11462,7 @@ auto str() const noexcept -> std::u8string_view;
 * it is not a display-oriented native path string
 
 This distinction is important.
-`str()` returns the XER path representation, not a platform display form.
+`str()` returns the xer path representation, not a platform display form.
 
 ---
 
@@ -11499,7 +11499,7 @@ This keeps the basic semantics centralized.
 
 ## Lexical Path Operations
 
-Most path utilities in XER are free functions.
+Most path utilities in xer are free functions.
 
 At minimum, these include:
 
@@ -11512,7 +11512,7 @@ At minimum, these include:
 
 ### Why Free Functions
 
-XER prefers free functions for operations that do not need direct mutation or privileged internal control.
+xer prefers free functions for operations that do not need direct mutation or privileged internal control.
 
 This keeps the responsibility of `path` itself small and focused.
 
@@ -11530,7 +11530,7 @@ auto basename(const path& value) noexcept -> std::u8string_view;
 
 ### Design Direction
 
-Its behavior is intentionally close to PHP's `basename`, while still following XER's own path model.
+Its behavior is intentionally close to PHP's `basename`, while still following xer's own path model.
 
 ### Important Notes
 
@@ -11551,9 +11551,9 @@ auto extension(const path& value) noexcept -> std::u8string_view;
 
 `extension` returns the extension-like suffix of the basename.
 
-### XER Rule
+### xer Rule
 
-In XER, `extension` returns the part of `basename(path)` beginning with the **first** `.`.
+In xer, `extension` returns the part of `basename(path)` beginning with the **first** `.`.
 
 This means, for example:
 
@@ -11577,7 +11577,7 @@ auto stem(const path& value) noexcept -> std::u8string_view;
 
 ### Purpose
 
-`stem` returns the leading part of the basename after removing the extension as defined by XER.
+`stem` returns the leading part of the basename after removing the extension as defined by xer.
 
 ### Examples
 
@@ -11586,7 +11586,7 @@ auto stem(const path& value) noexcept -> std::u8string_view;
 * `.foo` -> empty string
 * `foo.` -> `foo`
 
-Its exact behavior should therefore always be interpreted together with XER's `extension` rule.
+Its exact behavior should therefore always be interpreted together with xer's `extension` rule.
 
 ---
 
@@ -11631,7 +11631,7 @@ auto is_relative(const path& value) noexcept -> bool;
 
 ### Purpose
 
-These functions classify the path according to XER's path rules.
+These functions classify the path according to xer's path rules.
 
 ### Windows-Specific Importance
 
@@ -11644,13 +11644,13 @@ For example:
 * `/foo` is absolute
 * `//server/share/foo` is absolute
 
-This is one of the reasons XER uses its own path model instead of simply delegating public semantics to another library.
+This is one of the reasons xer uses its own path model instead of simply delegating public semantics to another library.
 
 ---
 
 ## Native Path Conversion
 
-`<xer/path.h>` also provides conversion between XER paths and native platform path representations.
+`<xer/path.h>` also provides conversion between xer paths and native platform path representations.
 
 At minimum, this includes:
 
@@ -11662,7 +11662,7 @@ auto from_native_path(const native_path_char_t* value) -> std::expected<path, er
 
 ### Purpose
 
-These functions exist so that XER's internal UTF-8 lexical model can interoperate with platform-native path strings.
+These functions exist so that xer's internal UTF-8 lexical model can interoperate with platform-native path strings.
 
 ### Role of the Native Types
 
@@ -11733,7 +11733,7 @@ This makes `<xer/path.h>` a foundational header for path-aware APIs elsewhere in
 
 When this header is used in generated documentation, it is usually enough to explain:
 
-* that XER uses its own UTF-8 lexical path type
+* that xer uses its own UTF-8 lexical path type
 * that separators are normalized to `/`
 * that Windows lexical distinctions are preserved
 * that most path utilities are free functions
@@ -11780,7 +11780,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * construct paths from UTF-8 text
 * use lexical path composition
@@ -11800,12 +11800,12 @@ This example shows the normal XER style:
 
 ## Purpose
 
-`<xer/dirent.h>` provides directory stream operations in XER.
+`<xer/dirent.h>` provides directory stream operations in xer.
 
 This header covers PHP/POSIX-style directory traversal facilities such as opening a directory, reading entry names, rewinding the directory stream, and closing it.
 
 The purpose is not to reproduce POSIX `dirent.h` exactly.
-Instead, XER provides a small C++23-friendly directory stream API that uses:
+Instead, xer provides a small C++23-friendly directory stream API that uses:
 
 - `xer::path` for path names
 - UTF-8 strings for directory entry names
@@ -11834,7 +11834,7 @@ auto xer::rewinddir(dir& directory) noexcept -> result<void>;
 This header exists for directory stream traversal.
 
 It is separated from `<xer/stdio.h>` because directory streams are stateful traversal handles rather than ordinary file streams.
-Although the names are familiar from POSIX and PHP, the API is adapted to XER's own path, string, and error-handling model.
+Although the names are familiar from POSIX and PHP, the API is adapted to xer's own path, string, and error-handling model.
 
 ---
 
@@ -11871,7 +11871,7 @@ auto opendir(const path& dirname) noexcept -> result<dir>;
 
 `opendir` opens a directory stream for the specified path.
 
-The path is converted from XER's UTF-8 `xer::path` representation to the platform-native path representation before the underlying directory API is called.
+The path is converted from xer's UTF-8 `xer::path` representation to the platform-native path representation before the underlying directory API is called.
 
 ### Return Value
 
@@ -11984,13 +11984,13 @@ On failure, it returns `xer::result` failure.
 ### Notes
 
 The order after rewinding is still platform- and filesystem-dependent.
-XER does not guarantee a stable ordering of directory entries.
+xer does not guarantee a stable ordering of directory entries.
 
 ---
 
 ## End-of-Directory Handling
 
-In XER, reaching the end of a directory stream is represented as:
+In xer, reaching the end of a directory stream is represented as:
 
 ```cpp
 error_t::not_found
@@ -12021,7 +12021,7 @@ This keeps end-of-directory separate from ordinary successful reads while still 
 
 `<xer/dirent.h>` uses `xer::path` for directory paths.
 
-The `path` object stores a UTF-8 path in XER's normalized internal form.
+The `path` object stores a UTF-8 path in xer's normalized internal form.
 When `opendir` is called, the path is converted to the platform-native representation before being passed to the underlying directory API.
 
 The names returned by `readdir` are converted back into UTF-8 strings.
@@ -12128,7 +12128,7 @@ This header provides:
 - IPv4 and IPv6 socket creation
 - TCP connection, bind, listen, and accept operations
 - UDP send/receive operations
-- conversion of sockets to XER binary or text streams
+- conversion of sockets to xer binary or text streams
 
 ---
 
@@ -12210,7 +12210,7 @@ auto socket_recvfrom(socket& s, std::span<std::byte> data) noexcept -> xer::resu
 
 ## Stream Conversion
 
-Sockets can be converted into XER streams:
+Sockets can be converted into xer streams:
 
 ```cpp
 auto socket_open(socket&& s) noexcept -> xer::result<binary_stream>;
@@ -12231,15 +12231,15 @@ The text stream form is suitable for UTF-8 or CP932 text-oriented communication.
 
 ---
 
-﻿# `<xer/tk.h>`
+# `<xer/tk.h>`
 
 ## Purpose
 
-`<xer/tk.h>` provides the initial Tcl/Tk integration layer for XER.
+`<xer/tk.h>` provides the initial Tcl/Tk integration layer for xer.
 
 The first purpose of this header is to make it possible to create and control a Tcl interpreter from C++ code, register C++ callables as Tcl commands, and then use that foundation for Tk-based GUI facilities.
 
-The design deliberately avoids `Tk_Main`. `Tk_Main` owns too much of the process lifetime and may terminate the whole process when the main function exits. XER instead exposes interpreter creation, initialization, script evaluation, command registration, variable access, and event-loop helpers as ordinary C++ APIs.
+The design deliberately avoids `Tk_Main`. `Tk_Main` owns too much of the process lifetime and may terminate the whole process when the main function exits. xer instead exposes interpreter creation, initialization, script evaluation, command registration, variable access, and event-loop helpers as ordinary C++ APIs.
 
 ---
 
@@ -12427,7 +12427,7 @@ If a future version provides a public Tcl-only header, a separate namespace may 
 
 Tcl exposes result codes and flags through C macros such as `TCL_OK`, `TCL_ERROR`, and `TCL_GLOBAL_ONLY`.
 
-XER does not require ordinary users to refer to those macros directly. Instead, `<xer/tk.h>` provides XER-named constants such as:
+xer does not require ordinary users to refer to those macros directly. Instead, `<xer/tk.h>` provides xer-named constants such as:
 
 ```cpp
 xer::tk::result_ok
@@ -12510,7 +12510,7 @@ auto init(interpreter& interp) -> xer::result<void, error_detail>;
 
 `init` initializes both Tcl and Tk for the specified interpreter.
 
-It calls `Tcl_Init` and then `Tk_Init`. XER intentionally does not provide a public API that calls only `Tcl_Init` in the `xer::tk` layer.
+It calls `Tcl_Init` and then `Tk_Init`. xer intentionally does not provide a public API that calls only `Tcl_Init` in the `xer::tk` layer.
 
 If a caller needs direct Tcl-only initialization behavior, the native handle can be obtained through `to_native_handle` and the Tcl C API can be called explicitly.
 
@@ -12524,7 +12524,7 @@ auto to_native_handle(interpreter& interp) noexcept -> Tcl_Interp*;
 
 `to_native_handle` returns the underlying `Tcl_Interp*`.
 
-This function is an escape hatch for direct Tcl/Tk C API use. It is intentionally not named like an ordinary accessor such as `get`, because using the native handle bypasses part of XER's abstraction.
+This function is an escape hatch for direct Tcl/Tk C API use. It is intentionally not named like an ordinary accessor such as `get`, because using the native handle bypasses part of xer's abstraction.
 
 There is no overload for `const interpreter&`. Tcl interpreter handles are commonly used for state-changing operations, and a const overload would not provide meaningful const safety.
 
@@ -12544,7 +12544,7 @@ class photo_image;
 
 `photo_image` is a non-owning handle for an existing Tk photo image.
 
-A `photo_image` value cannot be default-constructed. It is created only by `find_photo`, so it does not represent a null photo handle in ordinary XER code.
+A `photo_image` value cannot be default-constructed. It is created only by `find_photo`, so it does not represent a null photo handle in ordinary xer code.
 
 The type does not own the underlying Tk image. The caller must ensure that the Tcl/Tk photo image outlives any `photo_image` handle referring to it. If the image is deleted on the Tcl/Tk side, an existing `photo_image` becomes invalid by the native Tk lifetime rules.
 
@@ -12641,11 +12641,11 @@ auto photo_put_zoomed_block(interpreter& interp,
 
 The block pointer must not be null. Coordinates, width, and height must not be negative. Zoom and subsample factors must be positive. Invalid arguments are rejected before calling Tk.
 
-### Relationship to XER Image Facilities
+### Relationship to xer Image Facilities
 
 The photo block helpers are low-level Tk wrappers. They intentionally expose `Tk_PhotoImageBlock` through the alias `photo_image_block` so that code can use the native Tk block layout when needed.
 
-Higher-level conversion between Tk photo images and XER image or framebuffer types should be built separately on top of these helpers. The ordinary image-processing algorithms themselves should not depend on Tcl/Tk.
+Higher-level conversion between Tk photo images and xer image or framebuffer types should be built separately on top of these helpers. The ordinary image-processing algorithms themselves should not depend on Tcl/Tk.
 
 ---
 
@@ -12843,7 +12843,7 @@ The view is valid only while the callback is running.
 
 If the value must be stored, captured, returned later, or otherwise used after the callback returns, the callback must copy it into an owning object such as `std::u8string`.
 
-Returning `std::u8string_view` from a callback is different: XER copies the referenced text into the Tcl interpreter result before the command handler returns.
+Returning `std::u8string_view` from a callback is different: xer copies the referenced text into the Tcl interpreter result before the command handler returns.
 The returned view only needs to remain valid until the command handler has finished setting the Tcl result.
 
 ---
@@ -12887,23 +12887,23 @@ auto do_one_event(event_flag_t flags = event_all) -> int;
 
 `do_one_event` processes one event through `Tcl_DoOneEvent`.
 
-XER does not use `Tk_Main`, because `Tk_Main` controls too much of the process lifetime. Programs should create and initialize an interpreter explicitly, then run the event loop in the desired thread.
+xer does not use `Tk_Main`, because `Tk_Main` controls too much of the process lifetime. Programs should create and initialize an interpreter explicitly, then run the event loop in the desired thread.
 
 ---
 
 ## Threading Policy
 
-XER aims to allow Tcl/Tk to run on a thread chosen by the user.
+xer aims to allow Tcl/Tk to run on a thread chosen by the user.
 
 However, an interpreter is treated as thread-affine. It should normally be created, initialized, used, and destroyed on the same thread.
 
 This rule applies to ordinary operations such as evaluation, variable access, command registration, event-loop use related to that interpreter, and destruction.
 
-This means XER supports the idea of running Tcl/Tk on a non-main thread, but it does not make one interpreter freely callable from arbitrary threads.
+This means xer supports the idea of running Tcl/Tk on a non-main thread, but it does not make one interpreter freely callable from arbitrary threads.
 
 A safe pattern is to create an interpreter inside a worker thread, use it only inside that worker thread, and let it be destroyed before that thread exits.
 
-XER does not currently provide cross-thread invocation helpers, event posting helpers, or a thread-safe dispatch queue for Tcl/Tk.
+xer does not currently provide cross-thread invocation helpers, event posting helpers, or a thread-safe dispatch queue for Tcl/Tk.
 
 ---
 
@@ -12974,10 +12974,10 @@ This example creates a Tcl interpreter and registers a C++ callable as a Tcl com
 
 ## Purpose
 
-`<xer/stdint.h>` provides fixed-width integer facilities and closely related numeric utilities in XER.
+`<xer/stdint.h>` provides fixed-width integer facilities and closely related numeric utilities in xer.
 
 Its role is similar in spirit to the C standard library `<stdint.h>`, but it is not limited to merely re-exporting integer typedefs.
-Instead, it also serves as the home for practical integer-oriented helpers that fit XER's overall design.
+Instead, it also serves as the home for practical integer-oriented helpers that fit xer's overall design.
 
 This header is especially important because it provides:
 
@@ -12991,13 +12991,13 @@ This header is especially important because it provides:
 
 ## Main Role
 
-The main role of `<xer/stdint.h>` is to provide a stable and explicit integer vocabulary for the rest of XER.
+The main role of `<xer/stdint.h>` is to provide a stable and explicit integer vocabulary for the rest of xer.
 
 In particular, it exists to make the following easy and clear:
 
 - writing code with explicitly sized integer types
 - referring to implementation-sized integer types such as pointer-sized integers
-- expressing integer limits and bit widths in a unified XER style
+- expressing integer limits and bit widths in a unified xer style
 - writing typed integer literals directly in source code
 
 This makes the header useful both as a foundational type header and as a practical utility header for integer-heavy code.
@@ -13082,7 +13082,7 @@ These types are especially useful in low-level code and implementation-support c
 
 ## Optional 128-Bit Integer Types
 
-Where the implementation supports `__int128`, XER may provide:
+Where the implementation supports `__int128`, xer may provide:
 
 ```cpp
 int128_t
@@ -13131,7 +13131,7 @@ bit_width_of<T>
 
 ### Role of These Helpers
 
-These helpers exist so that integer-type metadata can be referred to in a compact, readable, and XER-consistent way.
+These helpers exist so that integer-type metadata can be referred to in a compact, readable, and xer-consistent way.
 
 They are especially useful in:
 
@@ -13150,7 +13150,7 @@ These helpers are intended to be simple compile-time facilities, not large abstr
 
 One of the most visible user-facing features of `<xer/stdint.h>` is the integer literal suffix set.
 
-At minimum, XER may provide literal suffixes such as:
+At minimum, xer may provide literal suffixes such as:
 
 ```cpp
 _i8   _i16   _i32   _i64
@@ -13188,7 +13188,7 @@ These literal suffixes are intended to be:
 * convenient in tests and examples
 * useful in compile-time contexts
 
-They are especially attractive in a project like XER, which emphasizes explicitness and type clarity.
+They are especially attractive in a project like xer, which emphasizes explicitness and type clarity.
 
 ---
 
@@ -13237,7 +13237,7 @@ If it does not fit, the program should fail to compile rather than silently narr
 
 This makes typed integer literals trustworthy and avoids hidden truncation.
 
-It also aligns with XER's broader design preference for explicit failure over surprising implicit behavior.
+It also aligns with xer's broader design preference for explicit failure over surprising implicit behavior.
 
 ---
 
@@ -13257,9 +13257,9 @@ This makes `<xer/stdint.h>` foundational, while `<xer/arithmetic.h>` handles hig
 
 ---
 
-## Relationship to XER's Numeric Design
+## Relationship to xer's Numeric Design
 
-Although `<xer/stdint.h>` looks like a basic type header, it plays an important role in XER's numeric design.
+Although `<xer/stdint.h>` looks like a basic type header, it plays an important role in xer's numeric design.
 
 In particular, it helps make the following explicit:
 
@@ -13319,7 +13319,7 @@ auto main() -> int
 
 This example shows the normal style:
 
-* use explicit XER integer types
+* use explicit xer integer types
 * use typed integer literal suffixes
 * keep integer width visible in the code itself
 
@@ -13428,7 +13428,7 @@ float128_t
 bfloat16_t
 ```
 
-`float32_t` and `float64_t` are always available in XER. If the standard `<stdfloat>` aliases are not available, they fall back to `float` and `double` respectively.
+`float32_t` and `float64_t` are always available in xer. If the standard `<stdfloat>` aliases are not available, they fall back to `float` and `double` respectively.
 
 `float80_t`, `float128_t`, and `bfloat16_t` are optional and are available only when the implementation provides a suitable underlying type.
 
@@ -13462,13 +13462,13 @@ float_fast128_t
 floatmax_t
 ```
 
-`floatmax_t` is selected from the widest practical binary floating-point type available to XER.
+`floatmax_t` is selected from the widest practical binary floating-point type available to xer.
 
 ---
 
 ## Decimal Floating-Point Aliases
 
-When the implementation provides `<decimal/decimal>`, XER exposes decimal floating-point aliases such as:
+When the implementation provides `<decimal/decimal>`, xer exposes decimal floating-point aliases such as:
 
 ```cpp
 decimal32_t
@@ -13530,7 +13530,7 @@ Only literals whose destination type is available are provided.
 
 ## Purpose
 
-`<xer/arithmetic.h>` provides arithmetic and comparison helper functions in XER.
+`<xer/arithmetic.h>` provides arithmetic and comparison helper functions in xer.
 
 Its purpose is not merely to wrap built-in operators with different names.
 Instead, it provides a numeric utility layer designed to avoid common problems of ordinary C++ arithmetic, especially in cases such as:
@@ -13538,9 +13538,9 @@ Instead, it provides a numeric utility layer designed to avoid common problems o
 - mixing signed and unsigned integer types
 - integrating arithmetic with explicit failure handling
 - making range failure visible
-- expressing comparisons in a way that follows XER's own numeric rules
+- expressing comparisons in a way that follows xer's own numeric rules
 
-This header is therefore a central part of XER's numeric design.
+This header is therefore a central part of xer's numeric design.
 
 ---
 
@@ -13551,7 +13551,7 @@ The main role of `<xer/arithmetic.h>` is to provide arithmetic and comparison op
 - explicit
 - predictable
 - easier to chain safely than raw built-in operators
-- better aligned with XER's error model
+- better aligned with xer's error model
 
 In particular, it exists to make the following easier:
 
@@ -13719,7 +13719,7 @@ For integer input:
 
 ### Why These Matter
 
-These helpers make quotient/remainder behavior explicit and keep it aligned with XER's own arithmetic policy rather than leaving everything to built-in operator behavior.
+These helpers make quotient/remainder behavior explicit and keep it aligned with xer's own arithmetic policy rather than leaving everything to built-in operator behavior.
 
 ---
 
@@ -13738,7 +13738,7 @@ ge
 
 ### Role of This Group
 
-These functions provide explicit comparison in a way that fits XER's numeric rules.
+These functions provide explicit comparison in a way that fits xer's numeric rules.
 
 They are especially useful when:
 
@@ -13890,7 +13890,7 @@ When a `xer::result` argument contains an error, the result overload returns `fa
 
 ### `min` and `max`
 
-`min` and `max` return the smaller or larger of two arithmetic values according to XER's comparison rules.
+`min` and `max` return the smaller or larger of two arithmetic values according to xer's comparison rules.
 
 ```cpp
 template<typename A, typename B>
@@ -13901,9 +13901,9 @@ auto max(A lhs, B rhs) -> xer::result<result-type>;
 ```
 
 They are not intended to be mere clones of the standard library forms.
-Instead, they are designed for mixed-type use under XER's own numeric policy.
+Instead, they are designed for mixed-type use under xer's own numeric policy.
 
-For integer operands, the result type follows XER's promoted integer result rules.
+For integer operands, the result type follows xer's promoted integer result rules.
 For non-integer arithmetic combinations, the result type is based on `std::common_type_t`.
 If the selected value cannot be represented in the selected result type, the function returns `error_t::out_of_range`.
 
@@ -13924,7 +13924,7 @@ If the selected value or selected bound cannot be represented in the first-argum
 
 As part of `<xer/arithmetic.h>`, this helper also accepts a `xer::result` value argument and propagates existing errors.
 
-Its purpose is to provide an explicit and predictable clamping helper that works consistently with XER's comparison model.
+Its purpose is to provide an explicit and predictable clamping helper that works consistently with xer's comparison model.
 
 ---
 
@@ -13965,7 +13965,7 @@ and reports failure if the result cannot be represented.
 
 These helpers are important because even "simple" absolute-value operations can fail in fixed-width signed integer domains.
 
-XER therefore makes that failure explicit.
+xer therefore makes that failure explicit.
 
 ---
 
@@ -14017,7 +14017,7 @@ One of the most important design points of `<xer/arithmetic.h>` is that arithmet
 
 ### Why This Header Is Special
 
-In the general XER API policy, ordinary public APIs are not supposed to take `xer::result` as an argument.
+In the general xer API policy, ordinary public APIs are not supposed to take `xer::result` as an argument.
 
 However, `<xer/arithmetic.h>` is the main exception.
 
@@ -14053,7 +14053,7 @@ For floating-point input:
 
 ### Why This Matters
 
-This allows XER arithmetic helpers to remain usable across both integer and floating-point code while keeping a unified design direction.
+This allows xer arithmetic helpers to remain usable across both integer and floating-point code while keeping a unified design direction.
 
 ---
 
@@ -14078,7 +14078,7 @@ For that reason, the comparison helper family does not extend mechanically to co
 
 ## Relationship Between Arithmetic and Comparison
 
-A central design principle of this header is that arithmetic helpers should use XER's comparison helpers internally where ordering matters.
+A central design principle of this header is that arithmetic helpers should use xer's comparison helpers internally where ordering matters.
 
 ### Meaning
 
@@ -14169,7 +14169,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * use explicit arithmetic helpers instead of raw operators where policy matters
 * check `xer::result` explicitly
@@ -14191,7 +14191,7 @@ This example shows the normal XER style:
 
 ## Purpose
 
-`<xer/cyclic.h>` provides the `cyclic` type and related helpers for handling circular values in XER.
+`<xer/cyclic.h>` provides the `cyclic` type and related helpers for handling circular values in xer.
 
 This header is intended for values such as:
 
@@ -14490,7 +14490,7 @@ This design makes it clear that equality is tolerance-based rather than strict.
 
 If ordinary comparison operators were used for approximate equality, it would be too easy to misread them as strict equality.
 
-XER therefore prefers explicit named functions.
+xer therefore prefers explicit named functions.
 
 ### Default Tolerance
 
@@ -14591,7 +14591,7 @@ These functions translate between:
 
 Radian conversion naturally depends on π.
 
-In XER's design, mathematical constants such as π are not embedded directly into `cyclic<T>` as members.
+In xer's design, mathematical constants such as π are not embedded directly into `cyclic<T>` as members.
 Instead, they are treated as separate supporting facilities, conceptually associated with dedicated internal constant support.
 
 This keeps `cyclic<T>` itself focused on circular value handling rather than on general constant provision.
@@ -14612,13 +14612,13 @@ The rough boundary is:
 * `<xer/quantity.h>` handles physical quantities and units
 * angular quantities may be represented as ordinary quantities, while `cyclic` is used when circular semantics are needed explicitly
 
-This distinction is important in XER's design.
+This distinction is important in xer's design.
 
 ---
 
 ## Relationship to Angle Quantities
 
-A central point in XER's design is that `cyclic<T>` is **not** the universal storage model for all angle quantities.
+A central point in xer's design is that `cyclic<T>` is **not** the universal storage model for all angle quantities.
 
 ### Meaning
 
@@ -14683,7 +14683,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * create circular values through free conversion helpers
 * use circular operations explicitly
@@ -15299,7 +15299,7 @@ auto y = -x;
 
 `interval` uses exceptions only for exceptional numeric conditions.
 
-This differs from ordinary XER APIs that return `xer::result` for normal recoverable failures.
+This differs from ordinary xer APIs that return `xer::result` for normal recoverable failures.
 
 The reason is that `interval` is a value type with a simple invariant.
 `NaN`, infinity, and division by zero are treated as invalid numeric states rather than ordinary input failures.
@@ -15419,12 +15419,12 @@ auto main() -> int
 }
 ```
 
-This example shows the basic XER style:
+This example shows the basic xer style:
 
 - use the public header
 - construct bounded values naturally
 - let finite out-of-range input clamp
-- use XER formatted output for examples
+- use xer formatted output for examples
 - check fallible output operations explicitly
 
 ---
@@ -15482,7 +15482,7 @@ Implicit conversion constructors are intentionally not provided.
 
 `<xer/color.h>` provides color-system value types and color conversion functions.
 
-The purpose of this header is to support practical formula-based color representation and conversion in a lightweight XER style.
+The purpose of this header is to support practical formula-based color representation and conversion in a lightweight xer style.
 
 The initial supported color systems are:
 
@@ -15679,7 +15679,7 @@ struct basic_cmy {
 
 Each component is represented by `interval<T>` and is therefore kept in `[0, 1]`.
 
-CMY in XER is the simple complement model of RGB.
+CMY in xer is the simple complement model of RGB.
 
 Conceptually:
 
@@ -16073,7 +16073,7 @@ The initial supported color systems are:
 
 ### Unsupported
 
-The following systems are outside the scope of XER:
+The following systems are outside the scope of xer:
 
 - Munsell color system
 - PCCS
@@ -16082,9 +16082,9 @@ The following systems are outside the scope of XER:
 - ABC tone system
 
 This is not merely a temporary omission.
-Unless there is a major reason to reconsider, these systems should remain outside the scope of XER.
+Unless there is a major reason to reconsider, these systems should remain outside the scope of xer.
 
-The main reason is that they are color-order, color-notation, perceptual, or tone-classification systems rather than lightweight formula-based numeric color spaces suitable for XER's core API.
+The main reason is that they are color-order, color-notation, perceptual, or tone-classification systems rather than lightweight formula-based numeric color spaces suitable for xer's core API.
 
 ---
 
@@ -16199,7 +16199,7 @@ auto main() -> int
 }
 ```
 
-This example shows the basic XER style:
+This example shows the basic xer style:
 
 - use the public header
 - construct an `rgb` value directly
@@ -16224,7 +16224,7 @@ This example shows the basic XER style:
 
 ## Purpose
 
-`<xer/quantity.h>` provides physical quantity and unit facilities in XER.
+`<xer/quantity.h>` provides physical quantity and unit facilities in xer.
 
 Its purpose is to allow quantities with dimensions to be handled in a type-safe and practical way.
 This includes:
@@ -16235,7 +16235,7 @@ This includes:
 - keeping the design lightweight and easy to understand
 
 This header is not intended to reproduce an existing quantity library as it is.
-Instead, it follows XER's own design priorities.
+Instead, it follows xer's own design priorities.
 
 ---
 
@@ -16733,7 +16733,7 @@ The exact set belongs to the detailed unit reference, but these are the main int
 
 ## Angular Units
 
-`<xer/quantity.h>` also covers angle-related units in coordination with the broader XER design.
+`<xer/quantity.h>` also covers angle-related units in coordination with the broader xer design.
 
 ### Important Units
 
@@ -16751,7 +16751,7 @@ At minimum:
 
 ### Why This Matters
 
-This keeps angle quantities compatible with XER's design where one full turn corresponds naturally to the `cyclic` model.
+This keeps angle quantities compatible with xer's design where one full turn corresponds naturally to the `cyclic` model.
 
 ---
 
@@ -16806,7 +16806,7 @@ This keeps the notation:
 
 * explicit
 * easy to read
-* consistent with the rest of XER
+* consistent with the rest of xer
 * easier to extend without creating many special literal forms
 
 ---
@@ -16884,7 +16884,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * use unit objects from `xer::units`
 * construct quantities with scalar × unit
@@ -16906,7 +16906,7 @@ This example shows the normal XER style:
 
 ## Purpose
 
-`<xer/matrix.h>` provides fixed-size matrix and affine transform helpers in XER.
+`<xer/matrix.h>` provides fixed-size matrix and affine transform helpers in xer.
 
 The initial purpose of this header is deliberately practical and limited.
 It is not intended to become a full linear algebra framework at the beginning.
@@ -17081,7 +17081,7 @@ This single operation covers:
 
 ### Transform Composition Order
 
-XER uses column vectors in this matrix facility.
+xer uses column vectors in this matrix facility.
 Therefore, in an expression such as:
 
 ```cpp
@@ -17287,7 +17287,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * represent points as homogeneous column vectors
 * compose transforms with matrix multiplication
@@ -18141,7 +18141,7 @@ Negative spacing values are permitted and may produce overlapping glyph cells.
 
 `bitmap_font_load` reads an XBF bitmap-font file and returns a validated `bitmap_font`.
 
-XBF is XER's compact binary bitmap-font format. It stores:
+XBF is xer's compact binary bitmap-font format. It stores:
 
 - little-endian numeric fields
 - monospaced half-width and full-width glyph cells
@@ -19018,7 +19018,7 @@ If `index` is out of range, it returns an error through `xer::result`.
 auto parse_arg(std::u8string_view value) noexcept -> cmdline_arg;
 ```
 
-`parse_arg` parses one raw command-line argument according to XER's simple command-line rule.
+`parse_arg` parses one raw command-line argument according to xer's simple command-line rule.
 
 The return value is a pair:
 
@@ -19036,7 +19036,7 @@ The meaning is:
 
 ## Supported Argument Forms
 
-XER recognizes only simple long-option forms.
+xer recognizes only simple long-option forms.
 
 Supported option forms are:
 
@@ -19068,7 +19068,7 @@ value         -> { "", "value" }
 
 `--name` and `--name=` are intentionally treated the same.
 
-Distinguishing “no value” from “empty value” would require a more complex representation, and XER's initial command-line helper deliberately avoids that complexity.
+Distinguishing “no value” from “empty value” would require a more complex representation, and xer's initial command-line helper deliberately avoids that complexity.
 
 ---
 
@@ -19140,7 +19140,7 @@ On Linux, the implementation reads:
 
 This file contains the current process command-line arguments as NUL-separated byte strings.
 
-The byte strings are interpreted as UTF-8 according to XER's Linux text assumptions.
+The byte strings are interpreted as UTF-8 according to xer's Linux text assumptions.
 If an argument is not valid UTF-8, `get_cmdline` fails.
 
 Reading `/proc/self/cmdline` can theoretically fail in unusual environments.
@@ -19178,14 +19178,14 @@ Here, `parsed.first` and `parsed.second` refer to the string owned by `line`.
 
 ## Error Handling
 
-`<xer/cmdline.h>` follows XER's ordinary failure model.
+`<xer/cmdline.h>` follows xer's ordinary failure model.
 
 `parse_arg` itself does not fail.
 It is a simple view-based parser and returns an ordinary `cmdline_arg`.
 
 `cmdline::at` can fail when the requested index is out of range.
 
-`get_cmdline` can fail when the platform-specific command-line retrieval fails or when command-line data cannot be converted to XER's UTF-8 representation.
+`get_cmdline` can fail when the platform-specific command-line retrieval fails or when command-line data cannot be converted to xer's UTF-8 representation.
 
 Typical failure conditions include:
 
@@ -19205,7 +19205,7 @@ The ordinary C and C++ way to receive command-line arguments is through `main`.
 auto main(int argc, char** argv) -> int;
 ```
 
-XER does not reject that approach.
+xer does not reject that approach.
 
 However, `<xer/cmdline.h>` exists for cases where explicit `argc` / `argv` propagation is inconvenient or unavailable.
 
@@ -19332,10 +19332,10 @@ These are good candidates for executable examples under `examples/`.
 
 ## Purpose
 
-`<xer/time.h>` provides time-related facilities in XER.
+`<xer/time.h>` provides time-related facilities in xer.
 
 Its purpose is not to reproduce the C standard library `time.h` as it is, nor to center the public API on `std::chrono`.
-Instead, it provides a simpler time library that preserves the approachability of C-style time handling while aligning with XER's own design.
+Instead, it provides a simpler time library that preserves the approachability of C-style time handling while aligning with xer's own design.
 
 This header is intended for tasks such as:
 
@@ -19400,7 +19400,7 @@ The exact helper functions may expand in the future, but this is the current cor
 
 ## `xer::time_t`
 
-`xer::time_t` is the central scalar time type in XER.
+`xer::time_t` is the central scalar time type in xer.
 
 ### Basic Shape
 
@@ -19434,7 +19434,7 @@ The practical target is microsecond-level handling, but the public design does n
 
 ## Epoch
 
-XER fixes the epoch of `xer::time_t` to the POSIX epoch.
+xer fixes the epoch of `xer::time_t` to the POSIX epoch.
 
 ### Meaning
 
@@ -19452,7 +19452,7 @@ as a `xer::time_t` value.
 
 ### Why This Matters
 
-This avoids the implementation-defined ambiguity of traditional C `time_t` epoch interpretation and gives XER a stable project-wide rule.
+This avoids the implementation-defined ambiguity of traditional C `time_t` epoch interpretation and gives xer a stable project-wide rule.
 
 ---
 
@@ -19472,7 +19472,7 @@ This is a deliberate simplification in the initial stage.
 
 ## `xer::tm`
 
-`xer::tm` is XER's broken-down time structure.
+`xer::tm` is xer's broken-down time structure.
 
 ### Basic Shape
 
@@ -19527,7 +19527,7 @@ auto time() -> xer::result<time_t>;
 
 ### Design Direction
 
-Although failure is uncommon in practice, XER still treats it as an ordinary fallible operation and reports failure through `xer::result`.
+Although failure is uncommon in practice, xer still treats it as an ordinary fallible operation and reports failure through `xer::result`.
 
 This keeps the header consistent with the rest of the library.
 
@@ -19545,7 +19545,7 @@ auto clock() -> xer::result<clock_t>;
 
 ### Design Direction
 
-As with `time()`, XER treats this as an ordinary fallible operation and reports failure explicitly.
+As with `time()`, xer treats this as an ordinary fallible operation and reports failure explicitly.
 
 ---
 
@@ -19636,7 +19636,7 @@ This is the reverse conversion entry point from `tm` back to `time_t`.
 
 ## `ctime`
 
-XER provides `ctime` in two overloads:
+xer provides `ctime` in two overloads:
 
 ```cpp
 auto ctime(time_t value) -> std::u8string;
@@ -19649,7 +19649,7 @@ auto ctime(const tm& value) -> std::u8string;
 
 ### Design Direction
 
-In XER, the roles traditionally associated with C's `ctime` and `asctime` are unified under the `ctime` name.
+In xer, the roles traditionally associated with C's `ctime` and `asctime` are unified under the `ctime` name.
 
 That means:
 
@@ -19662,7 +19662,7 @@ That means:
 * no static internal buffer is used
 * the broken-down-time overload takes `const tm&`, not a raw pointer
 
-This reflects XER's C++-style redesign while keeping a familiar function name.
+This reflects xer's C++-style redesign while keeping a familiar function name.
 
 ---
 
@@ -19709,9 +19709,9 @@ std::u8string
 
 through `xer::result`.
 
-### XER-Specific Fractional-Second Extensions
+### xer-Specific Fractional-Second Extensions
 
-In addition to the conversion specifications delegated to the underlying C library, XER provides the following fractional-second extensions:
+In addition to the conversion specifications delegated to the underlying C library, xer provides the following fractional-second extensions:
 
 * `%f`: microseconds as exactly six decimal digits
 * `%L`: milliseconds as exactly three decimal digits
@@ -19733,19 +19733,19 @@ One important characteristic of `<xer/time.h>` is that formatting is designed ar
 
 ### Why This Matters
 
-This keeps the header aligned with XER's broader public text model:
+This keeps the header aligned with xer's broader public text model:
 
 * public text APIs are UTF-8 oriented
 * `std::u8string` is the standard owned text type
 * `std::u8string_view` is the standard non-owning text input type
 
-This distinguishes XER's design from more locale-centered or narrow-character-only interpretations.
+This distinguishes xer's design from more locale-centered or narrow-character-only interpretations.
 
 ---
 
 ## Error Handling
 
-`<xer/time.h>` follows XER's ordinary failure model.
+`<xer/time.h>` follows xer's ordinary failure model.
 
 ### Meaning
 
@@ -19796,11 +19796,11 @@ The rough boundary is:
 * `<xer/time.h>` handles time retrieval, time conversion, and time formatting
 * `<xer/error.h>` provides the error/result model used by fallible time operations
 
-This header is largely self-contained in its domain, but it depends directly on XER's ordinary error model.
+This header is largely self-contained in its domain, but it depends directly on xer's ordinary error model.
 
 ---
 
-## Relationship to XER's General Design
+## Relationship to xer's General Design
 
 `<xer/time.h>` reflects several important project-wide design decisions:
 
@@ -19810,7 +19810,7 @@ This header is largely self-contained in its domain, but it depends directly on 
 * use UTF-8 for public text output
 * avoid centering the public design on `std::chrono`
 
-This makes the header one of the clearest examples of XER's general philosophy.
+This makes the header one of the clearest examples of xer's general philosophy.
 
 ---
 
@@ -19868,7 +19868,7 @@ auto main() -> int
 }
 ```
 
-This example shows the normal XER style:
+This example shows the normal xer style:
 
 * retrieve time explicitly
 * convert explicitly
@@ -19889,7 +19889,7 @@ This example shows the normal XER style:
 
 ## Purpose
 
-`<xer/version.h>` provides compile-time version information for XER.
+`<xer/version.h>` provides compile-time version information for xer.
 
 Its purpose is to make the library version available in a simple and explicit form for:
 
@@ -19904,7 +19904,7 @@ This header is intentionally small and focused.
 
 ## Main Role
 
-The main role of `<xer/version.h>` is to provide a stable public way to query the version of the XER library.
+The main role of `<xer/version.h>` is to provide a stable public way to query the version of the xer library.
 
 In particular, it exists to make the following easy:
 
@@ -20013,7 +20013,7 @@ This dual provision of macros and constants is useful because:
 
 ## Version Components
 
-The XER version is divided into several components.
+The xer version is divided into several components.
 
 ### Major Version
 
@@ -20072,7 +20072,7 @@ The main goal is simply to expose the library version clearly.
 
 Typical uses of `<xer/version.h>` include:
 
-* displaying the current XER version in logs or diagnostics
+* displaying the current xer version in logs or diagnostics
 * embedding the version into generated documentation
 * checking the library version in test code
 * simple conditional handling in source code
