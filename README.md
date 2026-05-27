@@ -8,6 +8,8 @@
   <a href="https://github.com/takagi-nobuhisa/xer">GitHub</a>
   ·
   <a href="https://x.com/xercpplib">X: @xercpplib</a>
+  ·
+  <a href="https://note.com/xercpplib">note</a>
 </p>
 
 [日本語版 README / Japanese README](README.ja.md)
@@ -15,6 +17,12 @@
 xer is a header-only C++23 library designed for programmers who are familiar with C and want a simpler, more predictable alternative to overly abstract C++ APIs.
 
 It keeps the spirit of the C standard library where that style is still practical, but redesigns the APIs as a modern C++ library with stronger typing, explicit error handling, and Unicode-aware text processing.
+
+## Links
+
+- [GitHub](https://github.com/takagi-nobuhisa/xer)
+- [X: @xercpplib](https://x.com/xercpplib)
+- [note](https://note.com/xercpplib): articles about how to use xer and other practical or interesting topics
 
 ## Status
 
