@@ -6,6 +6,9 @@
 // heron: 6
 // polar: 5
 // cartesian: 3 4
+// dot: 11
+// length: 5
+// distance: 5
 // quadratic: 2 3
 // cubic: 1 2 3
 
@@ -46,6 +49,12 @@ auto main() -> int
 
     const auto v = xer::to_cartesian(p);
     std::cout << "cartesian: " << std::round(v.x) << ' ' << std::round(v.y) << '\n';
+
+    const auto a = xer::vec<int>{1, 2};
+    const auto b = xer::vec<int>{3, 4};
+    std::cout << "dot: " << xer::dot(a, b) << '\n';
+    std::cout << "length: " << xer::length(xer::vec<int>{3, 4}) << '\n';
+    std::cout << "distance: " << xer::distance(xer::vec<int>{1, 2}, xer::vec<int>{4, 6}) << '\n';
 
     const auto q = xer::quadratic(1.0, -5.0, 6.0);
     if (!q) {

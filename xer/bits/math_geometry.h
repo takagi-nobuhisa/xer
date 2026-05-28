@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <expected>
 #include <functional>
+#include <type_traits>
 #include <utility>
 
 #include <xer/bits/error.h>
@@ -216,6 +217,53 @@ struct vec<T, 4> {
         }
     }
 };
+
+
+
+template<class T, std::size_t N>
+    requires std::is_arithmetic_v<T>
+[[nodiscard]] constexpr auto dot(vec<T, N> a, vec<T, N> b) noexcept -> T
+{
+    auto value = T{};
+
+    for (std::size_t i = 0; i < N; ++i) {
+        value += a[i] * b[i];
+    }
+
+    return value;
+}
+
+template<class T, std::size_t N>
+    requires std::is_arithmetic_v<T>
+[[nodiscard]] auto length(vec<T, N> v) noexcept -> std::common_type_t<T, double>
+{
+    using result_type = std::common_type_t<T, double>;
+
+    auto value = result_type{};
+
+    for (std::size_t i = 0; i < N; ++i) {
+        const auto component = static_cast<result_type>(v[i]);
+        value += component * component;
+    }
+
+    return std::sqrt(value);
+}
+
+template<class T, std::size_t N>
+    requires std::is_arithmetic_v<T>
+[[nodiscard]] auto distance(vec<T, N> a, vec<T, N> b) noexcept -> std::common_type_t<T, double>
+{
+    using result_type = std::common_type_t<T, double>;
+
+    auto value = result_type{};
+
+    for (std::size_t i = 0; i < N; ++i) {
+        const auto diff = static_cast<result_type>(a[i]) - static_cast<result_type>(b[i]);
+        value += diff * diff;
+    }
+
+    return std::sqrt(value);
+}
 
 template<class T, std::size_t N = 2>
 struct polar;

@@ -14419,6 +14419,46 @@ x = r * cos(theta)
 y = r * sin(theta)
 ```
 
+
+### `dot`
+
+```cpp
+template<class T, std::size_t N>
+auto dot(vec<T, N> a, vec<T, N> b) noexcept -> T;
+```
+
+Computes the dot product of two vectors.
+
+`T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
+
+The function returns the sum of the products of corresponding components. For integral vectors, the returned value is also integral.
+
+### `length`
+
+```cpp
+template<class T, std::size_t N>
+auto length(vec<T, N> v) noexcept -> std::common_type_t<T, double>;
+```
+
+Computes the Euclidean length of a vector.
+
+`T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
+
+The return type is `std::common_type_t<T, double>`, so integer vectors produce a floating-point length.
+
+### `distance`
+
+```cpp
+template<class T, std::size_t N>
+auto distance(vec<T, N> a, vec<T, N> b) noexcept -> std::common_type_t<T, double>;
+```
+
+Computes the Euclidean distance between two vectors. Positions are represented as position vectors, so this function can also be used to compute the distance between two points.
+
+`T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
+
+The return type is `std::common_type_t<T, double>`, so integer vectors produce a floating-point distance.
+
 ### `heron`
 
 ```cpp

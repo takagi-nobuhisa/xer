@@ -79,6 +79,40 @@ void test_to_cartesian()
     xer_assert(xer::detail::equation_near(v.y, 4.0));
 }
 
+
+void test_dot()
+{
+    constexpr auto a = xer::vec<int>{1, 2};
+    constexpr auto b = xer::vec<int>{3, 4};
+    constexpr auto c = xer::vec<int, 3>{1, 2, 3};
+    constexpr auto d = xer::vec<int, 3>{4, 5, 6};
+
+    static_assert(xer::dot(a, b) == 11);
+    static_assert(xer::dot(c, d) == 32);
+}
+
+void test_length()
+{
+    const auto v2 = xer::vec<int>{3, 4};
+    const auto v3 = xer::vec<double, 3>{2.0, 3.0, 6.0};
+    const auto v4 = xer::vec<double, 4>{1.0, 2.0, 2.0, 4.0};
+
+    xer_assert(xer::detail::equation_near(xer::length(v2), 5.0));
+    xer_assert(xer::detail::equation_near(xer::length(v3), 7.0));
+    xer_assert(xer::detail::equation_near(xer::length(v4), 5.0));
+}
+
+void test_distance()
+{
+    const auto a = xer::vec<int>{1, 2};
+    const auto b = xer::vec<int>{4, 6};
+    const auto c = xer::vec<double, 3>{1.0, 2.0, 3.0};
+    const auto d = xer::vec<double, 3>{3.0, 5.0, 9.0};
+
+    xer_assert(xer::detail::equation_near(xer::distance(a, b), 5.0));
+    xer_assert(xer::detail::equation_near(xer::distance(c, d), 7.0));
+}
+
 void test_heron_regular_triangle()
 {
     const auto area = xer::heron(3.0, 4.0, 5.0);
@@ -202,6 +236,9 @@ auto main() -> int
     test_vec_at_out_of_range();
     test_to_polar();
     test_to_cartesian();
+    test_dot();
+    test_length();
+    test_distance();
     test_heron_regular_triangle();
     test_heron_degenerate_triangle();
     test_heron_invalid_negative_side();
