@@ -6,7 +6,7 @@
 - Headers under `xer/bits/` are for internal implementation and are not treated as public headers.
 - The goal is not to mirror the names of C standard library headers exactly, but to reorganize them into units that are meaningful for xer.
 - `wchar.h` and `wctype.h` are not provided as independent headers; their related functionality is absorbed into other headers.
-- `math.h` is reserved for future consideration and is not included among the public headers at this time.
+- `math.h` and `complex.h` provide lightweight real-number and complex-number mathematical utilities.
 
 ---
 
@@ -58,6 +58,8 @@
 - `xer/stdint.h`
 - `xer/stdfloat.h`
 - `xer/arithmetic.h`
+- `xer/math.h`
+- `xer/complex.h`
 - `xer/cyclic.h`
 - `xer/interval.h`
 - `xer/color.h`
@@ -96,7 +98,6 @@ Their necessary functionality is absorbed into existing headers.
 
 At least at the current stage, xer does not reimplement the following headers:
 
-- `complex.h`
 - `fenv.h`
 - `float.h`
 - `limits.h`
@@ -105,14 +106,11 @@ At least at the current stage, xer does not reimplement the following headers:
 
 ---
 
-## Headers Deferred for Later Consideration
+## Mathematical Header Scope
 
-- `math.h`
+`xer/math.h` and `xer/complex.h` provide lightweight mathematical helpers whose behavior fits xer's explicit error model.
 
-Notes:
-
-- The mathematical function family may be considered in the future according to actual need.
-- However, it is not included in the current priority set.
+At this stage, the scope is intentionally practical and limited. The real-number helpers are provided through `xer/math.h`, while complex-number helpers are provided through `xer/complex.h` so that users who need only real-number calculations do not have to include complex-number facilities.
 
 ---
 
