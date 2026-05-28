@@ -14322,6 +14322,20 @@ The initial scope is intentionally practical. It is not a replacement for a nume
 
 ## Provided Functions
 
+
+### `heron`
+
+```cpp
+template<std::floating_point T>
+auto heron(T a, T b, T c) -> xer::result<T>;
+```
+
+Computes the area of a triangle from its three side lengths using Heron's formula.
+
+The side lengths must be non-negative and must be able to form a triangle. If a side length is negative, or if the side lengths violate the triangle inequality, the function returns `error_t::invalid_argument`. Degenerate triangles are accepted and return zero.
+
+The implementation uses a rearranged form of Heron's formula after sorting the side lengths. This avoids some avoidable cancellation compared with the most direct `s * (s - a) * (s - b) * (s - c)` form.
+
 ### `quadratic`
 
 ```cpp

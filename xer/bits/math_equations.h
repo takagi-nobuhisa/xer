@@ -79,6 +79,51 @@ auto sort_real_roots(std::array<std::optional<T>, N>& roots) noexcept -> void
 
 } // namespace detail
 
+
+/**
+ * @brief Computes the area of a triangle from its three side lengths.
+ *
+ * The function uses Heron's formula. The arguments are interpreted as side
+ * lengths. Negative side lengths and side lengths that cannot form a triangle
+ * are rejected with `error_t::invalid_argument`. Degenerate triangles are
+ * accepted and return zero.
+ *
+ * @tparam T Floating-point type.
+ * @param a First side length.
+ * @param b Second side length.
+ * @param c Third side length.
+ * @return Triangle area, or an error if the arguments are invalid.
+ */
+template<std::floating_point T>
+[[nodiscard]] auto heron(T a, T b, T c) -> result<T>
+{
+    if (a < T{} || b < T{} || c < T{}) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    std::array<T, 3> sides{a, b, c};
+    std::sort(sides.begin(), sides.end());
+
+    const T x = sides[0];
+    const T y = sides[1];
+    const T z = sides[2];
+
+    if (z - y > x) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    if (z - y == x) {
+        return T{};
+    }
+
+    const T term1 = z + (x + y);
+    const T term2 = x - (z - y);
+    const T term3 = x + (z - y);
+    const T term4 = z + (y - x);
+
+    return std::sqrt(term1 * term2 * term3 * term4) / static_cast<T>(4);
+}
+
 /**
  * @brief Solves a quadratic equation and returns its real roots.
  *
