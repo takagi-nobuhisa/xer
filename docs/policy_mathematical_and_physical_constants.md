@@ -59,12 +59,14 @@ Examples:
 τ
 𝑒
 𝑐
-ℎ
 ```
 
 Unicode symbolic aliases are optional conveniences.
 They are intended for users who want code that visually resembles mathematical notation.
 Users who prefer plain ASCII, or who cannot easily input such characters, can use the descriptive primary names instead.
+
+Unicode symbolic aliases should be added only when the exact character is reasonably displayable in common source-code editors and programming fonts.
+A symbol that is semantically accurate but poorly supported by editors should not be used as a public identifier.
 
 ---
 
@@ -85,17 +87,21 @@ Examples:
 This keeps symbolic aliases visually distinct from ordinary C++ identifiers.
 It also makes it clear that the identifier is a mathematical symbol, not a normal variable name.
 
-### Prefer Dedicated Unicode Symbols When Appropriate
+### Avoid Poorly Supported Dedicated Symbols
 
-If Unicode provides a dedicated symbol for a specific mathematical or physical constant, xer may prefer that symbol over a generic Mathematical Italic letter.
+Unicode includes some dedicated symbols for mathematical or physical constants, but xer should not automatically prefer them.
+Editor and font support is more important for public source-code identifiers than semantic precision alone.
 
-For example, the Planck constant should use:
+For example, `ℎ` (U+210E PLANCK CONSTANT) is semantically appropriate for the Planck constant, but it is not displayed correctly by many text editors and programming fonts.
+Therefore, xer should not use `ℎ` as a public identifier.
+
+The Planck constant should be provided through its descriptive primary name:
 
 ```cpp
-ℎ // U+210E PLANCK CONSTANT
+planck_constant
 ```
 
-rather than an ordinary ASCII `h` or a generic mathematical italic spelling.
+A Unicode symbolic alias for the Planck constant should be omitted unless a candidate character is both semantically appropriate and sufficiently well supported in common source-code environments.
 
 ---
 
@@ -140,6 +146,8 @@ Once provided, they should be treated as ordinary public API names.
 Unicode symbolic aliases are also public API once released, but they should be regarded as notation-oriented conveniences.
 Before adding a new symbolic alias, xer should verify the exact Unicode character and document it in the implementation comments or reference documentation.
 
+If a Unicode symbolic alias is found to have poor editor or font support before release, it should be removed or replaced before it becomes part of the public API.
+
 ---
 
 ## Recommended Implementation Style
@@ -156,7 +164,6 @@ inline constexpr auto speed_of_light = /* ... */;
 inline constexpr auto 𝑐 = speed_of_light;
 
 inline constexpr auto planck_constant = /* ... */;
-inline constexpr auto ℎ = planck_constant;
 ```
 
 This avoids duplicated definitions and keeps the descriptive identifier as the canonical implementation point.
@@ -179,7 +186,7 @@ The exact naming form should follow the conventions of the corresponding header.
 
 - Use descriptive ASCII names as the primary identifiers for mathematical and physical constants.
 - Do not provide ASCII one-letter aliases such as `e`, `c`, `h`, or `k`.
-- Provide Unicode symbolic aliases only when the notation is well known and useful.
+- Provide Unicode symbolic aliases only when the notation is well known, useful, and reasonably displayable in common source-code environments.
 - Use Mathematical Italic characters for Latin-letter symbolic aliases.
-- Prefer dedicated Unicode symbols such as `ℎ` for Planck's constant when appropriate.
+- Do not use poorly supported dedicated symbols such as `ℎ` as public identifiers, even when they are semantically accurate.
 - Keep symbolic aliases as aliases of descriptive primary names, not as separate definitions.
