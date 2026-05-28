@@ -113,6 +113,46 @@ void test_distance()
     xer_assert(xer::detail::equation_near(xer::distance(c, d), 7.0));
 }
 
+void test_normalize()
+{
+    const auto v2 = xer::normalize(xer::vec<int>{3, 4});
+    const auto v3 = xer::normalize(xer::vec<double, 3>{2.0, 3.0, 6.0});
+
+    xer_assert(v2.has_value());
+    xer_assert(xer::detail::equation_near(v2->x, 0.6));
+    xer_assert(xer::detail::equation_near(v2->y, 0.8));
+    xer_assert(xer::detail::equation_near(xer::length(*v2), 1.0));
+
+    xer_assert(v3.has_value());
+    xer_assert(xer::detail::equation_near(v3->x, 2.0 / 7.0));
+    xer_assert(xer::detail::equation_near(v3->y, 3.0 / 7.0));
+    xer_assert(xer::detail::equation_near(v3->z, 6.0 / 7.0));
+    xer_assert(xer::detail::equation_near(xer::length(*v3), 1.0));
+}
+
+void test_normalize_zero_vector()
+{
+    const auto v = xer::normalize(xer::vec<double>{0.0, 0.0});
+
+    xer_assert_not(v.has_value());
+    xer_assert(v.error().code == xer::error_t::invalid_argument);
+}
+
+void test_cross()
+{
+    constexpr auto x = xer::vec<int, 3>{1, 0, 0};
+    constexpr auto y = xer::vec<int, 3>{0, 1, 0};
+    constexpr auto z = xer::cross(x, y);
+    constexpr auto z_reverse = xer::cross(y, x);
+
+    static_assert(z.x == 0);
+    static_assert(z.y == 0);
+    static_assert(z.z == 1);
+    static_assert(z_reverse.x == 0);
+    static_assert(z_reverse.y == 0);
+    static_assert(z_reverse.z == -1);
+}
+
 void test_heron_regular_triangle()
 {
     const auto area = xer::heron(3.0, 4.0, 5.0);
@@ -239,6 +279,9 @@ auto main() -> int
     test_dot();
     test_length();
     test_distance();
+    test_normalize();
+    test_normalize_zero_vector();
+    test_cross();
     test_heron_regular_triangle();
     test_heron_degenerate_triangle();
     test_heron_invalid_negative_side();

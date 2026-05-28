@@ -147,6 +147,33 @@ Computes the Euclidean distance between two vectors. Positions are represented a
 
 The return type is `std::common_type_t<T, double>`, so integer vectors produce a floating-point distance.
 
+### `normalize`
+
+```cpp
+template<class T, std::size_t N>
+auto normalize(vec<T, N> v) noexcept
+    -> xer::result<vec<std::common_type_t<T, double>, N>>;
+```
+
+Returns a vector with the same direction as `v` and length `1`.
+
+`T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
+
+The returned vector uses `std::common_type_t<T, double>` as its component type, so integer vectors can be normalized without losing fractional components.
+
+If `v` is the zero vector, the function returns `error_t::invalid_argument`.
+
+### `cross`
+
+```cpp
+template<class T>
+auto cross(vec<T, 3> a, vec<T, 3> b) noexcept -> vec<T, 3>;
+```
+
+Computes the three-dimensional cross product of two vectors.
+
+`T` must be an arithmetic type. The function currently supports only `vec<T, 3>`.
+
 ### `heron`
 
 ```cpp

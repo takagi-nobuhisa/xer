@@ -265,6 +265,37 @@ template<class T, std::size_t N>
     return std::sqrt(value);
 }
 
+template<class T, std::size_t N>
+    requires std::is_arithmetic_v<T>
+[[nodiscard]] auto normalize(vec<T, N> v) noexcept
+    -> result<vec<std::common_type_t<T, double>, N>>
+{
+    using result_type = std::common_type_t<T, double>;
+
+    const auto len = length(v);
+    if (len == result_type{}) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    auto result = vec<result_type, N>{};
+    for (std::size_t i = 0; i < N; ++i) {
+        result[i] = static_cast<result_type>(v[i]) / len;
+    }
+
+    return result;
+}
+
+template<class T>
+    requires std::is_arithmetic_v<T>
+[[nodiscard]] constexpr auto cross(vec<T, 3> a, vec<T, 3> b) noexcept -> vec<T, 3>
+{
+    return vec<T, 3>{
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x,
+    };
+}
+
 template<class T, std::size_t N = 2>
 struct polar;
 

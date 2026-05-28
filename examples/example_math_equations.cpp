@@ -9,6 +9,8 @@
 // dot: 11
 // length: 5
 // distance: 5
+// normalize: 0.6 0.8
+// cross: 0 0 1
 // quadratic: 2 3
 // cubic: 1 2 3
 
@@ -55,6 +57,15 @@ auto main() -> int
     std::cout << "dot: " << xer::dot(a, b) << '\n';
     std::cout << "length: " << xer::length(xer::vec<int>{3, 4}) << '\n';
     std::cout << "distance: " << xer::distance(xer::vec<int>{1, 2}, xer::vec<int>{4, 6}) << '\n';
+
+    const auto n = xer::normalize(xer::vec<int>{3, 4});
+    if (!n) {
+        return 1;
+    }
+    std::cout << "normalize: " << n->x << ' ' << n->y << '\n';
+
+    const auto cross = xer::cross(xer::vec<int, 3>{1, 0, 0}, xer::vec<int, 3>{0, 1, 0});
+    std::cout << "cross: " << cross.x << ' ' << cross.y << ' ' << cross.z << '\n';
 
     const auto q = xer::quadratic(1.0, -5.0, 6.0);
     if (!q) {
