@@ -13,6 +13,7 @@
 #include <xer/bits/div.h>
 #include <xer/bits/environs.h>
 #include <xer/bits/getenv.h>
+#include <xer/bits/itostr.h>
 #include <xer/bits/mbstate.h>
 #include <xer/bits/multibyte_string.h>
 #include <xer/bits/qsort.h>

@@ -31,6 +31,7 @@ The main role of `<xer/stdlib.h>` is to provide utility facilities that do not b
 In particular, it serves as the home for:
 
 - string-to-number conversion
+- integer-to-string conversion
 - multibyte conversion APIs
 - search and sort helpers
 - pseudo-random utilities
@@ -124,6 +125,9 @@ atoi
 atol
 atoll
 
+itostr
+itoa
+
 strto
 strtol
 strtoll
@@ -171,6 +175,44 @@ Integer conversion may also support practical forms such as:
 * binary with `0b...` where adopted by xer
 
 The precise accepted grammar belongs in detailed API documentation.  The numeric parsing overloads accept ASCII digits and signs through `std::basic_string_view`, `std::basic_string`, and null-terminated pointer inputs for the supported C++ character types.
+
+### Integer-to-String Conversion
+
+`itostr` converts an integer value into an ASCII-compatible digit sequence and stores the result in a caller-provided output object.
+`itoa` is an alias of `itostr`.
+
+```cpp
+template <class Integer, class CharT>
+auto itostr(Integer value, std::basic_string<CharT>& str, int radix = 10)
+    -> result<std::basic_string<CharT>*>;
+
+template <class Integer, class CharT, std::size_t N>
+auto itostr(Integer value, CharT (&s)[N], int radix = 10)
+    -> result<CharT*>;
+```
+
+The same overloads are also available as `itoa`.
+
+The output character type may be `char`, `char8_t`, `wchar_t`, `char16_t`, or `char32_t`.
+Only ASCII digit characters are generated.
+For radices greater than ten, lowercase letters `a` through `z` are used.
+
+The supported radix range is 2 through 36.
+If the radix is outside this range, the function returns `error_t::invalid_argument`.
+For signed integer values, a leading `-` is emitted when the value is negative.
+
+The `std::basic_string` overload replaces the destination string only after conversion succeeds.
+On success it returns a pointer to the destination string.
+The character-array overload writes a null-terminated string into the supplied buffer and returns the buffer pointer.
+If the buffer is too small, it returns `error_t::length_error` and does not modify the buffer.
+
+Example:
+
+```cpp
+std::u8string text;
+const auto result = xer::itostr(255, text, 16);
+// text == u8"ff"
+```
 
 ---
 
