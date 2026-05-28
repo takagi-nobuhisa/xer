@@ -1,6 +1,6 @@
 ﻿/**
  * @file xer/bits/strto_floating.h
- * @brief Floating-point parsing functions based on UTF-8 character sequences.
+ * @brief Floating-point parsing functions based on ASCII-compatible character sequences.
  */
 
 #pragma once
@@ -28,24 +28,11 @@ namespace detail {
 template<typename T>
 concept strto_floating_point = std::floating_point<std::remove_cv_t<T>>;
 
-[[nodiscard]] constexpr auto ascii_to_lower(char8_t ch) noexcept -> char8_t
-{
-    if (ch >= u8'A' && ch <= u8'Z') {
-        return static_cast<char8_t>(ch - u8'A' + u8'a');
-    }
-
-    return ch;
-}
-
-[[nodiscard]] constexpr auto ascii_iequal(char8_t lhs, char8_t rhs) noexcept -> bool
-{
-    return ascii_to_lower(lhs) == ascii_to_lower(rhs);
-}
-
+template<strto_character CharT>
 [[nodiscard]] constexpr auto starts_with_ascii_icase(
-    std::u8string_view str,
+    std::basic_string_view<CharT> str,
     std::size_t offset,
-    std::u8string_view keyword) noexcept -> bool
+    std::string_view keyword) noexcept -> bool
 {
     if (offset + keyword.size() > str.size()) {
         return false;
@@ -65,26 +52,27 @@ struct floating_special_result {
     std::size_t end_offset;
 };
 
+template<strto_character CharT>
 [[nodiscard]] inline auto parse_special_floating(
-    std::u8string_view str,
+    std::basic_string_view<CharT> str,
     std::size_t offset,
     bool negative) -> result<floating_special_result>
 {
-    if (starts_with_ascii_icase(str, offset, u8"infinity")) {
+    if (starts_with_ascii_icase(str, offset, "infinity")) {
         const long double value = negative
                                       ? -std::numeric_limits<long double>::infinity()
                                       : std::numeric_limits<long double>::infinity();
         return floating_special_result{value, offset + 8};
     }
 
-    if (starts_with_ascii_icase(str, offset, u8"inf")) {
+    if (starts_with_ascii_icase(str, offset, "inf")) {
         const long double value = negative
                                       ? -std::numeric_limits<long double>::infinity()
                                       : std::numeric_limits<long double>::infinity();
         return floating_special_result{value, offset + 3};
     }
 
-    if (starts_with_ascii_icase(str, offset, u8"nan")) {
+    if (starts_with_ascii_icase(str, offset, "nan")) {
         long double value = std::numeric_limits<long double>::quiet_NaN();
         if (negative) {
             value = -value;
@@ -92,13 +80,13 @@ struct floating_special_result {
 
         std::size_t end_offset = offset + 3;
 
-        if (end_offset < str.size() && str[end_offset] == u8'(') {
+        if (end_offset < str.size() && str[end_offset] == ascii_char<CharT>('(')) {
             std::size_t pos = end_offset + 1;
-            while (pos < str.size() && str[pos] != u8')') {
+            while (pos < str.size() && str[pos] != ascii_char<CharT>(')')) {
                 ++pos;
             }
 
-            if (pos < str.size() && str[pos] == u8')') {
+            if (pos < str.size() && str[pos] == ascii_char<CharT>(')')) {
                 end_offset = pos + 1;
             }
         }
@@ -196,9 +184,9 @@ struct floating_parse_result {
     return scale_by_power_of_ten(significand, exponent);
 }
 
-template<strto_floating_point T>
+template<strto_floating_point T, strto_character CharT>
 [[nodiscard]] inline auto parse_floating_view(
-    std::u8string_view str) -> result<floating_parse_result<T>>
+    std::basic_string_view<CharT> str) -> result<floating_parse_result<T>>
 {
     std::size_t offset = 0;
     while (offset < str.size() && is_ascii_space(str[offset])) {
@@ -209,9 +197,9 @@ template<strto_floating_point T>
 
     bool negative = false;
     if (offset < str.size()) {
-        if (str[offset] == u8'+') {
+        if (str[offset] == ascii_char<CharT>('+')) {
             ++offset;
-        } else if (str[offset] == u8'-') {
+        } else if (str[offset] == ascii_char<CharT>('-')) {
             negative = true;
             ++offset;
         }
@@ -237,8 +225,9 @@ template<strto_floating_point T>
     bool hexadecimal = false;
 
     if (offset + 1 < str.size() &&
-        str[offset] == u8'0' &&
-        (str[offset + 1] == u8'x' || str[offset + 1] == u8'X')) {
+        str[offset] == ascii_char<CharT>('0') &&
+        (str[offset + 1] == ascii_char<CharT>('x') ||
+         str[offset + 1] == ascii_char<CharT>('X'))) {
         hexadecimal = true;
         offset += 2;
     }
@@ -273,7 +262,7 @@ template<strto_floating_point T>
         ++offset;
     }
 
-    if (offset < str.size() && str[offset] == u8'.') {
+    if (offset < str.size() && str[offset] == ascii_char<CharT>('.')) {
         ++offset;
 
         while (offset < str.size()) {
@@ -304,10 +293,14 @@ template<strto_floating_point T>
 
     long long explicit_exponent = 0;
     if (offset < str.size()) {
-        const char8_t exponent_marker = str[offset];
+        const CharT exponent_marker = str[offset];
         const bool is_exponent_marker =
-            (!hexadecimal && (exponent_marker == u8'e' || exponent_marker == u8'E')) ||
-            (hexadecimal && (exponent_marker == u8'p' || exponent_marker == u8'P'));
+            (!hexadecimal &&
+             (exponent_marker == ascii_char<CharT>('e') ||
+              exponent_marker == ascii_char<CharT>('E'))) ||
+            (hexadecimal &&
+             (exponent_marker == ascii_char<CharT>('p') ||
+              exponent_marker == ascii_char<CharT>('P')));
 
         if (is_exponent_marker) {
             const std::size_t exponent_begin = offset;
@@ -315,9 +308,9 @@ template<strto_floating_point T>
             bool exponent_negative = false;
 
             if (pos < str.size()) {
-                if (str[pos] == u8'+') {
+                if (str[pos] == ascii_char<CharT>('+')) {
                     ++pos;
-                } else if (str[pos] == u8'-') {
+                } else if (str[pos] == ascii_char<CharT>('-')) {
                     exponent_negative = true;
                     ++pos;
                 }
@@ -328,9 +321,11 @@ template<strto_floating_point T>
             constexpr long long exponent_limit =
                 std::numeric_limits<long long>::max() / 10;
 
-            while (pos < str.size() && str[pos] >= u8'0' && str[pos] <= u8'9') {
+            while (pos < str.size() &&
+                   str[pos] >= ascii_char<CharT>('0') &&
+                   str[pos] <= ascii_char<CharT>('9')) {
                 has_exponent_digits = true;
-                const int digit = static_cast<int>(str[pos] - u8'0');
+                const int digit = static_cast<int>(str[pos] - ascii_char<CharT>('0'));
 
                 if (exponent_value > exponent_limit) {
                     exponent_value = std::numeric_limits<long long>::max();
@@ -423,9 +418,9 @@ template<strto_floating_point T>
     return floating_parse_result<T>{converted, offset};
 }
 
-template<strto_floating_point T>
+template<strto_floating_point T, strto_character CharT>
 [[nodiscard]] inline auto strto_from_view(
-    std::u8string_view str,
+    std::basic_string_view<CharT> str,
     std::size_t* end_offset) -> result<T>
 {
     const auto parsed = parse_floating_view<T>(str);
@@ -446,10 +441,10 @@ template<strto_floating_point T>
 
 } // namespace detail
 
-template<detail::strto_floating_point T>
+template<detail::strto_floating_point T, detail::strto_character CharT>
 [[nodiscard]] inline auto strto(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr) -> result<T>
+    std::basic_string_view<CharT> str,
+    typename std::basic_string_view<CharT>::const_iterator* endit = nullptr) -> result<T>
 {
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(str, &end_offset);
@@ -461,13 +456,13 @@ template<detail::strto_floating_point T>
     return result;
 }
 
-template<detail::strto_floating_point T>
+template<detail::strto_floating_point T, detail::strto_character CharT>
 [[nodiscard]] inline auto strto(
-    const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr) -> result<T>
+    const std::basic_string<CharT>& str,
+    typename std::basic_string<CharT>::const_iterator* endit = nullptr) -> result<T>
 {
     std::size_t end_offset = 0;
-    const auto result = detail::strto_from_view<T>(std::u8string_view(str), &end_offset);
+    const auto result = detail::strto_from_view<T>(std::basic_string_view<CharT>(str), &end_offset);
 
     if (endit != nullptr) {
         *endit = str.begin() + static_cast<std::ptrdiff_t>(end_offset);
@@ -476,13 +471,13 @@ template<detail::strto_floating_point T>
     return result;
 }
 
-template<detail::strto_floating_point T>
+template<detail::strto_floating_point T, detail::strto_character CharT>
 [[nodiscard]] inline auto strto(
-    std::u8string& str,
-    std::u8string::iterator* endit = nullptr) -> result<T>
+    std::basic_string<CharT>& str,
+    typename std::basic_string<CharT>::iterator* endit = nullptr) -> result<T>
 {
     std::size_t end_offset = 0;
-    const auto result = detail::strto_from_view<T>(std::u8string_view(str), &end_offset);
+    const auto result = detail::strto_from_view<T>(std::basic_string_view<CharT>(str), &end_offset);
 
     if (endit != nullptr) {
         *endit = str.begin() + static_cast<std::ptrdiff_t>(end_offset);
@@ -491,12 +486,12 @@ template<detail::strto_floating_point T>
     return result;
 }
 
-template<detail::strto_floating_point T>
+template<detail::strto_floating_point T, detail::strto_character CharT>
 [[nodiscard]] inline auto strto(
-    const char8_t* str,
-    const char8_t** endptr = nullptr) -> result<T>
+    const CharT* str,
+    const CharT** endptr = nullptr) -> result<T>
 {
-    const std::u8string_view view(str);
+    const std::basic_string_view<CharT> view(str);
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(view, &end_offset);
 
@@ -507,12 +502,12 @@ template<detail::strto_floating_point T>
     return result;
 }
 
-template<detail::strto_floating_point T>
+template<detail::strto_floating_point T, detail::strto_character CharT>
 [[nodiscard]] inline auto strto(
-    char8_t* str,
-    char8_t** endptr = nullptr) -> result<T>
+    CharT* str,
+    CharT** endptr = nullptr) -> result<T>
 {
-    const std::u8string_view view(str);
+    const std::basic_string_view<CharT> view(str);
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(view, &end_offset);
 
@@ -523,124 +518,80 @@ template<detail::strto_floating_point T>
     return result;
 }
 
-[[nodiscard]] inline auto strtof(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr) -> result<float>
+template<detail::strto_floating_point T, detail::strto_character CharT>
+[[nodiscard]] inline auto strto(
+    const CharT* str,
+    std::nullptr_t) -> result<T>
 {
-    return strto<float>(str, endit);
+    return strto<T>(str, static_cast<const CharT**>(nullptr));
 }
 
-[[nodiscard]] inline auto strtof(
-    const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr) -> result<float>
+template<detail::strto_floating_point T, detail::strto_character CharT>
+[[nodiscard]] inline auto strto(
+    CharT* str,
+    std::nullptr_t) -> result<T>
 {
-    return strto<float>(str, endit);
+    return strto<T>(str, static_cast<CharT**>(nullptr));
 }
 
-[[nodiscard]] inline auto strtof(
-    std::u8string& str,
-    std::u8string::iterator* endit = nullptr) -> result<float>
-{
-    return strto<float>(str, endit);
-}
+#define XER_DEFINE_STRTO_FLOATING_WRAPPER(name, type) \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] inline auto name( \
+        std::basic_string_view<CharT> str, \
+        typename std::basic_string_view<CharT>::const_iterator* endit = nullptr) -> result<type> \
+    { \
+        return strto<type>(str, endit); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] inline auto name( \
+        const std::basic_string<CharT>& str, \
+        typename std::basic_string<CharT>::const_iterator* endit = nullptr) -> result<type> \
+    { \
+        return strto<type>(str, endit); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] inline auto name( \
+        std::basic_string<CharT>& str, \
+        typename std::basic_string<CharT>::iterator* endit = nullptr) -> result<type> \
+    { \
+        return strto<type>(str, endit); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] inline auto name( \
+        const CharT* str, \
+        const CharT** endptr = nullptr) -> result<type> \
+    { \
+        return strto<type>(str, endptr); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] inline auto name( \
+        CharT* str, \
+        CharT** endptr = nullptr) -> result<type> \
+    { \
+        return strto<type>(str, endptr); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] inline auto name( \
+        const CharT* str, \
+        std::nullptr_t) -> result<type> \
+    { \
+        return strto<type>(str, nullptr); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] inline auto name( \
+        CharT* str, \
+        std::nullptr_t) -> result<type> \
+    { \
+        return strto<type>(str, nullptr); \
+    }
 
-[[nodiscard]] inline auto strtof(
-    const char8_t* str,
-    const char8_t** endptr = nullptr) -> result<float>
-{
-    return strto<float>(str, endptr);
-}
+XER_DEFINE_STRTO_FLOATING_WRAPPER(strtof, float)
+XER_DEFINE_STRTO_FLOATING_WRAPPER(strtod, double)
+XER_DEFINE_STRTO_FLOATING_WRAPPER(strtold, long double)
+XER_DEFINE_STRTO_FLOATING_WRAPPER(strtof32, float)
+XER_DEFINE_STRTO_FLOATING_WRAPPER(strtof64, double)
 
-[[nodiscard]] inline auto strtof(
-    char8_t* str,
-    char8_t** endptr = nullptr) -> result<float>
-{
-    return strto<float>(str, endptr);
-}
-
-[[nodiscard]] inline auto strtod(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr) -> result<double>
-{
-    return strto<double>(str, endit);
-}
-
-[[nodiscard]] inline auto strtod(
-    const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr) -> result<double>
-{
-    return strto<double>(str, endit);
-}
-
-[[nodiscard]] inline auto strtod(
-    std::u8string& str,
-    std::u8string::iterator* endit = nullptr) -> result<double>
-{
-    return strto<double>(str, endit);
-}
-
-[[nodiscard]] inline auto strtod(
-    const char8_t* str,
-    const char8_t** endptr = nullptr) -> result<double>
-{
-    return strto<double>(str, endptr);
-}
-
-[[nodiscard]] inline auto strtod(
-    char8_t* str,
-    char8_t** endptr = nullptr) -> result<double>
-{
-    return strto<double>(str, endptr);
-}
-
-[[nodiscard]] inline auto strtold(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr) -> result<long double>
-{
-    return strto<long double>(str, endit);
-}
-
-[[nodiscard]] inline auto strtold(
-    const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr) -> result<long double>
-{
-    return strto<long double>(str, endit);
-}
-
-[[nodiscard]] inline auto strtold(
-    std::u8string& str,
-    std::u8string::iterator* endit = nullptr) -> result<long double>
-{
-    return strto<long double>(str, endit);
-}
-
-[[nodiscard]] inline auto strtold(
-    const char8_t* str,
-    const char8_t** endptr = nullptr) -> result<long double>
-{
-    return strto<long double>(str, endptr);
-}
-
-[[nodiscard]] inline auto strtold(
-    char8_t* str,
-    char8_t** endptr = nullptr) -> result<long double>
-{
-    return strto<long double>(str, endptr);
-}
-
-[[nodiscard]] inline auto strtof32(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr) -> result<float>
-{
-    return strto<float>(str, endit);
-}
-
-[[nodiscard]] inline auto strtof64(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr) -> result<double>
-{
-    return strto<double>(str, endit);
-}
+#undef XER_DEFINE_STRTO_FLOATING_WRAPPER
 
 } // namespace xer
 

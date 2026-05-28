@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v0.6.0**
+Target version: **v0.7.0a1**
 
 ---
 
@@ -3094,7 +3094,7 @@ Instead, they are reconstructed to fit xer's model.
 
 Important characteristics may include:
 
-* support for UTF-8-oriented public text handling
+* support for ASCII-compatible parsing across `char`, `char8_t`, `wchar_t`, `char16_t`, and `char32_t` input sequences
 * explicit failure reporting
 * practical parsing features such as binary prefixes where adopted by xer
 * consistent behavior across the library's supported environments
@@ -3114,7 +3114,7 @@ Integer conversion may also support practical forms such as:
 * hexadecimal
 * binary with `0b...` where adopted by xer
 
-The precise accepted grammar belongs in detailed API documentation.
+The precise accepted grammar belongs in detailed API documentation.  The numeric parsing overloads accept ASCII digits and signs through `std::basic_string_view`, `std::basic_string`, and null-terminated pointer inputs for the supported C++ character types.
 
 ---
 

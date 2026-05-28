@@ -6,6 +6,7 @@
 #include <limits>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <xer/assert.h>
 #include <xer/bits/strto.h>
@@ -189,6 +190,41 @@ void test_wrapper_functions()
     xer_assert_eq(*value_strtoull, 22ULL);
 }
 
+/**
+ * @brief Tests integer conversion from non-char8_t character sequences.
+ */
+void test_strto_other_character_types()
+{
+    std::string input = "255rest";
+    std::string::iterator endit;
+    const auto value = xer::strto<int>(input, &endit, 10);
+
+    xer_assert(value.has_value());
+    xer_assert_eq(*value, 255);
+    xer_assert(endit == input.begin() + 3);
+
+    const wchar_t* wide_end = nullptr;
+    const wchar_t wide_input[] = L"0xff!";
+    const auto wide_value = xer::strto<unsigned long>(wide_input, &wide_end, 0);
+
+    xer_assert(wide_value.has_value());
+    xer_assert_eq(*wide_value, 255UL);
+    xer_assert(wide_end == wide_input + 4);
+
+    std::u16string u16_input = u"0b101tail";
+    std::u16string::const_iterator u16_end;
+    const auto u16_value = xer::strto<int>(std::as_const(u16_input), &u16_end, 0);
+
+    xer_assert(u16_value.has_value());
+    xer_assert_eq(*u16_value, 5);
+    xer_assert(u16_end == u16_input.begin() + 5);
+
+    const auto u32_value = xer::atoi(U"42xyz");
+
+    xer_assert(u32_value.has_value());
+    xer_assert_eq(*u32_value, 42);
+}
+
 } // namespace
 
 int main()
@@ -206,6 +242,7 @@ int main()
     test_strtoul_negative_input();
     test_strtoull_range_error();
     test_wrapper_functions();
+    test_strto_other_character_types();
 
     return 0;
 }

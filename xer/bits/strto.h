@@ -1,6 +1,6 @@
 ﻿/**
  * @file xer/bits/strto.h
- * @brief Integer parsing functions based on UTF-8 character sequences.
+ * @brief Integer parsing functions based on ASCII-compatible character sequences.
  */
 
 #pragma once
@@ -9,6 +9,7 @@
 #define XER_BITS_STRTO_H_INCLUDED_
 
 #include <concepts>
+#include <cstddef>
 #include <expected>
 #include <limits>
 #include <string>
@@ -34,8 +35,9 @@ struct parsed_integer_prefix {
     int base;
 };
 
+template<strto_character CharT>
 [[nodiscard]] constexpr auto parse_integer_prefix(
-    std::u8string_view str,
+    std::basic_string_view<CharT> str,
     std::size_t offset,
     int base) -> parsed_integer_prefix
 {
@@ -46,16 +48,16 @@ struct parsed_integer_prefix {
     std::size_t digit_offset = offset;
     int actual_base = base;
 
-    if (digit_offset < str.size() && str[digit_offset] == u8'0') {
+    if (digit_offset < str.size() && str[digit_offset] == ascii_char<CharT>('0')) {
         if (digit_offset + 1 < str.size()) {
-            const char8_t next = str[digit_offset + 1];
+            const CharT next = str[digit_offset + 1];
 
             if ((actual_base == 0 || actual_base == 16) &&
-                (next == u8'x' || next == u8'X')) {
+                (next == ascii_char<CharT>('x') || next == ascii_char<CharT>('X'))) {
                 actual_base = 16;
                 digit_offset += 2;
             } else if ((actual_base == 0 || actual_base == 2) &&
-                       (next == u8'b' || next == u8'B')) {
+                       (next == ascii_char<CharT>('b') || next == ascii_char<CharT>('B'))) {
                 actual_base = 2;
                 digit_offset += 2;
             } else if (actual_base == 0) {
@@ -79,9 +81,9 @@ struct strto_result {
     std::size_t end_offset;
 };
 
-template<strto_integer T>
+template<strto_integer T, strto_character CharT>
 [[nodiscard]] constexpr auto parse_integer_view(
-    std::u8string_view str,
+    std::basic_string_view<CharT> str,
     int base) -> result<strto_result<T>>
 {
     using value_type = std::remove_cv_t<T>;
@@ -95,9 +97,9 @@ template<strto_integer T>
     bool negative = false;
 
     if (offset < str.size()) {
-        if (str[offset] == u8'+') {
+        if (str[offset] == ascii_char<CharT>('+')) {
             ++offset;
-        } else if (str[offset] == u8'-') {
+        } else if (str[offset] == ascii_char<CharT>('-')) {
             negative = true;
             ++offset;
         }
@@ -109,8 +111,6 @@ template<strto_integer T>
     }
 
     offset = prefix.digit_offset;
-    const std::size_t digit_begin = offset;
-    (void)digit_begin;
 
     using unsigned_type = std::make_unsigned_t<value_type>;
     unsigned_type limit = 0;
@@ -173,9 +173,9 @@ template<strto_integer T>
     }
 }
 
-template<strto_integer T>
+template<strto_integer T, strto_character CharT>
 [[nodiscard]] constexpr auto strto_from_view(
-    std::u8string_view str,
+    std::basic_string_view<CharT> str,
     std::size_t* end_offset,
     int base) -> result<T>
 {
@@ -194,42 +194,42 @@ template<strto_integer T>
     return parsed->value;
 }
 
-template<strto_integer T>
-[[nodiscard]] constexpr auto ato_from_view(std::u8string_view str) -> result<T>
+template<strto_integer T, strto_character CharT>
+[[nodiscard]] constexpr auto ato_from_view(std::basic_string_view<CharT> str) -> result<T>
 {
     return strto_from_view<T>(str, nullptr, 10);
 }
 
 } // namespace detail
 
-template<detail::strto_integer T>
-[[nodiscard]] constexpr auto ato(std::u8string_view str) -> result<T>
+template<detail::strto_integer T, detail::strto_character CharT>
+[[nodiscard]] constexpr auto ato(std::basic_string_view<CharT> str) -> result<T>
 {
     return detail::ato_from_view<T>(str);
 }
 
-template<detail::strto_integer T>
-[[nodiscard]] constexpr auto ato(const std::u8string& str) -> result<T>
+template<detail::strto_integer T, detail::strto_character CharT>
+[[nodiscard]] constexpr auto ato(const std::basic_string<CharT>& str) -> result<T>
 {
-    return detail::ato_from_view<T>(std::u8string_view(str));
+    return detail::ato_from_view<T>(std::basic_string_view<CharT>(str));
 }
 
-template<detail::strto_integer T>
-[[nodiscard]] constexpr auto ato(const char8_t* str) -> result<T>
+template<detail::strto_integer T, detail::strto_character CharT>
+[[nodiscard]] constexpr auto ato(const CharT* str) -> result<T>
 {
-    return detail::ato_from_view<T>(std::u8string_view(str));
+    return detail::ato_from_view<T>(std::basic_string_view<CharT>(str));
 }
 
-template<detail::strto_integer T>
-[[nodiscard]] constexpr auto ato(char8_t* str) -> result<T>
+template<detail::strto_integer T, detail::strto_character CharT>
+[[nodiscard]] constexpr auto ato(CharT* str) -> result<T>
 {
-    return detail::ato_from_view<T>(std::u8string_view(str));
+    return detail::ato_from_view<T>(std::basic_string_view<CharT>(str));
 }
 
-template<detail::strto_integer T>
+template<detail::strto_integer T, detail::strto_character CharT>
 [[nodiscard]] constexpr auto strto(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr,
+    std::basic_string_view<CharT> str,
+    typename std::basic_string_view<CharT>::const_iterator* endit = nullptr,
     int base = 0) -> result<T>
 {
     std::size_t end_offset = 0;
@@ -242,14 +242,14 @@ template<detail::strto_integer T>
     return result;
 }
 
-template<detail::strto_integer T>
+template<detail::strto_integer T, detail::strto_character CharT>
 [[nodiscard]] constexpr auto strto(
-    const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr,
+    const std::basic_string<CharT>& str,
+    typename std::basic_string<CharT>::const_iterator* endit = nullptr,
     int base = 0) -> result<T>
 {
     std::size_t end_offset = 0;
-    const auto result = detail::strto_from_view<T>(std::u8string_view(str), &end_offset, base);
+    const auto result = detail::strto_from_view<T>(std::basic_string_view<CharT>(str), &end_offset, base);
 
     if (endit != nullptr) {
         *endit = str.begin() + static_cast<std::ptrdiff_t>(end_offset);
@@ -258,14 +258,14 @@ template<detail::strto_integer T>
     return result;
 }
 
-template<detail::strto_integer T>
+template<detail::strto_integer T, detail::strto_character CharT>
 [[nodiscard]] constexpr auto strto(
-    std::u8string& str,
-    std::u8string::iterator* endit = nullptr,
+    std::basic_string<CharT>& str,
+    typename std::basic_string<CharT>::iterator* endit = nullptr,
     int base = 0) -> result<T>
 {
     std::size_t end_offset = 0;
-    const auto result = detail::strto_from_view<T>(std::u8string_view(str), &end_offset, base);
+    const auto result = detail::strto_from_view<T>(std::basic_string_view<CharT>(str), &end_offset, base);
 
     if (endit != nullptr) {
         *endit = str.begin() + static_cast<std::ptrdiff_t>(end_offset);
@@ -274,13 +274,13 @@ template<detail::strto_integer T>
     return result;
 }
 
-template<detail::strto_integer T>
+template<detail::strto_integer T, detail::strto_character CharT>
 [[nodiscard]] constexpr auto strto(
-    const char8_t* str,
-    const char8_t** endptr = nullptr,
+    const CharT* str,
+    const CharT** endptr = nullptr,
     int base = 0) -> result<T>
 {
-    const std::u8string_view view(str);
+    const std::basic_string_view<CharT> view(str);
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(view, &end_offset, base);
 
@@ -291,13 +291,13 @@ template<detail::strto_integer T>
     return result;
 }
 
-template<detail::strto_integer T>
+template<detail::strto_integer T, detail::strto_character CharT>
 [[nodiscard]] constexpr auto strto(
-    char8_t* str,
-    char8_t** endptr = nullptr,
+    CharT* str,
+    CharT** endptr = nullptr,
     int base = 0) -> result<T>
 {
-    const std::u8string_view view(str);
+    const std::basic_string_view<CharT> view(str);
     std::size_t end_offset = 0;
     const auto result = detail::strto_from_view<T>(view, &end_offset, base);
 
@@ -308,225 +308,160 @@ template<detail::strto_integer T>
     return result;
 }
 
-[[nodiscard]] constexpr auto atoi(std::u8string_view str) -> result<int>
+template<detail::strto_integer T, detail::strto_character CharT>
+[[nodiscard]] constexpr auto strto(
+    const CharT* str,
+    std::nullptr_t,
+    int base = 0) -> result<T>
+{
+    return strto<T>(str, static_cast<const CharT**>(nullptr), base);
+}
+
+template<detail::strto_integer T, detail::strto_character CharT>
+[[nodiscard]] constexpr auto strto(
+    CharT* str,
+    std::nullptr_t,
+    int base = 0) -> result<T>
+{
+    return strto<T>(str, static_cast<CharT**>(nullptr), base);
+}
+
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atoi(std::basic_string_view<CharT> str) -> result<int>
 {
     return ato<int>(str);
 }
 
-[[nodiscard]] constexpr auto atoi(const std::u8string& str) -> result<int>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atoi(const std::basic_string<CharT>& str) -> result<int>
 {
     return ato<int>(str);
 }
 
-[[nodiscard]] constexpr auto atoi(const char8_t* str) -> result<int>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atoi(const CharT* str) -> result<int>
 {
     return ato<int>(str);
 }
 
-[[nodiscard]] constexpr auto atoi(char8_t* str) -> result<int>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atoi(CharT* str) -> result<int>
 {
     return ato<int>(str);
 }
 
-[[nodiscard]] constexpr auto atol(std::u8string_view str) -> result<long>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atol(std::basic_string_view<CharT> str) -> result<long>
 {
     return ato<long>(str);
 }
 
-[[nodiscard]] constexpr auto atol(const std::u8string& str) -> result<long>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atol(const std::basic_string<CharT>& str) -> result<long>
 {
     return ato<long>(str);
 }
 
-[[nodiscard]] constexpr auto atol(const char8_t* str) -> result<long>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atol(const CharT* str) -> result<long>
 {
     return ato<long>(str);
 }
 
-[[nodiscard]] constexpr auto atol(char8_t* str) -> result<long>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atol(CharT* str) -> result<long>
 {
     return ato<long>(str);
 }
 
-[[nodiscard]] constexpr auto atoll(std::u8string_view str) -> result<long long>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atoll(std::basic_string_view<CharT> str) -> result<long long>
 {
     return ato<long long>(str);
 }
 
-[[nodiscard]] constexpr auto atoll(const std::u8string& str) -> result<long long>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atoll(const std::basic_string<CharT>& str) -> result<long long>
 {
     return ato<long long>(str);
 }
 
-[[nodiscard]] constexpr auto atoll(const char8_t* str) -> result<long long>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atoll(const CharT* str) -> result<long long>
 {
     return ato<long long>(str);
 }
 
-[[nodiscard]] constexpr auto atoll(char8_t* str) -> result<long long>
+template<detail::strto_character CharT>
+[[nodiscard]] constexpr auto atoll(CharT* str) -> result<long long>
 {
     return ato<long long>(str);
 }
 
-[[nodiscard]] constexpr auto strtol(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<long>(str, endit, base);
-}
+#define XER_DEFINE_STRTO_INTEGER_WRAPPER(name, type) \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] constexpr auto name( \
+        std::basic_string_view<CharT> str, \
+        typename std::basic_string_view<CharT>::const_iterator* endit = nullptr, \
+        int base = 0) -> result<type> \
+    { \
+        return strto<type>(str, endit, base); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] constexpr auto name( \
+        const std::basic_string<CharT>& str, \
+        typename std::basic_string<CharT>::const_iterator* endit = nullptr, \
+        int base = 0) -> result<type> \
+    { \
+        return strto<type>(str, endit, base); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] constexpr auto name( \
+        std::basic_string<CharT>& str, \
+        typename std::basic_string<CharT>::iterator* endit = nullptr, \
+        int base = 0) -> result<type> \
+    { \
+        return strto<type>(str, endit, base); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] constexpr auto name( \
+        const CharT* str, \
+        const CharT** endptr = nullptr, \
+        int base = 0) -> result<type> \
+    { \
+        return strto<type>(str, endptr, base); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] constexpr auto name( \
+        CharT* str, \
+        CharT** endptr = nullptr, \
+        int base = 0) -> result<type> \
+    { \
+        return strto<type>(str, endptr, base); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] constexpr auto name( \
+        const CharT* str, \
+        std::nullptr_t, \
+        int base = 0) -> result<type> \
+    { \
+        return strto<type>(str, nullptr, base); \
+    } \
+    template<detail::strto_character CharT> \
+    [[nodiscard]] constexpr auto name( \
+        CharT* str, \
+        std::nullptr_t, \
+        int base = 0) -> result<type> \
+    { \
+        return strto<type>(str, nullptr, base); \
+    }
 
-[[nodiscard]] constexpr auto strtol(
-    const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<long>(str, endit, base);
-}
+XER_DEFINE_STRTO_INTEGER_WRAPPER(strtol, long)
+XER_DEFINE_STRTO_INTEGER_WRAPPER(strtoll, long long)
+XER_DEFINE_STRTO_INTEGER_WRAPPER(strtoul, unsigned long)
+XER_DEFINE_STRTO_INTEGER_WRAPPER(strtoull, unsigned long long)
 
-[[nodiscard]] constexpr auto strtol(
-    std::u8string& str,
-    std::u8string::iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<long>(str, endit, base);
-}
-
-[[nodiscard]] constexpr auto strtol(
-    const char8_t* str,
-    const char8_t** endptr = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<long>(str, endptr, base);
-}
-
-[[nodiscard]] constexpr auto strtol(
-    char8_t* str,
-    char8_t** endptr = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<long>(str, endptr, base);
-}
-
-[[nodiscard]] constexpr auto strtoll(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<long long>(str, endit, base);
-}
-
-[[nodiscard]] constexpr auto strtoll(
-    const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<long long>(str, endit, base);
-}
-
-[[nodiscard]] constexpr auto strtoll(
-    std::u8string& str,
-    std::u8string::iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<long long>(str, endit, base);
-}
-
-[[nodiscard]] constexpr auto strtoll(
-    const char8_t* str,
-    const char8_t** endptr = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<long long>(str, endptr, base);
-}
-
-[[nodiscard]] constexpr auto strtoll(
-    char8_t* str,
-    char8_t** endptr = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<long long>(str, endptr, base);
-}
-
-[[nodiscard]] constexpr auto strtoul(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<unsigned long>(str, endit, base);
-}
-
-[[nodiscard]] constexpr auto strtoul(
-    const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<unsigned long>(str, endit, base);
-}
-
-[[nodiscard]] constexpr auto strtoul(
-    std::u8string& str,
-    std::u8string::iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<unsigned long>(str, endit, base);
-}
-
-[[nodiscard]] constexpr auto strtoul(
-    const char8_t* str,
-    const char8_t** endptr = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<unsigned long>(str, endptr, base);
-}
-
-[[nodiscard]] constexpr auto strtoul(
-    char8_t* str,
-    char8_t** endptr = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<unsigned long>(str, endptr, base);
-}
-
-[[nodiscard]] constexpr auto strtoull(
-    std::u8string_view str,
-    std::u8string_view::const_iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<unsigned long long>(str, endit, base);
-}
-
-[[nodiscard]] constexpr auto strtoull(
-    const std::u8string& str,
-    std::u8string::const_iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<unsigned long long>(str, endit, base);
-}
-
-[[nodiscard]] constexpr auto strtoull(
-    std::u8string& str,
-    std::u8string::iterator* endit = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<unsigned long long>(str, endit, base);
-}
-
-[[nodiscard]] constexpr auto strtoull(
-    const char8_t* str,
-    const char8_t** endptr = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<unsigned long long>(str, endptr, base);
-}
-
-[[nodiscard]] constexpr auto strtoull(
-    char8_t* str,
-    char8_t** endptr = nullptr,
-    int base = 0) -> result<long>
-{
-    return strto<unsigned long long>(str, endptr, base);
-}
+#undef XER_DEFINE_STRTO_INTEGER_WRAPPER
 
 } // namespace xer
 

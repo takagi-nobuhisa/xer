@@ -7,6 +7,7 @@
 #include <limits>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <xer/assert.h>
 #include <xer/bits/strto_floating.h>
@@ -150,6 +151,42 @@ void test_fixed_width_wrappers()
     xer_assert(std::fabs(*value64 - 1.5) < 1e-12);
 }
 
+/**
+ * @brief Tests floating-point conversion from non-char8_t character sequences.
+ */
+void test_strto_floating_other_character_types()
+{
+    std::string input = "6.25rest";
+    std::string::iterator endit;
+    const auto value = xer::strtod(input, &endit);
+
+    xer_assert(value.has_value());
+    xer_assert(std::fabs(*value - 6.25) < 1e-12);
+    xer_assert(endit == input.begin() + 4);
+
+    const wchar_t* wide_end = nullptr;
+    const wchar_t wide_input[] = L"-inf!";
+    const auto wide_value = xer::strto<double>(wide_input, &wide_end);
+
+    xer_assert(wide_value.has_value());
+    xer_assert(std::isinf(*wide_value));
+    xer_assert(*wide_value < 0.0);
+    xer_assert(wide_end == wide_input + 4);
+
+    std::u16string u16_input = u"0x1.8p+1!";
+    std::u16string::const_iterator u16_end;
+    const auto u16_value = xer::strto<double>(std::as_const(u16_input), &u16_end);
+
+    xer_assert(u16_value.has_value());
+    xer_assert(std::fabs(*u16_value - 3.0) < 1e-12);
+    xer_assert(u16_end == u16_input.begin() + 8);
+
+    const auto u32_value = xer::strtof32(U"1.5tail");
+
+    xer_assert(u32_value.has_value());
+    xer_assert(std::fabs(*u32_value - 1.5f) < 1e-6f);
+}
+
 } // namespace
 
 int main()
@@ -164,6 +201,7 @@ int main()
     test_strto_range_error_underflow();
     test_pointer_overloads();
     test_fixed_width_wrappers();
+    test_strto_floating_other_character_types();
 
     return 0;
 }
