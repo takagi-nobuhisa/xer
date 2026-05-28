@@ -138,6 +138,37 @@ void test_normalize_zero_vector()
     xer_assert(v.error().code == xer::error_t::invalid_argument);
 }
 
+void test_angle()
+{
+    const auto right_angle = xer::angle(xer::vec<int>{1, 0}, xer::vec<int>{0, 1});
+    const auto straight_angle = xer::angle(xer::vec<double, 3>{1.0, 0.0, 0.0}, xer::vec<double, 3>{-1.0, 0.0, 0.0});
+
+    xer_assert(right_angle.has_value());
+    xer_assert(straight_angle.has_value());
+    xer_assert(xer::detail::equation_near(*right_angle, std::acos(-1.0) / 2.0));
+    xer_assert(xer::detail::equation_near(*straight_angle, std::acos(-1.0)));
+}
+
+void test_angle_zero_vector()
+{
+    const auto value = xer::angle(xer::vec<double>{0.0, 0.0}, xer::vec<double>{1.0, 0.0});
+
+    xer_assert_not(value.has_value());
+    xer_assert(value.error().code == xer::error_t::invalid_argument);
+}
+
+void test_rotate()
+{
+    const auto quarter = std::acos(-1.0) / 2.0;
+    const auto v = xer::rotate(xer::vec<int>{1, 0}, quarter);
+    const auto reverse = xer::rotate(xer::vec<double>{0.0, 1.0}, -quarter);
+
+    xer_assert(xer::detail::equation_near(v.x, 0.0));
+    xer_assert(xer::detail::equation_near(v.y, 1.0));
+    xer_assert(xer::detail::equation_near(reverse.x, 1.0));
+    xer_assert(xer::detail::equation_near(reverse.y, 0.0));
+}
+
 void test_cross()
 {
     constexpr auto x = xer::vec<int, 3>{1, 0, 0};
@@ -281,6 +312,9 @@ auto main() -> int
     test_distance();
     test_normalize();
     test_normalize_zero_vector();
+    test_angle();
+    test_angle_zero_vector();
+    test_rotate();
     test_cross();
     test_heron_regular_triangle();
     test_heron_degenerate_triangle();

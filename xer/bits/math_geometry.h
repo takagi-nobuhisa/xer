@@ -285,6 +285,61 @@ template<class T, std::size_t N>
     return result;
 }
 
+template<class T, std::size_t N>
+    requires std::is_arithmetic_v<T>
+[[nodiscard]] auto angle(vec<T, N> a, vec<T, N> b) noexcept
+    -> result<std::common_type_t<T, double>>
+{
+    using result_type = std::common_type_t<T, double>;
+
+    auto product = result_type{};
+    auto length_a_squared = result_type{};
+    auto length_b_squared = result_type{};
+
+    for (std::size_t i = 0; i < N; ++i) {
+        const auto ai = static_cast<result_type>(a[i]);
+        const auto bi = static_cast<result_type>(b[i]);
+
+        product += ai * bi;
+        length_a_squared += ai * ai;
+        length_b_squared += bi * bi;
+    }
+
+    if (length_a_squared == result_type{} || length_b_squared == result_type{}) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    auto cosine = product / std::sqrt(length_a_squared * length_b_squared);
+
+    if (cosine < static_cast<result_type>(-1)) {
+        cosine = static_cast<result_type>(-1);
+    }
+    else if (static_cast<result_type>(1) < cosine) {
+        cosine = static_cast<result_type>(1);
+    }
+
+    return std::acos(cosine);
+}
+
+template<class T, class Angle>
+    requires (std::is_arithmetic_v<T> && std::is_arithmetic_v<Angle>)
+[[nodiscard]] auto rotate(vec<T, 2> v, Angle theta) noexcept
+    -> vec<std::common_type_t<T, Angle, double>, 2>
+{
+    using result_type = std::common_type_t<T, Angle, double>;
+
+    const auto x = static_cast<result_type>(v.x);
+    const auto y = static_cast<result_type>(v.y);
+    const auto t = static_cast<result_type>(theta);
+    const auto c = std::cos(t);
+    const auto s = std::sin(t);
+
+    return vec<result_type, 2>{
+        x * c - y * s,
+        x * s + y * c,
+    };
+}
+
 template<class T>
     requires std::is_arithmetic_v<T>
 [[nodiscard]] constexpr auto cross(vec<T, 3> a, vec<T, 3> b) noexcept -> vec<T, 3>

@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v0.7.0a1**
+Target version: **v0.7.0a2**
 
 ---
 
@@ -15363,6 +15363,38 @@ Returns a vector with the same direction as `v` and length `1`.
 The returned vector uses `std::common_type_t<T, double>` as its component type, so integer vectors can be normalized without losing fractional components.
 
 If `v` is the zero vector, the function returns `error_t::invalid_argument`.
+
+### `angle`
+
+```cpp
+template<class T, std::size_t N>
+auto angle(vec<T, N> a, vec<T, N> b) noexcept
+    -> xer::result<std::common_type_t<T, double>>;
+```
+
+Computes the unsigned angle between two vectors in radians.
+
+`T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
+
+The return type is `std::common_type_t<T, double>`, so integer vectors produce a floating-point angle.
+
+If either vector is the zero vector, the function returns `error_t::invalid_argument`.
+
+### `rotate`
+
+```cpp
+template<class T, class Angle>
+auto rotate(vec<T, 2> v, Angle theta) noexcept
+    -> vec<std::common_type_t<T, Angle, double>, 2>;
+```
+
+Rotates a two-dimensional vector around the origin.
+
+`T` and `Angle` must be arithmetic types. `theta` is expressed in radians.
+
+The return type uses `std::common_type_t<T, Angle, double>` as its component type, so integer vectors can be rotated without losing fractional components.
+
+Positive angles rotate counterclockwise in the usual mathematical coordinate system.
 
 ### `cross`
 
