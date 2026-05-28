@@ -1,9 +1,11 @@
 ﻿// XER_EXAMPLE_BEGIN: math_equations
 //
-// This example computes a triangle area and solves quadratic and cubic equations for real roots.
+// This example computes a triangle area, converts coordinates, and solves quadratic and cubic equations for real roots.
 //
 // Expected output:
 // heron: 6
+// polar: 5
+// cartesian: 3 4
 // quadratic: 2 3
 // cubic: 1 2 3
 
@@ -37,6 +39,13 @@ auto main() -> int
     }
 
     std::cout << "heron: " << *area << '\n';
+
+
+    const auto p = xer::to_polar(xer::vec<double>{3.0, 4.0});
+    std::cout << "polar: " << p.r << '\n';
+
+    const auto v = xer::to_cartesian(p);
+    std::cout << "cartesian: " << std::round(v.x) << ' ' << std::round(v.y) << '\n';
 
     const auto q = xer::quadratic(1.0, -5.0, 6.0);
     if (!q) {

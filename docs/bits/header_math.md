@@ -8,8 +8,104 @@ The initial scope is intentionally practical. It is not a replacement for a nume
 
 ---
 
+
+## Types
+
+### `vec`
+
+```cpp
+template<class T, std::size_t N = 2>
+struct vec;
+```
+
+Represents a small position vector or mathematical vector.
+
+Only `N == 2`, `N == 3`, and `N == 4` are provided. The primary template is intentionally not defined, because `<xer/math.h>` is not intended to provide a general-purpose arbitrary-dimensional vector type.
+
+The specializations provide named coordinate members:
+
+| Type | Members |
+|---|---|
+| `vec<T, 2>` | `x`, `y` |
+| `vec<T, 3>` | `x`, `y`, `z` |
+| `vec<T, 4>` | `x`, `y`, `z`, `w` |
+
+`vec<T>` is equivalent to `vec<T, 2>`.
+
+Each specialization also provides unchecked subscript access:
+
+```cpp
+auto operator[](std::size_t index) noexcept -> T&;
+auto operator[](std::size_t index) const noexcept -> const T&;
+```
+
+`operator[]` does not perform range checking. Passing an out-of-range index has undefined behavior.
+
+For checked access, use `at`:
+
+```cpp
+auto at(std::size_t index) noexcept
+    -> xer::result<std::reference_wrapper<T>>;
+
+auto at(std::size_t index) const noexcept
+    -> xer::result<std::reference_wrapper<const T>>;
+```
+
+If `index` is out of range, `at` returns `error_t::out_of_range`.
+
+### `polar`
+
+```cpp
+template<class T, std::size_t N = 2>
+struct polar;
+```
+
+Represents polar coordinates.
+
+Currently, only `polar<T, 2>` is provided:
+
+```cpp
+template<class T>
+struct polar<T, 2> {
+    T r;
+    T theta;
+};
+```
+
+`theta` is expressed in radians.
+
+---
+
 ## Provided Functions
 
+
+
+### `to_polar`
+
+```cpp
+template<std::floating_point T>
+auto to_polar(vec<T, 2> v) noexcept -> polar<T, 2>;
+```
+
+Converts a two-dimensional Cartesian vector to polar coordinates.
+
+The returned radius is computed with `std::hypot(v.x, v.y)`. The returned angle is computed with `std::atan2(v.y, v.x)` and is expressed in radians.
+
+### `to_cartesian`
+
+```cpp
+template<std::floating_point T>
+auto to_cartesian(polar<T, 2> p) noexcept -> vec<T, 2>;
+```
+
+Converts two-dimensional polar coordinates to a Cartesian vector.
+
+The coordinate components are computed as:
+
+```text
+x = r * cos(theta)
+y = r * sin(theta)
+```
 
 ### `heron`
 
@@ -77,3 +173,10 @@ The returned array stores distinct real roots from the first element. Empty elem
 For complex roots, use `<xer/complex.h>`.
 
 Repeated roots are represented once in the real-number functions. This keeps the result useful for common practical checks such as intersections, hit times, and real-domain constraints.
+
+
+## Coordinate and Vector Policy
+
+Positions are represented as position vectors. `<xer/math.h>` does not provide a separate point type for mathematical coordinates.
+
+The `vec` type is limited to two, three, and four dimensions. This keeps the facility focused on practical geometry, graphics, coordinate conversion, and simple physical calculations rather than becoming a general linear-algebra package.

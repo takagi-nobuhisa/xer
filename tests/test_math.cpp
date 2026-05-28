@@ -1,10 +1,83 @@
-﻿#include <optional>
+﻿#include <cmath>
+#include <optional>
 
 #include <xer/assert.h>
 #include <xer/error.h>
 #include <xer/math.h>
 
 namespace {
+
+
+void test_vec2_members_and_index_access()
+{
+    xer::vec<double> v{1.0, 2.0};
+
+    xer_assert(v.x == 1.0);
+    xer_assert(v.y == 2.0);
+    xer_assert(v[0] == 1.0);
+    xer_assert(v[1] == 2.0);
+
+    v[0] = 3.0;
+    v[1] = 4.0;
+
+    xer_assert(v.x == 3.0);
+    xer_assert(v.y == 4.0);
+}
+
+void test_vec3_and_vec4_index_access()
+{
+    xer::vec<int, 3> v3{1, 2, 3};
+    xer::vec<int, 4> v4{4, 5, 6, 7};
+
+    xer_assert(v3[0] == 1);
+    xer_assert(v3[1] == 2);
+    xer_assert(v3[2] == 3);
+    xer_assert(v4[0] == 4);
+    xer_assert(v4[1] == 5);
+    xer_assert(v4[2] == 6);
+    xer_assert(v4[3] == 7);
+}
+
+void test_vec_at_success()
+{
+    xer::vec<double> v{1.0, 2.0};
+    auto x = v.at(0);
+    auto y = v.at(1);
+
+    xer_assert(x.has_value());
+    xer_assert(y.has_value());
+
+    x->get() = 5.0;
+    y->get() = 6.0;
+
+    xer_assert(v.x == 5.0);
+    xer_assert(v.y == 6.0);
+}
+
+void test_vec_at_out_of_range()
+{
+    xer::vec<double> v{1.0, 2.0};
+    const auto value = v.at(2);
+
+    xer_assert_not(value.has_value());
+    xer_assert(value.error().code == xer::error_t::out_of_range);
+}
+
+void test_to_polar()
+{
+    const auto p = xer::to_polar(xer::vec<double>{3.0, 4.0});
+
+    xer_assert(xer::detail::equation_near(p.r, 5.0));
+    xer_assert(xer::detail::equation_near(p.theta, std::atan2(4.0, 3.0)));
+}
+
+void test_to_cartesian()
+{
+    const auto v = xer::to_cartesian(xer::polar<double>{5.0, std::atan2(4.0, 3.0)});
+
+    xer_assert(xer::detail::equation_near(v.x, 3.0));
+    xer_assert(xer::detail::equation_near(v.y, 4.0));
+}
 
 void test_heron_regular_triangle()
 {
@@ -123,6 +196,12 @@ void test_cubic_invalid_argument()
 
 auto main() -> int
 {
+    test_vec2_members_and_index_access();
+    test_vec3_and_vec4_index_access();
+    test_vec_at_success();
+    test_vec_at_out_of_range();
+    test_to_polar();
+    test_to_cartesian();
     test_heron_regular_triangle();
     test_heron_degenerate_triangle();
     test_heron_invalid_negative_side();
