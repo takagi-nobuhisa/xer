@@ -137,16 +137,14 @@ External-component details follow this document:
 
 ### 5.2 Priorities
 
-In the initial stage, the following areas are prioritized:
+xer proceeds incrementally, starting from areas where practical value is clear and where the API policy can be kept stable.
 
-1. **character and string processing**
-2. **input/output processing**
-
-Mathematical functions are postponed.
+The early development stages began with character/string processing and input/output processing.
+The current design scope also includes arithmetic helpers, elementary mathematics, descriptive statistics, complex-number helpers, physical quantities and units, vector/matrix geometry, image/canvas facilities, Japanese text processing, structured data formats, ZIP archives, and fixed-schema binary serialization.
 
 ### 5.3 Out of Scope
 
-At least in the initial stage, the following are out of scope:
+At the current stage, the following remain out of scope:
 
 - locale-related facilities
 - `inttypes.h`
@@ -538,7 +536,31 @@ Details follow this document:
 
 ---
 
-### 17.12 ZIP Archive Utilities
+### 17.12 Numeric, Mathematical, and Statistical Facilities
+
+Numeric and mathematical facilities are part of xer's current design scope.
+They are intentionally organized into separate public headers so users can include only the layer they need.
+
+- `xer/arithmetic.h` provides explicit arithmetic, comparison, range-checking, and related practical numeric helpers.
+- `xer/math.h` provides elementary real-number helpers, equation solvers, angle utilities based on τ radians, and mathematical constants.
+- `xer/statistics.h` provides descriptive statistics such as sums, products, means, variance, standard deviation, median, mode, quantiles, and percentiles.
+- `xer/complex.h` provides lightweight complex-number-oriented helpers such as real-coefficient equation solvers returning complex roots.
+- `xer/cyclic.h`, `xer/interval.h`, `xer/quantity.h`, and `xer/matrix.h` provide value-domain, unit, and geometry-oriented numeric building blocks.
+
+These facilities are practical utilities rather than a complete replacement for every numeric facility in the C or C++ standard libraries.
+When the standard library already provides a clear and sufficient tool, xer does not need to wrap it merely for naming consistency.
+
+Details follow these documents:
+
+- `policy_arithmetic.md`
+- `policy_cyclic.md`
+- `policy_interval.md`
+- `policy_mathematical_and_physical_constants.md`
+- `policy_quantity.md`
+
+---
+
+### 17.13 ZIP Archive Utilities
 
 ZIP archive utilities are provided through `xer/zip.h`.
 They are treated as compression-and-archive facilities rather than ordinary file I/O.
@@ -552,7 +574,7 @@ Details follow these documents:
 - `policy_external_components.md`
 - `docs/bits/header_zip.md`
 
-### 17.13 Fixed-Schema Binary Serialization
+### 17.14 Fixed-Schema Binary Serialization
 
 Fixed-schema binary serialization is provided through `xer/serialize.h`.
 
@@ -583,5 +605,5 @@ Details follow this document:
 - It avoids unstable external dependencies and prefers mature, stable external components when integration is worthwhile
 - It isolates external-component features behind dedicated public headers and uses compile-time detection where appropriate
 - It organizes documentation, examples, and development scripts by role
-- It includes additional practical facilities such as process handling, socket support, ZIP archive utilities, fixed-schema binary serialization, value-domain utilities, Tcl/Tk integration, image/canvas APIs, bitmap-font-based text rendering, MeCab-based Japanese text processing, and Unicode code point traversal, grapheme cluster traversal, and ICU-based Unicode NFC normalization
+- It includes additional practical facilities such as process handling, socket support, arithmetic helpers, elementary mathematics, descriptive statistics, complex-number helpers, physical quantities and units, vector/matrix geometry, ZIP archive utilities, fixed-schema binary serialization, value-domain utilities, Tcl/Tk integration, image/canvas APIs, bitmap-font-based text rendering, MeCab-based Japanese text processing, and Unicode code point traversal, grapheme cluster traversal, and ICU-based Unicode NFC normalization
 - It continues to evolve incrementally, starting from the facilities most needed in practice
