@@ -2,17 +2,20 @@
 
 ## Purpose
 
-`<xer/statistics.h>` provides small statistical utility functions for arithmetic ranges.
+`<xer/statistics.h>` provides small descriptive statistical utility functions for arithmetic ranges.
 
 The initial scope is intentionally limited to common descriptive statistics:
 
 - arithmetic mean
+- median
+- mode
 - population variance
 - sample variance
 - population standard deviation
 - sample standard deviation
 
-The functions return `xer::result<double>` so that invalid inputs are reported explicitly.
+The scalar functions return `xer::result<double>` so that invalid inputs are reported explicitly.
+`mode` returns `xer::result<std::vector<double>>` because multiple values can share the highest frequency.
 
 ---
 
@@ -24,6 +27,18 @@ auto mean(Range&& range) -> xer::result<double>;
 
 template<class T>
 auto mean(std::initializer_list<T> values) -> xer::result<double>;
+
+template<class Range>
+auto median(Range&& range) -> xer::result<double>;
+
+template<class T>
+auto median(std::initializer_list<T> values) -> xer::result<double>;
+
+template<class Range>
+auto mode(Range&& range, double tolerance = 0.0) -> xer::result<std::vector<double>>;
+
+template<class T>
+auto mode(std::initializer_list<T> values, double tolerance = 0.0) -> xer::result<std::vector<double>>;
 
 template<class Range>
 auto variance(Range&& range) -> xer::result<double>;
@@ -70,6 +85,55 @@ Computes the arithmetic mean of the input values.
 
 The range must contain at least one value.
 If the range is empty, the function returns `error_t::invalid_argument`.
+
+---
+
+## Median
+
+```cpp
+template<class Range>
+auto median(Range&& range) -> xer::result<double>;
+```
+
+Computes the median of the input values.
+
+The input values are copied and sorted internally.
+For an odd number of values, the middle value is returned.
+For an even number of values, the arithmetic mean of the two middle values is returned.
+
+The range must contain at least one value.
+If the range is empty, the function returns `error_t::invalid_argument`.
+
+---
+
+## Mode
+
+```cpp
+template<class Range>
+auto mode(Range&& range, double tolerance = 0.0) -> xer::result<std::vector<double>>;
+```
+
+Computes the mode values of the input values.
+
+The result is a vector because multiple values can share the highest frequency.
+If no value appears at least twice, the result is an empty vector.
+This means that `mode({1, 2, 3})` succeeds and returns an empty vector rather than treating every value as a mode.
+
+When `tolerance` is `0.0`, values are grouped by exact equality after sorting.
+When `tolerance` is positive, sorted values whose distance from the first value of the current group is at most `tolerance` are treated as the same group.
+The representative value returned for a tolerant group is the arithmetic mean of the values in that group.
+
+For example:
+
+```cpp
+auto values = std::vector<double>{1.00, 1.02, 1.04, 2.00, 2.04};
+auto modes = xer::mode(values, 0.05);
+```
+
+The first three values are grouped together, and the returned mode is approximately `1.02`.
+
+`tolerance` must be finite and non-negative.
+If `tolerance` is negative, NaN, or infinity, the function returns `error_t::invalid_argument`.
 
 ---
 
@@ -133,23 +197,27 @@ It is the square root of `sample_variance`.
 
 ## Error Handling
 
-The statistical functions report invalid inputs through `xer::result<double>`.
+The statistical functions report invalid inputs through `xer::result`.
 
 | Condition | Error |
 |---|---|
 | empty range | `error_t::invalid_argument` |
 | fewer than two values for sample variance / sample standard deviation | `error_t::invalid_argument` |
 | NaN or infinity in the input | `error_t::invalid_argument` |
+| negative, NaN, or infinite `mode` tolerance | `error_t::invalid_argument` |
 | intermediate or final value outside the representable `double` range | `error_t::range_error` |
 
 ---
 
 ## Numeric Behavior
 
-The functions use a one-pass online update internally.
+`mean`, `variance`, `sample_variance`, `stddev`, and `sample_stddev` use a one-pass online update internally.
 This allows them to work with input ranges and avoids requiring a second traversal of the input.
 
-Accumulation is performed internally using `long double`, and the public result type is `double`.
+`median` and `mode` copy the input values because they need sorted data.
+They still accept input ranges, but they require memory proportional to the number of input values.
+
+Accumulation is performed internally using `long double`, and the public scalar result type is `double`.
 This keeps the initial API simple and predictable while providing better intermediate precision than accumulating directly in `double`.
 
 ---
@@ -162,21 +230,33 @@ This keeps the initial API simple and predictable while providing better interme
 
 #include <xer/statistics.h>
 
+void print_modes(const std::vector<double>& values)
+{
+    for (const double value : values) {
+        std::cout << ' ' << value;
+    }
+    std::cout << '\n';
+}
+
 auto main() -> int
 {
     const std::vector<double> values{2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0};
 
     const auto mean = xer::mean(values);
+    const auto median = xer::median(values);
     const auto variance = xer::variance(values);
     const auto stddev = xer::stddev(values);
+    const auto modes = xer::mode(values);
 
-    if (!mean || !variance || !stddev) {
+    if (!mean || !median || !variance || !stddev || !modes) {
         return 1;
     }
 
     std::cout << *mean << '\n';
+    std::cout << *median << '\n';
     std::cout << *variance << '\n';
     std::cout << *stddev << '\n';
+    print_modes(*modes);
 
     return 0;
 }
@@ -190,3 +270,6 @@ auto main() -> int
 
 Use `sample_variance` and `sample_stddev` when the sample formulas with `n - 1` are required.
 This naming keeps the denominator choice explicit and avoids relying on ambiguous default terminology.
+
+`<xer/statistics.h>` does not provide range minimum or range maximum helpers.
+Use `std::ranges::min_element`, `std::ranges::max_element`, `std::min_element`, or `std::max_element` for that purpose.

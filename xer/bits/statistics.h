@@ -1,6 +1,6 @@
 ﻿/**
  * @file xer/bits/statistics.h
- * @brief Mean, variance, and standard deviation helpers.
+ * @brief Descriptive statistical utility functions.
  */
 
 #pragma once
@@ -8,6 +8,7 @@
 #ifndef XER_BITS_STATISTICS_H_INCLUDED_
 #define XER_BITS_STATISTICS_H_INCLUDED_
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <expected>
@@ -16,6 +17,7 @@
 #include <ranges>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <xer/bits/arithmetic_concepts.h>
 #include <xer/error.h>
@@ -26,6 +28,11 @@ struct statistics_summary {
     std::size_t count{};
     long double mean{};
     long double m2{};
+};
+
+struct statistics_mode_group {
+    std::size_t count{};
+    long double sum{};
 };
 
 [[nodiscard]] inline auto statistics_is_finite(long double value) noexcept -> bool
@@ -83,6 +90,27 @@ template<statistics_range Range>
     return summary;
 }
 
+template<statistics_range Range>
+[[nodiscard]] auto collect_statistics_values(Range&& range)
+    -> result<std::vector<long double>>
+{
+    std::vector<long double> values;
+
+    for (auto&& element : range) {
+        const long double value = static_cast<long double>(element);
+        if (!statistics_is_finite(value)) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+        values.push_back(value);
+    }
+
+    if (values.empty()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return values;
+}
+
 [[nodiscard]] inline auto population_variance_from_summary(
     const statistics_summary& summary) -> result<double>
 {
@@ -112,6 +140,126 @@ template<statistics_range Range>
     }
 
     return std::sqrt(value);
+}
+
+[[nodiscard]] inline auto median_from_values(std::vector<long double> values)
+    -> result<double>
+{
+    if (values.empty()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    std::ranges::sort(values);
+
+    const std::size_t size = values.size();
+    const std::size_t middle = size / 2;
+
+    if ((size % 2) != 0) {
+        return statistics_to_double(values[middle]);
+    }
+
+    const long double value =
+        (values[middle - 1] / 2.0L) + (values[middle] / 2.0L);
+    return statistics_to_double(value);
+}
+
+[[nodiscard]] inline auto statistics_mode_tolerance(double tolerance)
+    -> result<long double>
+{
+    if (!std::isfinite(tolerance) || tolerance < 0.0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return static_cast<long double>(tolerance);
+}
+
+[[nodiscard]] inline auto exact_mode_groups(const std::vector<long double>& values)
+    -> std::vector<statistics_mode_group>
+{
+    std::vector<statistics_mode_group> groups;
+
+    for (std::size_t index = 0; index < values.size();) {
+        const long double current = values[index];
+        statistics_mode_group group{};
+
+        do {
+            ++group.count;
+            group.sum += values[index];
+            ++index;
+        } while (index < values.size() && values[index] == current);
+
+        groups.push_back(group);
+    }
+
+    return groups;
+}
+
+[[nodiscard]] inline auto tolerant_mode_groups(
+    const std::vector<long double>& values,
+    long double tolerance) -> std::vector<statistics_mode_group>
+{
+    std::vector<statistics_mode_group> groups;
+
+    for (std::size_t index = 0; index < values.size();) {
+        const long double first = values[index];
+        statistics_mode_group group{};
+
+        do {
+            ++group.count;
+            group.sum += values[index];
+            ++index;
+        } while (index < values.size() && values[index] - first <= tolerance);
+
+        groups.push_back(group);
+    }
+
+    return groups;
+}
+
+[[nodiscard]] inline auto mode_from_values(
+    std::vector<long double> values,
+    double tolerance) -> result<std::vector<double>>
+{
+    if (values.empty()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    const auto checked_tolerance = statistics_mode_tolerance(tolerance);
+    if (!checked_tolerance) {
+        return std::unexpected(checked_tolerance.error());
+    }
+
+    std::ranges::sort(values);
+
+    const auto groups = (*checked_tolerance == 0.0L)
+        ? exact_mode_groups(values)
+        : tolerant_mode_groups(values, *checked_tolerance);
+
+    std::size_t max_count = 0;
+    for (const auto& group : groups) {
+        max_count = std::max(max_count, group.count);
+    }
+
+    std::vector<double> modes;
+    if (max_count < 2) {
+        return modes;
+    }
+
+    for (const auto& group : groups) {
+        if (group.count != max_count) {
+            continue;
+        }
+
+        const long double representative =
+            group.sum / static_cast<long double>(group.count);
+        const auto value = statistics_to_double(representative);
+        if (!value) {
+            return std::unexpected(value.error());
+        }
+        modes.push_back(*value);
+    }
+
+    return modes;
 }
 
 } // namespace xer::detail
@@ -155,6 +303,96 @@ template<class T>
     }
 
     return detail::statistics_to_double(summary->mean);
+}
+
+/**
+ * @brief Computes the median of a non-empty arithmetic range.
+ *
+ * For an even number of values, this function returns the arithmetic mean of
+ * the two middle values after sorting.
+ *
+ * @tparam Range Input range of non-bool arithmetic values.
+ * @param range Input range.
+ * @return Median as double.
+ */
+template<detail::statistics_range Range>
+[[nodiscard]] auto median(Range&& range) -> result<double>
+{
+    auto values = detail::collect_statistics_values(std::forward<Range>(range));
+    if (!values) {
+        return std::unexpected(values.error());
+    }
+
+    return detail::median_from_values(std::move(*values));
+}
+
+/**
+ * @brief Computes the median of a non-empty initializer list.
+ *
+ * @tparam T Non-bool arithmetic value type.
+ * @param values Input values.
+ * @return Median as double.
+ */
+template<class T>
+    requires non_bool_arithmetic<T>
+[[nodiscard]] auto median(std::initializer_list<T> values) -> result<double>
+{
+    auto collected = detail::collect_statistics_values(values);
+    if (!collected) {
+        return std::unexpected(collected.error());
+    }
+
+    return detail::median_from_values(std::move(*collected));
+}
+
+/**
+ * @brief Computes the mode values of a non-empty arithmetic range.
+ *
+ * If no value appears at least twice, this function returns an empty vector.
+ * If multiple values share the highest frequency, all of them are returned in
+ * ascending order.  When `tolerance` is positive, sorted values whose distance
+ * from the first value of the current group is at most `tolerance` are treated
+ * as the same group, and the returned representative is the arithmetic mean of
+ * that group.
+ *
+ * @tparam Range Input range of non-bool arithmetic values.
+ * @param range Input range.
+ * @param tolerance Non-negative grouping tolerance.  The default `0.0` uses
+ *        exact equality.
+ * @return Mode values as doubles.
+ */
+template<detail::statistics_range Range>
+[[nodiscard]] auto mode(Range&& range, double tolerance = 0.0)
+    -> result<std::vector<double>>
+{
+    auto values = detail::collect_statistics_values(std::forward<Range>(range));
+    if (!values) {
+        return std::unexpected(values.error());
+    }
+
+    return detail::mode_from_values(std::move(*values), tolerance);
+}
+
+/**
+ * @brief Computes the mode values of a non-empty initializer list.
+ *
+ * @tparam T Non-bool arithmetic value type.
+ * @param values Input values.
+ * @param tolerance Non-negative grouping tolerance.  The default `0.0` uses
+ *        exact equality.
+ * @return Mode values as doubles.
+ */
+template<class T>
+    requires non_bool_arithmetic<T>
+[[nodiscard]] auto mode(std::initializer_list<T> values, double tolerance = 0.0)
+    -> result<std::vector<double>>
+{
+    auto collected = detail::collect_statistics_values(values);
+    if (!collected) {
+        return std::unexpected(collected.error());
+    }
+
+    return detail::mode_from_values(std::move(*collected), tolerance);
 }
 
 /**
