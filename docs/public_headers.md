@@ -6,7 +6,7 @@
 - Headers under `xer/bits/` are for internal implementation and are not treated as public headers.
 - The goal is not to mirror the names of C standard library headers exactly, but to reorganize them into units that are meaningful for xer.
 - `wchar.h` and `wctype.h` are not provided as independent headers; their related functionality is absorbed into other headers.
-- `math.h` and `complex.h` provide lightweight real-number and complex-number mathematical utilities.
+- `math.h`, `statistics.h`, and `complex.h` provide lightweight real-number, statistical, and complex-number mathematical utilities.
 
 ---
 
