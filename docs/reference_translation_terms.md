@@ -1,6 +1,6 @@
 # リファレンスマニュアル対訳表
 
-対象バージョン: **v0.6.0**
+対象バージョン: **v0.7.0b1**
 
 この文書は、`docs/xer_reference_manual_en.md` と `docs/xer_reference_manual_ja.md` の表記ゆれを抑えるための対訳表です。
 
@@ -10,7 +10,7 @@
 |---|---|---|
 | xer C++ Utility Library | xer C++ Utility Library | 正式名称。 |
 | xer | xer | 略称。常に小文字。 |
-| xer | 使用しない | マクロ名や `XER_INCLUDE` など、コード上の識別子は除く。 |
+| 大文字表記のプロジェクト名 | 使用しない | コード上の識別子に含まれる大文字表記は除く。 |
 
 ## 基本用語
 
@@ -20,6 +20,7 @@
 | target version | 対象バージョン | 冒頭表記に使用。 |
 | header | ヘッダー | `<xer/error.h>` など。 |
 | public header | 公開ヘッダー | `docs/public_headers.md` と対応。 |
+| internal header | 内部ヘッダー | `xer/bits/` 以下のヘッダー。 |
 | fragment | 断片 | `docs/bits/header_*.md` など。 |
 | API | API | 原則として英字表記。 |
 | public API | 公開API |  |
@@ -28,6 +29,11 @@
 | utility | ユーティリティ |  |
 | facility | 機能 | 文脈により「機構」も可。 |
 | policy | 方針 | policy文書名では原題を維持。 |
+| scope | 対象範囲 | 「スコープ」よりも原則こちらを使う。 |
+| out of scope | 対象外 |  |
+| limitation | 制限 |  |
+| deferred | 後回し | 将来対応に残す場合。 |
+| intentionally | 意図的に | 偶然の未実装でないことを示す場合。 |
 
 ## エラー処理
 
@@ -47,6 +53,10 @@
 | sentinel value | 番兵値 |  |
 | explicit | 明示的 |  |
 | type-safe | 型安全 |  |
+| invalid argument | 不正な引数 | `error_t::invalid_argument` の説明で使用。 |
+| out of range | 範囲外 | `error_t::out_of_range` の説明で使用。 |
+| end of file | ファイル終端 | `error_t::end_of_file` の説明で使用。逐次入力では「入力終端」も可。 |
+| not found | 見つからない | 検索失敗。EOFとは区別する。 |
 
 ## 型と値
 
@@ -63,8 +73,17 @@
 | non-owning | 非所有 |  |
 | view | ビュー |  |
 | span | スパン | `std::span` はコード表記。 |
+| range | 範囲 | C++ ranges の文脈。 |
+| input range | 入力範囲 | `std::ranges::input_range` 相当。 |
+| iterator | 反復子 |  |
+| initializer list | 初期化子リスト | `std::initializer_list` はコード表記。 |
 | overload | オーバーロード |  |
 | overload set | オーバーロード集合 |  |
+| scalar | スカラー |  |
+| arithmetic type | 算術型 |  |
+| floating-point type | 浮動小数点型 |  |
+| integral type | 整数型 |  |
+| boolean | ブール値 | 型名 `bool` はコード表記。 |
 
 ## 文字列・Unicode
 
@@ -94,6 +113,8 @@
 | uppercase | 大文字 |  |
 | lowercase | 小文字 |  |
 | printable | 印字可能 |  |
+| whitespace | 空白 |  |
+| trim | トリム | 関数名は `trim` のまま。説明では「前後の空白を取り除く」も可。 |
 
 ## 日本語処理
 
@@ -123,8 +144,120 @@
 | MeCab-derived reading | MeCab由来の読み |  |
 | bunsetsu-like | 文節風 | 厳密な文節でない場合。 |
 | particle reading | 助詞の読み |  |
+| braille | 点字 |  |
+| braille pattern | 点字パターン | Unicode文字名などでは英語を残す場合もある。 |
+| numeric indicator | 数符 | 点字文脈。 |
+| alphabetic indicator | 英字符 | 点字文脈。 |
+| capital indicator | 大文字符 | 点字文脈。 |
+| information-processing braille | 情報処理点字 |  |
 
-## バイナリ・ハッシュ
+## 数値・数学
+
+| 英語 | 日本語 | 備考 |
+|---|---|---|
+| mathematical helper | 数学ヘルパー |  |
+| real-number helper | 実数ヘルパー |  |
+| complex-number helper | 複素数ヘルパー |  |
+| vector | ベクトル | `vec` はコード表記。 |
+| position vector | 位置ベクトル |  |
+| Cartesian coordinates | 直交座標 |  |
+| polar coordinates | 極座標 |  |
+| radius | 半径 | 極座標の `r`。 |
+| angle | 角度 |  |
+| full turn | 1回転 |  |
+| τrad | τrad | 1を1回転とする角度単位。日本語でもそのまま表記。 |
+| degree | 度 | 単位名や関数名では `degree` を残す。 |
+| radian | ラジアン | 単位名や関数名では `radian` / `rad` を残す。 |
+| trigonometric function | 三角関数 |  |
+| inverse trigonometric function | 逆三角関数 |  |
+| hyperbolic function | 双曲線関数 |  |
+| finite | 有限 | 浮動小数点値の説明。 |
+| NaN | NaN |  |
+| infinity | 無限大 |  |
+| epsilon | イプシロン | 許容誤差の文脈では「許容誤差」も可。 |
+| tolerance | 許容幅 | `mode` など幅を持たせる場合。比較誤差では「許容誤差」も可。 |
+| interpolation | 補間 |  |
+| linear interpolation | 線形補間 |  |
+| polynomial equation | 多項式方程式 |  |
+| quadratic equation | 二次方程式 |  |
+| cubic equation | 三次方程式 |  |
+| coefficient | 係数 |  |
+| root | 根 | 方程式の根。 |
+| multiplicity | 重複度 | 根の重複度。 |
+| discriminant | 判別式 |  |
+
+## 統計
+
+| 英語 | 日本語 | 備考 |
+|---|---|---|
+| statistics | 統計 | ヘッダー説明では「統計ユーティリティ」も可。 |
+| descriptive statistics | 記述統計 | `<xer/statistics.h>` の説明で使用。 |
+| arithmetic range | 算術範囲 | 算術型の値を返す範囲。 |
+| sum | 合計 | 関数名は `sum`。 |
+| product | 積 | 関数名は `product`。 |
+| mean | 平均 | 一般説明。関数名は `mean`。 |
+| arithmetic mean | 算術平均 |  |
+| geometric mean | 幾何平均 |  |
+| harmonic mean | 調和平均 |  |
+| median | 中央値 |  |
+| quantile | 分位数 |  |
+| percentile | パーセンタイル |  |
+| mode | 最頻値 |  |
+| frequency | 頻度 |  |
+| population variance | 母分散 |  |
+| sample variance | 標本分散 | 不偏分散として説明する場合は文脈に注意。 |
+| population standard deviation | 母標準偏差 |  |
+| sample standard deviation | 標本標準偏差 |  |
+| empty range | 空範囲 |  |
+| highest frequency | 最高頻度 |  |
+
+## 物理量・単位
+
+| 英語 | 日本語 | 備考 |
+|---|---|---|
+| physical quantity | 物理量 |  |
+| quantity | 量 | 型名 `quantity` はコード表記。 |
+| dimension | 次元 | 型名 `dimension` はコード表記。 |
+| dimensionless | 無次元 | 型名 `dimensionless` はコード表記。 |
+| unit | 単位 | 型名 `unit` はコード表記。 |
+| unit conversion | 単位変換 |  |
+| scale | スケール | `std::ratio` による倍率。 |
+| base dimension | 基本次元 |  |
+| length | 長さ | 次元名。 |
+| mass | 質量 | 次元名。 |
+| time | 時間 | 次元名。 |
+| electric current | 電流 | 次元名。 |
+| dimension safety | 次元安全性 |  |
+
+## 画像・描画
+
+| 英語 | 日本語 | 備考 |
+|---|---|---|
+| image | 画像 | 名前空間 `xer::image` はコード表記。 |
+| framebuffer | フレームバッファ |  |
+| canvas | キャンバス | 型名 `canvas` はコード表記。 |
+| dynamic canvas | 動的キャンバス | `dynamic_canvas` はコード表記。 |
+| pixel | ピクセル | 型名 `pixel` はコード表記。 |
+| alpha | アルファ |  |
+| coverage | カバレッジ | アンチエイリアスの被覆率。 |
+| anti-aliasing | アンチエイリアス | 関数名の `_aa` はそのまま。 |
+| clipping | クリッピング |  |
+| draw | 描画 | `draw_*` 関数の説明。 |
+| fill | 塗りつぶし | `fill_*` 関数の説明。 |
+| line | 線分 |  |
+| rectangle | 矩形 |  |
+| circle | 円 |  |
+| ellipse | 楕円 |  |
+| arc | 円弧 |  |
+| elliptical arc | 楕円弧 |  |
+| polygon | 多角形 |  |
+| bitmap font | ビットマップフォント |  |
+| glyph | グリフ |  |
+| grayscale | グレイスケール |  |
+| luminance | 輝度 |  |
+| filter | フィルター | `filter_pixels` の説明では「ピクセル変換」も可。 |
+
+## バイナリ・ハッシュ・アーカイブ・シリアライズ
 
 | 英語 | 日本語 | 備考 |
 |---|---|---|
@@ -146,6 +279,19 @@
 | padding | パディング |  |
 | unpadded | 非パディング |  |
 | streaming | ストリーミング |  |
+| archive | アーカイブ | ZIPなど。 |
+| ZIP archive | ZIPアーカイブ |  |
+| entry | エントリ | ZIP内の項目。 |
+| central directory | セントラルディレクトリ | ZIP文脈。 |
+| extraction | 展開 | ZIPエントリの取り出し。 |
+| compression | 圧縮 |  |
+| deflate | deflate | 方式名は英字。 |
+| encrypted | 暗号化された | ZIP制限事項など。 |
+| serialization | シリアライズ |  |
+| binary serialization | バイナリシリアライズ |  |
+| fixed-schema | 固定スキーマ |  |
+| archive object | アーカイブオブジェクト | `binary_output_archive` などの説明。 |
+| schema | スキーマ |  |
 
 ## 入出力・環境
 
@@ -156,6 +302,8 @@
 | binary stream | バイナリストリーム |  |
 | file path | ファイルパス |  |
 | current working directory | カレントディレクトリ |  |
+| directory | ディレクトリ |  |
+| directory entry | ディレクトリエントリ |  |
 | environment variable | 環境変数 |  |
 | process | プロセス |  |
 | child process | 子プロセス |  |
@@ -164,6 +312,11 @@
 | standard input | 標準入力 |  |
 | standard output | 標準出力 |  |
 | standard error | 標準エラー |  |
+| socket | ソケット |  |
+| endpoint | エンドポイント |  |
+| host | ホスト |  |
+| port | ポート |  |
+| Tcl/Tk | Tcl/Tk |  |
 
 ## 翻訳運用ルール
 
