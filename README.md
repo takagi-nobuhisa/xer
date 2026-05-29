@@ -28,7 +28,7 @@ It keeps the spirit of the C standard library where that style is still practica
 
 xer is under active development.
 
-The project began by rebuilding practical parts of the C standard library in a way that fits its design goals. It now also covers adjacent areas that benefit from the same approach, including structured data handling, ZIP archive utilities, fixed-schema binary serialization, process and socket utilities, Tcl/Tk integration, a lightweight image/canvas subsystem, and Japanese text-processing helpers such as MeCab-based wakachi-gaki, furigana formatting, kansuji conversion, and braille conversion.
+The project began by rebuilding practical parts of the C standard library in a way that fits its design goals. It now also covers adjacent areas that benefit from the same approach, including structured data handling, ZIP archive utilities, fixed-schema binary serialization, practical mathematics and lightweight vector/geometry helpers, process and socket utilities, Tcl/Tk integration, a lightweight image/canvas subsystem, and Japanese text-processing helpers such as MeCab-based wakachi-gaki, furigana formatting, kansuji conversion, and braille conversion.
 
 The current library scope includes:
 
@@ -39,12 +39,12 @@ The current library scope includes:
 - ZIP archive reading, writing, lookup, and extraction
 - fixed-schema binary serialization with generated `xfer` structures
 - path handling
-- arithmetic helpers and numeric utility types
+- arithmetic helpers, elementary mathematics, lightweight vector/geometry helpers, complex-equation helpers, and numeric utility types
 - time utilities
 - JSON, INI, and TOML handling
 - process and socket utilities
 - Tcl/Tk integration
-- image/canvas drawing, bitmap fonts, and basic pixel processing
+- image/canvas drawing, bitmap fonts, basic pixel processing, and arc drawing with τrad angles
 - Japanese text helpers, including kansuji, furigana, MeCab integration, kana/romaji wakachi-gaki, and braille conversion
 
 This project does **not** aim at full source-level compatibility with the C standard library, PHP, or platform APIs, even when familiar names are reused.
@@ -135,7 +135,13 @@ Instead, it builds on `FILE`-style I/O and exposes redesigned stream types such 
 - `binary_stream`
 - `text_stream`
 
-### 7. Practical Japanese text-processing helpers
+### 7. Mathematics, geometry, and angle policy
+
+xer provides small mathematics helpers for practical formulas and lightweight geometry rather than a full numerical-computing framework. This includes equation helpers, two-, three-, and four-dimensional `vec<T, N>` types, polar/cartesian conversion, vector operations, and simple rotation helpers.
+
+Angles used by xer math, matrix, and image APIs are based on τrad units unless explicitly documented otherwise. In this convention, `1` means one full turn, `0.25` means a right angle, and `0.5` means a half turn. APIs that represent cyclic angles use `cyclic<T>`. Conversion helpers such as `from_rad`, `to_rad`, `from_degree`, and `to_degree` are provided when interaction with radians or degrees is needed.
+
+### 8. Practical Japanese text-processing helpers
 
 xer includes small Japanese text-processing building blocks that are useful in ordinary tools and examples. Japanese-specific APIs are collected under the `xer::ja` namespace:
 
@@ -185,6 +191,8 @@ Current public headers:
 - `xer/stdint.h`
 - `xer/stdfloat.h`
 - `xer/arithmetic.h`
+- `xer/math.h`
+- `xer/complex.h`
 - `xer/cyclic.h`
 - `xer/interval.h`
 - `xer/color.h`
@@ -256,7 +264,7 @@ At least for now, xer does not aim to provide:
 - immediate support for every compiler
 - complete Japanese reading disambiguation or complete braille translation
 
-Some headers are intentionally not provided as standalone public headers, and some areas such as `math.h` are postponed.
+Some headers are intentionally not provided as standalone public headers. Mathematical and complex-number helpers now have dedicated public headers, while narrower implementation details remain under `xer/bits/`.
 
 ## Documentation
 
@@ -270,7 +278,8 @@ These documents describe the current direction of the project, including:
 - encoding policy
 - path handling
 - I/O design
-- arithmetic behavior
+- arithmetic and mathematics behavior
+- cyclic values, angle units, and quantity units
 - MeCab integration policy
 - Tcl/Tk integration policy
 - image/canvas and bitmap-font policy
