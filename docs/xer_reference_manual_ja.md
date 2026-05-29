@@ -1,6 +1,6 @@
 # xer C++ Utility Library リファレンスマニュアル
 
-対象バージョン: **v0.7.0a3**
+対象バージョン: **v0.7.0b1**
 
 ---
 
@@ -14304,24 +14304,17 @@ auto main() -> int
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/math.h`
-> Reason: Japanese fragment is missing.
-
 # `<xer/math.h>`
 
-## Purpose
+## 目的
 
-`<xer/math.h>` provides lightweight real-number mathematical helpers in xer.
+`<xer/math.h>` は、xer の軽量な実数数学ヘルパーを提供します。
 
-The initial scope is intentionally practical. It is not a replacement for a numerical-analysis library. It provides small, commonly useful helpers whose behavior and error handling are explicit.
+初期の対象範囲は、意図的に実用的な範囲に限定されています。これは数値解析ライブラリの代替ではありません。振る舞いとエラー処理が明示的な、小さくてよく使うヘルパーを提供します。
 
 ---
 
-
-## Types
+## 型
 
 ### `vec`
 
@@ -14330,30 +14323,30 @@ template<class T, std::size_t N = 2>
 struct vec;
 ```
 
-Represents a small position vector or mathematical vector.
+小さな位置ベクトルまたは数学的なベクトルを表します。
 
-Only `N == 2`, `N == 3`, and `N == 4` are provided. The primary template is intentionally not defined, because `<xer/math.h>` is not intended to provide a general-purpose arbitrary-dimensional vector type.
+提供されるのは `N == 2`、`N == 3`、`N == 4` のみです。`<xer/math.h>` は任意次元の汎用ベクトル型を提供することを目的としていないため、主テンプレートは意図的に定義されていません。
 
-The specializations provide named coordinate members:
+各特殊化は、名前付きの座標メンバーを提供します。
 
-| Type | Members |
+| 型 | メンバー |
 |---|---|
 | `vec<T, 2>` | `x`, `y` |
 | `vec<T, 3>` | `x`, `y`, `z` |
 | `vec<T, 4>` | `x`, `y`, `z`, `w` |
 
-`vec<T>` is equivalent to `vec<T, 2>`.
+`vec<T>` は `vec<T, 2>` と同じです。
 
-Each specialization also provides unchecked subscript access:
+各特殊化は、範囲チェックを行わない添字アクセスも提供します。
 
 ```cpp
 auto operator[](std::size_t index) noexcept -> T&;
 auto operator[](std::size_t index) const noexcept -> const T&;
 ```
 
-`operator[]` does not perform range checking. Passing an out-of-range index has undefined behavior.
+`operator[]` は範囲チェックを行いません。範囲外の添字を渡した場合の動作は未定義です。
 
-For checked access, use `at`:
+チェック付きアクセスには `at` を使用します。
 
 ```cpp
 auto at(std::size_t index) noexcept
@@ -14363,7 +14356,7 @@ auto at(std::size_t index) const noexcept
     -> xer::result<std::reference_wrapper<const T>>;
 ```
 
-If `index` is out of range, `at` returns `error_t::out_of_range`.
+`index` が範囲外の場合、`at` は `error_t::out_of_range` を返します。
 
 ### `polar`
 
@@ -14372,9 +14365,9 @@ template<class T, std::size_t N = 2>
 struct polar;
 ```
 
-Represents polar coordinates.
+極座標を表します。
 
-Currently, only `polar<T, 2>` is provided:
+現在提供されるのは `polar<T, 2>` のみです。
 
 ```cpp
 template<class T>
@@ -14384,16 +14377,13 @@ struct polar<T, 2> {
 };
 ```
 
-`theta` is a cyclic angle expressed in τrad, where `1` means one full turn.
+`theta` は τrad で表された循環角です。`1` は 1 回転を意味します。
 
 ---
 
-## Provided Functions
+## 提供される関数
 
-
-
-
-### Trigonometric Functions
+### 三角関数
 
 ```cpp
 template<std::floating_point T>
@@ -14415,11 +14405,11 @@ template<std::floating_point T>
 auto tan(cyclic<T> theta) noexcept -> T;
 ```
 
-Computes the ordinary trigonometric functions using xer angle units.
+xer の角度単位を使って通常の三角関数を計算します。
 
-The scalar overloads interpret `theta` as a τrad value, where `1` means one full turn. The `cyclic<T>` overloads use the normalized value of the cyclic angle.
+スカラー版は `theta` を τrad 値として解釈します。`1` は 1 回転を意味します。`cyclic<T>` 版は、循環角の正規化済みの値を使用します。
 
-Examples:
+例:
 
 ```text
 sin(0.25) == 1
@@ -14427,9 +14417,9 @@ cos(0.5) == -1
 tan(0.125) == 1
 ```
 
-Hyperbolic functions are intentionally not provided by `<xer/math.h>`. Use the C++ standard library directly when those functions are needed.
+双曲線関数は、意図的に `<xer/math.h>` では提供しません。それらの関数が必要な場合は、C++ 標準ライブラリを直接使用してください。
 
-### Inverse Trigonometric Functions
+### 逆三角関数
 
 ```cpp
 template<std::floating_point T>
@@ -14445,19 +14435,18 @@ template<std::floating_point T>
 auto atan2(T y, T x) noexcept -> T;
 ```
 
-Computes the inverse trigonometric functions and returns τrad scalar values.
+逆三角関数を計算し、τrad のスカラー値を返します。
 
-Typical return ranges are inherited from the corresponding standard-library functions after conversion from radians to τrad:
+典型的な戻り値の範囲は、対応する標準ライブラリ関数の戻り値をラジアンから τrad に変換したものに従います。
 
-| Function | Typical return range |
+| 関数 | 典型的な戻り値の範囲 |
 |---|---|
 | `asin` | `[-0.25, 0.25]` |
 | `acos` | `[0, 0.5]` |
 | `atan` | `(-0.25, 0.25)` |
 | `atan2` | `[-0.5, 0.5]` |
 
-For domain errors, these functions follow the behavior of the underlying standard-library functions, such as returning NaN for invalid floating-point inputs. They do not return `xer::result`.
-
+定義域エラーについては、これらの関数は基になる標準ライブラリ関数の振る舞いに従います。たとえば不正な浮動小数点入力に対して NaN を返します。これらの関数は `xer::result` を返しません。
 
 ### `to_polar`
 
@@ -14466,9 +14455,9 @@ template<std::floating_point T>
 auto to_polar(vec<T, 2> v) noexcept -> polar<T, 2>;
 ```
 
-Converts a two-dimensional Cartesian vector to polar coordinates.
+2 次元直交座標ベクトルを極座標に変換します。
 
-The returned radius is computed with `std::hypot(v.x, v.y)`. The returned angle is computed from `std::atan2(v.y, v.x)` and converted to a cyclic τrad value.
+返される半径は `std::hypot(v.x, v.y)` で計算されます。返される角度は `std::atan2(v.y, v.x)` で計算され、τrad の循環値に変換されます。
 
 ### `to_cartesian`
 
@@ -14477,15 +14466,14 @@ template<std::floating_point T>
 auto to_cartesian(polar<T, 2> p) noexcept -> vec<T, 2>;
 ```
 
-Converts two-dimensional polar coordinates to a Cartesian vector.
+2 次元極座標を直交座標ベクトルに変換します。
 
-The coordinate components are computed as:
+座標成分は次のように計算されます。
 
 ```text
 x = r * cos(theta * τ)
 y = r * sin(theta * τ)
 ```
-
 
 ### `dot`
 
@@ -14494,11 +14482,11 @@ template<class T, std::size_t N>
 auto dot(vec<T, N> a, vec<T, N> b) noexcept -> T;
 ```
 
-Computes the dot product of two vectors.
+2 つのベクトルの内積を計算します。
 
-`T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
+`T` は算術型でなければなりません。`N` は対応している `vec` の次元、つまり `2`、`3`、`4` のいずれかでなければなりません。
 
-The function returns the sum of the products of corresponding components. For integral vectors, the returned value is also integral.
+この関数は、対応する成分どうしの積の総和を返します。整数ベクトルの場合、戻り値も整数です。
 
 ### `length`
 
@@ -14507,11 +14495,11 @@ template<class T, std::size_t N>
 auto length(vec<T, N> v) noexcept -> std::common_type_t<T, double>;
 ```
 
-Computes the Euclidean length of a vector.
+ベクトルのユークリッド長を計算します。
 
-`T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
+`T` は算術型でなければなりません。`N` は対応している `vec` の次元、つまり `2`、`3`、`4` のいずれかでなければなりません。
 
-The return type is `std::common_type_t<T, double>`, so integer vectors produce a floating-point length.
+戻り値の型は `std::common_type_t<T, double>` です。そのため、整数ベクトルでも浮動小数点の長さが得られます。
 
 ### `distance`
 
@@ -14520,11 +14508,11 @@ template<class T, std::size_t N>
 auto distance(vec<T, N> a, vec<T, N> b) noexcept -> std::common_type_t<T, double>;
 ```
 
-Computes the Euclidean distance between two vectors. Positions are represented as position vectors, so this function can also be used to compute the distance between two points.
+2 つのベクトル間のユークリッド距離を計算します。位置は位置ベクトルとして表されるため、この関数は 2 点間の距離の計算にも使用できます。
 
-`T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
+`T` は算術型でなければなりません。`N` は対応している `vec` の次元、つまり `2`、`3`、`4` のいずれかでなければなりません。
 
-The return type is `std::common_type_t<T, double>`, so integer vectors produce a floating-point distance.
+戻り値の型は `std::common_type_t<T, double>` です。そのため、整数ベクトルでも浮動小数点の距離が得られます。
 
 ### `normalize`
 
@@ -14534,13 +14522,13 @@ auto normalize(vec<T, N> v) noexcept
     -> xer::result<vec<std::common_type_t<T, double>, N>>;
 ```
 
-Returns a vector with the same direction as `v` and length `1`.
+`v` と同じ向きで長さが `1` のベクトルを返します。
 
-`T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
+`T` は算術型でなければなりません。`N` は対応している `vec` の次元、つまり `2`、`3`、`4` のいずれかでなければなりません。
 
-The returned vector uses `std::common_type_t<T, double>` as its component type, so integer vectors can be normalized without losing fractional components.
+返されるベクトルは、成分型として `std::common_type_t<T, double>` を使用します。そのため、整数ベクトルでも小数成分を失わずに正規化できます。
 
-If `v` is the zero vector, the function returns `error_t::invalid_argument`.
+`v` がゼロベクトルの場合、この関数は `error_t::invalid_argument` を返します。
 
 ### `angle`
 
@@ -14550,13 +14538,13 @@ auto angle(vec<T, N> a, vec<T, N> b) noexcept
     -> xer::result<std::common_type_t<T, double>>;
 ```
 
-Computes the unsigned angle between two vectors in τrad.
+2 つのベクトルのなす角の大きさを τrad で計算します。
 
-`T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
+`T` は算術型でなければなりません。`N` は対応している `vec` の次元、つまり `2`、`3`、`4` のいずれかでなければなりません。
 
-The return type is `std::common_type_t<T, double>`, so integer vectors produce a floating-point angle. The returned value is not `cyclic<T>` because this function returns an angle magnitude. It is in the range `0` to `0.5`, where `0.25` is a right angle and `0.5` is a straight angle.
+戻り値の型は `std::common_type_t<T, double>` です。そのため、整数ベクトルでも浮動小数点の角度が得られます。返される値は角度の大きさであるため、`cyclic<T>` ではありません。範囲は `0` から `0.5` で、`0.25` は直角、`0.5` は平角です。
 
-If either vector is the zero vector, the function returns `error_t::invalid_argument`.
+どちらかのベクトルがゼロベクトルの場合、この関数は `error_t::invalid_argument` を返します。
 
 ### `rotate`
 
@@ -14566,13 +14554,13 @@ auto rotate(vec<T, 2> v, cyclic<Angle> theta) noexcept
     -> vec<std::common_type_t<T, Angle, double>, 2>;
 ```
 
-Rotates a two-dimensional vector around the origin.
+2 次元ベクトルを原点の周りで回転します。
 
-`T` must be an arithmetic type. `theta` is a cyclic angle expressed in τrad, where `1` means one full turn.
+`T` は算術型でなければなりません。`theta` は τrad で表された循環角です。`1` は 1 回転を意味します。
 
-The return type uses `std::common_type_t<T, Angle, double>` as its component type, so integer vectors can be rotated without losing fractional components.
+戻り値の型は、成分型として `std::common_type_t<T, Angle, double>` を使用します。そのため、整数ベクトルでも小数成分を失わずに回転できます。
 
-Positive angles rotate counterclockwise in the usual mathematical coordinate system.
+正の角度は、通常の数学的座標系で反時計回りに回転します。
 
 ### `cross`
 
@@ -14581,9 +14569,9 @@ template<class T>
 auto cross(vec<T, 3> a, vec<T, 3> b) noexcept -> vec<T, 3>;
 ```
 
-Computes the three-dimensional cross product of two vectors.
+2 つの 3 次元ベクトルの外積を計算します。
 
-`T` must be an arithmetic type. The function currently supports only `vec<T, 3>`.
+`T` は算術型でなければなりません。この関数は現在、`vec<T, 3>` のみに対応しています。
 
 ### `heron`
 
@@ -14592,11 +14580,11 @@ template<std::floating_point T>
 auto heron(T a, T b, T c) -> xer::result<T>;
 ```
 
-Computes the area of a triangle from its three side lengths using Heron's formula.
+ヘロンの公式を使って、3 辺の長さから三角形の面積を計算します。
 
-The side lengths must be non-negative and must be able to form a triangle. If a side length is negative, or if the side lengths violate the triangle inequality, the function returns `error_t::invalid_argument`. Degenerate triangles are accepted and return zero.
+辺の長さは非負であり、三角形を作れるものでなければなりません。辺の長さが負の場合、または辺の長さが三角不等式に反する場合、この関数は `error_t::invalid_argument` を返します。退化した三角形は受け入れられ、0 を返します。
 
-The implementation uses a rearranged form of Heron's formula after sorting the side lengths. This avoids some avoidable cancellation compared with the most direct `s * (s - a) * (s - b) * (s - c)` form.
+実装では、辺の長さをソートしたあと、並べ替えた形のヘロンの公式を使用します。これにより、最も直接的な `s * (s - a) * (s - b) * (s - c)` の形と比べて、避けられる桁落ちをいくらか回避できます。
 
 ### `quadratic`
 
@@ -14606,23 +14594,23 @@ auto quadratic(T a, T b, T c)
     -> xer::result<std::array<std::optional<T>, 2>>;
 ```
 
-Solves the quadratic equation:
+次の二次方程式を解きます。
 
 ```text
 a * x * x + b * x + c == 0
 ```
 
-The coefficient `a` must not be zero. If `a == 0`, the function returns `error_t::invalid_argument`.
+係数 `a` は 0 であってはなりません。`a == 0` の場合、この関数は `error_t::invalid_argument` を返します。
 
-The returned array stores distinct real roots from the first element:
+返される配列には、先頭要素から順に相異なる実根が格納されます。
 
-| Result | Meaning |
+| 結果 | 意味 |
 |---|---|
-| `{ nullopt, nullopt }` | no real root |
-| `{ x, nullopt }` | one real root, including a double root |
-| `{ x1, x2 }` | two distinct real roots |
+| `{ nullopt, nullopt }` | 実根なし |
+| `{ x, nullopt }` | 重解を含む 1 個の実根 |
+| `{ x1, x2 }` | 2 個の相異なる実根 |
 
-When two real roots are returned, they are sorted in ascending order.
+2 個の実根が返される場合、それらは昇順に並べられます。
 
 ### `cubic`
 
@@ -14632,69 +14620,62 @@ auto cubic(T a, T b, T c, T d)
     -> xer::result<std::array<std::optional<T>, 3>>;
 ```
 
-Solves the cubic equation:
+次の三次方程式を解きます。
 
 ```text
 a * x * x * x + b * x * x + c * x + d == 0
 ```
 
-The coefficient `a` must not be zero. If `a == 0`, the function returns `error_t::invalid_argument`.
+係数 `a` は 0 であってはなりません。`a == 0` の場合、この関数は `error_t::invalid_argument` を返します。
 
-The returned array stores distinct real roots from the first element. Empty elements are represented by `std::nullopt`. Returned roots are sorted in ascending order.
-
----
-
-## Design Notes
-
-`quadratic` and `cubic` return only real roots. Non-real roots are not errors; they are simply not stored in the returned optional array.
-
-For complex roots, use `<xer/complex.h>`.
-
-Repeated roots are represented once in the real-number functions. This keeps the result useful for common practical checks such as intersections, hit times, and real-domain constraints.
-
-
-## Coordinate and Vector Policy
-
-Positions are represented as position vectors. `<xer/math.h>` does not provide a separate point type for mathematical coordinates.
-
-The `vec` type is limited to two, three, and four dimensions. This keeps the facility focused on practical geometry, graphics, coordinate conversion, and simple physical calculations rather than becoming a general linear-algebra package.
+返される配列には、先頭要素から順に相異なる実根が格納されます。空の要素は `std::nullopt` で表されます。返される根は昇順に並べられます。
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/statistics.h`
-> Reason: Japanese fragment is missing.
+## 設計メモ
+
+`quadratic` と `cubic` は実根のみを返します。非実根はエラーではありません。単に返される optional 配列には格納されません。
+
+複素根が必要な場合は、`<xer/complex.h>` を使用してください。
+
+重根は実数関数では 1 回だけ表されます。これにより、交点、衝突時刻、実数領域での制約のような一般的な実用チェックに使いやすい結果になります。
+
+## 座標とベクトルの方針
+
+位置は位置ベクトルとして表します。`<xer/math.h>` は、数学的な座標用の独立した点型を提供しません。
+
+`vec` 型は 2 次元、3 次元、4 次元に限定されています。これにより、この機能が汎用線形代数パッケージになるのではなく、実用的な幾何、グラフィックス、座標変換、単純な物理計算に焦点を合わせたものになります。
+
+---
 
 # `<xer/statistics.h>`
 
-## Purpose
+## 目的
 
-`<xer/statistics.h>` provides small descriptive statistical utility functions for arithmetic ranges.
+`<xer/statistics.h>` は、算術値の範囲に対する小さな記述統計ユーティリティ関数を提供します。
 
-The initial scope is intentionally limited to common descriptive statistics:
+初期の対象範囲は、一般的な記述統計に意図的に限定されています。
 
-- sum
-- product
-- arithmetic mean
-- geometric mean
-- harmonic mean
-- median
-- quantile
-- percentile
-- mode
-- population variance
-- sample variance
-- population standard deviation
-- sample standard deviation
+- 合計
+- 積
+- 算術平均
+- 幾何平均
+- 調和平均
+- 中央値
+- 分位数
+- パーセンタイル
+- 最頻値
+- 母分散
+- 標本分散
+- 母標準偏差
+- 標本標準偏差
 
-The scalar functions return `xer::result<double>` so that invalid inputs are reported explicitly.
-`mode` returns `xer::result<std::vector<double>>` because multiple values can share the highest frequency.
+スカラー関数は `xer::result<double>` を返すため、不正な入力は明示的に報告されます。
+`mode` は、複数の値が最高頻度を共有できるため、`xer::result<std::vector<double>>` を返します。
 
 ---
 
-## Provided Functions
+## 提供される関数
 
 ```cpp
 template<class Range>
@@ -14776,8 +14757,8 @@ template<class T>
 auto sample_stddev(std::initializer_list<T> values) -> xer::result<double>;
 ```
 
-Each range overload accepts an input range whose reference type is a non-`bool` arithmetic type.
-The initializer-list overloads are provided so that calls such as the following work naturally:
+各範囲版は、参照型が `bool` ではない算術型である入力範囲を受け取ります。
+初期化子リスト版は、次のような呼び出しが自然に動作するように提供されています。
 
 ```cpp
 auto value = xer::mean({1.0, 2.0, 3.0});
@@ -14785,115 +14766,114 @@ auto value = xer::mean({1.0, 2.0, 3.0});
 
 ---
 
-## Mean
+## 平均
 
 ```cpp
 template<class Range>
 auto mean(Range&& range) -> xer::result<double>;
 ```
 
-Computes the arithmetic mean of the input values.
+入力値の算術平均を計算します。
 
-The range must contain at least one value.
-If the range is empty, the function returns `error_t::invalid_argument`.
+範囲には少なくとも 1 個の値が含まれていなければなりません。
+範囲が空の場合、この関数は `error_t::invalid_argument` を返します。
 
 ---
 
-
-## Sum
+## 合計
 
 ```cpp
 template<class Range>
 auto sum(Range&& range) -> xer::result<double>;
 ```
 
-Computes the sum of the input values.
+入力値の合計を計算します。
 
-The range must contain at least one value.
-If the range is empty, the function returns `error_t::invalid_argument`.
+範囲には少なくとも 1 個の値が含まれていなければなりません。
+範囲が空の場合、この関数は `error_t::invalid_argument` を返します。
 
 ---
 
-## Product
+## 積
 
 ```cpp
 template<class Range>
 auto product(Range&& range) -> xer::result<double>;
 ```
 
-Computes the product of the input values.
+入力値の積を計算します。
 
-The range must contain at least one value.
-If the range is empty, the function returns `error_t::invalid_argument`.
+範囲には少なくとも 1 個の値が含まれていなければなりません。
+範囲が空の場合、この関数は `error_t::invalid_argument` を返します。
 
 ---
 
-## Geometric Mean
+## 幾何平均
 
 ```cpp
 template<class Range>
 auto geometric_mean(Range&& range) -> xer::result<double>;
 ```
 
-Computes the geometric mean of the input values.
+入力値の幾何平均を計算します。
 
-All input values must be finite and non-negative.
-If any input value is zero, the result is zero.
-If any input value is negative, NaN, or infinity, the function returns `error_t::invalid_argument`.
+すべての入力値は有限で非負でなければなりません。
+入力値のいずれかが 0 の場合、結果は 0 になります。
+入力値のいずれかが負値、NaN、無限大の場合、この関数は `error_t::invalid_argument` を返します。
 
-The range must contain at least one value.
-If the range is empty, the function returns `error_t::invalid_argument`.
+範囲には少なくとも 1 個の値が含まれていなければなりません。
+範囲が空の場合、この関数は `error_t::invalid_argument` を返します。
 
 ---
 
-## Harmonic Mean
+## 調和平均
 
 ```cpp
 template<class Range>
 auto harmonic_mean(Range&& range) -> xer::result<double>;
 ```
 
-Computes the harmonic mean of the input values.
+入力値の調和平均を計算します。
 
-All input values must be finite and positive.
-If any input value is zero, negative, NaN, or infinity, the function returns `error_t::invalid_argument`.
+すべての入力値は有限で正でなければなりません。
+入力値のいずれかが 0、負値、NaN、無限大の場合、この関数は `error_t::invalid_argument` を返します。
 
-The range must contain at least one value.
-If the range is empty, the function returns `error_t::invalid_argument`.
+範囲には少なくとも 1 個の値が含まれていなければなりません。
+範囲が空の場合、この関数は `error_t::invalid_argument` を返します。
 
 ---
 
-## Median
+## 中央値
 
 ```cpp
 template<class Range>
 auto median(Range&& range) -> xer::result<double>;
 ```
 
-Computes the median of the input values.
+入力値の中央値を計算します。
 
-The input values are copied and sorted internally.
-For an odd number of values, the middle value is returned.
-For an even number of values, the arithmetic mean of the two middle values is returned.
+入力値は内部でコピーされ、ソートされます。
+値の個数が奇数の場合、中央の値が返されます。
+値の個数が偶数の場合、中央の 2 値の算術平均が返されます。
 
-The range must contain at least one value.
-If the range is empty, the function returns `error_t::invalid_argument`.
+範囲には少なくとも 1 個の値が含まれていなければなりません。
+範囲が空の場合、この関数は `error_t::invalid_argument` を返します。
 
 ---
 
-## Quantile
+## 分位数
 
 ```cpp
 template<class Range>
 auto quantile(Range&& range, double q) -> xer::result<double>;
 ```
 
-Computes a quantile of the input values.
+入力値の分位数を計算します。
 
-The input values are copied and sorted internally.
-The quantile fraction `q` must be finite and in the range `[0.0, 1.0]`.
+入力値は内部でコピーされ、ソートされます。
+分位数の比率 `q` は有限で、範囲 `[0.0, 1.0]` 内になければなりません。
 
-The interpolation rule is linear interpolation on the sorted sequence:
+補間規則は、ソート済み列に対する線形補間です。
 
 ```text
 position = q * (n - 1)
@@ -14901,126 +14881,126 @@ result = values[floor(position)] * (1 - fraction)
        + values[ceil(position)]  * fraction
 ```
 
-where `fraction` is the fractional part of `position`.
+ここで `fraction` は `position` の小数部分です。
 
-This means:
+これは次を意味します。
 
 ```text
-quantile(values, 0.0) == minimum value
-quantile(values, 0.5) == median value
-quantile(values, 1.0) == maximum value
+quantile(values, 0.0) == 最小値
+quantile(values, 0.5) == 中央値
+quantile(values, 1.0) == 最大値
 ```
 
-The range must contain at least one value.
-If the range is empty, the function returns `error_t::invalid_argument`.
+範囲には少なくとも 1 個の値が含まれていなければなりません。
+範囲が空の場合、この関数は `error_t::invalid_argument` を返します。
 
-If `q` is outside `[0.0, 1.0]`, NaN, or infinity, the function returns `error_t::invalid_argument`.
+`q` が `[0.0, 1.0]` の外側、NaN、または無限大の場合、この関数は `error_t::invalid_argument` を返します。
 
 ---
 
-## Percentile
+## パーセンタイル
 
 ```cpp
 template<class Range>
 auto percentile(Range&& range, double p) -> xer::result<double>;
 ```
 
-Computes a percentile of the input values.
+入力値のパーセンタイルを計算します。
 
-The percentile value `p` must be finite and in the range `[0.0, 100.0]`.
-This function uses the same interpolation rule as `quantile`.
+パーセンタイル値 `p` は有限で、範囲 `[0.0, 100.0]` 内になければなりません。
+この関数は `quantile` と同じ補間規則を使用します。
 
 ```text
 percentile(values, p) == quantile(values, p / 100.0)
 ```
 
-This means:
+これは次を意味します。
 
 ```text
-percentile(values, 0.0)   == minimum value
-percentile(values, 50.0)  == median value
-percentile(values, 100.0) == maximum value
+percentile(values, 0.0)   == 最小値
+percentile(values, 50.0)  == 中央値
+percentile(values, 100.0) == 最大値
 ```
 
-The range must contain at least one value.
-If the range is empty, the function returns `error_t::invalid_argument`.
+範囲には少なくとも 1 個の値が含まれていなければなりません。
+範囲が空の場合、この関数は `error_t::invalid_argument` を返します。
 
-If `p` is outside `[0.0, 100.0]`, NaN, or infinity, the function returns `error_t::invalid_argument`.
+`p` が `[0.0, 100.0]` の外側、NaN、または無限大の場合、この関数は `error_t::invalid_argument` を返します。
 
 ---
 
-## Mode
+## 最頻値
 
 ```cpp
 template<class Range>
 auto mode(Range&& range, double tolerance = 0.0) -> xer::result<std::vector<double>>;
 ```
 
-Computes the mode values of the input values.
+入力値の最頻値を計算します。
 
-The result is a vector because multiple values can share the highest frequency.
-If no value appears at least twice, the result is an empty vector.
-This means that `mode({1, 2, 3})` succeeds and returns an empty vector rather than treating every value as a mode.
+複数の値が最高頻度を共有できるため、結果は vector です。
+2 回以上現れる値がない場合、結果は空の vector です。
+つまり、`mode({1, 2, 3})` はすべての値を最頻値として扱うのではなく、成功して空の vector を返します。
 
-When `tolerance` is `0.0`, values are grouped by exact equality after sorting.
-When `tolerance` is positive, sorted values whose distance from the first value of the current group is at most `tolerance` are treated as the same group.
-The representative value returned for a tolerant group is the arithmetic mean of the values in that group.
+`tolerance` が `0.0` の場合、値はソート後に完全一致でグループ化されます。
+`tolerance` が正の場合、現在のグループの先頭値からの距離が `tolerance` 以下であるソート済みの値は、同じグループとして扱われます。
+許容幅付きグループで返される代表値は、そのグループ内の値の算術平均です。
 
-For example:
+例:
 
 ```cpp
 auto values = std::vector<double>{1.00, 1.02, 1.04, 2.00, 2.04};
 auto modes = xer::mode(values, 0.05);
 ```
 
-The first three values are grouped together, and the returned mode is approximately `1.02`.
+最初の 3 値が同じグループになり、返される最頻値はおよそ `1.02` です。
 
-`tolerance` must be finite and non-negative.
-If `tolerance` is negative, NaN, or infinity, the function returns `error_t::invalid_argument`.
+`tolerance` は有限で非負でなければなりません。
+`tolerance` が負値、NaN、または無限大の場合、この関数は `error_t::invalid_argument` を返します。
 
 ---
 
-## Population Variance
+## 母分散
 
 ```cpp
 template<class Range>
 auto variance(Range&& range) -> xer::result<double>;
 ```
 
-Computes the population variance.
+母分散を計算します。
 
-The population variance divides the sum of squared deviations by `n`:
+母分散は、偏差平方和を `n` で割ります。
 
 ```text
 sum((x - mean)^2) / n
 ```
 
-This function requires at least one value.
-For a single value, the population variance is `0`.
+この関数は少なくとも 1 個の値を必要とします。
+値が 1 個の場合、母分散は `0` です。
 
 ---
 
-## Sample Variance
+## 標本分散
 
 ```cpp
 template<class Range>
 auto sample_variance(Range&& range) -> xer::result<double>;
 ```
 
-Computes the sample variance.
+標本分散を計算します。
 
-The sample variance divides the sum of squared deviations by `n - 1`:
+標本分散は、偏差平方和を `n - 1` で割ります。
 
 ```text
 sum((x - mean)^2) / (n - 1)
 ```
 
-This function requires at least two values.
-If fewer than two values are provided, the function returns `error_t::invalid_argument`.
+この関数は少なくとも 2 個の値を必要とします。
+2 個未満の値が渡された場合、この関数は `error_t::invalid_argument` を返します。
 
 ---
 
-## Standard Deviation
+## 標準偏差
 
 ```cpp
 template<class Range>
@@ -15030,49 +15010,49 @@ template<class Range>
 auto sample_stddev(Range&& range) -> xer::result<double>;
 ```
 
-`stddev` computes the population standard deviation.
-It is the square root of `variance`.
+`stddev` は母標準偏差を計算します。
+これは `variance` の平方根です。
 
-`sample_stddev` computes the sample standard deviation.
-It is the square root of `sample_variance`.
+`sample_stddev` は標本標準偏差を計算します。
+これは `sample_variance` の平方根です。
 
 ---
 
-## Error Handling
+## エラー処理
 
-The statistical functions report invalid inputs through `xer::result`.
+統計関数は、不正な入力を `xer::result` を通じて報告します。
 
-| Condition | Error |
+| 条件 | エラー |
 |---|---|
-| empty range | `error_t::invalid_argument` |
-| fewer than two values for sample variance / sample standard deviation | `error_t::invalid_argument` |
-| NaN or infinity in the input | `error_t::invalid_argument` |
-| negative input for `geometric_mean` | `error_t::invalid_argument` |
-| zero or negative input for `harmonic_mean` | `error_t::invalid_argument` |
-| `quantile` fraction outside `[0.0, 1.0]`, NaN, or infinity | `error_t::invalid_argument` |
-| `percentile` value outside `[0.0, 100.0]`, NaN, or infinity | `error_t::invalid_argument` |
-| negative, NaN, or infinite `mode` tolerance | `error_t::invalid_argument` |
-| intermediate or final value outside the representable `double` range | `error_t::range_error` |
+| 空の範囲 | `error_t::invalid_argument` |
+| 標本分散 / 標本標準偏差で値が 2 個未満 | `error_t::invalid_argument` |
+| 入力内の NaN または無限大 | `error_t::invalid_argument` |
+| `geometric_mean` への負の入力 | `error_t::invalid_argument` |
+| `harmonic_mean` への 0 または負の入力 | `error_t::invalid_argument` |
+| `quantile` の比率が `[0.0, 1.0]` の外側、NaN、または無限大 | `error_t::invalid_argument` |
+| `percentile` の値が `[0.0, 100.0]` の外側、NaN、または無限大 | `error_t::invalid_argument` |
+| `mode` の `tolerance` が負値、NaN、または無限大 | `error_t::invalid_argument` |
+| 中間値または最終値が `double` で表現できる範囲の外側 | `error_t::range_error` |
 
 ---
 
-## Numeric Behavior
+## 数値的振る舞い
 
-`sum`, `product`, `mean`, `geometric_mean`, `harmonic_mean`, `variance`, `sample_variance`, `stddev`, and `sample_stddev` use one-pass accumulation internally.
-This allows them to work with input ranges and avoids requiring a second traversal of the input.
+`sum`、`product`、`mean`、`geometric_mean`、`harmonic_mean`、`variance`、`sample_variance`、`stddev`、`sample_stddev` は、内部で 1 パスの累積を使用します。
+これにより入力範囲で動作でき、入力を 2 回走査する必要を避けられます。
 
-`geometric_mean` uses logarithmic accumulation for positive values.
-A zero input value makes the result zero without taking `log(0)`.
+`geometric_mean` は、正の値に対して対数による累積を使用します。
+入力値に 0 がある場合、`log(0)` を取らずに結果を 0 にします。
 
-`median`, `quantile`, `percentile`, and `mode` copy the input values because they need sorted data.
-They still accept input ranges, but they require memory proportional to the number of input values.
+`median`、`quantile`、`percentile`、`mode` はソート済みデータを必要とするため、入力値をコピーします。
+入力範囲は受け取れますが、入力値の個数に比例するメモリが必要です。
 
-Accumulation is performed internally using `long double`, and the public scalar result type is `double`.
-This keeps the initial API simple and predictable while providing better intermediate precision than accumulating directly in `double`.
+累積は内部で `long double` を使って行われ、公開されるスカラー結果の型は `double` です。
+これにより、初期 API を単純で予測しやすいものに保ちながら、`double` に直接累積するよりも高い中間精度を得ます。
 
 ---
 
-## Example
+## 例
 
 ```cpp
 #include <iostream>
@@ -15123,35 +15103,29 @@ auto main() -> int
 
 ---
 
-## Notes
+## メモ
 
-`variance` and `stddev` intentionally mean population variance and population standard deviation.
+`variance` と `stddev` は、意図的に母分散と母標準偏差を意味します。
 
-Use `sample_variance` and `sample_stddev` when the sample formulas with `n - 1` are required.
-This naming keeps the denominator choice explicit and avoids relying on ambiguous default terminology.
+`n - 1` を使う標本公式が必要な場合は、`sample_variance` と `sample_stddev` を使用してください。
+この命名により、分母の選択が明示的になり、曖昧な既定用語に依存することを避けられます。
 
-`<xer/statistics.h>` does not provide range minimum or range maximum helpers.
-Use `std::ranges::min_element`, `std::ranges::max_element`, `std::min_element`, or `std::max_element` for that purpose.
+`<xer/statistics.h>` は、範囲の最小値または最大値を求めるヘルパーを提供しません。
+その用途には、`std::ranges::min_element`、`std::ranges::max_element`、`std::min_element`、または `std::max_element` を使用してください。
 
 ---
-
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/complex.h`
-> Reason: Japanese fragment is missing.
 
 # `<xer/complex.h>`
 
-## Purpose
+## 目的
 
-`<xer/complex.h>` provides lightweight complex-number mathematical helpers in xer.
+`<xer/complex.h>` は、xer の軽量な複素数数学ヘルパーを提供します。
 
-This header contains the complex-number counterparts of selected functions in `<xer/math.h>`. It is separated from `<xer/math.h>` so that code using only real-number helpers does not need to include complex-number facilities.
+このヘッダーには、`<xer/math.h>` の一部の関数に対応する複素数版が含まれます。実数のみを扱うコードが複素数機能をインクルードせずに済むように、`<xer/math.h>` とは分離されています。
 
 ---
 
-## Provided Functions
+## 提供される関数
 
 ### `cquadratic`
 
@@ -15161,15 +15135,15 @@ auto cquadratic(T a, T b, T c)
     -> xer::result<std::array<std::complex<T>, 2>>;
 ```
 
-Solves the quadratic equation:
+次の二次方程式を解きます。
 
 ```text
 a * x * x + b * x + c == 0
 ```
 
-The coefficient `a` must not be zero. If `a == 0`, the function returns `error_t::invalid_argument`.
+係数 `a` は 0 であってはなりません。`a == 0` の場合、この関数は `error_t::invalid_argument` を返します。
 
-The returned array contains two complex roots with multiplicity.
+返される配列には、重複度を含む 2 個の複素根が格納されます。
 
 ### `ccubic`
 
@@ -15179,72 +15153,65 @@ auto ccubic(T a, T b, T c, T d)
     -> xer::result<std::array<std::complex<T>, 3>>;
 ```
 
-Solves the cubic equation:
+次の三次方程式を解きます。
 
 ```text
 a * x * x * x + b * x * x + c * x + d == 0
 ```
 
-The coefficient `a` must not be zero. If `a == 0`, the function returns `error_t::invalid_argument`.
+係数 `a` は 0 であってはなりません。`a == 0` の場合、この関数は `error_t::invalid_argument` を返します。
 
-The returned array contains three complex roots with multiplicity.
-
----
-
-## Design Notes
-
-The `c` prefix means complex-root variant. For example, `cquadratic` is the complex-root counterpart of `quadratic`.
-
-The functions currently accept real coefficients and return complex roots. Complex coefficients can be considered later if a practical need appears.
+返される配列には、重複度を含む 3 個の複素根が格納されます。
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/cyclic.h`
-> Reason: Japanese fragment was translated from a different English source hash.
+## 設計メモ
+
+`c` 接頭辞は複素根版を意味します。たとえば、`cquadratic` は `quadratic` に対応する複素根版です。
+
+現在の関数は実係数を受け取り、複素根を返します。実用上の必要が出てきた場合は、複素係数への対応を後で検討できます。
+
+---
 
 # `<xer/cyclic.h>`
 
-## Purpose
+## 目的
 
-`<xer/cyclic.h>` provides the `cyclic` type and related helpers for handling circular values in xer.
+`<xer/cyclic.h>` は、xer における循環値を扱うための `cyclic` 型と関連する補助機能を提供します。
 
-This header is intended for values such as:
+このヘッダーは、次のような値を対象にします。
 
-- angles
-- phases
-- directions
-- time-of-day-like circular positions
-- other quantities defined relative to one full turn
+- 角度
+- 位相
+- 方向
+- 時刻のような循環位置
+- 1 周を基準として定義されるその他の量
 
-Its role is not merely to provide modular arithmetic.
-Instead, it provides a lightweight value type that makes circular semantics explicit, especially concepts such as clockwise and counterclockwise distance.
-
----
-
-## Main Role
-
-The main role of `<xer/cyclic.h>` is to provide a compact and explicit model for circular values that:
-
-- are normalized to one full turn
-- need wraparound behavior
-- benefit from shortest-difference operations
-- should expose clockwise and counterclockwise interpretation directly
-
-This makes the header especially useful for code involving:
-
-- angles and rotations
-- periodic control values
-- UI or graphics direction handling
-- other one-turn-based quantities
+その役割は単なる剰余算を提供することではありません。代わりに、時計回り距離や反時計回り距離のような概念を含め、循環的な意味を明示する軽量な値型を提供します。
 
 ---
 
-## Main Entities
+## 主な役割
 
-At minimum, `<xer/cyclic.h>` provides the following entities:
+`<xer/cyclic.h>` の主な役割は、次の性質を持つ循環値のための、小さく明示的なモデルを提供することです。
+
+- 1 周に正規化される
+- 折り返し挙動が必要である
+- 最短差分操作が有用である
+- 時計回り / 反時計回りの解釈を直接表したい
+
+このため、このヘッダーは次のようなコードで特に有用です。
+
+- 角度と回転
+- 周期的な制御値
+- UI やグラフィックスにおける方向処理
+- その他の 1 周基準の量
+
+---
+
+## 主なエンティティ
+
+少なくとも、`<xer/cyclic.h>` は次のエンティティを提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -15272,19 +15239,19 @@ template <std::floating_point T>
 auto to_radian(cyclic<T> value) noexcept -> T;
 ```
 
-The exact overload set may grow, but this is the essential public shape.
+正確なオーバーロード集合は今後増える可能性がありますが、これが本質的な公開形です。
 
 ---
 
 ## `cyclic<T>`
 
-`cyclic<T>` is the central type of the header.
+`cyclic<T>` はこのヘッダーの中心となる型です。
 
-It represents a circular value normalized to one full turn.
+これは 1 周に正規化された循環値を表します。
 
-### Basic Shape
+### 基本形
 
-At minimum, the class is expected to have a form like the following:
+少なくとも、このクラスは次のような形を持つことが想定されます。
 
 ```cpp id="0r4t03"
 template <std::floating_point T>
@@ -15318,89 +15285,88 @@ public:
 };
 ```
 
-This header is therefore centered on one small, value-oriented class template rather than on a large framework.
+したがって、このヘッダーは大きなフレームワークではなく、小さな値指向のクラステンプレートを中心とします。
 
 ---
 
-## Internal Representation
+## 内部表現
 
-`cyclic<T>` uses a normalized internal representation where one full turn is `1`.
+`cyclic<T>` は、1 周を `1` とする正規化済み内部表現を使います。
 
-### Basic Rule
+### 基本規則
 
-The stored value always belongs to the half-open interval:
+保存される値は常に半開区間に属します。
 
 ```text
 [0, 1)
 ```
 
-That means:
+つまり、
 
-* `0` is the reference position
-* `1` is identified with `0`
-* values are normalized after construction and arithmetic updates
+* `0` は基準位置
+* `1` は `0` と同一視される
+* 構築後および算術更新後に値は正規化される
 
-### Why This Matters
+### なぜ重要か
 
-By using `[0, 1)` internally, the circular nature of the value is separated cleanly from external units such as:
+内部的に `[0, 1)` を使うことで、値の循環的性質を次のような外部単位からきれいに分離できます。
 
-* degrees
-* radians
-* any other one-turn-based external scale
+* 度
+* ラジアン
+* その他の 1 周基準の外部尺度
 
-This makes the type compact and unit-independent.
+これにより、この型は小さく単位非依存になります。
 
 ---
 
-## Supported Value Types
+## 対応する値型
 
-`cyclic<T>` is parameterized by a floating-point type.
+`cyclic<T>` は浮動小数点型をテンプレート引数に取ります。
 
-The intended template arguments are:
+想定されるテンプレート引数は次です。
 
 * `float`
 * `double`
 * `long double`
 
-Integer types are not accepted.
+整数型は受け付けません。
 
-### Why Floating-Point Types
+### なぜ浮動小数点型か
 
-Circular values are naturally modeled as continuous values rather than discrete modular integers in the main intended use cases.
+主な用途では、循環値は離散的な剰余整数ではなく、連続値としてモデル化するのが自然です。
 
-This is especially appropriate for:
+これは特に次に適しています。
 
-* direction control
-* angle interpolation
-* phase-related processing
-* real-time graphics and UI work
+* 方向制御
+* 角度補間
+* 位相関連処理
+* リアルタイムグラフィックスや UI 処理
 
 ---
 
-## Normalization
+## 正規化
 
-A `cyclic<T>` object always stores a normalized value.
+`cyclic<T>` オブジェクトは常に正規化済みの値を保存します。
 
-### Meaning
+### 意味
 
-Conceptually, normalization means mapping an arbitrary value into the interval `[0, 1)`.
+概念的には、正規化とは任意の値を `[0, 1)` に写すことです。
 
-Examples:
+例です。
 
-* `0.3` stays `0.3`
-* `1.3` becomes `0.3`
-* `-0.2` becomes `0.8`
+* `0.3` は `0.3` のまま
+* `1.3` は `0.3` になる
+* `-0.2` は `0.8` になる
 
-### Design Direction
+### 設計方針
 
-The exact implementation is not the public concern.
-What matters is the invariant:
+具体的な実装は公開上の関心事ではありません。重要なのは次の不変条件です。
 
 ```text
 0 <= value < 1
 ```
 
-This invariant is fundamental to all operations provided by the type.
+この不変条件は、この型が提供するすべての操作の基礎です。
 
 ---
 
@@ -15410,28 +15376,27 @@ This invariant is fundamental to all operations provided by the type.
 auto value() const noexcept -> T;
 ```
 
-### Purpose
+### 目的
 
-`value()` returns the internal normalized representation.
+`value()` は内部の正規化済み表現を返します。
 
-### Meaning
+### 意味
 
-The returned value is always in `[0, 1)`.
+返される値は常に `[0, 1)` にあります。
 
-This is the raw circular representation used by the type itself.
+これは型自身が使う生の循環表現です。
 
-### Notes
+### 注意
 
-This is not the same thing as a degree or radian value.
-Those conversions are handled by separate helper functions.
+これは度やラジアン値とは別物です。それらの変換は別の補助関数が扱います。
 
 ---
 
-## Clockwise and Counterclockwise Distance
+## 時計回り距離と反時計回り距離
 
-One of the defining features of `cyclic<T>` is that it makes direction along the circle explicit.
+`cyclic<T>` の特徴の 1 つは、円周上の方向を明示することです。
 
-At minimum, this is expressed by:
+少なくとも、これは次の関数で表されます。
 
 ```cpp id="ca9elv"
 auto cw(cyclic to) const noexcept -> T;
@@ -15440,23 +15405,23 @@ auto ccw(cyclic to) const noexcept -> T;
 
 ### `cw`
 
-`cw(to)` returns the clockwise distance from `this` to `to`.
+`cw(to)` は `this` から `to` までの時計回り距離を返します。
 
 ### `ccw`
 
-`ccw(to)` returns the counterclockwise distance from `this` to `to`.
+`ccw(to)` は `this` から `to` までの反時計回り距離を返します。
 
-### Range
+### 範囲
 
-These distances are returned in the range:
+これらの距離は次の範囲で返されます。
 
 ```text
 [0, 1)
 ```
 
-### Why This Matters
+### なぜ重要か
 
-This explicit directional model is one of the main reasons `cyclic<T>` exists as its own type rather than simply using a floating-point value with manual modulo arithmetic.
+この明示的な方向モデルは、`cyclic<T>` が単なる浮動小数点値と手作業の剰余算ではなく、独自の型として存在する主な理由の 1 つです。
 
 ---
 
@@ -15466,40 +15431,40 @@ This explicit directional model is one of the main reasons `cyclic<T>` exists as
 auto diff(cyclic to) const noexcept -> T;
 ```
 
-### Purpose
+### 目的
 
-`diff(to)` returns the shortest signed difference from `this` to `to`.
+`diff(to)` は `this` から `to` までの最短の符号付き差分を返します。
 
-### Meaning of the Sign
+### 符号の意味
 
-* positive means counterclockwise
-* negative means clockwise
+* 正は反時計回り
+* 負は時計回り
 
-### Range
+### 範囲
 
-The returned value lies in:
+返される値は次の範囲にあります。
 
 ```text
 [-0.5, 0.5)
 ```
 
-If the difference is exactly half a turn, it is normalized to the `-0.5` side.
+差分がちょうど半周の場合は、`-0.5` 側へ正規化されます。
 
-### Why This Matters
+### なぜ重要か
 
-This operation is especially useful in practical code that wants:
+この操作は、実用的なコードで次のことを行いたい場合に特に有用です。
 
-* shortest-angle movement
-* compact directional difference logic
-* comparison on a circle without manual wraparound handling
+* 最短角度移動
+* 簡潔な方向差分ロジック
+* 折り返しを手作業で扱わない円周上の比較
 
 ---
 
-## Equality Testing
+## 等価判定
 
-`cyclic<T>` does not use strict bitwise equality as its main equality model.
+`cyclic<T>` は、厳密なビット単位等価を主な等価モデルとして使いません。
 
-Instead, it provides explicit approximate equality helpers:
+代わりに、明示的な近似等価補助関数を提供します。
 
 ```cpp id="v86flg"
 auto eq(cyclic to) const noexcept -> bool;
@@ -15509,59 +15474,58 @@ auto eq(cyclic to, T epsilon) const noexcept -> bool;
 auto ne(cyclic to, T epsilon) const noexcept -> bool;
 ```
 
-### Why `eq` / `ne` Exist
+### なぜ `eq` / `ne` があるか
 
-This design makes it clear that equality is tolerance-based rather than strict.
+この設計により、等価が厳密ではなく許容誤差に基づくことを明確にします。
 
-### Why `==` and `!=` Are Not the Main API
+### なぜ `==` と `!=` が主 API ではないか
 
-If ordinary comparison operators were used for approximate equality, it would be too easy to misread them as strict equality.
+通常の比較演算子を近似等価に使うと、厳密等価であるかのように誤読しやすくなります。
 
-xer therefore prefers explicit named functions.
+そのため、xer では明示的な名前付き関数を優先します。
 
-### Default Tolerance
+### 既定の許容誤差
 
-The default tolerance is stored in:
+既定の許容誤差は次に保存されます。
 
 ```cpp id="tvnkmz"
 static constexpr T default_epsilon;
 ```
 
-This provides a practical default width appropriate to the floating-point type.
+これにより、浮動小数点型に応じた実用的な既定幅を提供します。
 
 ---
 
-## Arithmetic Operators
+## 算術演算子
 
-At minimum, `cyclic<T>` may provide the following operators:
+少なくとも、`cyclic<T>` は次の演算子を提供する可能性があります。
 
-* unary `+`
-* unary `-`
-* binary `+`
-* binary `-`
+* 単項 `+`
+* 単項 `-`
+* 二項 `+`
+* 二項 `-`
 * `+=`
 * `-=`
 
-### Meaning
+### 意味
 
-These operators are interpreted as arithmetic on a circle.
+これらの演算子は円周上の算術として解釈されます。
 
-This means:
+つまり、
 
-* results are always normalized back into `[0, 1)`
-* addition means moving forward around the circle
-* subtraction means moving backward around the circle
+* 結果は常に `[0, 1)` に正規化される
+* 加算は円周上を前へ進むことを意味する
+* 減算は円周上を後ろへ戻ることを意味する
 
-### Important Note
+### 重要な注意
 
-These are not ordinary real-number operators in the abstract mathematical sense.
-They are circular operations defined by the type's normalization rule.
+これらは抽象的な数学上の普通の実数演算子ではありません。型の正規化規則によって定義される循環演算です。
 
 ---
 
-## Comparison Operators Not Provided
+## 比較演算子を提供しない理由
 
-Order-comparison operators such as:
+次のような順序比較演算子は、意図したモデルに含まれません。
 
 * `<`
 * `<=`
@@ -15569,21 +15533,19 @@ Order-comparison operators such as:
 * `>=`
 * `<=>`
 
-are not part of the intended model.
+### 理由
 
-### Why
+順序比較は、通常の実数と同じ意味では循環値に本質的なものではありません。
 
-Order comparison is not intrinsic to circular values in the same way it is for ordinary real numbers.
-
-Similarly, `==` and `!=` are not the preferred public equality model because approximate comparison is the intended design.
+同様に、`==` と `!=` も推奨される公開等価モデルではありません。意図した設計は近似比較だからです。
 
 ---
 
-## Unit Conversion Helpers
+## 単位変換補助関数
 
-`<xer/cyclic.h>` provides free functions for conversion to and from ordinary angular units.
+`<xer/cyclic.h>` は、通常の角度単位との相互変換のための自由関数を提供します。
 
-At minimum:
+少なくとも次があります。
 
 ```cpp id="rwmkpt"
 template <std::floating_point T>
@@ -15608,99 +15570,98 @@ template <std::floating_point T>
 auto to_radian(cyclic<T> value) noexcept -> T;
 ```
 
-### Why Free Functions
+### なぜ自由関数か
 
-Unit conversion is not treated as the responsibility of the `cyclic` object itself.
+単位変換は `cyclic` オブジェクト自身の責務とは扱いません。
 
-This keeps the type unitless internally while allowing conversion at the API boundary.
+これにより、型の内部を単位非依存に保ちつつ、API 境界で変換できます。
 
-### Meaning
+### 意味
 
-These functions translate between:
+これらの関数は次の間で変換します。
 
-* external degree/radian values
-* τrad scalar values, where one full turn is `1`
-* the internal one-turn-based representation
+* 外部の度 / ラジアン値
+* 1 周を `1` とする τrad スカラー値
+* 内部の 1 周基準表現
 
-`from_rad` and `to_rad` are the preferred short names for radian conversion. `from_radian` and `to_radian` remain available as compatibility aliases.
+`from_rad` と `to_rad` は、ラジアン変換の推奨される短い名前です。`from_radian` と `to_radian` は互換性のための別名として残ります。
 
-`to_degree(T)` and `to_rad(T)` also accept τrad scalar values such as the return values of `cw`, `ccw`, `diff`, and `angle`. These scalar overloads do not normalize the input.
-
----
-
-## Relationship to Mathematical Constants
-
-Radian conversion naturally depends on π.
-
-In xer's design, mathematical constants such as π are not embedded directly into `cyclic<T>` as members.
-Instead, they are treated as separate supporting facilities, conceptually associated with dedicated internal constant support.
-
-This keeps `cyclic<T>` itself focused on circular value handling rather than on general constant provision.
+`to_degree(T)` と `to_rad(T)` は、`cw`、`ccw`、`diff`、`angle` の戻り値のような τrad スカラー値も受け取ります。これらのスカラーオーバーロードは入力を正規化しません。
 
 ---
 
-## Relationship to Other Headers
+## 数学定数との関係
 
-`<xer/cyclic.h>` should be understood together with:
+ラジアン変換は自然に π に依存します。
+
+xer の設計では、π のような数学定数を `cyclic<T>` のメンバーとして直接埋め込みません。代わりに、それらは専用の内部定数支援と概念的に関係する別の支援機能として扱います。
+
+これにより、`cyclic<T>` 自体は一般的な定数提供ではなく、循環値処理へ集中できます。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/cyclic.h>` は次と合わせて理解してください。
 
 * `policy_project_outline.md`
 * `policy_cyclic.md`
 * `header_quantity.md`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-* `<xer/cyclic.h>` handles circular values and circular operations
-* `<xer/quantity.h>` handles physical quantities and units
-* angular quantities may be represented as ordinary quantities, while `cyclic` is used when circular semantics are needed explicitly
+* `<xer/cyclic.h>` は循環値と循環操作を扱う
+* `<xer/quantity.h>` は物理量と単位を扱う
+* 角度量は通常の量として表せる一方、`cyclic` は循環的意味が明示的に必要なときに使う
 
-This distinction is important in xer's design.
-
----
-
-## Relationship to Angle Quantities
-
-A central point in xer's design is that `cyclic<T>` is **not** the universal storage model for all angle quantities.
-
-### Meaning
-
-* ordinary angle quantities, including turn counts, are better modeled as quantities with units
-* `cyclic<T>` is for circular interpretation
-* conversion into `cyclic<T>` happens when shortest-difference, clockwise distance, or counterclockwise distance is the real concern
-
-This makes `cyclic<T>` a focused and practical tool rather than a universal replacement for every angle-like value.
+この区別は xer の設計で重要です。
 
 ---
 
-## Documentation Notes
+## 角度量との関係
 
-When this header is used in generated documentation, it is usually enough to explain:
+xer の設計で重要なのは、`cyclic<T>` がすべての角度量の普遍的な保存モデルでは **ない** という点です。
 
-* that `cyclic<T>` stores values normalized to one turn
-* that clockwise and counterclockwise distance are explicit operations
-* that shortest signed difference is provided by `diff`
-* that equality is approximate and expressed by `eq` / `ne`
-* that degree/radian conversion is handled by free functions
+### 意味
 
-Detailed numeric edge cases belong in the detailed reference or generated API sections.
+* 回転数を含む通常の角度量は、単位付きの量としてモデル化する方がよい
+* `cyclic<T>` は循環的解釈のためのもの
+* 最短差分、時計回り距離、反時計回り距離が本当の関心事であるときに `cyclic<T>` へ変換する
 
----
-
-## Example Topics Commonly Worth Showing
-
-The following kinds of examples are especially suitable for this header:
-
-* constructing a `cyclic<float>` from a raw turn-based value
-* converting from degrees with `from_degree`
-* converting to degrees with `to_degree`
-* measuring clockwise and counterclockwise distance
-* computing the shortest difference with `diff`
-* comparing values with `eq`
-
-These are good candidates for executable examples in `examples/`.
+これにより、`cyclic<T>` はあらゆる角度風の値を置き換えるものではなく、焦点を絞った実用的な道具になります。
 
 ---
 
-## Example
+## ドキュメント上の注意
+
+生成マニュアルでこのヘッダーを説明するときは、通常は次を説明すれば十分です。
+
+* `cyclic<T>` は値を 1 周に正規化して保存すること
+* 時計回り距離と反時計回り距離が明示的な操作であること
+* 最短の符号付き差分は `diff` で提供されること
+* 等価は近似的で、`eq` / `ne` で表すこと
+* 度 / ラジアン変換は自由関数で扱うこと
+
+詳細な数値上の端のケースは、詳細リファレンスまたは生成 API 節に属します。
+
+---
+
+## 例として示す価値が高い題材
+
+このヘッダーでは、次のような例が特に適しています。
+
+* 生の 1 周基準値から `cyclic<float>` を構築する
+* `from_degree` で度から変換する
+* `to_degree` で度へ変換する
+* 時計回り距離と反時計回り距離を測る
+* `diff` で最短差分を計算する
+* `eq` で値を比較する
+
+これらは `examples/` の実行可能例のよい候補です。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/cyclic.h>
@@ -15724,15 +15685,15 @@ auto main() -> int
 }
 ```
 
-This example shows the normal xer style:
+この例は通常の xer スタイルを示しています。
 
-* create circular values through free conversion helpers
-* use circular operations explicitly
-* treat direction on the circle as part of the API itself
+* 自由変換補助関数で循環値を作る
+* 循環操作を明示的に使う
+* 円周上の方向を API 自身の一部として扱う
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_cyclic.md`
@@ -15740,19 +15701,18 @@ This example shows the normal xer style:
 
 ---
 
-## Ratio Conversion
+## 比率変換
 
-`cyclic<T>` provides ratio-oriented member functions for symmetry with `interval`.
+`cyclic<T>` は `interval` との対称性のために、比率指向のメンバー関数を提供します。
 
 ```cpp
 constexpr auto ratio() const noexcept -> T;
 static constexpr auto from_ratio(T ratio) noexcept -> cyclic;
 ```
 
-`ratio()` returns the normalized internal position in `[0, 1)`.
-It is an alias of `value()`.
+`ratio()` は `[0, 1)` の正規化済み内部位置を返します。これは `value()` の別名です。
 
-`from_ratio()` constructs a cyclic value from a turn-based ratio and applies normal cyclic normalization.
+`from_ratio()` は 1 周基準の比率から循環値を構築し、通常の循環正規化を適用します。
 
 ```cpp
 auto a = xer::cyclic<float>::from_ratio(1.25f);
@@ -15761,22 +15721,20 @@ auto a = xer::cyclic<float>::from_ratio(1.25f);
 
 ---
 
-## Explicit Conversion with `interval`
+## `interval` との明示的変換
 
-Implicit conversion between `cyclic` and `interval` is not provided.
-The endpoint semantics are different, so conversion should be visible in the source code.
+`cyclic` と `interval` の暗黙変換は提供しません。端点の意味が異なるため、変換はソースコード上で見えるべきです。
 
-The interval header provides explicit helpers:
+interval ヘッダーは明示的な補助関数を提供します。
 
 ```cpp
 auto to_cyclic(interval<T, Min, Max> value) noexcept -> cyclic<T>;
 auto to_interval(cyclic<T> value) -> interval<T>;
 ```
 
-`to_cyclic` maps an interval through its ratio.
-`to_interval` maps a cyclic value to the default interval `[0, 1]`.
+`to_cyclic` は interval をその比率を通じて写します。`to_interval` は cyclic 値を既定 interval `[0, 1]` へ写します。
 
-For custom interval bounds, use `interval<T, Min, Max>::from_ratio(value.ratio())`.
+カスタム境界の interval には、`interval<T, Min, Max>::from_ratio(value.ratio())` を使ってください。
 
 ---
 
@@ -17503,37 +17461,29 @@ auto main() -> int
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/matrix.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/matrix.h>`
 
-## Purpose
+## 目的
 
-`<xer/matrix.h>` provides fixed-size matrix and affine transform helpers in xer.
+`<xer/matrix.h>` は、xer における固定サイズ行列とアフィン変換補助機能を提供します。
 
-The initial purpose of this header is deliberately practical and limited.
-It is not intended to become a full linear algebra framework at the beginning.
-Instead, it provides enough functionality to express common 2D and 3D affine transforms and their inverse transforms in a clear, lightweight way.
+このヘッダーの最初の目的は、意図的に実用的かつ限定的です。最初から完全な線形代数フレームワークにすることは意図していません。代わりに、一般的な 2D / 3D アフィン変換とその逆変換を、明確で軽量な形で表現するのに十分な機能を提供します。
 
 ---
 
-## Main Role
+## 主な役割
 
-The main role of `<xer/matrix.h>` is to provide:
+`<xer/matrix.h>` の主な役割は次の機能を提供することです。
 
-- fixed-size row-major matrices
-- 3x3 and 4x4 matrix aliases
-- 3x1 and 4x1 column-vector aliases
-- ordinary matrix multiplication
-- identity matrix creation
-- inverse calculation for 3x3 and 4x4 matrices
-- helper functions for 2D and 3D affine transforms
+- 固定サイズの行優先行列
+- 3x3 および 4x4 行列エイリアス
+- 3x1 および 4x1 列ベクトルエイリアス
+- 通常の行列積
+- 単位行列の生成
+- 3x3 および 4x4 行列の逆行列計算
+- 2D / 3D アフィン変換用の補助関数
 
-This makes it possible to write transform code such as:
+これにより、次のような変換コードを書けます。
 
 ```cpp
 const xer::vector3<double> point{2.0, 3.0, 1.0};
@@ -17547,9 +17497,9 @@ const auto transformed = transform * point;
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/matrix.h>` provides the following entities:
+少なくとも、`<xer/matrix.h>` は次のエンティティを提供します。
 
 ```cpp
 template <std::floating_point T, std::size_t Rows, std::size_t Cols>
@@ -17568,51 +17518,50 @@ template <std::floating_point T>
 using vector4 = matrix<T, 4, 1>;
 ```
 
-It also provides multiplication, identity matrix creation, inverse calculation, and affine transform helper functions.
+また、乗算、単位行列生成、逆行列計算、アフィン変換補助関数も提供します。
 
 ---
 
 ## `matrix<T, Rows, Cols>`
 
-`matrix<T, Rows, Cols>` is the fundamental fixed-size matrix type.
+`matrix<T, Rows, Cols>` は基本となる固定サイズ行列型です。
 
-### Basic Shape
+### 基本形
 
 ```cpp
 template <std::floating_point T, std::size_t Rows, std::size_t Cols>
 class matrix;
 ```
 
-### Element Type
+### 要素型
 
-The element type is restricted to floating-point types.
+要素型は浮動小数点型に制限されます。
 
-The main intended types are:
+主に想定する型は次のとおりです。
 
 * `float`
 * `double`
 * `long double`
 
-This keeps the first implementation focused on geometric transforms and numeric operations where fractional values are normal.
+最初の実装を、幾何変換と小数値が自然に現れる数値演算へ集中させるためです。
 
-### Storage Model
+### ストレージモデル
 
-The matrix is stored as a fixed-size row-major value.
+行列は固定サイズの行優先値として保存されます。
 
-Conceptually, the element at row `r` and column `c` is accessed as:
+概念的には、行 `r`、列 `c` の要素は次のようにアクセスします。
 
 ```cpp
 m(r, c)
 ```
 
-Rows and columns are zero-based.
-Bounds are not checked by `operator()`.
+行と列は 0 始まりです。`operator()` では境界チェックを行いません。
 
-### Construction
+### 構築
 
-A default-constructed matrix is a zero matrix.
+既定構築された行列は零行列です。
 
-A matrix may also be constructed from exactly `Rows * Cols` values in row-major order:
+また、行優先順でちょうど `Rows * Cols` 個の値から構築できます。
 
 ```cpp
 xer::matrix<double, 2, 3> value{
@@ -17621,13 +17570,13 @@ xer::matrix<double, 2, 3> value{
 };
 ```
 
-The exact number of values is required so that incomplete or excessive matrix literals are detected at compile time.
+値の個数は正確でなければなりません。これにより、不完全または過剰な行列リテラルをコンパイル時に検出できます。
 
 ---
 
-## Matrix Aliases
+## 行列エイリアス
 
-The header provides aliases for the matrix sizes used by the initial affine-transform functionality.
+このヘッダーは、初期のアフィン変換機能で使うサイズの行列エイリアスを提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -17637,16 +17586,16 @@ template <std::floating_point T>
 using matrix4 = matrix<T, 4, 4>;
 ```
 
-### Role
+### 役割
 
-* `matrix3<T>` is primarily used for 2D homogeneous affine transforms.
-* `matrix4<T>` is primarily used for 3D homogeneous affine transforms.
+* `matrix3<T>` は主に 2D 同次アフィン変換に使います。
+* `matrix4<T>` は主に 3D 同次アフィン変換に使います。
 
 ---
 
-## Column Vector Aliases
+## 列ベクトルエイリアス
 
-The header also provides aliases for homogeneous column vectors.
+このヘッダーは、同次列ベクトルのエイリアスも提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -17656,19 +17605,18 @@ template <std::floating_point T>
 using vector4 = matrix<T, 4, 1>;
 ```
 
-### Role
+### 役割
 
-* `vector3<T>` is typically used as a 2D homogeneous column vector: `(x, y, 1)`.
-* `vector4<T>` is typically used as a 3D homogeneous column vector: `(x, y, z, 1)`.
+* `vector3<T>` は通常、2D 同次列ベクトル `(x, y, 1)` として使います。
+* `vector4<T>` は通常、3D 同次列ベクトル `(x, y, z, 1)` として使います。
 
-They are aliases of `matrix`, not separate vector classes.
-This keeps the first implementation simple and makes matrix-vector multiplication the ordinary matrix multiplication operation.
+これらは別個のベクトルクラスではなく、`matrix` のエイリアスです。最初の実装を単純に保ち、行列とベクトルの積を通常の行列積として扱えるようにします。
 
 ---
 
-## Matrix Multiplication
+## 行列積
 
-`<xer/matrix.h>` provides ordinary row-by-column matrix multiplication.
+`<xer/matrix.h>` は通常の行×列の行列積を提供します。
 
 ```cpp
 auto operator*(
@@ -17677,40 +17625,38 @@ auto operator*(
     -> matrix<T, R, K>;
 ```
 
-### Role
+### 役割
 
-This single operation covers:
+この 1 つの演算で次を扱います。
 
-* matrix × matrix
-* matrix × column vector
-* affine transform composition
-* applying an affine transform to a homogeneous point
+* 行列 × 行列
+* 行列 × 列ベクトル
+* アフィン変換の合成
+* 同次点へのアフィン変換の適用
 
-### Transform Composition Order
+### 変換合成の順序
 
-xer uses column vectors in this matrix facility.
-Therefore, in an expression such as:
+この行列機能では列ベクトルを使います。そのため、次のような式では、
 
 ```cpp
 const auto transform = translate2<double>(10.0, 20.0) * scale2<double>(2.0, 3.0);
 const auto result = transform * point;
 ```
 
-`point` is transformed by the rightmost transform first.
-In this example, scaling is applied first, and translation is applied afterward.
+`point` には右端の変換が先に適用されます。この例では、先に拡大縮小が適用され、その後に平行移動が適用されます。
 
 ---
 
-## Identity Matrices
+## 単位行列
 
-The header provides a generic identity matrix helper:
+このヘッダーは汎用の単位行列補助関数を提供します。
 
 ```cpp
 template <std::floating_point T, std::size_t N>
 auto identity_matrix() noexcept -> matrix<T, N, N>;
 ```
 
-It also provides convenience helpers for the two main affine-transform sizes:
+また、主要なアフィン変換サイズ向けの便利関数も提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -17722,9 +17668,9 @@ auto identity4() noexcept -> matrix4<T>;
 
 ---
 
-## Inverse Matrices
+## 逆行列
 
-The header provides inverse calculation for 3x3 and 4x4 matrices:
+このヘッダーは 3x3 および 4x4 行列の逆行列計算を提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -17736,18 +17682,17 @@ auto inverse(const matrix<T, 4, 4>& value) noexcept
     -> xer::result<matrix<T, 4, 4>>;
 ```
 
-### Error Handling
+### エラー処理
 
-If the matrix is singular or too close to singular for the implemented calculation, `inverse` returns failure.
+行列が特異である、または実装された計算に対して特異に近すぎる場合、`inverse` は失敗を返します。
 
-The current implementation reports this as `error_t::divide_by_zero`.
-This expresses the fact that the inverse operation requires division by a usable pivot value.
+現在の実装では、これを `error_t::divide_by_zero` として報告します。逆行列演算には使用可能なピボット値による除算が必要だからです。
 
 ---
 
-## 2D Affine Transform Helpers
+## 2D アフィン変換補助関数
 
-For 2D homogeneous column vectors, the header provides 3x3 transform helpers.
+2D 同次列ベクトル向けに、このヘッダーは 3x3 変換補助関数を提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -17760,15 +17705,15 @@ template <std::floating_point T>
 auto rotate2(cyclic<T> theta) noexcept -> matrix3<T>;
 ```
 
-### Rotation Direction
+### 回転方向
 
-`rotate2` takes a cyclic τrad angle and follows the ordinary mathematical convention: positive angles rotate counterclockwise.
+`rotate2` は `cyclic<T>` の τrad 角を受け取り、通常の数学的慣習に従います。正の角度は反時計回りの回転です。
 
 ---
 
-## 3D Affine Transform Helpers
+## 3D アフィン変換補助関数
 
-For 3D homogeneous column vectors, the header provides 4x4 transform helpers.
+3D 同次列ベクトル向けに、このヘッダーは 4x4 変換補助関数を提供します。
 
 ```cpp
 template <std::floating_point T>
@@ -17787,44 +17732,45 @@ template <std::floating_point T>
 auto rotate_z(cyclic<T> theta) noexcept -> matrix4<T>;
 ```
 
-### Rotation Units
+### 回転単位
 
-The rotation helpers take `cyclic<T>` angles in τrad units.
-A value of `0.25` represents a quarter turn, `0.5` represents a half turn, and `1.0` represents one full turn.
+回転補助関数は τrad 単位の `cyclic<T>` 角を受け取ります。
 
-This matches the angle convention used by the rest of the xer math APIs.
+`0.25` は 4 分の 1 回転、`0.5` は半回転、`1.0` は 1 回転を表します。
 
----
-
-## Scope of the Initial Matrix Facility
-
-The initial matrix facility is intentionally small.
-
-It focuses on:
-
-* 2D affine transforms using 3x3 matrices
-* 3D affine transforms using 4x4 matrices
-* homogeneous column vectors
-* inverse transforms for 3x3 and 4x4 matrices
-
-It does not initially try to provide a complete linear algebra library.
-
-Deferred or intentionally omitted items include:
-
-* dynamic-size matrices
-* decomposition algorithms
-* eigenvalues or eigenvectors
-* specialized vector classes
-* determinant APIs
-* full numerical linear algebra facilities
-
-These may be considered later only if they become necessary.
+これは、xer の他の数学 API で使う角度規約と一致します。
 
 ---
 
-## Relationship to Other Headers
+## 初期行列機能の範囲
 
-`<xer/matrix.h>` should be understood together with:
+初期の行列機能は意図的に小さくしています。
+
+重点は次の項目です。
+
+* 3x3 行列による 2D アフィン変換
+* 4x4 行列による 3D アフィン変換
+* 同次列ベクトル
+* 3x3 および 4x4 行列の逆変換
+
+最初から完全な線形代数ライブラリを提供しようとはしません。
+
+後回しまたは意図的に省略している項目には次があります。
+
+* 動的サイズ行列
+* 分解アルゴリズム
+* 固有値または固有ベクトル
+* 専用ベクトルクラス
+* 行列式 API
+* 完全な数値線形代数機能
+
+これらは必要になった場合にだけ、後から検討します。
+
+---
+
+## 他のヘッダーとの関係
+
+`<xer/matrix.h>` は次と合わせて理解してください。
 
 * `policy_project_outline.md`
 * `policy_arithmetic.md`
@@ -17832,43 +17778,43 @@ These may be considered later only if they become necessary.
 * `header_cyclic.md`
 * `header_quantity.md`
 
-The rough boundary is:
+おおまかな境界は次のとおりです。
 
-* `<xer/arithmetic.h>` handles scalar arithmetic and comparison helpers
-* `<xer/cyclic.h>` handles circular values such as normalized angles and directions
-* `<xer/quantity.h>` handles physical quantities and units
-* `<xer/matrix.h>` handles fixed-size matrices and affine transforms
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that the matrix type is fixed-size and row-major
-* that column vectors are represented as `matrix<T, N, 1>` aliases
-* that the initial focus is 2D and 3D affine transforms
-* that inverse calculation is provided for 3x3 and 4x4 matrices
-* that rotation helpers take `cyclic<T>` angles in τrad units
-
-Detailed numerical behavior and future linear algebra expansion should be documented separately when those features are added.
+* `<xer/arithmetic.h>` はスカラー算術と比較補助機能を扱う
+* `<xer/cyclic.h>` は正規化角度や方向のような循環値を扱う
+* `<xer/quantity.h>` は物理量と単位を扱う
+* `<xer/matrix.h>` は固定サイズ行列とアフィン変換を扱う
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+生成マニュアルでこのヘッダーを説明するときは、通常は次を説明すれば十分です。
 
-* applying a 2D affine transform to a point
-* composing translation, scaling, and rotation transforms
-* applying a 3D affine transform to a point
-* computing an inverse transform and restoring the original point
+* 行列型は固定サイズで行優先であること
+* 列ベクトルは `matrix<T, N, 1>` のエイリアスで表されること
+* 初期の重点は 2D / 3D アフィン変換であること
+* 3x3 および 4x4 行列の逆行列計算を提供すること
+* 回転補助関数は τrad 単位の `cyclic<T>` 角を受け取ること
 
-These are good candidates for executable examples in `examples/`.
+詳細な数値挙動や将来の線形代数拡張は、それらの機能が追加された時点で別途文書化します。
 
 ---
 
-## Example
+## 例として示す価値が高い題材
+
+このヘッダーでは、次のような例が特に適しています。
+
+* 2D アフィン変換を点へ適用する
+* 平行移動、拡大縮小、回転変換を合成する
+* 3D アフィン変換を点へ適用する
+* 逆変換を計算して元の点を復元する
+
+これらは `examples/` の実行可能例のよい候補です。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/matrix.h>
@@ -17894,16 +17840,16 @@ auto main() -> int
 }
 ```
 
-This example shows the normal xer style:
+この例は通常の xer スタイルを示しています。
 
-* represent points as homogeneous column vectors
-* compose transforms with matrix multiplication
-* apply a transform by multiplying the matrix and the point
-* check `xer::result` explicitly when computing an inverse matrix
+* 点を同次列ベクトルとして表す
+* 行列積で変換を合成する
+* 行列と点を乗算して変換を適用する
+* 逆行列を計算するときは `xer::result` を明示的に確認する
 
 ---
 
-## See Also
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_arithmetic.md`
@@ -17913,36 +17859,30 @@ This example shows the normal xer style:
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/image.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/image.h>`
 
 
-## Purpose
+## 目的
 
-`<xer/image.h>` provides lightweight image and framebuffer facilities.
+`<xer/image.h>` は、軽量な画像およびフレームバッファ機能を提供します。
 
-The initial purpose of this header is not full photo editing or complete image-file handling. It is a small framebuffer-oriented layer for fixed-size canvases, VRAM-style emulation, simple drawing, image processing, and later integration with Tcl/Tk photo images.
+このヘッダーの初期目的は、本格的な写真編集や完全な画像ファイル処理ではありません。固定サイズキャンバス、VRAM風のエミュレーション、単純な描画、画像処理、および将来的な Tcl/Tk photo image 連携に向けた、小さなフレームバッファ指向レイヤーです。
 
-Pure image processing and drawing belong in `<xer/image.h>`. Tcl/Tk photo integration belongs in `<xer/tk.h>`.
-
----
-
-## Namespace
-
-Image-related types and functions are placed in the `xer::image` namespace.
-
-The primary framebuffer owner type is `xer::image::canvas` so that `xer::image` can serve as the namespace for image storage, drawing, and image processing.
+純粋な画像処理と描画は `<xer/image.h>` に属します。Tcl/Tk photo 連携は `<xer/tk.h>` に属します。
 
 ---
 
-## Main Entities
+## 名前空間
 
-At minimum, `<xer/image.h>` provides the following entities:
+画像関連の型と関数は `xer::image` 名前空間に配置されます。
+
+主要なフレームバッファ所有型は `xer::image::canvas` です。これにより、`xer::image` を画像ストレージ、描画、画像処理の名前空間として使えます。
+
+---
+
+## 主なエンティティ
+
+少なくとも `<xer/image.h>` は次のエンティティを提供します。
 
 ```cpp
 namespace xer::image {
@@ -18416,120 +18356,80 @@ template <std::size_t Width, std::size_t Height, class Policy, class F>
 
 ---
 
-## Geometry Types
+## 幾何型
 
-The geometry helper types are simple value types used by drawing and image-processing APIs.
+このヘッダーは、整数座標用と浮動小数点座標用の小さな幾何型を提供します。
 
 ```cpp
 struct point {
     int x;
     int y;
-
-    constexpr point() noexcept = default;
-    constexpr point(int x, int y) noexcept;
 };
 
 struct pointf {
     float x;
     float y;
-
-    constexpr pointf() noexcept = default;
-    constexpr pointf(float x, float y) noexcept;
 };
 
 struct size {
     int width;
     int height;
-
-    constexpr size() noexcept = default;
-    constexpr size(int width, int height) noexcept;
 };
 
 struct sizef {
     float width;
     float height;
-
-    constexpr sizef() noexcept = default;
-    constexpr sizef(float width, float height) noexcept;
 };
 
 struct rect {
-    int x;
-    int y;
-    int width;
-    int height;
-
-    constexpr rect() noexcept = default;
-    constexpr rect(int x, int y, int width, int height) noexcept;
-    constexpr rect(const point& origin, const size& extent) noexcept;
+    point origin;
+    size extent;
 };
 
 struct rectf {
-    float x;
-    float y;
-    float width;
-    float height;
-
-    constexpr rectf() noexcept = default;
-    constexpr rectf(float x, float y, float width, float height) noexcept;
-    constexpr rectf(const pointf& origin, const sizef& extent) noexcept;
+    pointf origin;
+    sizef extent;
 };
 ```
 
-Integer geometry types are intended for pixel-grid operations and clipping. Floating-point geometry types are intended for subpixel drawing, antialiasing, and future transformations.
+これらの型は、描画APIでスカラー座標と構造化座標の両方を自然に使うためのものです。
 
-`rect` and `rectf` can be constructed either from four scalar values or from an origin point plus an extent size:
-
-```cpp
-const auto area = xer::image::rect(
-    xer::image::point(10, 20),
-    xer::image::size(320, 240));
-```
-
-Geometry-type function parameters are passed by `const&` in public drawing and image-processing APIs. Scalar coordinates and `pixel` values remain ordinary value parameters.
-
-When `<xer/iostream.h>` is included, the geometry types use compact diagnostic stream forms:
-
-```text
-point  -> (x, y)
-size   -> {width, height}
-rect   -> (x, y) {width, height}
-```
-
-The floating-point variants use the same spelling.
+整数型は、ピクセル境界に基づく通常の描画に使います。浮動小数点型は、アンチエイリアス描画のようにピクセル中心やサブピクセル位置を扱うAPIで使います。
 
 ---
 
-## Filter Error Detail
+## フィルターエラー詳細
 
-`filter_pixels_error_detail` reports partial failures from `filter_pixels`.
+`filter_pixels_error_detail` は、ユーザー指定フィルターが例外を投げた場合の情報を保持します。
 
 ```cpp
 struct filter_pixels_error_detail {
-    point first_error_position{};
-    std::size_t error_count = 0;
+    point first_error_position;
+    std::size_t error_count;
 };
 ```
 
-`first_error_position` is the first pixel where the user-supplied filter threw an exception, expressed in canvas coordinates. `error_count` is the total number of pixels whose filter call failed.
+`first_error_position` は、フィルター呼び出しが最初に失敗したピクセル位置です。
 
-Only the first failing position is stored. This avoids allocating a potentially large list of failed pixels while still giving the caller a useful diagnostic location.
+`error_count` は、フィルター呼び出しに失敗したピクセル総数です。
+
+失敗位置は最初の1件だけを保存します。これにより、失敗ピクセルの巨大なリストを確保せずに、呼び出し側に有用な診断位置を返せます。
 
 ---
 
-## Logical Pixel
+## 論理ピクセル
 
-`xer::image::pixel` represents a logical color value.
+`xer::image::pixel` は論理色値を表します。
 
-It is not the same thing as the physical framebuffer storage element. The physical storage format is controlled by the canvas policy.
+これは物理フレームバッファのストレージ要素とは同じではありません。物理ストレージ形式は canvas policy によって制御されます。
 
-The logical representation is ARGB in a 32-bit integer:
+論理表現は32ビット整数のARGBです。
 
 ```text
 0xAARRGGBB
 ```
 
-The conceptual shape is:
+概念的な形は次のとおりです。
 
 ```cpp
 struct pixel {
@@ -18557,8 +18457,9 @@ struct pixel {
 };
 ```
 
-The three-argument constructor represents RGB and sets alpha to `0xff`.
-The four-argument constructor follows ARGB order:
+3引数コンストラクタはRGBを表し、アルファ値を `0xff` に設定します。
+
+4引数コンストラクタの順序はARGBです。
 
 ```text
 alpha, red, green, blue
@@ -18566,11 +18467,11 @@ alpha, red, green, blue
 
 ---
 
-## Framebuffer Storage Policies
+## フレームバッファストレージポリシー
 
-A canvas policy controls the physical framebuffer storage format.
+canvas policy は、物理フレームバッファのストレージ形式を制御します。
 
-A policy provides:
+ポリシーは次を提供します。
 
 ```cpp
 using storage_type = /* physical storage element type */;
@@ -18580,7 +18481,7 @@ static constexpr auto encode(pixel value) noexcept -> storage_type;
 static constexpr auto set(storage_type& dst, pixel value) noexcept -> void;
 ```
 
-The initial policies are:
+初期ポリシーは次のとおりです。
 
 ```cpp
 argb32_policy
@@ -18589,17 +18490,17 @@ rgb24_policy
 bgr24_policy
 ```
 
-`argb32_policy` stores `0xAARRGGBB` and therefore matches the logical `pixel` representation directly.
+`argb32_policy` は `0xAARRGGBB` を格納するため、論理 `pixel` 表現と直接一致します。
 
-`rgba32_policy` stores `0xRRGGBBAA`.
+`rgba32_policy` は `0xRRGGBBAA` を格納します。
 
-`rgb24_policy` and `bgr24_policy` store three 8-bit components and do not preserve alpha. Reading through these policies returns a logical pixel with alpha set to `0xff`.
+`rgb24_policy` と `bgr24_policy` は3つの8ビット成分を格納し、アルファ値は保持しません。これらのポリシーを通じて読み出すと、アルファ値が `0xff` の論理ピクセルが返ります。
 
 ---
 
 ## `canvas`
 
-The primary canvas type is:
+主要なキャンバス型は次のとおりです。
 
 ```cpp
 template <std::size_t Width,
@@ -18608,9 +18509,9 @@ template <std::size_t Width,
 class canvas;
 ```
 
-Fixed-size canvases are the main model because the initial use case is framebuffer-style handling such as VRAM emulation.
+固定サイズキャンバスが主モデルです。初期用途がVRAMエミュレーションのようなフレームバッファ風の処理だからです。
 
-Examples:
+例:
 
 ```cpp
 using screen = xer::image::canvas<256, 192>;
@@ -18618,33 +18519,33 @@ using sprite = xer::image::canvas<16, 16>;
 using rgba_screen = xer::image::canvas<256, 192, xer::image::rgba32_policy>;
 ```
 
-A dynamic-size canvas is represented as:
+動的サイズキャンバスは次の形で表します。
 
 ```cpp
 canvas<0, 0, Policy>
 ```
 
-The convenience alias is:
+便利な別名は次のとおりです。
 
 ```cpp
 template <class Policy = argb32_policy>
 using dynamic_canvas = canvas<0, 0, Policy>;
 ```
 
-Only these dimension forms are valid:
+有効な寸法指定は次の2種類だけです。
 
 ```text
 Width > 0 && Height > 0
 Width == 0 && Height == 0
 ```
 
-Partial dynamic dimensions such as `canvas<0, 192>` and `canvas<256, 0>` are invalid.
+`canvas<0, 192>` や `canvas<256, 0>` のように片方だけ動的な寸法は無効です。
 
 ---
 
-## Public Pixel Access
+## 公開ピクセルアクセス
 
-The public pixel API uses logical pixels:
+公開ピクセルAPIは論理ピクセルを使います。
 
 ```cpp
 auto get_pixel(std::size_t x, std::size_t y) const noexcept -> pixel;
@@ -18662,23 +18563,23 @@ auto set_pixel_unchecked(std::size_t x,
                          float coverage) noexcept -> void;
 ```
 
-`canvas::at()` is intentionally not provided.
+`canvas::at()` は意図的に提供していません。
 
-Returning a reference to the physical storage element would expose the framebuffer layout and would be incorrect when the storage policy is not ARGB. `pixel` is logical. `Policy::storage_type` is physical.
+物理ストレージ要素への参照を返すとフレームバッファレイアウトを露出してしまいます。また、ストレージポリシーがARGBでない場合には不正確です。`pixel` は論理値であり、`Policy::storage_type` は物理値です。
 
-`get_pixel` expects coordinates that are inside the canvas.
+`get_pixel` は、座標がキャンバス内にあることを期待します。
 
-`set_pixel` accepts signed coordinates and does nothing when the coordinates are outside the canvas boundary.
+`set_pixel` は符号付き座標を受け取り、座標がキャンバス境界外の場合は何もしません。
 
-The coverage overloads blend the source pixel over the destination. Coverage is clamped to `[0.0f, 1.0f]`. A coverage value of `0.0f` leaves the destination unchanged. A coverage value of `1.0f` applies the source pixel alpha normally.
+coverage付きオーバーロードは、元ピクセルを先ピクセルの上にブレンドします。coverage は `[0.0f, 1.0f]` に丸められます。`0.0f` は先ピクセルを変更しません。`1.0f` は元ピクセルのアルファ値を通常どおり適用します。
 
-`set_pixel_unchecked` does not perform boundary checks. The caller must guarantee that `x < width()` and `y < height()`. It is intended for code that has already performed clipping or bounds checks outside the inner drawing loop.
+`set_pixel_unchecked` は境界チェックを行いません。呼び出し側は `x < width()` かつ `y < height()` を保証しなければなりません。これは、内側の描画ループの外側でクリッピングや境界チェックを済ませたコード向けです。
 
 ---
 
-## Basic Member Functions
+## 基本メンバー関数
 
-`canvas` provides basic size and utility operations:
+`canvas` は基本的なサイズ取得とユーティリティ操作を提供します。
 
 ```cpp
 auto width() const noexcept -> std::size_t;
@@ -18691,13 +18592,13 @@ auto fill(pixel value) noexcept -> void;
 auto clear() noexcept -> void;
 ```
 
-`clear()` fills the canvas with opaque black.
+`clear()` はキャンバスを不透明な黒で塗りつぶします。
 
 ---
 
-## Bitmap Font Types
+## ビットマップフォント型
 
-`<xer/image.h>` defines a compact runtime representation for monospaced bitmap fonts loaded from XBF files.
+`<xer/image.h>` は、XBFファイルから読み込んだ等幅ビットマップフォントのコンパクトな実行時表現を定義します。
 
 ```cpp
 enum class bitmap_glyph_width : std::uint8_t {
@@ -18726,57 +18627,57 @@ struct text_draw_options {
 };
 ```
 
-`bitmap_font` stores:
+`bitmap_font` は次を格納します。
 
-- one half-width cell width
-- one full-width cell width
-- one glyph height shared by the whole font
-- sorted non-overlapping Unicode code point ranges
-- packed 1bpp glyph bitmap bytes
+- 半角セル幅
+- 全角セル幅
+- フォント全体で共有されるグリフ高さ
+- ソート済みで重なりのないUnicodeコードポイント範囲
+- パックされた1bppグリフビットマップバイト列
 
-Each range selects either the half-width cell or the full-width cell. The width kind is stored in the font data rather than inferred from Unicode code points.
+各範囲は半角セルまたは全角セルのいずれかを選択します。幅の種類はUnicodeコードポイントから推測せず、フォントデータに格納します。
 
-`text_draw_options` is a per-call layout control for `draw_text`.
+`text_draw_options` は `draw_text` の呼び出しごとのレイアウト制御です。
 
-- `letter_spacing` is added after each drawn glyph cell
-- `line_spacing` is added to `glyph_height` when a line break is processed
+- `letter_spacing` は描画された各グリフセルの後に加算されます
+- `line_spacing` は改行処理時に `glyph_height` へ加算されます
 
-Negative spacing values are permitted and may produce overlapping glyph cells.
+負の間隔値も許可され、グリフセルが重なる場合があります。
 
 ---
 
-## Bitmap Font Loading
+## ビットマップフォント読み込み
 
 ```cpp
 [[nodiscard]] auto bitmap_font_load(const xer::path& filename)
     -> xer::result<bitmap_font, xer::parse_error_detail>;
 ```
 
-`bitmap_font_load` reads an XBF bitmap-font file and returns a validated `bitmap_font`.
+`bitmap_font_load` はXBFビットマップフォントファイルを読み込み、検証済みの `bitmap_font` を返します。
 
-XBF is xer's compact binary bitmap-font format. It stores:
+XBFは xer のコンパクトなバイナリビットマップフォント形式です。XBFは次を格納します。
 
-- little-endian numeric fields
-- monospaced half-width and full-width glyph cells
-- one common glyph height
-- Unicode code point ranges
-- packed 1bpp bitmap data
+- リトルエンディアンの数値フィールド
+- 等幅の半角・全角グリフセル
+- 共通のグリフ高さ
+- Unicodeコードポイント範囲
+- パックされた1bppビットマップデータ
 
-The loader validates the XBF header, range table, bitmap spans, reserved fields, code point ranges, and related offsets before returning success.
+ローダーは、成功を返す前に、XBFヘッダー、範囲テーブル、ビットマップ範囲、予約フィールド、コードポイント範囲、および関連オフセットを検証します。
 
-### Errors
+### エラー
 
-If file I/O fails before XBF parsing begins, `bitmap_font_load` preserves the underlying file-related error code and returns an otherwise empty `parse_error_detail` whose reason is `parse_error_reason::none`.
+XBFの解析開始前にファイルI/Oが失敗した場合、`bitmap_font_load` は下位のファイル関連エラーコードを保持し、理由が `parse_error_reason::none` の空の `parse_error_detail` を返します。
 
-If XBF bytes are malformed, it returns `error_t::invalid_argument` together with `parse_error_detail`.
+XBFバイト列が不正な場合は、`parse_error_detail` とともに `error_t::invalid_argument` を返します。
 
-For XBF:
+XBFでは次のように扱います。
 
-- `offset` is a byte offset from the beginning of the binary input
-- `line` is `0`
-- `column` is `0`
+- `offset` はバイナリ入力先頭からのバイトオフセット
+- `line` は `0`
+- `column` は `0`
 
-The XBF loader may report reasons such as:
+XBFローダーは、たとえば次の理由を報告する場合があります。
 
 - `parse_error_reason::invalid_magic`
 - `parse_error_reason::unsupported_version`
@@ -18785,13 +18686,13 @@ The XBF loader may report reasons such as:
 - `parse_error_reason::invalid_offset`
 - `parse_error_reason::truncated_input`
 
-See `header_parse.md` and `policy_bitmap_font.md` for the shared parse-detail model and the XBF policy.
+共通の解析詳細モデルとXBF方針については、`header_parse.md` と `policy_bitmap_font.md` を参照してください。
 
 ---
 
-## Drawing Functions
+## 描画関数
 
-The initial drawing functions are simple framebuffer helpers:
+初期の描画関数は単純なフレームバッファヘルパーです。
 
 ```cpp
 draw_hline
@@ -18802,23 +18703,23 @@ draw_rect
 fill_rect
 ```
 
-Integer drawing coordinates use `int` rather than `std::size_t` because drawing often benefits from clipping negative coordinates.
+整数描画座標には `std::size_t` ではなく `int` を使います。描画では負の座標をクリッピングできる方が便利なことが多いためです。
 
-Drawing operations clip to the canvas bounds. If the target area is fully outside the canvas, nothing is drawn.
+描画操作はキャンバス境界でクリッピングされます。対象領域が完全にキャンバス外にある場合は何も描画しません。
 
-After clipping, `draw_hline`, `draw_vline`, and `fill_rect` write directly to framebuffer storage. They do not call `set_pixel` for every pixel. This keeps inner loops based on simple pointer or stride increments instead of repeated coordinate-to-offset calculation.
+クリッピング後、`draw_hline`、`draw_vline`、`fill_rect` はフレームバッファストレージへ直接書き込みます。各ピクセルごとに `set_pixel` を呼びません。これにより、内側ループを座標からオフセットへの繰り返し計算ではなく、単純なポインタまたはストライド加算にできます。
 
-`draw_line` uses a simple Bresenham-style integer line algorithm. It still checks each generated point against the canvas boundary, but writes through `set_pixel_unchecked` after that check.
+`draw_line` は単純なBresenham風の整数直線アルゴリズムを使います。生成された各点についてキャンバス境界の確認は行いますが、その確認後は `set_pixel_unchecked` で書き込みます。
 
-`draw_line_aa` uses floating-point pixel-center coordinates and draws an antialiased capsule-shaped stroke. The overload without a width argument draws a one-pixel-wide antialiased line. The width overload takes the width before the color argument. The `pointf` overloads are equivalent to the scalar-coordinate overloads.
+`draw_line_aa` は浮動小数点のピクセル中心座標を使い、アンチエイリアス付きのカプセル状ストロークを描画します。幅引数のないオーバーロードは1ピクセル幅のアンチエイリアス直線を描きます。幅付きオーバーロードでは、幅引数は色引数の前に置かれます。`pointf` オーバーロードはスカラー座標オーバーロードと等価です。
 
-`draw_line_aa` returns `xer::result<void>`. It returns `error_t::invalid_argument` when any coordinate is not finite, or when `width` is not finite or is less than or equal to zero. A line that lies completely outside the canvas is a successful no-op.
+`draw_line_aa` は `xer::result<void>` を返します。いずれかの座標が有限でない場合、または `width` が有限でないか0以下の場合、`error_t::invalid_argument` を返します。完全にキャンバス外にある直線は成功したno-opです。
 
-The `draw_rect` and `fill_rect` overloads accept either `point` plus `size`, or a single `rect`. The scalar-coordinate overloads remain available for callers that already have separate coordinate values.
+`draw_rect` と `fill_rect` のオーバーロードは、`point` と `size` の組、または単一の `rect` を受け取ります。すでに座標値を個別に持っている呼び出し側のために、スカラー座標オーバーロードも残されています。
 
 ---
 
-## Bitmap Text Drawing
+## ビットマップテキスト描画
 
 ```cpp
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -18841,417 +18742,116 @@ template <std::size_t Width, std::size_t Height, class Policy>
     -> xer::result<void>;
 ```
 
-`draw_text` draws UTF-8 text onto a canvas using a loaded `bitmap_font`.
+`draw_text` は、読み込み済みの `bitmap_font` を使ってUTF-8テキストをキャンバスへ描画します。
 
-The origin is the top-left position of the first glyph cell. Baseline-oriented placement is intentionally not part of the initial bitmap-font API.
+原点は最初のグリフセルの左上位置です。ベースライン指向の配置は、初期ビットマップフォントAPIには意図的に含めていません。
 
-### Layout Rules
+### レイアウト規則
 
-- ordinary glyphs are drawn from the loaded bitmap data
-- after a drawn glyph, the pen advances by that glyph cell width plus `letter_spacing`
-- `\n`, `\r`, and `\r\n` start a new line
-- a line break resets the x position to the original line origin
-- a line break advances the y position by `glyph_height + line_spacing`
-- a code point missing from the font is skipped without drawing and without advancing the pen
+- 通常のグリフは読み込み済みビットマップデータから描画されます
+- グリフを描画した後、ペン位置はグリフセル幅と `letter_spacing` の分だけ進みます
+- `\n`、`\r`、`\r\n` は新しい行を開始します
+- 改行は x 位置を元の行原点に戻します
+- 改行は y 位置を `glyph_height + line_spacing` だけ進めます
+- フォントに存在しないコードポイントは、描画せず、ペンも進めずにスキップされます
 
-The missing-glyph rule is deliberately minimal. The initial API does not infer fallback widths or substitute `?` automatically.
+欠落グリフ規則は意図的に最小限です。初期APIはフォールバック幅を推測したり、`?` を自動的に代用したりしません。
 
-### Clipping
+### クリッピング
 
-Drawing is clipped to the canvas boundary. Glyphs may start outside the canvas, and only visible set pixels are written.
+描画はキャンバス境界でクリッピングされます。グリフはキャンバス外から開始してもよく、見えているセットピクセルだけが書き込まれます。
 
-### Errors
+### エラー
 
-`draw_text` returns:
+`draw_text` は次を返します。
 
-- `error_t::encoding_error` when `text` is not valid UTF-8
-- `error_t::invalid_argument` when the supplied `bitmap_font` is structurally unusable for the requested glyph
+- `text` が妥当なUTF-8でない場合は `error_t::encoding_error`
+- 指定された `bitmap_font` が要求グリフに対して構造的に使用不能な場合は `error_t::invalid_argument`
 
-An empty canvas or empty text is a successful no-op.
+空のキャンバスまたは空のテキストは成功したno-opです。
 
 ---
 
-## Circle, Ellipse, and Arc Drawing
+## 円、楕円、円弧の描画
 
-The curved-shape APIs are divided into integer one-pixel drawing and floating-point antialiased drawing.
+曲線形状APIは、整数の1ピクセル描画と浮動小数点のアンチエイリアス描画に分かれます。
 
-- integer APIs use `point` or scalar `int` center coordinates
-- antialiased APIs use `pointf` or scalar `float` center coordinates
-- antialiased outline APIs accept an optional `width`
-- every curved-shape function returns `xer::result<void>` without `[[nodiscard]]`
+- 整数APIは `point` またはスカラー `int` 中心座標を使います
+- アンチエイリアスAPIは `pointf` またはスカラー `float` 中心座標を使います
+- アンチエイリアス輪郭APIは省略可能な `width` を受け取ります
+- すべての曲線形状関数は `[[nodiscard]]` なしで `xer::result<void>` を返します
 
-### Circle Drawing
+### 円描画
 
-```cpp
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle(canvas<Width, Height, Policy>& img,
-                 int cx,
-                 int cy,
-                 int radius,
-                 pixel color) noexcept
-    -> xer::result<void>;
+`draw_circle` は、クリッピングされた1ピクセル幅の円輪郭を描画します。`fill_circle` はクリッピングされた円の内部を塗りつぶし、境界も含みます。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle(canvas<Width, Height, Policy>& img,
-                 const point& center,
-                 int radius,
-                 pixel color) noexcept
-    -> xer::result<void>;
+`draw_circle_aa` はアンチエイリアス付き輪郭を描画します。幅引数のないオーバーロードは `1.0f` を使います。幅付きオーバーロードは太い円輪郭に対応します。`fill_circle_aa` は外側境界をアンチエイリアスしながら円を塗りつぶします。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_circle(canvas<Width, Height, Policy>& img,
-                 int cx,
-                 int cy,
-                 int radius,
-                 pixel color) noexcept
-    -> xer::result<void>;
+半径の扱いは次のとおりです。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_circle(canvas<Width, Height, Policy>& img,
-                 const point& center,
-                 int radius,
-                 pixel color) noexcept
-    -> xer::result<void>;
+- 負の半径は `error_t::invalid_argument` を返します
+- 整数半径0は、見えていれば中心ピクセルだけを書き込みます
+- アンチエイリアス輪郭の半径0は、直径が `width` に従う丸い点を描画します
+- アンチエイリアス塗りつぶしの半径0は中心点を描画します
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle_aa(canvas<Width, Height, Policy>& img,
-                    float cx,
-                    float cy,
-                    float radius,
-                    pixel color) noexcept
-    -> xer::result<void>;
+アンチエイリアス円描画では、中心座標、半径、幅は有限でなければなりません。`width` は0より大きくなければなりません。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle_aa(canvas<Width, Height, Policy>& img,
-                    float cx,
-                    float cy,
-                    float radius,
-                    float width,
-                    pixel color) noexcept
-    -> xer::result<void>;
+### 楕円描画
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle_aa(canvas<Width, Height, Policy>& img,
-                    const pointf& center,
-                    float radius,
-                    pixel color) noexcept
-    -> xer::result<void>;
+`draw_ellipse` は、クリッピングされた1ピクセル幅の楕円輪郭を描画します。`fill_ellipse` はクリッピングされた楕円の内部を塗りつぶし、境界も含みます。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_circle_aa(canvas<Width, Height, Policy>& img,
-                    const pointf& center,
-                    float radius,
-                    float width,
-                    pixel color) noexcept
-    -> xer::result<void>;
+`draw_ellipse_aa` はアンチエイリアス付き楕円輪郭を描画します。幅引数のないオーバーロードは `1.0f` を使います。幅付きオーバーロードは太い楕円輪郭に対応します。`fill_ellipse_aa` は外側境界をアンチエイリアスしながら楕円を塗りつぶします。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_circle_aa(canvas<Width, Height, Policy>& img,
-                    float cx,
-                    float cy,
-                    float radius,
-                    pixel color) noexcept
-    -> xer::result<void>;
+半径の扱いは次のとおりです。
 
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_circle_aa(canvas<Width, Height, Policy>& img,
-                    const pointf& center,
-                    float radius,
-                    pixel color) noexcept
-    -> xer::result<void>;
-```
+- いずれかの半径が負なら `error_t::invalid_argument` を返します
+- 両方の整数半径が0なら、見えていれば中心ピクセルだけを書き込みます
+- 片方の整数半径だけが0なら、縦線または横線へ退化します
+- アンチエイリアス楕円でも同じ退化形を扱います
 
-`draw_circle` draws a clipped one-pixel circle outline. `fill_circle` fills the clipped circle interior and includes the boundary.
+アンチエイリアス楕円描画では、中心座標、半径、幅は有限でなければなりません。`width` は0より大きくなければなりません。
 
-`draw_circle_aa` draws an antialiased outline. The overload without a width argument uses `1.0f`; the width overload supports thick circular outlines. `fill_circle_aa` fills the circle while antialiasing the outer boundary.
+### 円弧描画
 
-Radius handling is:
+円弧APIの角度は τrad 単位で表します。`0` は右方向を指します。正の sweep 角は数学的な意味で反時計回りに進みます。画像の y 座標は下向きに増えるため、点の式は次のようになります。
 
-- a negative radius returns `error_t::invalid_argument`
-- a zero integer radius writes only the center pixel, if visible
-- a zero antialiased outline radius draws a round point whose diameter follows `width`
-- a zero antialiased filled radius draws a point at the center
-
-For antialiased circle drawing, center coordinates, radius, and width must be finite. `width` must be greater than zero.
-
-### Ellipse Drawing
-
-```cpp
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse(canvas<Width, Height, Policy>& img,
-                  int cx,
-                  int cy,
-                  int radius_x,
-                  int radius_y,
-                  pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse(canvas<Width, Height, Policy>& img,
-                  const point& center,
-                  int radius_x,
-                  int radius_y,
-                  pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_ellipse(canvas<Width, Height, Policy>& img,
-                  int cx,
-                  int cy,
-                  int radius_x,
-                  int radius_y,
-                  pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_ellipse(canvas<Width, Height, Policy>& img,
-                  const point& center,
-                  int radius_x,
-                  int radius_y,
-                  pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     float cx,
-                     float cy,
-                     float radius_x,
-                     float radius_y,
-                     pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     float cx,
-                     float cy,
-                     float radius_x,
-                     float radius_y,
-                     float width,
-                     pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     const pointf& center,
-                     float radius_x,
-                     float radius_y,
-                     pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     const pointf& center,
-                     float radius_x,
-                     float radius_y,
-                     float width,
-                     pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     float cx,
-                     float cy,
-                     float radius_x,
-                     float radius_y,
-                     pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto fill_ellipse_aa(canvas<Width, Height, Policy>& img,
-                     const pointf& center,
-                     float radius_x,
-                     float radius_y,
-                     pixel color) noexcept
-    -> xer::result<void>;
-```
-
-Ellipse APIs use independent x and y radii. `draw_ellipse` draws a one-pixel outline, `fill_ellipse` fills the interior, `draw_ellipse_aa` supports antialiased and thick outlines, and `fill_ellipse_aa` antialiases the outer boundary of the filled shape.
-
-Degenerate ellipses are defined rather than rejected:
-
-- both radii zero: a point
-- `radius_x == 0`: a vertical line segment
-- `radius_y == 0`: a horizontal line segment
-
-The same policy applies to antialiased ellipses. Antialiased outline degeneration keeps the requested width; antialiased filled degeneration draws the corresponding one-pixel-equivalent antialiased point or line.
-
-A negative radius returns `error_t::invalid_argument`. Antialiased ellipse drawing also rejects non-finite center coordinates, radii, and width, and rejects `width <= 0.0f`.
-
-### Circular Arc Drawing
-
-```cpp
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc(canvas<Width, Height, Policy>& img,
-              int cx,
-              int cy,
-              int radius,
-              float start_angle,
-              float sweep_angle,
-              pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc(canvas<Width, Height, Policy>& img,
-              const point& center,
-              int radius,
-              float start_angle,
-              float sweep_angle,
-              pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc_aa(canvas<Width, Height, Policy>& img,
-                 float cx,
-                 float cy,
-                 float radius,
-                 float start_angle,
-                 float sweep_angle,
-                 pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc_aa(canvas<Width, Height, Policy>& img,
-                 float cx,
-                 float cy,
-                 float radius,
-                 float start_angle,
-                 float sweep_angle,
-                 float width,
-                 pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc_aa(canvas<Width, Height, Policy>& img,
-                 const pointf& center,
-                 float radius,
-                 float start_angle,
-                 float sweep_angle,
-                 pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_arc_aa(canvas<Width, Height, Policy>& img,
-                 const pointf& center,
-                 float radius,
-                 float start_angle,
-                 float sweep_angle,
-                 float width,
-                 pixel color) noexcept
-    -> xer::result<void>;
-```
-
-Arc angles are expressed in τrad units. `0` points right. Positive sweep angles move counterclockwise in the mathematical sense; because image y coordinates grow downward, the point formula is:
+概念的には次の座標式です。
 
 ```text
 x = cx + radius * cos(angle * τ)
 y = cy - radius * sin(angle * τ)
 ```
 
-A negative `sweep_angle` draws clockwise. When `abs(sweep_angle)` is at least one full turn, arc drawing is treated as full circle drawing. Multiple turns are not accumulated.
+`sweep_angle` が正の場合は反時計回り、負の場合は時計回りに描画します。絶対値が1回転以上の sweep は完全な円として扱われます。sweep が0の場合は開始点を描画します。
 
-Circular arc degeneration is:
+整数円弧描画は負の半径と有限でない角度を拒否します。アンチエイリアス円弧描画は、有限でない中心座標、半径、幅も拒否し、`width <= 0.0f` も拒否します。
 
-- `radius == 0`: the center point
-- `sweep_angle == 0`: the start point on the circle
-- `abs(sweep_angle) >= 1`: a full circle
+### 楕円弧描画
 
-Antialiased arc endpoints use round caps. A zero-radius or zero-sweep antialiased arc therefore appears as a round point with the requested outline width.
-
-Arc drawing rejects negative radii and non-finite angles. Antialiased arc drawing also rejects non-finite center coordinates, radius, and width, and rejects `width <= 0.0f`.
-
-### Elliptical Arc Drawing
-
-```cpp
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc(canvas<Width, Height, Policy>& img,
-                      int cx,
-                      int cy,
-                      int radius_x,
-                      int radius_y,
-                      float start_angle,
-                      float sweep_angle,
-                      pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc(canvas<Width, Height, Policy>& img,
-                      const point& center,
-                      int radius_x,
-                      int radius_y,
-                      float start_angle,
-                      float sweep_angle,
-                      pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
-                         float cx,
-                         float cy,
-                         float radius_x,
-                         float radius_y,
-                         float start_angle,
-                         float sweep_angle,
-                         pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
-                         float cx,
-                         float cy,
-                         float radius_x,
-                         float radius_y,
-                         float start_angle,
-                         float sweep_angle,
-                         float width,
-                         pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
-                         const pointf& center,
-                         float radius_x,
-                         float radius_y,
-                         float start_angle,
-                         float sweep_angle,
-                         pixel color) noexcept
-    -> xer::result<void>;
-
-template <std::size_t Width, std::size_t Height, class Policy>
-auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
-                         const pointf& center,
-                         float radius_x,
-                         float radius_y,
-                         float start_angle,
-                         float sweep_angle,
-                         float width,
-                         pixel color) noexcept
-    -> xer::result<void>;
-```
-
-Elliptical arc angles follow the same convention as circular arcs:
+楕円弧の角度は円弧と同じ規則に従います。
 
 ```text
 x = cx + radius_x * cos(angle * τ)
 y = cy - radius_y * sin(angle * τ)
 ```
 
-A sweep of at least one full turn is treated as a full ellipse. A zero sweep draws the start point. If both radii are zero, the result is the center point. If exactly one radius is zero, the arc degenerates onto the corresponding vertical or horizontal line while preserving the angle-based parameterization.
+1回転以上の sweep は完全な楕円として扱われます。sweep が0の場合は開始点を描画します。両方の半径が0の場合は中心点になります。片方の半径だけが0の場合は、角度に基づくパラメータ化を保ったまま、対応する縦線または横線へ退化します。
 
-Antialiased elliptical arcs use round caps and support thick strokes through `width`.
+アンチエイリアス楕円弧は丸い端点を使い、`width` による太線に対応します。
 
-Elliptical arc drawing rejects negative radii and non-finite angles. Antialiased elliptical arc drawing also rejects non-finite center coordinates, radii, and width, and rejects `width <= 0.0f`.
+楕円弧描画は負の半径と有限でない角度を拒否します。アンチエイリアス楕円弧描画は、有限でない中心座標、半径、幅も拒否し、`width <= 0.0f` も拒否します。
 
-### Clipping, Pixels, and Return Values
+### クリッピング、ピクセル、返却値
 
-All curved-shape drawing clips to the canvas boundary. A shape that lies completely outside the canvas is a successful no-op.
+すべての曲線形状描画はキャンバス境界でクリッピングされます。形状が完全にキャンバス外にある場合は成功したno-opです。
 
-Integer circle and ellipse drawing write the supplied logical `pixel` directly. Antialiased drawing uses coverage blending through the canvas pixel API.
+整数の円・楕円描画は、指定された論理 `pixel` を直接書き込みます。アンチエイリアス描画は canvas ピクセルAPIを通じて coverage ブレンドを使います。
 
-These drawing functions return `xer::result<void>`, but the return values are intentionally not marked `[[nodiscard]]`. This keeps drawing calls lightweight in rendering code while still allowing invalid arguments to be handled where needed.
+これらの描画関数は `xer::result<void>` を返しますが、返却値には意図的に `[[nodiscard]]` を付けていません。これにより、描画コードでの呼び出しを軽く保ちつつ、必要な場所では不正引数を扱えます。
 
 ---
 
-## Flood Fill
+## 塗りつぶし
 
 ```cpp
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -19268,39 +18868,39 @@ template <std::size_t Width, std::size_t Height, class Policy>
     -> xer::result<void>;
 ```
 
-`flood_fill` replaces the four-connected region that contains the start position.
+`flood_fill` は、開始位置を含む4近傍連結領域を置換します。
 
-The original logical `pixel` value at the start position is used as the target color. Every reachable pixel whose logical ARGB value exactly matches that original color is replaced with `color`.
+開始位置の元の論理 `pixel` 値が対象色として使われます。その元の色と論理ARGB値が完全一致する到達可能なすべてのピクセルが `color` に置換されます。
 
-### Connectivity
+### 連結性
 
-The initial implementation uses four-connected adjacency only:
+初期実装は4近傍のみを使います。
 
-- left
-- right
-- up
-- down
+- 左
+- 右
+- 上
+- 下
 
-Diagonal contact alone does not connect two regions.
+斜めに接しているだけでは、2つの領域は連結しているとはみなしません。
 
-### No-Op Cases
+### no-opの場合
 
-`flood_fill` is a successful no-op when:
+`flood_fill` は次の場合に成功したno-opです。
 
-- the start position is outside the canvas
-- the replacement color is equal to the original color at the start position
+- 開始位置がキャンバス外にある
+- 置換色が開始位置の元の色と等しい
 
-### Result
+### 結果
 
-`flood_fill` returns `xer::result<void>`.
+`flood_fill` は `xer::result<void>` を返します。
 
-The operation uses an internal pending-position buffer rather than recursive traversal, so it does not rely on call-stack depth for large filled regions.
+この操作は再帰探索ではなく、内部の保留位置バッファを使います。そのため、大きな塗りつぶし領域でもコールスタックの深さに依存しません。
 
 ---
 
-## Image Processing Functions
+## 画像処理関数
 
-`mosaic`, `box_blur`, and `filter_pixels` are in-place image-processing operations.
+`mosaic`、`box_blur`、`filter_pixels` はインプレース画像処理操作です。
 
 ```cpp
 template <std::size_t Width, std::size_t Height, class Policy>
@@ -19322,21 +18922,21 @@ template <std::size_t Width, std::size_t Height, class Policy, class F>
     -> xer::result<void, filter_pixels_error_detail>;
 ```
 
-All three functions clip `area` to the canvas boundary. Empty areas and fully clipped areas are successful no-ops.
+3つの関数はいずれも `area` をキャンバス境界でクリッピングします。空領域や完全にクリップされた領域は成功したno-opです。
 
-`mosaic` divides the clipped area into blocks of `block_size`. Each block is replaced with the average logical ARGB color of the pixels in that block. Blocks at the right and bottom edges use their actual clipped size.
+`mosaic` は、クリップ後の領域を `block_size` のブロックに分割します。各ブロックは、そのブロック内ピクセルの平均論理ARGB色で置換されます。右端と下端のブロックは、実際にクリップされたサイズを使います。
 
-`box_blur` treats `box_size` as the averaging kernel size. For example, `size(3, 3)` applies a 3x3 average around each destination pixel. Source samples are taken from a copy of the original pixels in the clipped target area, so pixels outside the requested area do not affect the result. Kernel portions outside the clipped area are ignored.
+`box_blur` は `box_size` を平均化カーネルサイズとして扱います。たとえば `size(3, 3)` は各出力ピクセルの周囲に3x3平均を適用します。ソースサンプルは、クリップされた対象領域内の元ピクセルのコピーから取得されるため、要求領域外のピクセルは結果に影響しません。クリップ領域外に出るカーネル部分は無視されます。
 
-Even kernel dimensions are supported. In that case, the extra sample is placed on the left or top side of the current pixel.
+偶数のカーネル寸法にも対応します。この場合、余分なサンプルは現在ピクセルの左側または上側に置かれます。
 
-`mosaic` and `box_blur` return `error_t::invalid_argument` when either size dimension is not positive.
+`mosaic` と `box_blur` は、いずれかのサイズ寸法が正でない場合に `error_t::invalid_argument` を返します。
 
-`filter_pixels` applies a user-supplied per-pixel filter to the clipped area. For each pixel, the filter receives the current logical `pixel` value and returns the replacement logical `pixel` value. This supports grayscale conversion, thresholding, channel adjustment, inversion, and similar operations without adding a dedicated function for each effect.
+`filter_pixels` は、呼び出し側が指定したピクセル単位フィルターをクリップ後領域に適用します。各ピクセルについて、フィルターは現在の論理 `pixel` 値を受け取り、置換する論理 `pixel` 値を返します。これにより、グレースケール変換、しきい値処理、チャンネル調整、反転などを、効果ごとの専用関数を増やさずに実現できます。
 
-The operation is in-place and does not allocate a full temporary image. If the filter throws an exception for a pixel, that pixel is left unchanged and processing continues with the next pixel. If one or more pixels fail, the function returns `error_t::user_error` with `filter_pixels_error_detail`. Successfully filtered pixels remain updated.
+操作はインプレースで、画像全体の一時バッファは確保しません。フィルターがあるピクセルで例外を投げた場合、そのピクセルは変更されず、処理は次のピクセルへ進みます。1つ以上のピクセルで失敗した場合、関数は `filter_pixels_error_detail` 付きの `error_t::user_error` を返します。正常にフィルターされたピクセルは更新されたままです。
 
-Example grayscale-style use:
+グレースケール風の使用例:
 
 ```cpp
 auto result = xer::image::filter_pixels(
@@ -19354,30 +18954,30 @@ auto result = xer::image::filter_pixels(
 
 ---
 
-## Relationship to Tcl/Tk
+## Tcl/Tkとの関係
 
-`<xer/image.h>` does not depend on Tcl/Tk.
+`<xer/image.h>` はTcl/Tkに依存しません。
 
-Tk photo bridge functions should live in `<xer/tk.h>`. They may convert between Tk photo image blocks and `xer::image::canvas` or `xer::image::dynamic_canvas` later, but pure image storage, drawing, and image processing remain in `<xer/image.h>`.
-
----
-
-## Deferred Items
-
-The following items are deferred from the current implementation:
-
-- affine transformation
-- raster scroll
-- grayscale conversion
-- image flipping
-- file format loading and saving
-- direct Tk photo conversion helpers
-
-These can be added once the basic framebuffer type is stable.
+Tk photo ブリッジ関数は `<xer/tk.h>` に置くべきです。将来的には、Tk photo image block と `xer::image::canvas` または `xer::image::dynamic_canvas` の間の変換を提供する可能性がありますが、純粋な画像ストレージ、描画、画像処理は `<xer/image.h>` に残ります。
 
 ---
 
-## Example
+## 後回しにしている項目
+
+現在の実装では、次の項目を後回しにしています。
+
+- アフィン変換
+- ラスタスクロール
+- グレースケール変換
+- 画像反転
+- ファイル形式の読み込みと保存
+- 直接的なTk photo変換ヘルパー
+
+これらは、基本的なフレームバッファ型が安定してから追加できます。
+
+---
+
+## 例
 
 ```cpp
 #include <xer/image.h>
@@ -19403,7 +19003,7 @@ auto main() -> int
 }
 ```
 
-Additional examples:
+追加の例:
 
 - `examples/example_image_basic.cpp`
 - `examples/example_image_geometry_io.cpp`
@@ -19416,7 +19016,7 @@ Additional examples:
 
 ---
 
-## See Also
+## 関連項目
 
 - `header_iostream.md`
 - `header_parse.md`
