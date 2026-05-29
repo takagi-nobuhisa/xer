@@ -331,7 +331,7 @@ template<class T, std::floating_point Angle>
 
     const auto x = static_cast<result_type>(v.x);
     const auto y = static_cast<result_type>(v.y);
-    const auto t = static_cast<result_type>(to_radian(theta));
+    const auto t = static_cast<result_type>(to_rad(theta));
     const auto c = std::cos(t);
     const auto s = std::sin(t);
 
@@ -366,14 +366,14 @@ template<std::floating_point T>
 {
     return polar<T, 2>{
         std::hypot(v.x, v.y),
-        from_radian(std::atan2(v.y, v.x)),
+        from_rad(std::atan2(v.y, v.x)),
     };
 }
 
 template<std::floating_point T>
 [[nodiscard]] auto to_cartesian(polar<T, 2> p) noexcept -> vec<T, 2>
 {
-    const auto theta = to_radian(p.theta);
+    const auto theta = to_rad(p.theta);
 
     return vec<T, 2>{
         p.r * std::cos(theta),

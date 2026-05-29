@@ -4,6 +4,8 @@
 //
 // Expected output:
 // heron: 6
+// sin: 1
+// atan2: 0.25
 // polar: 5
 // cartesian: 3 4
 // dot: 11
@@ -46,7 +48,8 @@ auto main() -> int
     }
 
     std::cout << "heron: " << *area << '\n';
-
+    std::cout << "sin: " << std::round(xer::sin(0.25)) << '\n';
+    std::cout << "atan2: " << xer::atan2(1.0, 0.0) << '\n';
 
     const auto p = xer::to_polar(xer::vec<double>{3.0, 4.0});
     std::cout << "polar: " << p.r << '\n';

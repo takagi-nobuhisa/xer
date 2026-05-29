@@ -50,6 +50,15 @@ template <std::floating_point T>
 auto to_degree(cyclic<T> value) noexcept -> T;
 
 template <std::floating_point T>
+auto from_rad(T value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+auto to_rad(cyclic<T> value) noexcept -> T;
+
+template <std::floating_point T>
+auto to_rad(T value) noexcept -> T;
+
+template <std::floating_point T>
 auto from_radian(T value) noexcept -> cyclic<T>;
 
 template <std::floating_point T>
@@ -377,6 +386,15 @@ template <std::floating_point T>
 auto to_degree(cyclic<T> value) noexcept -> T;
 
 template <std::floating_point T>
+auto from_rad(T value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+auto to_rad(cyclic<T> value) noexcept -> T;
+
+template <std::floating_point T>
+auto to_rad(T value) noexcept -> T;
+
+template <std::floating_point T>
 auto from_radian(T value) noexcept -> cyclic<T>;
 
 template <std::floating_point T>
@@ -394,7 +412,12 @@ This keeps the type unitless internally while allowing conversion at the API bou
 These functions translate between:
 
 * external degree/radian values
+* τrad scalar values, where one full turn is `1`
 * the internal one-turn-based representation
+
+`from_rad` and `to_rad` are the preferred short names for radian conversion. `from_radian` and `to_radian` remain available as compatibility aliases.
+
+`to_degree(T)` and `to_rad(T)` also accept τrad scalar values such as the return values of `cw`, `ccw`, `diff`, and `angle`. These scalar overloads do not normalize the input.
 
 ---
 

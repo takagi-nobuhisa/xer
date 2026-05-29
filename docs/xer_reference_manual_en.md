@@ -15281,6 +15281,73 @@ struct polar<T, 2> {
 
 
 
+
+### Trigonometric Functions
+
+```cpp
+template<std::floating_point T>
+auto sin(T theta) noexcept -> T;
+
+template<std::floating_point T>
+auto sin(cyclic<T> theta) noexcept -> T;
+
+template<std::floating_point T>
+auto cos(T theta) noexcept -> T;
+
+template<std::floating_point T>
+auto cos(cyclic<T> theta) noexcept -> T;
+
+template<std::floating_point T>
+auto tan(T theta) noexcept -> T;
+
+template<std::floating_point T>
+auto tan(cyclic<T> theta) noexcept -> T;
+```
+
+Computes the ordinary trigonometric functions using xer angle units.
+
+The scalar overloads interpret `theta` as a τrad value, where `1` means one full turn. The `cyclic<T>` overloads use the normalized value of the cyclic angle.
+
+Examples:
+
+```text
+sin(0.25) == 1
+cos(0.5) == -1
+tan(0.125) == 1
+```
+
+Hyperbolic functions are intentionally not provided by `<xer/math.h>`. Use the C++ standard library directly when those functions are needed.
+
+### Inverse Trigonometric Functions
+
+```cpp
+template<std::floating_point T>
+auto asin(T value) noexcept -> T;
+
+template<std::floating_point T>
+auto acos(T value) noexcept -> T;
+
+template<std::floating_point T>
+auto atan(T value) noexcept -> T;
+
+template<std::floating_point T>
+auto atan2(T y, T x) noexcept -> T;
+```
+
+Computes the inverse trigonometric functions and returns τrad scalar values.
+
+Typical return ranges are inherited from the corresponding standard-library functions after conversion from radians to τrad:
+
+| Function | Typical return range |
+|---|---|
+| `asin` | `[-0.25, 0.25]` |
+| `acos` | `[0, 0.5]` |
+| `atan` | `(-0.25, 0.25)` |
+| `atan2` | `[-0.5, 0.5]` |
+
+For domain errors, these functions follow the behavior of the underlying standard-library functions, such as returning NaN for invalid floating-point inputs. They do not return `xer::result`.
+
+
 ### `to_polar`
 
 ```cpp
@@ -15591,6 +15658,15 @@ auto from_degree(T value) noexcept -> cyclic<T>;
 
 template <std::floating_point T>
 auto to_degree(cyclic<T> value) noexcept -> T;
+
+template <std::floating_point T>
+auto from_rad(T value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+auto to_rad(cyclic<T> value) noexcept -> T;
+
+template <std::floating_point T>
+auto to_rad(T value) noexcept -> T;
 
 template <std::floating_point T>
 auto from_radian(T value) noexcept -> cyclic<T>;
@@ -15920,6 +15996,15 @@ template <std::floating_point T>
 auto to_degree(cyclic<T> value) noexcept -> T;
 
 template <std::floating_point T>
+auto from_rad(T value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+auto to_rad(cyclic<T> value) noexcept -> T;
+
+template <std::floating_point T>
+auto to_rad(T value) noexcept -> T;
+
+template <std::floating_point T>
 auto from_radian(T value) noexcept -> cyclic<T>;
 
 template <std::floating_point T>
@@ -15937,7 +16022,12 @@ This keeps the type unitless internally while allowing conversion at the API bou
 These functions translate between:
 
 * external degree/radian values
+* τrad scalar values, where one full turn is `1`
 * the internal one-turn-based representation
+
+`from_rad` and `to_rad` are the preferred short names for radian conversion. `from_radian` and `to_radian` remain available as compatibility aliases.
+
+`to_degree(T)` and `to_rad(T)` also accept τrad scalar values such as the return values of `cw`, `ccw`, `diff`, and `angle`. These scalar overloads do not normalize the input.
 
 ---
 

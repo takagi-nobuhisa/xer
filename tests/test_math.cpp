@@ -8,6 +8,27 @@
 namespace {
 
 
+
+void test_trigonometric_functions()
+{
+    xer_assert(xer::detail::equation_near(xer::sin(0.25), 1.0));
+    xer_assert(xer::detail::equation_near(xer::cos(0.5), -1.0));
+    xer_assert(xer::detail::equation_near(xer::tan(0.125), 1.0));
+
+    const auto quarter = xer::cyclic<double>(0.25);
+    xer_assert(xer::detail::equation_near(xer::sin(quarter), 1.0));
+    xer_assert(xer::detail::equation_near(xer::cos(quarter), 0.0));
+}
+
+void test_inverse_trigonometric_functions()
+{
+    xer_assert(xer::detail::equation_near(xer::asin(1.0), 0.25));
+    xer_assert(xer::detail::equation_near(xer::acos(0.0), 0.25));
+    xer_assert(xer::detail::equation_near(xer::atan(1.0), 0.125));
+    xer_assert(xer::detail::equation_near(xer::atan2(1.0, 0.0), 0.25));
+    xer_assert(xer::detail::equation_near(xer::atan2(-1.0, 0.0), -0.25));
+}
+
 void test_vec2_members_and_index_access()
 {
     xer::vec<double> v{1.0, 2.0};
@@ -301,6 +322,8 @@ void test_cubic_invalid_argument()
 
 auto main() -> int
 {
+    test_trigonometric_functions();
+    test_inverse_trigonometric_functions();
     test_vec2_members_and_index_access();
     test_vec3_and_vec4_index_access();
     test_vec_at_success();

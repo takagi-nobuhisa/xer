@@ -14392,6 +14392,73 @@ struct polar<T, 2> {
 
 
 
+
+### Trigonometric Functions
+
+```cpp
+template<std::floating_point T>
+auto sin(T theta) noexcept -> T;
+
+template<std::floating_point T>
+auto sin(cyclic<T> theta) noexcept -> T;
+
+template<std::floating_point T>
+auto cos(T theta) noexcept -> T;
+
+template<std::floating_point T>
+auto cos(cyclic<T> theta) noexcept -> T;
+
+template<std::floating_point T>
+auto tan(T theta) noexcept -> T;
+
+template<std::floating_point T>
+auto tan(cyclic<T> theta) noexcept -> T;
+```
+
+Computes the ordinary trigonometric functions using xer angle units.
+
+The scalar overloads interpret `theta` as a τrad value, where `1` means one full turn. The `cyclic<T>` overloads use the normalized value of the cyclic angle.
+
+Examples:
+
+```text
+sin(0.25) == 1
+cos(0.5) == -1
+tan(0.125) == 1
+```
+
+Hyperbolic functions are intentionally not provided by `<xer/math.h>`. Use the C++ standard library directly when those functions are needed.
+
+### Inverse Trigonometric Functions
+
+```cpp
+template<std::floating_point T>
+auto asin(T value) noexcept -> T;
+
+template<std::floating_point T>
+auto acos(T value) noexcept -> T;
+
+template<std::floating_point T>
+auto atan(T value) noexcept -> T;
+
+template<std::floating_point T>
+auto atan2(T y, T x) noexcept -> T;
+```
+
+Computes the inverse trigonometric functions and returns τrad scalar values.
+
+Typical return ranges are inherited from the corresponding standard-library functions after conversion from radians to τrad:
+
+| Function | Typical return range |
+|---|---|
+| `asin` | `[-0.25, 0.25]` |
+| `acos` | `[0, 0.5]` |
+| `atan` | `(-0.25, 0.25)` |
+| `atan2` | `[-0.5, 0.5]` |
+
+For domain errors, these functions follow the behavior of the underlying standard-library functions, such as returning NaN for invalid floating-point inputs. They do not return `xer::result`.
+
+
 ### `to_polar`
 
 ```cpp
@@ -14658,45 +14725,52 @@ The functions currently accept real coefficients and return complex roots. Compl
 
 ---
 
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/cyclic.h`
+> Reason: Japanese fragment was translated from a different English source hash.
+
 # `<xer/cyclic.h>`
 
-## 目的
+## Purpose
 
-`<xer/cyclic.h>` は、xer における循環値を扱うための `cyclic` 型と関連する補助機能を提供します。
+`<xer/cyclic.h>` provides the `cyclic` type and related helpers for handling circular values in xer.
 
-このヘッダーは、次のような値を対象にします。
+This header is intended for values such as:
 
-- 角度
-- 位相
-- 方向
-- 時刻のような循環位置
-- 1 周を基準として定義されるその他の量
+- angles
+- phases
+- directions
+- time-of-day-like circular positions
+- other quantities defined relative to one full turn
 
-その役割は単なる剰余算を提供することではありません。代わりに、時計回り距離や反時計回り距離のような概念を含め、循環的な意味を明示する軽量な値型を提供します。
-
----
-
-## 主な役割
-
-`<xer/cyclic.h>` の主な役割は、次の性質を持つ循環値のための、小さく明示的なモデルを提供することです。
-
-- 1 周に正規化される
-- 折り返し挙動が必要である
-- 最短差分操作が有用である
-- 時計回り / 反時計回りの解釈を直接表したい
-
-このため、このヘッダーは次のようなコードで特に有用です。
-
-- 角度と回転
-- 周期的な制御値
-- UI やグラフィックスにおける方向処理
-- その他の 1 周基準の量
+Its role is not merely to provide modular arithmetic.
+Instead, it provides a lightweight value type that makes circular semantics explicit, especially concepts such as clockwise and counterclockwise distance.
 
 ---
 
-## 主なエンティティ
+## Main Role
 
-少なくとも、`<xer/cyclic.h>` は次のエンティティを提供します。
+The main role of `<xer/cyclic.h>` is to provide a compact and explicit model for circular values that:
+
+- are normalized to one full turn
+- need wraparound behavior
+- benefit from shortest-difference operations
+- should expose clockwise and counterclockwise interpretation directly
+
+This makes the header especially useful for code involving:
+
+- angles and rotations
+- periodic control values
+- UI or graphics direction handling
+- other one-turn-based quantities
+
+---
+
+## Main Entities
+
+At minimum, `<xer/cyclic.h>` provides the following entities:
 
 ```cpp
 template <std::floating_point T>
@@ -14709,25 +14783,34 @@ template <std::floating_point T>
 auto to_degree(cyclic<T> value) noexcept -> T;
 
 template <std::floating_point T>
+auto from_rad(T value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+auto to_rad(cyclic<T> value) noexcept -> T;
+
+template <std::floating_point T>
+auto to_rad(T value) noexcept -> T;
+
+template <std::floating_point T>
 auto from_radian(T value) noexcept -> cyclic<T>;
 
 template <std::floating_point T>
 auto to_radian(cyclic<T> value) noexcept -> T;
 ```
 
-正確なオーバーロード集合は今後増える可能性がありますが、これが本質的な公開形です。
+The exact overload set may grow, but this is the essential public shape.
 
 ---
 
 ## `cyclic<T>`
 
-`cyclic<T>` はこのヘッダーの中心となる型です。
+`cyclic<T>` is the central type of the header.
 
-これは 1 周に正規化された循環値を表します。
+It represents a circular value normalized to one full turn.
 
-### 基本形
+### Basic Shape
 
-少なくとも、このクラスは次のような形を持つことが想定されます。
+At minimum, the class is expected to have a form like the following:
 
 ```cpp id="0r4t03"
 template <std::floating_point T>
@@ -14761,88 +14844,89 @@ public:
 };
 ```
 
-したがって、このヘッダーは大きなフレームワークではなく、小さな値指向のクラステンプレートを中心とします。
+This header is therefore centered on one small, value-oriented class template rather than on a large framework.
 
 ---
 
-## 内部表現
+## Internal Representation
 
-`cyclic<T>` は、1 周を `1` とする正規化済み内部表現を使います。
+`cyclic<T>` uses a normalized internal representation where one full turn is `1`.
 
-### 基本規則
+### Basic Rule
 
-保存される値は常に半開区間に属します。
+The stored value always belongs to the half-open interval:
 
 ```text
 [0, 1)
 ```
 
-つまり、
+That means:
 
-* `0` は基準位置
-* `1` は `0` と同一視される
-* 構築後および算術更新後に値は正規化される
+* `0` is the reference position
+* `1` is identified with `0`
+* values are normalized after construction and arithmetic updates
 
-### なぜ重要か
+### Why This Matters
 
-内部的に `[0, 1)` を使うことで、値の循環的性質を次のような外部単位からきれいに分離できます。
+By using `[0, 1)` internally, the circular nature of the value is separated cleanly from external units such as:
 
-* 度
-* ラジアン
-* その他の 1 周基準の外部尺度
+* degrees
+* radians
+* any other one-turn-based external scale
 
-これにより、この型は小さく単位非依存になります。
+This makes the type compact and unit-independent.
 
 ---
 
-## 対応する値型
+## Supported Value Types
 
-`cyclic<T>` は浮動小数点型をテンプレート引数に取ります。
+`cyclic<T>` is parameterized by a floating-point type.
 
-想定されるテンプレート引数は次です。
+The intended template arguments are:
 
 * `float`
 * `double`
 * `long double`
 
-整数型は受け付けません。
+Integer types are not accepted.
 
-### なぜ浮動小数点型か
+### Why Floating-Point Types
 
-主な用途では、循環値は離散的な剰余整数ではなく、連続値としてモデル化するのが自然です。
+Circular values are naturally modeled as continuous values rather than discrete modular integers in the main intended use cases.
 
-これは特に次に適しています。
+This is especially appropriate for:
 
-* 方向制御
-* 角度補間
-* 位相関連処理
-* リアルタイムグラフィックスや UI 処理
+* direction control
+* angle interpolation
+* phase-related processing
+* real-time graphics and UI work
 
 ---
 
-## 正規化
+## Normalization
 
-`cyclic<T>` オブジェクトは常に正規化済みの値を保存します。
+A `cyclic<T>` object always stores a normalized value.
 
-### 意味
+### Meaning
 
-概念的には、正規化とは任意の値を `[0, 1)` に写すことです。
+Conceptually, normalization means mapping an arbitrary value into the interval `[0, 1)`.
 
-例です。
+Examples:
 
-* `0.3` は `0.3` のまま
-* `1.3` は `0.3` になる
-* `-0.2` は `0.8` になる
+* `0.3` stays `0.3`
+* `1.3` becomes `0.3`
+* `-0.2` becomes `0.8`
 
-### 設計方針
+### Design Direction
 
-具体的な実装は公開上の関心事ではありません。重要なのは次の不変条件です。
+The exact implementation is not the public concern.
+What matters is the invariant:
 
 ```text
 0 <= value < 1
 ```
 
-この不変条件は、この型が提供するすべての操作の基礎です。
+This invariant is fundamental to all operations provided by the type.
 
 ---
 
@@ -14852,27 +14936,28 @@ public:
 auto value() const noexcept -> T;
 ```
 
-### 目的
+### Purpose
 
-`value()` は内部の正規化済み表現を返します。
+`value()` returns the internal normalized representation.
 
-### 意味
+### Meaning
 
-返される値は常に `[0, 1)` にあります。
+The returned value is always in `[0, 1)`.
 
-これは型自身が使う生の循環表現です。
+This is the raw circular representation used by the type itself.
 
-### 注意
+### Notes
 
-これは度やラジアン値とは別物です。それらの変換は別の補助関数が扱います。
+This is not the same thing as a degree or radian value.
+Those conversions are handled by separate helper functions.
 
 ---
 
-## 時計回り距離と反時計回り距離
+## Clockwise and Counterclockwise Distance
 
-`cyclic<T>` の特徴の 1 つは、円周上の方向を明示することです。
+One of the defining features of `cyclic<T>` is that it makes direction along the circle explicit.
 
-少なくとも、これは次の関数で表されます。
+At minimum, this is expressed by:
 
 ```cpp id="ca9elv"
 auto cw(cyclic to) const noexcept -> T;
@@ -14881,23 +14966,23 @@ auto ccw(cyclic to) const noexcept -> T;
 
 ### `cw`
 
-`cw(to)` は `this` から `to` までの時計回り距離を返します。
+`cw(to)` returns the clockwise distance from `this` to `to`.
 
 ### `ccw`
 
-`ccw(to)` は `this` から `to` までの反時計回り距離を返します。
+`ccw(to)` returns the counterclockwise distance from `this` to `to`.
 
-### 範囲
+### Range
 
-これらの距離は次の範囲で返されます。
+These distances are returned in the range:
 
 ```text
 [0, 1)
 ```
 
-### なぜ重要か
+### Why This Matters
 
-この明示的な方向モデルは、`cyclic<T>` が単なる浮動小数点値と手作業の剰余算ではなく、独自の型として存在する主な理由の 1 つです。
+This explicit directional model is one of the main reasons `cyclic<T>` exists as its own type rather than simply using a floating-point value with manual modulo arithmetic.
 
 ---
 
@@ -14907,40 +14992,40 @@ auto ccw(cyclic to) const noexcept -> T;
 auto diff(cyclic to) const noexcept -> T;
 ```
 
-### 目的
+### Purpose
 
-`diff(to)` は `this` から `to` までの最短の符号付き差分を返します。
+`diff(to)` returns the shortest signed difference from `this` to `to`.
 
-### 符号の意味
+### Meaning of the Sign
 
-* 正は反時計回り
-* 負は時計回り
+* positive means counterclockwise
+* negative means clockwise
 
-### 範囲
+### Range
 
-返される値は次の範囲にあります。
+The returned value lies in:
 
 ```text
 [-0.5, 0.5)
 ```
 
-差分がちょうど半周の場合は、`-0.5` 側へ正規化されます。
+If the difference is exactly half a turn, it is normalized to the `-0.5` side.
 
-### なぜ重要か
+### Why This Matters
 
-この操作は、実用的なコードで次のことを行いたい場合に特に有用です。
+This operation is especially useful in practical code that wants:
 
-* 最短角度移動
-* 簡潔な方向差分ロジック
-* 折り返しを手作業で扱わない円周上の比較
+* shortest-angle movement
+* compact directional difference logic
+* comparison on a circle without manual wraparound handling
 
 ---
 
-## 等価判定
+## Equality Testing
 
-`cyclic<T>` は、厳密なビット単位等価を主な等価モデルとして使いません。
+`cyclic<T>` does not use strict bitwise equality as its main equality model.
 
-代わりに、明示的な近似等価補助関数を提供します。
+Instead, it provides explicit approximate equality helpers:
 
 ```cpp id="v86flg"
 auto eq(cyclic to) const noexcept -> bool;
@@ -14950,58 +15035,59 @@ auto eq(cyclic to, T epsilon) const noexcept -> bool;
 auto ne(cyclic to, T epsilon) const noexcept -> bool;
 ```
 
-### なぜ `eq` / `ne` があるか
+### Why `eq` / `ne` Exist
 
-この設計により、等価が厳密ではなく許容誤差に基づくことを明確にします。
+This design makes it clear that equality is tolerance-based rather than strict.
 
-### なぜ `==` と `!=` が主 API ではないか
+### Why `==` and `!=` Are Not the Main API
 
-通常の比較演算子を近似等価に使うと、厳密等価であるかのように誤読しやすくなります。
+If ordinary comparison operators were used for approximate equality, it would be too easy to misread them as strict equality.
 
-そのため、xer では明示的な名前付き関数を優先します。
+xer therefore prefers explicit named functions.
 
-### 既定の許容誤差
+### Default Tolerance
 
-既定の許容誤差は次に保存されます。
+The default tolerance is stored in:
 
 ```cpp id="tvnkmz"
 static constexpr T default_epsilon;
 ```
 
-これにより、浮動小数点型に応じた実用的な既定幅を提供します。
+This provides a practical default width appropriate to the floating-point type.
 
 ---
 
-## 算術演算子
+## Arithmetic Operators
 
-少なくとも、`cyclic<T>` は次の演算子を提供する可能性があります。
+At minimum, `cyclic<T>` may provide the following operators:
 
-* 単項 `+`
-* 単項 `-`
-* 二項 `+`
-* 二項 `-`
+* unary `+`
+* unary `-`
+* binary `+`
+* binary `-`
 * `+=`
 * `-=`
 
-### 意味
+### Meaning
 
-これらの演算子は円周上の算術として解釈されます。
+These operators are interpreted as arithmetic on a circle.
 
-つまり、
+This means:
 
-* 結果は常に `[0, 1)` に正規化される
-* 加算は円周上を前へ進むことを意味する
-* 減算は円周上を後ろへ戻ることを意味する
+* results are always normalized back into `[0, 1)`
+* addition means moving forward around the circle
+* subtraction means moving backward around the circle
 
-### 重要な注意
+### Important Note
 
-これらは抽象的な数学上の普通の実数演算子ではありません。型の正規化規則によって定義される循環演算です。
+These are not ordinary real-number operators in the abstract mathematical sense.
+They are circular operations defined by the type's normalization rule.
 
 ---
 
-## 比較演算子を提供しない理由
+## Comparison Operators Not Provided
 
-次のような順序比較演算子は、意図したモデルに含まれません。
+Order-comparison operators such as:
 
 * `<`
 * `<=`
@@ -15009,19 +15095,21 @@ static constexpr T default_epsilon;
 * `>=`
 * `<=>`
 
-### 理由
+are not part of the intended model.
 
-順序比較は、通常の実数と同じ意味では循環値に本質的なものではありません。
+### Why
 
-同様に、`==` と `!=` も推奨される公開等価モデルではありません。意図した設計は近似比較だからです。
+Order comparison is not intrinsic to circular values in the same way it is for ordinary real numbers.
+
+Similarly, `==` and `!=` are not the preferred public equality model because approximate comparison is the intended design.
 
 ---
 
-## 単位変換補助関数
+## Unit Conversion Helpers
 
-`<xer/cyclic.h>` は、通常の角度単位との相互変換のための自由関数を提供します。
+`<xer/cyclic.h>` provides free functions for conversion to and from ordinary angular units.
 
-少なくとも次があります。
+At minimum:
 
 ```cpp id="rwmkpt"
 template <std::floating_point T>
@@ -15031,99 +15119,114 @@ template <std::floating_point T>
 auto to_degree(cyclic<T> value) noexcept -> T;
 
 template <std::floating_point T>
+auto from_rad(T value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+auto to_rad(cyclic<T> value) noexcept -> T;
+
+template <std::floating_point T>
+auto to_rad(T value) noexcept -> T;
+
+template <std::floating_point T>
 auto from_radian(T value) noexcept -> cyclic<T>;
 
 template <std::floating_point T>
 auto to_radian(cyclic<T> value) noexcept -> T;
 ```
 
-### なぜ自由関数か
+### Why Free Functions
 
-単位変換は `cyclic` オブジェクト自身の責務とは扱いません。
+Unit conversion is not treated as the responsibility of the `cyclic` object itself.
 
-これにより、型の内部を単位非依存に保ちつつ、API 境界で変換できます。
+This keeps the type unitless internally while allowing conversion at the API boundary.
 
-### 意味
+### Meaning
 
-これらの関数は次の間で変換します。
+These functions translate between:
 
-* 外部の度 / ラジアン値
-* 内部の 1 周基準表現
+* external degree/radian values
+* τrad scalar values, where one full turn is `1`
+* the internal one-turn-based representation
 
----
+`from_rad` and `to_rad` are the preferred short names for radian conversion. `from_radian` and `to_radian` remain available as compatibility aliases.
 
-## 数学定数との関係
-
-ラジアン変換は自然に π に依存します。
-
-xer の設計では、π のような数学定数を `cyclic<T>` のメンバーとして直接埋め込みません。代わりに、それらは専用の内部定数支援と概念的に関係する別の支援機能として扱います。
-
-これにより、`cyclic<T>` 自体は一般的な定数提供ではなく、循環値処理へ集中できます。
+`to_degree(T)` and `to_rad(T)` also accept τrad scalar values such as the return values of `cw`, `ccw`, `diff`, and `angle`. These scalar overloads do not normalize the input.
 
 ---
 
-## 他のヘッダーとの関係
+## Relationship to Mathematical Constants
 
-`<xer/cyclic.h>` は次と合わせて理解してください。
+Radian conversion naturally depends on π.
+
+In xer's design, mathematical constants such as π are not embedded directly into `cyclic<T>` as members.
+Instead, they are treated as separate supporting facilities, conceptually associated with dedicated internal constant support.
+
+This keeps `cyclic<T>` itself focused on circular value handling rather than on general constant provision.
+
+---
+
+## Relationship to Other Headers
+
+`<xer/cyclic.h>` should be understood together with:
 
 * `policy_project_outline.md`
 * `policy_cyclic.md`
 * `header_quantity.md`
 
-おおまかな境界は次のとおりです。
+The rough boundary is:
 
-* `<xer/cyclic.h>` は循環値と循環操作を扱う
-* `<xer/quantity.h>` は物理量と単位を扱う
-* 角度量は通常の量として表せる一方、`cyclic` は循環的意味が明示的に必要なときに使う
+* `<xer/cyclic.h>` handles circular values and circular operations
+* `<xer/quantity.h>` handles physical quantities and units
+* angular quantities may be represented as ordinary quantities, while `cyclic` is used when circular semantics are needed explicitly
 
-この区別は xer の設計で重要です。
-
----
-
-## 角度量との関係
-
-xer の設計で重要なのは、`cyclic<T>` がすべての角度量の普遍的な保存モデルでは **ない** という点です。
-
-### 意味
-
-* 回転数を含む通常の角度量は、単位付きの量としてモデル化する方がよい
-* `cyclic<T>` は循環的解釈のためのもの
-* 最短差分、時計回り距離、反時計回り距離が本当の関心事であるときに `cyclic<T>` へ変換する
-
-これにより、`cyclic<T>` はあらゆる角度風の値を置き換えるものではなく、焦点を絞った実用的な道具になります。
+This distinction is important in xer's design.
 
 ---
 
-## ドキュメント上の注意
+## Relationship to Angle Quantities
 
-生成マニュアルでこのヘッダーを説明するときは、通常は次を説明すれば十分です。
+A central point in xer's design is that `cyclic<T>` is **not** the universal storage model for all angle quantities.
 
-* `cyclic<T>` は値を 1 周に正規化して保存すること
-* 時計回り距離と反時計回り距離が明示的な操作であること
-* 最短の符号付き差分は `diff` で提供されること
-* 等価は近似的で、`eq` / `ne` で表すこと
-* 度 / ラジアン変換は自由関数で扱うこと
+### Meaning
 
-詳細な数値上の端のケースは、詳細リファレンスまたは生成 API 節に属します。
+* ordinary angle quantities, including turn counts, are better modeled as quantities with units
+* `cyclic<T>` is for circular interpretation
+* conversion into `cyclic<T>` happens when shortest-difference, clockwise distance, or counterclockwise distance is the real concern
 
----
-
-## 例として示す価値が高い題材
-
-このヘッダーでは、次のような例が特に適しています。
-
-* 生の 1 周基準値から `cyclic<float>` を構築する
-* `from_degree` で度から変換する
-* `to_degree` で度へ変換する
-* 時計回り距離と反時計回り距離を測る
-* `diff` で最短差分を計算する
-* `eq` で値を比較する
-
-これらは `examples/` の実行可能例のよい候補です。
+This makes `cyclic<T>` a focused and practical tool rather than a universal replacement for every angle-like value.
 
 ---
 
-## 例
+## Documentation Notes
+
+When this header is used in generated documentation, it is usually enough to explain:
+
+* that `cyclic<T>` stores values normalized to one turn
+* that clockwise and counterclockwise distance are explicit operations
+* that shortest signed difference is provided by `diff`
+* that equality is approximate and expressed by `eq` / `ne`
+* that degree/radian conversion is handled by free functions
+
+Detailed numeric edge cases belong in the detailed reference or generated API sections.
+
+---
+
+## Example Topics Commonly Worth Showing
+
+The following kinds of examples are especially suitable for this header:
+
+* constructing a `cyclic<float>` from a raw turn-based value
+* converting from degrees with `from_degree`
+* converting to degrees with `to_degree`
+* measuring clockwise and counterclockwise distance
+* computing the shortest difference with `diff`
+* comparing values with `eq`
+
+These are good candidates for executable examples in `examples/`.
+
+---
+
+## Example
 
 ```cpp
 #include <xer/cyclic.h>
@@ -15147,15 +15250,15 @@ auto main() -> int
 }
 ```
 
-この例は通常の xer スタイルを示しています。
+This example shows the normal xer style:
 
-* 自由変換補助関数で循環値を作る
-* 循環操作を明示的に使う
-* 円周上の方向を API 自身の一部として扱う
+* create circular values through free conversion helpers
+* use circular operations explicitly
+* treat direction on the circle as part of the API itself
 
 ---
 
-## 関連項目
+## See Also
 
 * `policy_project_outline.md`
 * `policy_cyclic.md`
@@ -15163,18 +15266,19 @@ auto main() -> int
 
 ---
 
-## 比率変換
+## Ratio Conversion
 
-`cyclic<T>` は `interval` との対称性のために、比率指向のメンバー関数を提供します。
+`cyclic<T>` provides ratio-oriented member functions for symmetry with `interval`.
 
 ```cpp
 constexpr auto ratio() const noexcept -> T;
 static constexpr auto from_ratio(T ratio) noexcept -> cyclic;
 ```
 
-`ratio()` は `[0, 1)` の正規化済み内部位置を返します。これは `value()` の別名です。
+`ratio()` returns the normalized internal position in `[0, 1)`.
+It is an alias of `value()`.
 
-`from_ratio()` は 1 周基準の比率から循環値を構築し、通常の循環正規化を適用します。
+`from_ratio()` constructs a cyclic value from a turn-based ratio and applies normal cyclic normalization.
 
 ```cpp
 auto a = xer::cyclic<float>::from_ratio(1.25f);
@@ -15183,20 +15287,22 @@ auto a = xer::cyclic<float>::from_ratio(1.25f);
 
 ---
 
-## `interval` との明示的変換
+## Explicit Conversion with `interval`
 
-`cyclic` と `interval` の暗黙変換は提供しません。端点の意味が異なるため、変換はソースコード上で見えるべきです。
+Implicit conversion between `cyclic` and `interval` is not provided.
+The endpoint semantics are different, so conversion should be visible in the source code.
 
-interval ヘッダーは明示的な補助関数を提供します。
+The interval header provides explicit helpers:
 
 ```cpp
 auto to_cyclic(interval<T, Min, Max> value) noexcept -> cyclic<T>;
 auto to_interval(cyclic<T> value) -> interval<T>;
 ```
 
-`to_cyclic` は interval をその比率を通じて写します。`to_interval` は cyclic 値を既定 interval `[0, 1]` へ写します。
+`to_cyclic` maps an interval through its ratio.
+`to_interval` maps a cyclic value to the default interval `[0, 1]`.
 
-カスタム境界の interval には、`interval<T, Min, Max>::from_ratio(value.ratio())` を使ってください。
+For custom interval bounds, use `interval<T, Min, Max>::from_ratio(value.ratio())`.
 
 ---
 

@@ -328,9 +328,9 @@ template<std::floating_point T>
  * @return Corresponding cyclic value.
  */
 template<std::floating_point T>
-[[nodiscard]] constexpr auto from_radian(T value) noexcept -> cyclic<T>
+[[nodiscard]] constexpr auto from_rad(T value) noexcept -> cyclic<T>
 {
-    return cyclic<T>(value / (static_cast<T>(2) * pi_v<T>));
+    return cyclic<T>(value / tau_v<T>);
 }
 
 /**
@@ -341,9 +341,55 @@ template<std::floating_point T>
  * @return Radian value.
  */
 template<std::floating_point T>
+[[nodiscard]] constexpr auto to_rad(cyclic<T> value) noexcept -> T
+{
+    return value.value() * tau_v<T>;
+}
+
+/**
+ * @brief Converts a turn-based scalar value to radians.
+ *
+ * This overload is intended for τrad scalar values such as the return value of
+ * `angle`. The input is not normalized.
+ *
+ * @tparam T Floating-point type.
+ * @param value Turn-based scalar value.
+ * @return Radian value.
+ */
+template<std::floating_point T>
+[[nodiscard]] constexpr auto to_rad(T value) noexcept -> T
+{
+    return value * tau_v<T>;
+}
+
+/**
+ * @brief Converts radians to a cyclic value.
+ *
+ * This is a compatibility alias of `from_rad`.
+ *
+ * @tparam T Floating-point type.
+ * @param value Radian value.
+ * @return Corresponding cyclic value.
+ */
+template<std::floating_point T>
+[[nodiscard]] constexpr auto from_radian(T value) noexcept -> cyclic<T>
+{
+    return from_rad(value);
+}
+
+/**
+ * @brief Converts a cyclic value to radians.
+ *
+ * This is a compatibility alias of `to_rad`.
+ *
+ * @tparam T Floating-point type.
+ * @param value Cyclic value.
+ * @return Radian value.
+ */
+template<std::floating_point T>
 [[nodiscard]] constexpr auto to_radian(cyclic<T> value) noexcept -> T
 {
-    return value.value() * (static_cast<T>(2) * pi_v<T>);
+    return to_rad(value);
 }
 
 } // namespace xer
