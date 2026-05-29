@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: e273f45fbc48c20e426441835986bfee4d0a733e51d3ffd3a7a14d70eb8d51d4 -->
+<!-- xer-reference-source-sha256: 4000a013a195689aa34b2dee7dc5cbe8d169136ec46d31413269659cbcf7a1eb -->
 
 # `<xer/cyclic.h>`
 
@@ -49,6 +49,15 @@ auto from_degree(T value) noexcept -> cyclic<T>;
 
 template <std::floating_point T>
 auto to_degree(cyclic<T> value) noexcept -> T;
+
+template <std::floating_point T>
+auto from_rad(T value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+auto to_rad(cyclic<T> value) noexcept -> T;
+
+template <std::floating_point T>
+auto to_rad(T value) noexcept -> T;
 
 template <std::floating_point T>
 auto from_radian(T value) noexcept -> cyclic<T>;
@@ -373,6 +382,15 @@ template <std::floating_point T>
 auto to_degree(cyclic<T> value) noexcept -> T;
 
 template <std::floating_point T>
+auto from_rad(T value) noexcept -> cyclic<T>;
+
+template <std::floating_point T>
+auto to_rad(cyclic<T> value) noexcept -> T;
+
+template <std::floating_point T>
+auto to_rad(T value) noexcept -> T;
+
+template <std::floating_point T>
 auto from_radian(T value) noexcept -> cyclic<T>;
 
 template <std::floating_point T>
@@ -390,7 +408,12 @@ auto to_radian(cyclic<T> value) noexcept -> T;
 これらの関数は次の間で変換します。
 
 * 外部の度 / ラジアン値
+* 1 周を `1` とする τrad スカラー値
 * 内部の 1 周基準表現
+
+`from_rad` と `to_rad` は、ラジアン変換の推奨される短い名前です。`from_radian` と `to_radian` は互換性のための別名として残ります。
+
+`to_degree(T)` と `to_rad(T)` は、`cw`、`ccw`、`diff`、`angle` の戻り値のような τrad スカラー値も受け取ります。これらのスカラーオーバーロードは入力を正規化しません。
 
 ---
 

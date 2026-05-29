@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 45ca1e3ce5829500bb3d5ea190b969afc7bda5d8276a92b59db04b35010a95f4 -->
+<!-- xer-reference-source-sha256: d15a677ee9c72228b13cb273e2f25842b5a1b65962c481a1b1ddf642f49942f6 -->
 
 # `<xer/matrix.h>`
 
@@ -241,12 +241,12 @@ template <std::floating_point T>
 auto scale2(T sx, T sy) noexcept -> matrix3<T>;
 
 template <std::floating_point T>
-auto rotate2(T radian) noexcept -> matrix3<T>;
+auto rotate2(cyclic<T> theta) noexcept -> matrix3<T>;
 ```
 
 ### 回転方向
 
-`rotate2` はラジアンを使い、通常の数学的慣習に従います。正の角度は反時計回りの回転です。
+`rotate2` は `cyclic<T>` の τrad 角を受け取り、通常の数学的慣習に従います。正の角度は反時計回りの回転です。
 
 ---
 
@@ -262,20 +262,22 @@ template <std::floating_point T>
 auto scale3(T sx, T sy, T sz) noexcept -> matrix4<T>;
 
 template <std::floating_point T>
-auto rotate_x(T radian) noexcept -> matrix4<T>;
+auto rotate_x(cyclic<T> theta) noexcept -> matrix4<T>;
 
 template <std::floating_point T>
-auto rotate_y(T radian) noexcept -> matrix4<T>;
+auto rotate_y(cyclic<T> theta) noexcept -> matrix4<T>;
 
 template <std::floating_point T>
-auto rotate_z(T radian) noexcept -> matrix4<T>;
+auto rotate_z(cyclic<T> theta) noexcept -> matrix4<T>;
 ```
 
 ### 回転単位
 
-回転補助関数は生のラジアン値を受け取ります。
+回転補助関数は τrad 単位の `cyclic<T>` 角を受け取ります。
 
-角度量、`cyclic`、その他の高水準の角度抽象は、最初の行列 API には混ぜません。必要な場合、呼び出し側がこれらの関数を呼ぶ前にラジアンへ変換します。
+`0.25` は 4 分の 1 回転、`0.5` は半回転、`1.0` は 1 回転を表します。
+
+これは、xer の他の数学 API で使う角度規約と一致します。
 
 ---
 
@@ -332,7 +334,7 @@ auto rotate_z(T radian) noexcept -> matrix4<T>;
 * 列ベクトルは `matrix<T, N, 1>` のエイリアスで表されること
 * 初期の重点は 2D / 3D アフィン変換であること
 * 3x3 および 4x4 行列の逆行列計算を提供すること
-* 回転補助関数はラジアンを受け取ること
+* 回転補助関数は τrad 単位の `cyclic<T>` 角を受け取ること
 
 詳細な数値挙動や将来の線形代数拡張は、それらの機能が追加された時点で別途文書化します。
 

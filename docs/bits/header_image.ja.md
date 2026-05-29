@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: c51cf67bfa0fe8e27bd39e455617c1e79e497cef73acbc11df12dbe1d38dcc86 -->
+<!-- xer-reference-source-sha256: 23ff3d606dfed5a5f970a9ce1ef1d4869e4835f6cdb6f659f94806ba55878f5b -->
 
 # `<xer/image.h>`
 
@@ -954,13 +954,13 @@ template <std::size_t Width, std::size_t Height, class Policy>
 
 ### 円弧描画
 
-円弧APIは角度をラジアンで受け取ります。角度の向きは数学的な向きに近く、画面座標の y 軸が下向きであることを考慮します。
+円弧APIの角度は τrad 単位で表します。`0` は右方向を指します。正の sweep 角は数学的な意味で反時計回りに進みます。画像の y 座標は下向きに増えるため、点の式は次のようになります。
 
 概念的には次の座標式です。
 
 ```text
-x = cx + radius * cos(angle)
-y = cy - radius * sin(angle)
+x = cx + radius * cos(angle * τ)
+y = cy - radius * sin(angle * τ)
 ```
 
 `sweep_angle` が正の場合は反時計回り、負の場合は時計回りに描画します。絶対値が1回転以上の sweep は完全な円として扱われます。sweep が0の場合は開始点を描画します。
@@ -972,8 +972,8 @@ y = cy - radius * sin(angle)
 楕円弧の角度は円弧と同じ規則に従います。
 
 ```text
-x = cx + radius_x * cos(angle)
-y = cy - radius_y * sin(angle)
+x = cx + radius_x * cos(angle * τ)
+y = cy - radius_y * sin(angle * τ)
 ```
 
 1回転以上の sweep は完全な楕円として扱われます。sweep が0の場合は開始点を描画します。両方の半径が0の場合は中心点になります。片方の半径だけが0の場合は、角度に基づくパラメータ化を保ったまま、対応する縦線または横線へ退化します。
