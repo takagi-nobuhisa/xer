@@ -1,5 +1,6 @@
 ﻿#include <cmath>
 #include <limits>
+#include <ranges>
 #include <sstream>
 #include <vector>
 
@@ -47,6 +48,105 @@ void test_median_with_even_count()
     xer_assert(value.has_value());
     assert_close(*value, 6.0);
 }
+
+void test_quantile_basic_values()
+{
+    const std::vector<double> values{10.0, 20.0, 30.0, 40.0, 50.0};
+
+    const auto q0 = xer::quantile(values, 0.0);
+    const auto q25 = xer::quantile(values, 0.25);
+    const auto q50 = xer::quantile(values, 0.5);
+    const auto q75 = xer::quantile(values, 0.75);
+    const auto q100 = xer::quantile(values, 1.0);
+
+    xer_assert(q0.has_value());
+    xer_assert(q25.has_value());
+    xer_assert(q50.has_value());
+    xer_assert(q75.has_value());
+    xer_assert(q100.has_value());
+    assert_close(*q0, 10.0);
+    assert_close(*q25, 20.0);
+    assert_close(*q50, 30.0);
+    assert_close(*q75, 40.0);
+    assert_close(*q100, 50.0);
+}
+
+void test_quantile_with_interpolation()
+{
+    const auto q = xer::quantile({0.0, 10.0, 20.0, 30.0}, 0.25);
+
+    xer_assert(q.has_value());
+    assert_close(*q, 7.5);
+}
+
+void test_quantile_matches_median()
+{
+    const std::vector<int> values{4, 1, 3, 2};
+
+    const auto q = xer::quantile(values, 0.5);
+    const auto m = xer::median(values);
+
+    xer_assert(q.has_value());
+    xer_assert(m.has_value());
+    assert_close(*q, *m);
+}
+
+void test_percentile_basic_values()
+{
+    const std::vector<double> values{10.0, 20.0, 30.0, 40.0, 50.0};
+
+    const auto p25 = xer::percentile(values, 25.0);
+    const auto p50 = xer::percentile(values, 50.0);
+    const auto p75 = xer::percentile(values, 75.0);
+
+    xer_assert(p25.has_value());
+    xer_assert(p50.has_value());
+    xer_assert(p75.has_value());
+    assert_close(*p25, 20.0);
+    assert_close(*p50, 30.0);
+    assert_close(*p75, 40.0);
+}
+
+void test_percentile_with_interpolation()
+{
+    const auto p = xer::percentile({0.0, 10.0, 20.0, 30.0}, 25.0);
+
+    xer_assert(p.has_value());
+    assert_close(*p, 7.5);
+}
+
+void test_quantile_invalid_fraction()
+{
+    const std::vector<double> values{1.0, 2.0, 3.0};
+
+    const auto low = xer::quantile(values, -0.01);
+    const auto high = xer::quantile(values, 1.01);
+    const auto nan = xer::quantile(values, std::numeric_limits<double>::quiet_NaN());
+
+    xer_assert_not(low.has_value());
+    xer_assert_not(high.has_value());
+    xer_assert_not(nan.has_value());
+    xer_assert(low.error().code == xer::error_t::invalid_argument);
+    xer_assert(high.error().code == xer::error_t::invalid_argument);
+    xer_assert(nan.error().code == xer::error_t::invalid_argument);
+}
+
+void test_percentile_invalid_value()
+{
+    const std::vector<double> values{1.0, 2.0, 3.0};
+
+    const auto low = xer::percentile(values, -0.01);
+    const auto high = xer::percentile(values, 100.01);
+    const auto inf = xer::percentile(values, std::numeric_limits<double>::infinity());
+
+    xer_assert_not(low.has_value());
+    xer_assert_not(high.has_value());
+    xer_assert_not(inf.has_value());
+    xer_assert(low.error().code == xer::error_t::invalid_argument);
+    xer_assert(high.error().code == xer::error_t::invalid_argument);
+    xer_assert(inf.error().code == xer::error_t::invalid_argument);
+}
+
 
 void test_mode_with_single_mode()
 {
@@ -153,13 +253,19 @@ void test_empty_range()
     const std::vector<int> values;
     const auto mean = xer::mean(values);
     const auto median = xer::median(values);
+    const auto quantile = xer::quantile(values, 0.5);
+    const auto percentile = xer::percentile(values, 50.0);
     const auto modes = xer::mode(values);
 
     xer_assert_not(mean.has_value());
     xer_assert_not(median.has_value());
+    xer_assert_not(quantile.has_value());
+    xer_assert_not(percentile.has_value());
     xer_assert_not(modes.has_value());
     xer_assert(mean.error().code == xer::error_t::invalid_argument);
     xer_assert(median.error().code == xer::error_t::invalid_argument);
+    xer_assert(quantile.error().code == xer::error_t::invalid_argument);
+    xer_assert(percentile.error().code == xer::error_t::invalid_argument);
     xer_assert(modes.error().code == xer::error_t::invalid_argument);
 }
 
@@ -168,13 +274,19 @@ void test_invalid_floating_value()
     const std::vector<double> values{1.0, std::numeric_limits<double>::infinity()};
     const auto value = xer::mean(values);
     const auto med = xer::median(values);
+    const auto q = xer::quantile(values, 0.5);
+    const auto p = xer::percentile(values, 50.0);
     const auto modes = xer::mode(values);
 
     xer_assert_not(value.has_value());
     xer_assert_not(med.has_value());
+    xer_assert_not(q.has_value());
+    xer_assert_not(p.has_value());
     xer_assert_not(modes.has_value());
     xer_assert(value.error().code == xer::error_t::invalid_argument);
     xer_assert(med.error().code == xer::error_t::invalid_argument);
+    xer_assert(q.error().code == xer::error_t::invalid_argument);
+    xer_assert(p.error().code == xer::error_t::invalid_argument);
     xer_assert(modes.error().code == xer::error_t::invalid_argument);
 }
 
@@ -198,6 +310,26 @@ void test_median_with_input_range()
     assert_close(*value, 2.5);
 }
 
+void test_quantile_with_input_range()
+{
+    std::istringstream input("4 1 3 2");
+    auto values = std::views::istream<int>(input);
+    const auto value = xer::quantile(values, 0.5);
+
+    xer_assert(value.has_value());
+    assert_close(*value, 2.5);
+}
+
+void test_percentile_with_input_range()
+{
+    std::istringstream input("4 1 3 2");
+    auto values = std::views::istream<int>(input);
+    const auto value = xer::percentile(values, 50.0);
+
+    xer_assert(value.has_value());
+    assert_close(*value, 2.5);
+}
+
 } // namespace
 
 auto main() -> int
@@ -206,6 +338,13 @@ auto main() -> int
     test_mean_with_initializer_list();
     test_median_with_odd_count();
     test_median_with_even_count();
+    test_quantile_basic_values();
+    test_quantile_with_interpolation();
+    test_quantile_matches_median();
+    test_percentile_basic_values();
+    test_percentile_with_interpolation();
+    test_quantile_invalid_fraction();
+    test_percentile_invalid_value();
     test_mode_with_single_mode();
     test_mode_with_multiple_modes();
     test_mode_without_repeated_value();
@@ -218,5 +357,7 @@ auto main() -> int
     test_invalid_floating_value();
     test_input_range();
     test_median_with_input_range();
+    test_quantile_with_input_range();
+    test_percentile_with_input_range();
     return 0;
 }

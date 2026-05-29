@@ -163,6 +163,56 @@ template<statistics_range Range>
     return statistics_to_double(value);
 }
 
+[[nodiscard]] inline auto statistics_quantile_fraction(double q)
+    -> result<long double>
+{
+    if (!std::isfinite(q) || q < 0.0 || q > 1.0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return static_cast<long double>(q);
+}
+
+[[nodiscard]] inline auto statistics_percentile_fraction(double p)
+    -> result<long double>
+{
+    if (!std::isfinite(p) || p < 0.0 || p > 100.0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return static_cast<long double>(p) / 100.0L;
+}
+
+[[nodiscard]] inline auto quantile_from_values(
+    std::vector<long double> values,
+    long double fraction) -> result<double>
+{
+    if (values.empty()) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    if (!statistics_is_finite(fraction) || fraction < 0.0L ||
+        fraction > 1.0L) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    std::ranges::sort(values);
+
+    if (values.size() == 1) {
+        return statistics_to_double(values.front());
+    }
+
+    const long double position =
+        fraction * static_cast<long double>(values.size() - 1);
+    const auto lower = static_cast<std::size_t>(std::floor(position));
+    const auto upper = static_cast<std::size_t>(std::ceil(position));
+    const long double weight = position - static_cast<long double>(lower);
+
+    const long double value = values[lower] +
+        ((values[upper] - values[lower]) * weight);
+    return statistics_to_double(value);
+}
+
 [[nodiscard]] inline auto statistics_mode_tolerance(double tolerance)
     -> result<long double>
 {
@@ -343,6 +393,115 @@ template<class T>
     }
 
     return detail::median_from_values(std::move(*collected));
+}
+
+/**
+ * @brief Computes a quantile of a non-empty arithmetic range.
+ *
+ * The quantile fraction `q` must be finite and in the range `[0.0, 1.0]`.
+ * Values are copied, sorted, and linearly interpolated.
+ * `q == 0.0` returns the minimum value, `q == 0.5` returns the median,
+ * and `q == 1.0` returns the maximum value.
+ *
+ * @tparam Range Input range of non-bool arithmetic values.
+ * @param range Input range.
+ * @param q Quantile fraction in the range `[0.0, 1.0]`.
+ * @return Quantile value as double.
+ */
+template<detail::statistics_range Range>
+[[nodiscard]] auto quantile(Range&& range, double q) -> result<double>
+{
+    auto fraction = detail::statistics_quantile_fraction(q);
+    if (!fraction) {
+        return std::unexpected(fraction.error());
+    }
+
+    auto values = detail::collect_statistics_values(std::forward<Range>(range));
+    if (!values) {
+        return std::unexpected(values.error());
+    }
+
+    return detail::quantile_from_values(std::move(*values), *fraction);
+}
+
+/**
+ * @brief Computes a quantile of a non-empty initializer list.
+ *
+ * @tparam T Non-bool arithmetic value type.
+ * @param values Input values.
+ * @param q Quantile fraction in the range `[0.0, 1.0]`.
+ * @return Quantile value as double.
+ */
+template<class T>
+    requires non_bool_arithmetic<T>
+[[nodiscard]] auto quantile(std::initializer_list<T> values, double q)
+    -> result<double>
+{
+    auto fraction = detail::statistics_quantile_fraction(q);
+    if (!fraction) {
+        return std::unexpected(fraction.error());
+    }
+
+    auto collected = detail::collect_statistics_values(values);
+    if (!collected) {
+        return std::unexpected(collected.error());
+    }
+
+    return detail::quantile_from_values(std::move(*collected), *fraction);
+}
+
+/**
+ * @brief Computes a percentile of a non-empty arithmetic range.
+ *
+ * The percentile value `p` must be finite and in the range `[0.0, 100.0]`.
+ * This function uses the same linear interpolation rule as `quantile`;
+ * `percentile(range, p)` is equivalent to `quantile(range, p / 100.0)`.
+ *
+ * @tparam Range Input range of non-bool arithmetic values.
+ * @param range Input range.
+ * @param p Percentile in the range `[0.0, 100.0]`.
+ * @return Percentile value as double.
+ */
+template<detail::statistics_range Range>
+[[nodiscard]] auto percentile(Range&& range, double p) -> result<double>
+{
+    auto fraction = detail::statistics_percentile_fraction(p);
+    if (!fraction) {
+        return std::unexpected(fraction.error());
+    }
+
+    auto values = detail::collect_statistics_values(std::forward<Range>(range));
+    if (!values) {
+        return std::unexpected(values.error());
+    }
+
+    return detail::quantile_from_values(std::move(*values), *fraction);
+}
+
+/**
+ * @brief Computes a percentile of a non-empty initializer list.
+ *
+ * @tparam T Non-bool arithmetic value type.
+ * @param values Input values.
+ * @param p Percentile in the range `[0.0, 100.0]`.
+ * @return Percentile value as double.
+ */
+template<class T>
+    requires non_bool_arithmetic<T>
+[[nodiscard]] auto percentile(std::initializer_list<T> values, double p)
+    -> result<double>
+{
+    auto fraction = detail::statistics_percentile_fraction(p);
+    if (!fraction) {
+        return std::unexpected(fraction.error());
+    }
+
+    auto collected = detail::collect_statistics_values(values);
+    if (!collected) {
+        return std::unexpected(collected.error());
+    }
+
+    return detail::quantile_from_values(std::move(*collected), *fraction);
 }
 
 /**

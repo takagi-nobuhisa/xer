@@ -5,6 +5,8 @@
 // Expected output:
 // mean: 5
 // median: 4.5
+// quantile 25%: 4
+// percentile 75: 5.5
 // variance: 4
 // stddev: 2
 // sample_variance: 4.57143
@@ -54,6 +56,8 @@ auto main() -> int
 
     if (!print_result("mean", xer::mean(values)) ||
         !print_result("median", xer::median(values)) ||
+        !print_result("quantile 25%", xer::quantile(values, 0.25)) ||
+        !print_result("percentile 75", xer::percentile(values, 75.0)) ||
         !print_result("variance", xer::variance(values)) ||
         !print_result("stddev", xer::stddev(values)) ||
         !print_result("sample_variance", xer::sample_variance(values)) ||

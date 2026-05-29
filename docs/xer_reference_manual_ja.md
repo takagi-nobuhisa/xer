@@ -14677,6 +14677,8 @@ The initial scope is intentionally limited to common descriptive statistics:
 
 - arithmetic mean
 - median
+- quantile
+- percentile
 - mode
 - population variance
 - sample variance
@@ -14702,6 +14704,18 @@ auto median(Range&& range) -> xer::result<double>;
 
 template<class T>
 auto median(std::initializer_list<T> values) -> xer::result<double>;
+
+template<class Range>
+auto quantile(Range&& range, double q) -> xer::result<double>;
+
+template<class T>
+auto quantile(std::initializer_list<T> values, double q) -> xer::result<double>;
+
+template<class Range>
+auto percentile(Range&& range, double p) -> xer::result<double>;
+
+template<class T>
+auto percentile(std::initializer_list<T> values, double p) -> xer::result<double>;
 
 template<class Range>
 auto mode(Range&& range, double tolerance = 0.0) -> xer::result<std::vector<double>>;
@@ -14772,6 +14786,74 @@ For an even number of values, the arithmetic mean of the two middle values is re
 
 The range must contain at least one value.
 If the range is empty, the function returns `error_t::invalid_argument`.
+
+---
+
+## Quantile
+
+```cpp
+template<class Range>
+auto quantile(Range&& range, double q) -> xer::result<double>;
+```
+
+Computes a quantile of the input values.
+
+The input values are copied and sorted internally.
+The quantile fraction `q` must be finite and in the range `[0.0, 1.0]`.
+
+The interpolation rule is linear interpolation on the sorted sequence:
+
+```text
+position = q * (n - 1)
+result = values[floor(position)] * (1 - fraction)
+       + values[ceil(position)]  * fraction
+```
+
+where `fraction` is the fractional part of `position`.
+
+This means:
+
+```text
+quantile(values, 0.0) == minimum value
+quantile(values, 0.5) == median value
+quantile(values, 1.0) == maximum value
+```
+
+The range must contain at least one value.
+If the range is empty, the function returns `error_t::invalid_argument`.
+
+If `q` is outside `[0.0, 1.0]`, NaN, or infinity, the function returns `error_t::invalid_argument`.
+
+---
+
+## Percentile
+
+```cpp
+template<class Range>
+auto percentile(Range&& range, double p) -> xer::result<double>;
+```
+
+Computes a percentile of the input values.
+
+The percentile value `p` must be finite and in the range `[0.0, 100.0]`.
+This function uses the same interpolation rule as `quantile`.
+
+```text
+percentile(values, p) == quantile(values, p / 100.0)
+```
+
+This means:
+
+```text
+percentile(values, 0.0)   == minimum value
+percentile(values, 50.0)  == median value
+percentile(values, 100.0) == maximum value
+```
+
+The range must contain at least one value.
+If the range is empty, the function returns `error_t::invalid_argument`.
+
+If `p` is outside `[0.0, 100.0]`, NaN, or infinity, the function returns `error_t::invalid_argument`.
 
 ---
 
@@ -14873,6 +14955,8 @@ The statistical functions report invalid inputs through `xer::result`.
 | empty range | `error_t::invalid_argument` |
 | fewer than two values for sample variance / sample standard deviation | `error_t::invalid_argument` |
 | NaN or infinity in the input | `error_t::invalid_argument` |
+| `quantile` fraction outside `[0.0, 1.0]`, NaN, or infinity | `error_t::invalid_argument` |
+| `percentile` value outside `[0.0, 100.0]`, NaN, or infinity | `error_t::invalid_argument` |
 | negative, NaN, or infinite `mode` tolerance | `error_t::invalid_argument` |
 | intermediate or final value outside the representable `double` range | `error_t::range_error` |
 
@@ -14883,7 +14967,7 @@ The statistical functions report invalid inputs through `xer::result`.
 `mean`, `variance`, `sample_variance`, `stddev`, and `sample_stddev` use a one-pass online update internally.
 This allows them to work with input ranges and avoids requiring a second traversal of the input.
 
-`median` and `mode` copy the input values because they need sorted data.
+`median`, `quantile`, `percentile`, and `mode` copy the input values because they need sorted data.
 They still accept input ranges, but they require memory proportional to the number of input values.
 
 Accumulation is performed internally using `long double`, and the public scalar result type is `double`.
@@ -14913,16 +14997,21 @@ auto main() -> int
 
     const auto mean = xer::mean(values);
     const auto median = xer::median(values);
+    const auto quantile = xer::quantile(values, 0.25);
+    const auto percentile = xer::percentile(values, 75.0);
     const auto variance = xer::variance(values);
     const auto stddev = xer::stddev(values);
     const auto modes = xer::mode(values);
 
-    if (!mean || !median || !variance || !stddev || !modes) {
+    if (!mean || !median || !quantile || !percentile || !variance ||
+        !stddev || !modes) {
         return 1;
     }
 
     std::cout << *mean << '\n';
     std::cout << *median << '\n';
+    std::cout << *quantile << '\n';
+    std::cout << *percentile << '\n';
     std::cout << *variance << '\n';
     std::cout << *stddev << '\n';
     print_modes(*modes);
