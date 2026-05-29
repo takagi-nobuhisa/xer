@@ -364,7 +364,7 @@ Circle drawing follows the same clipping rule. `draw_circle` draws a one-pixel o
 
 Ellipse drawing follows the circle policy with independent radii. A negative radius is invalid. If both radii are zero, the shape degenerates to a point. If exactly one radius is zero, the shape degenerates to a vertical or horizontal line segment.
 
-Arc APIs use `start_angle` plus `sweep_angle`, both in radians. Angle zero points right. Positive sweep is counterclockwise in mathematical coordinates, so raster conversion uses `y = cy - radius * sin(angle)` or its elliptical equivalent. A negative sweep is clockwise. A sweep whose absolute value is at least one full turn is treated as a full circle or ellipse.
+Arc APIs use `start_angle` plus `sweep_angle`, both in τrad units. Angle zero points right. Positive sweep is counterclockwise in mathematical coordinates, so raster conversion uses `y = cy - radius * sin(angle * τ)` or its elliptical equivalent. A negative sweep is clockwise. A sweep whose absolute value is at least one full turn is treated as a full circle or ellipse.
 
 A zero sweep arc draws its start point. A zero-radius circular arc draws the center point. Elliptical arcs follow the same radius-degeneration rules as ellipses, including line-like degeneration when exactly one radius is zero. Antialiased arcs use round caps so degenerate arcs remain visible as rounded points where appropriate.
 

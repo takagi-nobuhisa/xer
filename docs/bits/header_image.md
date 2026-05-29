@@ -1219,11 +1219,11 @@ auto draw_arc_aa(canvas<Width, Height, Policy>& img,
     -> xer::result<void>;
 ```
 
-Arc angles are expressed in radians. `0` points right. Positive sweep angles move counterclockwise in the mathematical sense; because image y coordinates grow downward, the point formula is:
+Arc angles are expressed in τrad units. `0` points right. Positive sweep angles move counterclockwise in the mathematical sense; because image y coordinates grow downward, the point formula is:
 
 ```text
-x = cx + radius * cos(angle)
-y = cy - radius * sin(angle)
+x = cx + radius * cos(angle * τ)
+y = cy - radius * sin(angle * τ)
 ```
 
 A negative `sweep_angle` draws clockwise. When `abs(sweep_angle)` is at least one full turn, arc drawing is treated as full circle drawing. Multiple turns are not accumulated.
@@ -1232,7 +1232,7 @@ Circular arc degeneration is:
 
 - `radius == 0`: the center point
 - `sweep_angle == 0`: the start point on the circle
-- `abs(sweep_angle) >= 2π`: a full circle
+- `abs(sweep_angle) >= 1`: a full circle
 
 Antialiased arc endpoints use round caps. A zero-radius or zero-sweep antialiased arc therefore appears as a round point with the requested outline width.
 
@@ -1310,8 +1310,8 @@ auto draw_ellipse_arc_aa(canvas<Width, Height, Policy>& img,
 Elliptical arc angles follow the same convention as circular arcs:
 
 ```text
-x = cx + radius_x * cos(angle)
-y = cy - radius_y * sin(angle)
+x = cx + radius_x * cos(angle * τ)
+y = cy - radius_y * sin(angle * τ)
 ```
 
 A sweep of at least one full turn is treated as a full ellipse. A zero sweep draws the start point. If both radii are zero, the result is the center point. If exactly one radius is zero, the arc degenerates onto the corresponding vertical or horizontal line while preserving the angle-based parameterization.

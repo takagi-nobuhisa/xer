@@ -55,7 +55,7 @@ auto main() -> int
         xer::image::pointf{31.0f, 6.0f},
         4.0f,
         0.0f,
-        1.57079632679f,
+        0.25f,
         xer::image::pixel(0xffu, 0x80u, 0x00u));
     if (!arc.has_value()) {
         return 1;
@@ -66,8 +66,8 @@ auto main() -> int
         xer::image::pointf{42.0f, 6.0f},
         4.0f,
         3.0f,
-        3.14159265359f,
-        -1.57079632679f,
+        0.5f,
+        -0.25f,
         3.0f,
         xer::image::pixel(0x00u, 0x80u, 0xffu));
     if (!ellipse_arc.has_value()) {

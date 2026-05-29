@@ -1250,6 +1250,22 @@ struct image_access {
 
 inline constexpr auto image_pi = 3.14159265358979323846f;
 inline constexpr auto image_tau = image_pi * 2.0f;
+inline constexpr auto image_turn = 1.0f;
+
+[[nodiscard]] inline auto image_to_radian(float angle) noexcept -> float
+{
+    return angle * image_tau;
+}
+
+[[nodiscard]] inline auto image_to_radian(long double angle) noexcept -> long double
+{
+    return angle * static_cast<long double>(image_tau);
+}
+
+[[nodiscard]] inline auto image_from_radian(float angle) noexcept -> float
+{
+    return angle / image_tau;
+}
 
 [[nodiscard]] inline auto invalid_draw_argument() noexcept -> xer::result<void>
 {
@@ -1263,9 +1279,9 @@ inline constexpr auto image_tau = image_pi * 2.0f;
 
 [[nodiscard]] inline auto normalize_angle(float angle) noexcept -> float
 {
-    auto normalized = std::fmod(angle, image_tau);
+    auto normalized = std::fmod(angle, image_turn);
     if (normalized < 0.0f) {
-        normalized += image_tau;
+        normalized += image_turn;
     }
     return normalized;
 }
@@ -1275,7 +1291,7 @@ inline constexpr auto image_tau = image_pi * 2.0f;
     float start_angle,
     float sweep_angle) noexcept -> bool
 {
-    if (std::abs(sweep_angle) >= image_tau) {
+    if (std::abs(sweep_angle) >= image_turn) {
         return true;
     }
 
@@ -1484,7 +1500,7 @@ auto draw_aa_disc(
     float radius_x,
     float radius_y) noexcept -> float
 {
-    return std::atan2(-dy / radius_y, dx / radius_x);
+    return image_from_radian(std::atan2(-dy / radius_y, dx / radius_x));
 }
 
 } // namespace detail
@@ -2674,7 +2690,7 @@ auto draw_arc(
         detail::plot_clipped(img, cx, cy, color);
         return {};
     }
-    if (std::abs(sweep_angle) >= detail::image_tau) {
+    if (std::abs(sweep_angle) >= detail::image_turn) {
         return draw_circle(img, cx, cy, radius, color);
     }
 
@@ -2683,9 +2699,9 @@ auto draw_arc(
     const auto sweep_ld = static_cast<long double>(sweep_angle);
     const auto plot_at = [&img, cx, cy, radius_ld, color](long double angle) noexcept -> void {
         const auto x = static_cast<long long>(std::llround(
-            static_cast<long double>(cx) + radius_ld * std::cos(angle)));
+            static_cast<long double>(cx) + radius_ld * std::cos(detail::image_to_radian(angle))));
         const auto y = static_cast<long long>(std::llround(
-            static_cast<long double>(cy) - radius_ld * std::sin(angle)));
+            static_cast<long double>(cy) - radius_ld * std::sin(detail::image_to_radian(angle))));
         detail::plot_clipped(img, x, y, color);
     };
 
@@ -2695,7 +2711,7 @@ auto draw_arc(
     }
 
     const auto estimated_steps = std::ceil(
-        std::abs(sweep_ld) * std::max(radius_ld, 1.0L) * 2.0L);
+        std::abs(sweep_ld) * static_cast<long double>(detail::image_tau) * std::max(radius_ld, 1.0L) * 2.0L);
     const auto steps = estimated_steps < 1.0L
         ? std::size_t{1}
         : static_cast<std::size_t>(estimated_steps);
@@ -2747,14 +2763,14 @@ auto draw_arc_aa(
         detail::draw_aa_disc(img, cx, cy, width * 0.5f, color);
         return {};
     }
-    if (std::abs(sweep_angle) >= detail::image_tau) {
+    if (std::abs(sweep_angle) >= detail::image_turn) {
         return draw_circle_aa(img, cx, cy, radius, width, color);
     }
 
     const auto endpoint = [cx, cy, radius](float angle) noexcept -> pointf {
         return pointf{
-            cx + radius * std::cos(angle),
-            cy - radius * std::sin(angle),
+            cx + radius * std::cos(detail::image_to_radian(angle)),
+            cy - radius * std::sin(detail::image_to_radian(angle)),
         };
     };
     const auto first = endpoint(start_angle);
@@ -2793,7 +2809,7 @@ auto draw_arc_aa(
             auto coverage = 0.0f;
 
             if (radial_distance > 0.0f) {
-                const auto angle = std::atan2(-dy, dx);
+                const auto angle = detail::image_from_radian(std::atan2(-dy, dx));
                 if (detail::angle_in_sweep(angle, start_angle, sweep_angle)) {
                     coverage = half_width + 0.5f - std::abs(radial_distance - radius);
                 }
@@ -2901,7 +2917,7 @@ auto draw_ellipse_arc(
         detail::plot_clipped(img, cx, cy, color);
         return {};
     }
-    if (std::abs(sweep_angle) >= detail::image_tau) {
+    if (std::abs(sweep_angle) >= detail::image_turn) {
         return draw_ellipse(img, cx, cy, radius_x, radius_y, color);
     }
 
@@ -2911,9 +2927,9 @@ auto draw_ellipse_arc(
     const auto sweep_ld = static_cast<long double>(sweep_angle);
     const auto plot_at = [&img, cx, cy, rx_ld, ry_ld, color](long double angle) noexcept -> void {
         const auto x = static_cast<long long>(std::llround(
-            static_cast<long double>(cx) + rx_ld * std::cos(angle)));
+            static_cast<long double>(cx) + rx_ld * std::cos(detail::image_to_radian(angle))));
         const auto y = static_cast<long long>(std::llround(
-            static_cast<long double>(cy) - ry_ld * std::sin(angle)));
+            static_cast<long double>(cy) - ry_ld * std::sin(detail::image_to_radian(angle))));
         detail::plot_clipped(img, x, y, color);
     };
 
@@ -2924,7 +2940,7 @@ auto draw_ellipse_arc(
 
     const auto max_radius = std::max(rx_ld, ry_ld);
     const auto estimated_steps = std::ceil(
-        std::abs(sweep_ld) * std::max(max_radius, 1.0L) * 2.0L);
+        std::abs(sweep_ld) * static_cast<long double>(detail::image_tau) * std::max(max_radius, 1.0L) * 2.0L);
     const auto steps = estimated_steps < 1.0L
         ? std::size_t{1}
         : static_cast<std::size_t>(estimated_steps);
@@ -2987,14 +3003,14 @@ auto draw_ellipse_arc_aa(
         detail::draw_aa_disc(img, cx, cy, width * 0.5f, color);
         return {};
     }
-    if (std::abs(sweep_angle) >= detail::image_tau) {
+    if (std::abs(sweep_angle) >= detail::image_turn) {
         return draw_ellipse_aa(img, cx, cy, radius_x, radius_y, width, color);
     }
 
     const auto endpoint = [cx, cy, radius_x, radius_y](float angle) noexcept -> pointf {
         return pointf{
-            cx + radius_x * std::cos(angle),
-            cy - radius_y * std::sin(angle),
+            cx + radius_x * std::cos(detail::image_to_radian(angle)),
+            cy - radius_y * std::sin(detail::image_to_radian(angle)),
         };
     };
     const auto first = endpoint(start_angle);
@@ -3007,7 +3023,7 @@ auto draw_ellipse_arc_aa(
     if (radius_x == 0.0f || radius_y == 0.0f) {
         const auto max_radius = std::max(radius_x, radius_y);
         const auto estimated_steps = std::ceil(
-            std::abs(sweep_angle) * std::max(max_radius, 1.0f) * 2.0f);
+            std::abs(sweep_angle) * detail::image_tau * std::max(max_radius, 1.0f) * 2.0f);
         const auto steps = estimated_steps < 1.0f
             ? std::size_t{1}
             : static_cast<std::size_t>(estimated_steps);

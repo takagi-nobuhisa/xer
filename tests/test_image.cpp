@@ -990,7 +990,7 @@ auto test_fill_ellipse_aa() -> bool
 
 auto test_draw_arc() -> bool
 {
-    constexpr auto half_pi = 1.57079632679f;
+    constexpr auto quarter_turn = 0.25f;
     xer::image::canvas<13, 13> img;
     img.clear();
 
@@ -999,7 +999,7 @@ auto test_draw_arc() -> bool
         xer::image::point{6, 6},
         4,
         0.0f,
-        half_pi,
+        quarter_turn,
         xer::image::pixel(0u, 0xffu, 0u));
     if (!result.has_value()) {
         return false;
@@ -1012,7 +1012,7 @@ auto test_draw_arc() -> bool
 
 auto test_draw_arc_degenerate_sweep_and_full_turn() -> bool
 {
-    constexpr auto tau = 6.28318530718f;
+    constexpr auto full_turn_angle = 1.0f;
     xer::image::canvas<13, 13> img;
     img.clear();
 
@@ -1039,7 +1039,7 @@ auto test_draw_arc_degenerate_sweep_and_full_turn() -> bool
         6,
         4,
         0.0f,
-        tau,
+        full_turn_angle,
         xer::image::pixel(0u, 0u, 0xffu));
     return full_turn.has_value() &&
            img.get_pixel(10, 6).argb == 0xff0000ffu &&
@@ -1050,7 +1050,7 @@ auto test_draw_arc_degenerate_sweep_and_full_turn() -> bool
 
 auto test_draw_arc_aa() -> bool
 {
-    constexpr auto half_pi = 1.57079632679f;
+    constexpr auto quarter_turn = 0.25f;
     xer::image::canvas<13, 13> img;
     img.clear();
 
@@ -1059,7 +1059,7 @@ auto test_draw_arc_aa() -> bool
         xer::image::pointf{6.0f, 6.0f},
         4.0f,
         0.0f,
-        half_pi,
+        quarter_turn,
         2.0f,
         xer::image::pixel(0u, 0u, 0xffu));
     if (!result.has_value()) {
@@ -1073,7 +1073,7 @@ auto test_draw_arc_aa() -> bool
 
 auto test_draw_ellipse_arc() -> bool
 {
-    constexpr auto half_pi = 1.57079632679f;
+    constexpr auto quarter_turn = 0.25f;
     xer::image::canvas<15, 13> img;
     img.clear();
 
@@ -1083,7 +1083,7 @@ auto test_draw_ellipse_arc() -> bool
         5,
         3,
         0.0f,
-        half_pi,
+        quarter_turn,
         xer::image::pixel(0xffu, 0xffu, 0u));
     if (!result.has_value()) {
         return false;
@@ -1096,7 +1096,7 @@ auto test_draw_ellipse_arc() -> bool
 
 auto test_draw_ellipse_arc_aa() -> bool
 {
-    constexpr auto half_pi = 1.57079632679f;
+    constexpr auto quarter_turn = 0.25f;
     xer::image::canvas<15, 13> img;
     img.clear();
 
@@ -1106,7 +1106,7 @@ auto test_draw_ellipse_arc_aa() -> bool
         5.0f,
         3.0f,
         0.0f,
-        half_pi,
+        quarter_turn,
         2.0f,
         xer::image::pixel(0xffu, 0u, 0xffu));
     if (!result.has_value()) {
