@@ -59,6 +59,7 @@
 - `xer/stdfloat.h`
 - `xer/arithmetic.h`
 - `xer/math.h`
+- `xer/statistics.h`
 - `xer/complex.h`
 - `xer/cyclic.h`
 - `xer/interval.h`
@@ -108,9 +109,9 @@ At least at the current stage, xer does not reimplement the following headers:
 
 ## Mathematical Header Scope
 
-`xer/math.h` and `xer/complex.h` provide lightweight mathematical helpers whose behavior fits xer's explicit error model.
+`xer/math.h`, `xer/statistics.h`, and `xer/complex.h` provide lightweight mathematical helpers whose behavior fits xer's explicit error model.
 
-At this stage, the scope is intentionally practical and limited. The real-number helpers are provided through `xer/math.h`, while complex-number helpers are provided through `xer/complex.h` so that users who need only real-number calculations do not have to include complex-number facilities.
+At this stage, the scope is intentionally practical and limited. The real-number helpers are provided through `xer/math.h`, statistical helpers are provided through `xer/statistics.h`, and complex-number helpers are provided through `xer/complex.h` so that users who need only real-number calculations do not have to include complex-number facilities.
 
 ---
 
