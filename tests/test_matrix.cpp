@@ -1,5 +1,6 @@
 ﻿#include <xer/arithmetic.h>
 #include <xer/assert.h>
+#include <xer/cyclic.h>
 #include <xer/error.h>
 #include <xer/matrix.h>
 
@@ -119,7 +120,7 @@ auto test_2d_translate_scale_and_composition() -> void
 auto test_2d_rotation() -> void
 {
     const xer::vector3<double> point{1.0, 0.0, 1.0};
-    const auto rotated = xer::rotate2(xer::pi_v<double> / 2.0) * point;
+    const auto rotated = xer::rotate2(xer::cyclic<double>{0.25}) * point;
 
     assert_near(rotated(0, 0), 0.0);
     assert_near(rotated(1, 0), 1.0);
@@ -131,7 +132,7 @@ auto test_inverse_3x3() -> void
     const xer::vector3<double> point{4.0, 5.0, 1.0};
     const auto transform =
         xer::translate2(10.0, 20.0) *
-        xer::rotate2(xer::pi_v<double> / 2.0) *
+        xer::rotate2(xer::cyclic<double>{0.25}) *
         xer::scale2(2.0, 3.0);
 
     const auto transformed = transform * point;
@@ -172,7 +173,7 @@ auto test_3d_translate_scale_and_rotation() -> void
     xer_assert_eq(scaled(3, 0), 1.0);
 
     const xer::vector4<double> x_axis{1.0, 0.0, 0.0, 1.0};
-    const auto rotated = xer::rotate_z(xer::pi_v<double> / 2.0) * x_axis;
+    const auto rotated = xer::rotate_z(xer::cyclic<double>{0.25}) * x_axis;
 
     assert_near(rotated(0, 0), 0.0);
     assert_near(rotated(1, 0), 1.0);
@@ -185,7 +186,7 @@ auto test_inverse_4x4() -> void
     const xer::vector4<double> point{4.0, 5.0, 6.0, 1.0};
     const auto transform =
         xer::translate3(10.0, 20.0, 30.0) *
-        xer::rotate_z(xer::pi_v<double> / 2.0) *
+        xer::rotate_z(xer::cyclic<double>{0.25}) *
         xer::scale3(2.0, 3.0, 4.0);
 
     const auto transformed = transform * point;

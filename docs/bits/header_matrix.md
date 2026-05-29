@@ -246,12 +246,12 @@ template <std::floating_point T>
 auto scale2(T sx, T sy) noexcept -> matrix3<T>;
 
 template <std::floating_point T>
-auto rotate2(T radian) noexcept -> matrix3<T>;
+auto rotate2(cyclic<T> theta) noexcept -> matrix3<T>;
 ```
 
 ### Rotation Direction
 
-`rotate2` uses radians and follows the ordinary mathematical convention: positive angles rotate counterclockwise.
+`rotate2` takes a cyclic τrad angle and follows the ordinary mathematical convention: positive angles rotate counterclockwise.
 
 ---
 
@@ -267,21 +267,21 @@ template <std::floating_point T>
 auto scale3(T sx, T sy, T sz) noexcept -> matrix4<T>;
 
 template <std::floating_point T>
-auto rotate_x(T radian) noexcept -> matrix4<T>;
+auto rotate_x(cyclic<T> theta) noexcept -> matrix4<T>;
 
 template <std::floating_point T>
-auto rotate_y(T radian) noexcept -> matrix4<T>;
+auto rotate_y(cyclic<T> theta) noexcept -> matrix4<T>;
 
 template <std::floating_point T>
-auto rotate_z(T radian) noexcept -> matrix4<T>;
+auto rotate_z(cyclic<T> theta) noexcept -> matrix4<T>;
 ```
 
 ### Rotation Units
 
-The rotation helpers take raw radian values.
+The rotation helpers take `cyclic<T>` angles in τrad units.
+A value of `0.25` represents a quarter turn, `0.5` represents a half turn, and `1.0` represents one full turn.
 
-Angle quantities, `cyclic`, and other higher-level angle abstractions are not mixed into the first matrix API.
-Callers may convert into radians before calling these functions when needed.
+This matches the angle convention used by the rest of the xer math APIs.
 
 ---
 
@@ -338,7 +338,7 @@ When this header is used in generated documentation, it is usually enough to exp
 * that column vectors are represented as `matrix<T, N, 1>` aliases
 * that the initial focus is 2D and 3D affine transforms
 * that inverse calculation is provided for 3x3 and 4x4 matrices
-* that rotation helpers take radians
+* that rotation helpers take `cyclic<T>` angles in τrad units
 
 Detailed numerical behavior and future linear algebra expansion should be documented separately when those features are added.
 

@@ -17,6 +17,7 @@
 #include <limits>
 #include <utility>
 
+#include <xer/bits/cyclic.h>
 #include <xer/bits/math_constants.h>
 #include <xer/error.h>
 
@@ -311,11 +312,12 @@ template<std::floating_point T>
 }
 
 /**
- * @brief Creates a 2D counterclockwise rotation matrix for radians.
+ * @brief Creates a 2D counterclockwise rotation matrix for a τrad angle.
  */
 template<std::floating_point T>
-[[nodiscard]] auto rotate2(T radian) noexcept -> matrix3<T>
+[[nodiscard]] auto rotate2(cyclic<T> theta) noexcept -> matrix3<T>
 {
+    const auto radian = to_rad(theta);
     const auto c = std::cos(radian);
     const auto s = std::sin(radian);
 
@@ -352,11 +354,12 @@ template<std::floating_point T>
 }
 
 /**
- * @brief Creates a 3D rotation matrix around the X axis for radians.
+ * @brief Creates a 3D rotation matrix around the X axis for a τrad angle.
  */
 template<std::floating_point T>
-[[nodiscard]] auto rotate_x(T radian) noexcept -> matrix4<T>
+[[nodiscard]] auto rotate_x(cyclic<T> theta) noexcept -> matrix4<T>
 {
+    const auto radian = to_rad(theta);
     const auto c = std::cos(radian);
     const auto s = std::sin(radian);
 
@@ -368,11 +371,12 @@ template<std::floating_point T>
 }
 
 /**
- * @brief Creates a 3D rotation matrix around the Y axis for radians.
+ * @brief Creates a 3D rotation matrix around the Y axis for a τrad angle.
  */
 template<std::floating_point T>
-[[nodiscard]] auto rotate_y(T radian) noexcept -> matrix4<T>
+[[nodiscard]] auto rotate_y(cyclic<T> theta) noexcept -> matrix4<T>
 {
+    const auto radian = to_rad(theta);
     const auto c = std::cos(radian);
     const auto s = std::sin(radian);
 
@@ -384,11 +388,12 @@ template<std::floating_point T>
 }
 
 /**
- * @brief Creates a 3D rotation matrix around the Z axis for radians.
+ * @brief Creates a 3D rotation matrix around the Z axis for a τrad angle.
  */
 template<std::floating_point T>
-[[nodiscard]] auto rotate_z(T radian) noexcept -> matrix4<T>
+[[nodiscard]] auto rotate_z(cyclic<T> theta) noexcept -> matrix4<T>
 {
+    const auto radian = to_rad(theta);
     const auto c = std::cos(radian);
     const auto s = std::sin(radian);
 
