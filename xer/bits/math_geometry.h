@@ -17,6 +17,7 @@
 #include <utility>
 
 #include <xer/bits/error.h>
+#include <xer/cyclic.h>
 
 namespace xer {
 
@@ -318,19 +319,19 @@ template<class T, std::size_t N>
         cosine = static_cast<result_type>(1);
     }
 
-    return std::acos(cosine);
+    return std::acos(cosine) / tau_v<result_type>;
 }
 
-template<class T, class Angle>
-    requires (std::is_arithmetic_v<T> && std::is_arithmetic_v<Angle>)
-[[nodiscard]] auto rotate(vec<T, 2> v, Angle theta) noexcept
+template<class T, std::floating_point Angle>
+    requires std::is_arithmetic_v<T>
+[[nodiscard]] auto rotate(vec<T, 2> v, cyclic<Angle> theta) noexcept
     -> vec<std::common_type_t<T, Angle, double>, 2>
 {
     using result_type = std::common_type_t<T, Angle, double>;
 
     const auto x = static_cast<result_type>(v.x);
     const auto y = static_cast<result_type>(v.y);
-    const auto t = static_cast<result_type>(theta);
+    const auto t = static_cast<result_type>(to_radian(theta));
     const auto c = std::cos(t);
     const auto s = std::sin(t);
 
@@ -357,7 +358,7 @@ struct polar;
 template<class T>
 struct polar<T, 2> {
     T r;
-    T theta;
+    cyclic<T> theta;
 };
 
 template<std::floating_point T>
@@ -365,16 +366,18 @@ template<std::floating_point T>
 {
     return polar<T, 2>{
         std::hypot(v.x, v.y),
-        std::atan2(v.y, v.x),
+        from_radian(std::atan2(v.y, v.x)),
     };
 }
 
 template<std::floating_point T>
 [[nodiscard]] auto to_cartesian(polar<T, 2> p) noexcept -> vec<T, 2>
 {
+    const auto theta = to_radian(p.theta);
+
     return vec<T, 2>{
-        p.r * std::cos(p.theta),
-        p.r * std::sin(p.theta),
+        p.r * std::cos(theta),
+        p.r * std::sin(theta),
     };
 }
 

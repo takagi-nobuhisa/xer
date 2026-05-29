@@ -14380,11 +14380,11 @@ Currently, only `polar<T, 2>` is provided:
 template<class T>
 struct polar<T, 2> {
     T r;
-    T theta;
+    cyclic<T> theta;
 };
 ```
 
-`theta` is expressed in radians.
+`theta` is a cyclic angle expressed in τrad, where `1` means one full turn.
 
 ---
 
@@ -14401,7 +14401,7 @@ auto to_polar(vec<T, 2> v) noexcept -> polar<T, 2>;
 
 Converts a two-dimensional Cartesian vector to polar coordinates.
 
-The returned radius is computed with `std::hypot(v.x, v.y)`. The returned angle is computed with `std::atan2(v.y, v.x)` and is expressed in radians.
+The returned radius is computed with `std::hypot(v.x, v.y)`. The returned angle is computed from `std::atan2(v.y, v.x)` and converted to a cyclic τrad value.
 
 ### `to_cartesian`
 
@@ -14415,8 +14415,8 @@ Converts two-dimensional polar coordinates to a Cartesian vector.
 The coordinate components are computed as:
 
 ```text
-x = r * cos(theta)
-y = r * sin(theta)
+x = r * cos(theta * τ)
+y = r * sin(theta * τ)
 ```
 
 
@@ -14483,25 +14483,25 @@ auto angle(vec<T, N> a, vec<T, N> b) noexcept
     -> xer::result<std::common_type_t<T, double>>;
 ```
 
-Computes the unsigned angle between two vectors in radians.
+Computes the unsigned angle between two vectors in τrad.
 
 `T` must be an arithmetic type. `N` must be one of the supported `vec` dimensions: `2`, `3`, or `4`.
 
-The return type is `std::common_type_t<T, double>`, so integer vectors produce a floating-point angle.
+The return type is `std::common_type_t<T, double>`, so integer vectors produce a floating-point angle. The returned value is not `cyclic<T>` because this function returns an angle magnitude. It is in the range `0` to `0.5`, where `0.25` is a right angle and `0.5` is a straight angle.
 
 If either vector is the zero vector, the function returns `error_t::invalid_argument`.
 
 ### `rotate`
 
 ```cpp
-template<class T, class Angle>
-auto rotate(vec<T, 2> v, Angle theta) noexcept
+template<class T, std::floating_point Angle>
+auto rotate(vec<T, 2> v, cyclic<Angle> theta) noexcept
     -> vec<std::common_type_t<T, Angle, double>, 2>;
 ```
 
 Rotates a two-dimensional vector around the origin.
 
-`T` and `Angle` must be arithmetic types. `theta` is expressed in radians.
+`T` must be an arithmetic type. `theta` is a cyclic angle expressed in τrad, where `1` means one full turn.
 
 The return type uses `std::common_type_t<T, Angle, double>` as its component type, so integer vectors can be rotated without losing fractional components.
 

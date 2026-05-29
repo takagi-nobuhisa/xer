@@ -10,7 +10,7 @@
 // length: 5
 // distance: 5
 // normalize: 0.6 0.8
-// angle: 1.5708
+// angle: 0.25
 // rotate: 0 1
 // cross: 0 0 1
 // quadratic: 2 3
@@ -72,7 +72,7 @@ auto main() -> int
     }
     std::cout << "angle: " << *angle << '\n';
 
-    const auto rotated = xer::rotate(xer::vec<int>{1, 0}, *angle);
+    const auto rotated = xer::rotate(xer::vec<int>{1, 0}, xer::cyclic<double>(*angle));
     std::cout << "rotate: " << std::round(rotated.x) << ' ' << std::round(rotated.y) << '\n';
 
     const auto cross = xer::cross(xer::vec<int, 3>{1, 0, 0}, xer::vec<int, 3>{0, 1, 0});

@@ -68,12 +68,12 @@ void test_to_polar()
     const auto p = xer::to_polar(xer::vec<double>{3.0, 4.0});
 
     xer_assert(xer::detail::equation_near(p.r, 5.0));
-    xer_assert(xer::detail::equation_near(p.theta, std::atan2(4.0, 3.0)));
+    xer_assert(p.theta.eq(xer::from_radian(std::atan2(4.0, 3.0))));
 }
 
 void test_to_cartesian()
 {
-    const auto v = xer::to_cartesian(xer::polar<double>{5.0, std::atan2(4.0, 3.0)});
+    const auto v = xer::to_cartesian(xer::polar<double>{5.0, xer::from_radian(std::atan2(4.0, 3.0))});
 
     xer_assert(xer::detail::equation_near(v.x, 3.0));
     xer_assert(xer::detail::equation_near(v.y, 4.0));
@@ -145,8 +145,8 @@ void test_angle()
 
     xer_assert(right_angle.has_value());
     xer_assert(straight_angle.has_value());
-    xer_assert(xer::detail::equation_near(*right_angle, std::acos(-1.0) / 2.0));
-    xer_assert(xer::detail::equation_near(*straight_angle, std::acos(-1.0)));
+    xer_assert(xer::detail::equation_near(*right_angle, 0.25));
+    xer_assert(xer::detail::equation_near(*straight_angle, 0.5));
 }
 
 void test_angle_zero_vector()
@@ -159,7 +159,7 @@ void test_angle_zero_vector()
 
 void test_rotate()
 {
-    const auto quarter = std::acos(-1.0) / 2.0;
+    const auto quarter = xer::cyclic<double>(0.25);
     const auto v = xer::rotate(xer::vec<int>{1, 0}, quarter);
     const auto reverse = xer::rotate(xer::vec<double>{0.0, 1.0}, -quarter);
 
