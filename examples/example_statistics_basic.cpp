@@ -4,6 +4,8 @@
 //
 // Expected output:
 // mean: 5
+// sum: 40
+// product: 201600
 // median: 4.5
 // quantile 25%: 4
 // percentile 75: 5.5
@@ -13,6 +15,8 @@
 // sample_stddev: 2.13809
 // modes: 4
 // tolerant modes: 1.02
+// geometric_mean: 4
+// harmonic_mean: 2.28571
 
 #include <iostream>
 #include <vector>
@@ -53,8 +57,11 @@ auto main() -> int
 {
     const std::vector<double> values{2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0};
     const std::vector<double> near_values{1.00, 1.02, 1.04, 2.0, 2.04};
+    const std::vector<double> mean_values{1.0, 4.0, 16.0};
 
     if (!print_result("mean", xer::mean(values)) ||
+        !print_result("sum", xer::sum(values)) ||
+        !print_result("product", xer::product(values)) ||
         !print_result("median", xer::median(values)) ||
         !print_result("quantile 25%", xer::quantile(values, 0.25)) ||
         !print_result("percentile 75", xer::percentile(values, 75.0)) ||
@@ -63,7 +70,9 @@ auto main() -> int
         !print_result("sample_variance", xer::sample_variance(values)) ||
         !print_result("sample_stddev", xer::sample_stddev(values)) ||
         !print_modes("modes", xer::mode(values)) ||
-        !print_modes("tolerant modes", xer::mode(near_values, 0.05))) {
+        !print_modes("tolerant modes", xer::mode(near_values, 0.05)) ||
+        !print_result("geometric_mean", xer::geometric_mean(mean_values)) ||
+        !print_result("harmonic_mean", xer::harmonic_mean(mean_values))) {
         return 1;
     }
 

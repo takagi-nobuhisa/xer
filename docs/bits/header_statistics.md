@@ -6,7 +6,11 @@
 
 The initial scope is intentionally limited to common descriptive statistics:
 
+- sum
+- product
 - arithmetic mean
+- geometric mean
+- harmonic mean
 - median
 - quantile
 - percentile
@@ -29,6 +33,30 @@ auto mean(Range&& range) -> xer::result<double>;
 
 template<class T>
 auto mean(std::initializer_list<T> values) -> xer::result<double>;
+
+template<class Range>
+auto sum(Range&& range) -> xer::result<double>;
+
+template<class T>
+auto sum(std::initializer_list<T> values) -> xer::result<double>;
+
+template<class Range>
+auto product(Range&& range) -> xer::result<double>;
+
+template<class T>
+auto product(std::initializer_list<T> values) -> xer::result<double>;
+
+template<class Range>
+auto geometric_mean(Range&& range) -> xer::result<double>;
+
+template<class T>
+auto geometric_mean(std::initializer_list<T> values) -> xer::result<double>;
+
+template<class Range>
+auto harmonic_mean(Range&& range) -> xer::result<double>;
+
+template<class T>
+auto harmonic_mean(std::initializer_list<T> values) -> xer::result<double>;
 
 template<class Range>
 auto median(Range&& range) -> xer::result<double>;
@@ -96,6 +124,70 @@ auto mean(Range&& range) -> xer::result<double>;
 ```
 
 Computes the arithmetic mean of the input values.
+
+The range must contain at least one value.
+If the range is empty, the function returns `error_t::invalid_argument`.
+
+---
+
+
+## Sum
+
+```cpp
+template<class Range>
+auto sum(Range&& range) -> xer::result<double>;
+```
+
+Computes the sum of the input values.
+
+The range must contain at least one value.
+If the range is empty, the function returns `error_t::invalid_argument`.
+
+---
+
+## Product
+
+```cpp
+template<class Range>
+auto product(Range&& range) -> xer::result<double>;
+```
+
+Computes the product of the input values.
+
+The range must contain at least one value.
+If the range is empty, the function returns `error_t::invalid_argument`.
+
+---
+
+## Geometric Mean
+
+```cpp
+template<class Range>
+auto geometric_mean(Range&& range) -> xer::result<double>;
+```
+
+Computes the geometric mean of the input values.
+
+All input values must be finite and non-negative.
+If any input value is zero, the result is zero.
+If any input value is negative, NaN, or infinity, the function returns `error_t::invalid_argument`.
+
+The range must contain at least one value.
+If the range is empty, the function returns `error_t::invalid_argument`.
+
+---
+
+## Harmonic Mean
+
+```cpp
+template<class Range>
+auto harmonic_mean(Range&& range) -> xer::result<double>;
+```
+
+Computes the harmonic mean of the input values.
+
+All input values must be finite and positive.
+If any input value is zero, negative, NaN, or infinity, the function returns `error_t::invalid_argument`.
 
 The range must contain at least one value.
 If the range is empty, the function returns `error_t::invalid_argument`.
@@ -286,6 +378,8 @@ The statistical functions report invalid inputs through `xer::result`.
 | empty range | `error_t::invalid_argument` |
 | fewer than two values for sample variance / sample standard deviation | `error_t::invalid_argument` |
 | NaN or infinity in the input | `error_t::invalid_argument` |
+| negative input for `geometric_mean` | `error_t::invalid_argument` |
+| zero or negative input for `harmonic_mean` | `error_t::invalid_argument` |
 | `quantile` fraction outside `[0.0, 1.0]`, NaN, or infinity | `error_t::invalid_argument` |
 | `percentile` value outside `[0.0, 100.0]`, NaN, or infinity | `error_t::invalid_argument` |
 | negative, NaN, or infinite `mode` tolerance | `error_t::invalid_argument` |
@@ -295,8 +389,11 @@ The statistical functions report invalid inputs through `xer::result`.
 
 ## Numeric Behavior
 
-`mean`, `variance`, `sample_variance`, `stddev`, and `sample_stddev` use a one-pass online update internally.
+`sum`, `product`, `mean`, `geometric_mean`, `harmonic_mean`, `variance`, `sample_variance`, `stddev`, and `sample_stddev` use one-pass accumulation internally.
 This allows them to work with input ranges and avoids requiring a second traversal of the input.
+
+`geometric_mean` uses logarithmic accumulation for positive values.
+A zero input value makes the result zero without taking `log(0)`.
 
 `median`, `quantile`, `percentile`, and `mode` copy the input values because they need sorted data.
 They still accept input ranges, but they require memory proportional to the number of input values.
@@ -327,6 +424,8 @@ auto main() -> int
     const std::vector<double> values{2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0};
 
     const auto mean = xer::mean(values);
+    const auto sum = xer::sum(values);
+    const auto product = xer::product(values);
     const auto median = xer::median(values);
     const auto quantile = xer::quantile(values, 0.25);
     const auto percentile = xer::percentile(values, 75.0);
@@ -334,12 +433,14 @@ auto main() -> int
     const auto stddev = xer::stddev(values);
     const auto modes = xer::mode(values);
 
-    if (!mean || !median || !quantile || !percentile || !variance ||
-        !stddev || !modes) {
+    if (!mean || !sum || !product || !median || !quantile || !percentile ||
+        !variance || !stddev || !modes) {
         return 1;
     }
 
     std::cout << *mean << '\n';
+    std::cout << *sum << '\n';
+    std::cout << *product << '\n';
     std::cout << *median << '\n';
     std::cout << *quantile << '\n';
     std::cout << *percentile << '\n';

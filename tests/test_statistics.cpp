@@ -32,6 +32,91 @@ void test_mean_with_initializer_list()
     assert_close(*value, 2.0);
 }
 
+
+void test_sum_with_vector()
+{
+    const std::vector<int> values{1, 2, 3, 4};
+    const auto value = xer::sum(values);
+
+    xer_assert(value.has_value());
+    assert_close(*value, 10.0);
+}
+
+void test_sum_with_initializer_list()
+{
+    const auto value = xer::sum({1.5, 2.5, 3.0});
+
+    xer_assert(value.has_value());
+    assert_close(*value, 7.0);
+}
+
+void test_product_with_vector()
+{
+    const std::vector<int> values{2, 3, 4};
+    const auto value = xer::product(values);
+
+    xer_assert(value.has_value());
+    assert_close(*value, 24.0);
+}
+
+void test_product_with_zero()
+{
+    const auto value = xer::product({2.0, 0.0, 4.0});
+
+    xer_assert(value.has_value());
+    assert_close(*value, 0.0);
+}
+
+void test_geometric_mean_basic()
+{
+    const std::vector<double> values{1.0, 4.0, 16.0};
+    const auto value = xer::geometric_mean(values);
+
+    xer_assert(value.has_value());
+    assert_close(*value, 4.0);
+}
+
+void test_geometric_mean_with_zero()
+{
+    const auto value = xer::geometric_mean({1.0, 0.0, 16.0});
+
+    xer_assert(value.has_value());
+    assert_close(*value, 0.0);
+}
+
+void test_geometric_mean_with_negative_value()
+{
+    const auto value = xer::geometric_mean({1.0, -4.0, 16.0});
+
+    xer_assert_not(value.has_value());
+    xer_assert(value.error().code == xer::error_t::invalid_argument);
+}
+
+void test_harmonic_mean_basic()
+{
+    const std::vector<double> values{1.0, 2.0, 4.0};
+    const auto value = xer::harmonic_mean(values);
+
+    xer_assert(value.has_value());
+    assert_close(*value, 12.0 / 7.0);
+}
+
+void test_harmonic_mean_with_zero()
+{
+    const auto value = xer::harmonic_mean({1.0, 0.0, 4.0});
+
+    xer_assert_not(value.has_value());
+    xer_assert(value.error().code == xer::error_t::invalid_argument);
+}
+
+void test_harmonic_mean_with_negative_value()
+{
+    const auto value = xer::harmonic_mean({1.0, -2.0, 4.0});
+
+    xer_assert_not(value.has_value());
+    xer_assert(value.error().code == xer::error_t::invalid_argument);
+}
+
 void test_median_with_odd_count()
 {
     const std::vector<int> values{5, 1, 9, 3, 7};
@@ -256,17 +341,29 @@ void test_empty_range()
     const auto quantile = xer::quantile(values, 0.5);
     const auto percentile = xer::percentile(values, 50.0);
     const auto modes = xer::mode(values);
+    const auto sum = xer::sum(values);
+    const auto product = xer::product(values);
+    const auto geometric = xer::geometric_mean(values);
+    const auto harmonic = xer::harmonic_mean(values);
 
     xer_assert_not(mean.has_value());
     xer_assert_not(median.has_value());
     xer_assert_not(quantile.has_value());
     xer_assert_not(percentile.has_value());
     xer_assert_not(modes.has_value());
+    xer_assert_not(sum.has_value());
+    xer_assert_not(product.has_value());
+    xer_assert_not(geometric.has_value());
+    xer_assert_not(harmonic.has_value());
     xer_assert(mean.error().code == xer::error_t::invalid_argument);
     xer_assert(median.error().code == xer::error_t::invalid_argument);
     xer_assert(quantile.error().code == xer::error_t::invalid_argument);
     xer_assert(percentile.error().code == xer::error_t::invalid_argument);
     xer_assert(modes.error().code == xer::error_t::invalid_argument);
+    xer_assert(sum.error().code == xer::error_t::invalid_argument);
+    xer_assert(product.error().code == xer::error_t::invalid_argument);
+    xer_assert(geometric.error().code == xer::error_t::invalid_argument);
+    xer_assert(harmonic.error().code == xer::error_t::invalid_argument);
 }
 
 void test_invalid_floating_value()
@@ -277,17 +374,29 @@ void test_invalid_floating_value()
     const auto q = xer::quantile(values, 0.5);
     const auto p = xer::percentile(values, 50.0);
     const auto modes = xer::mode(values);
+    const auto sum = xer::sum(values);
+    const auto product = xer::product(values);
+    const auto geometric = xer::geometric_mean(values);
+    const auto harmonic = xer::harmonic_mean(values);
 
     xer_assert_not(value.has_value());
     xer_assert_not(med.has_value());
     xer_assert_not(q.has_value());
     xer_assert_not(p.has_value());
     xer_assert_not(modes.has_value());
+    xer_assert_not(sum.has_value());
+    xer_assert_not(product.has_value());
+    xer_assert_not(geometric.has_value());
+    xer_assert_not(harmonic.has_value());
     xer_assert(value.error().code == xer::error_t::invalid_argument);
     xer_assert(med.error().code == xer::error_t::invalid_argument);
     xer_assert(q.error().code == xer::error_t::invalid_argument);
     xer_assert(p.error().code == xer::error_t::invalid_argument);
     xer_assert(modes.error().code == xer::error_t::invalid_argument);
+    xer_assert(sum.error().code == xer::error_t::invalid_argument);
+    xer_assert(product.error().code == xer::error_t::invalid_argument);
+    xer_assert(geometric.error().code == xer::error_t::invalid_argument);
+    xer_assert(harmonic.error().code == xer::error_t::invalid_argument);
 }
 
 void test_input_range()
@@ -330,12 +439,62 @@ void test_percentile_with_input_range()
     assert_close(*value, 2.5);
 }
 
+void test_sum_with_input_range()
+{
+    std::istringstream input("1 2 3 4");
+    auto values = std::views::istream<int>(input);
+    const auto value = xer::sum(values);
+
+    xer_assert(value.has_value());
+    assert_close(*value, 10.0);
+}
+
+void test_product_with_input_range()
+{
+    std::istringstream input("2 3 4");
+    auto values = std::views::istream<int>(input);
+    const auto value = xer::product(values);
+
+    xer_assert(value.has_value());
+    assert_close(*value, 24.0);
+}
+
+void test_geometric_mean_with_input_range()
+{
+    std::istringstream input("1 4 16");
+    auto values = std::views::istream<int>(input);
+    const auto value = xer::geometric_mean(values);
+
+    xer_assert(value.has_value());
+    assert_close(*value, 4.0);
+}
+
+void test_harmonic_mean_with_input_range()
+{
+    std::istringstream input("1 2 4");
+    auto values = std::views::istream<int>(input);
+    const auto value = xer::harmonic_mean(values);
+
+    xer_assert(value.has_value());
+    assert_close(*value, 12.0 / 7.0);
+}
+
 } // namespace
 
 auto main() -> int
 {
     test_mean_with_vector();
     test_mean_with_initializer_list();
+    test_sum_with_vector();
+    test_sum_with_initializer_list();
+    test_product_with_vector();
+    test_product_with_zero();
+    test_geometric_mean_basic();
+    test_geometric_mean_with_zero();
+    test_geometric_mean_with_negative_value();
+    test_harmonic_mean_basic();
+    test_harmonic_mean_with_zero();
+    test_harmonic_mean_with_negative_value();
     test_median_with_odd_count();
     test_median_with_even_count();
     test_quantile_basic_values();
@@ -359,5 +518,9 @@ auto main() -> int
     test_median_with_input_range();
     test_quantile_with_input_range();
     test_percentile_with_input_range();
+    test_sum_with_input_range();
+    test_product_with_input_range();
+    test_geometric_mean_with_input_range();
+    test_harmonic_mean_with_input_range();
     return 0;
 }

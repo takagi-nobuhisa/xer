@@ -35,6 +35,22 @@ struct statistics_mode_group {
     long double sum{};
 };
 
+struct statistics_product_summary {
+    std::size_t count{};
+    long double product{1.0L};
+};
+
+struct statistics_geometric_summary {
+    std::size_t count{};
+    bool has_zero{};
+    long double log_sum{};
+};
+
+struct statistics_harmonic_summary {
+    std::size_t count{};
+    long double reciprocal_sum{};
+};
+
 [[nodiscard]] inline auto statistics_is_finite(long double value) noexcept -> bool
 {
     return std::isfinite(value);
@@ -57,6 +73,145 @@ concept statistics_range =
     std::ranges::input_range<Range> &&
     non_bool_arithmetic<
         std::remove_cvref_t<std::ranges::range_reference_t<Range>>>;
+
+
+template<statistics_range Range>
+[[nodiscard]] auto sum_statistics_values(Range&& range) -> result<long double>
+{
+    std::size_t count{};
+    long double total{};
+
+    for (auto&& element : range) {
+        const long double value = static_cast<long double>(element);
+        if (!statistics_is_finite(value)) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        ++count;
+        total += value;
+
+        if (!statistics_is_finite(total)) {
+            return std::unexpected(make_error(error_t::range_error));
+        }
+    }
+
+    if (count == 0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return total;
+}
+
+template<statistics_range Range>
+[[nodiscard]] auto product_statistics_values(Range&& range)
+    -> result<statistics_product_summary>
+{
+    statistics_product_summary summary{};
+
+    for (auto&& element : range) {
+        const long double value = static_cast<long double>(element);
+        if (!statistics_is_finite(value)) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        ++summary.count;
+        summary.product *= value;
+
+        if (!statistics_is_finite(summary.product)) {
+            return std::unexpected(make_error(error_t::range_error));
+        }
+    }
+
+    if (summary.count == 0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return summary;
+}
+
+template<statistics_range Range>
+[[nodiscard]] auto summarize_geometric_statistics(Range&& range)
+    -> result<statistics_geometric_summary>
+{
+    statistics_geometric_summary summary{};
+
+    for (auto&& element : range) {
+        const long double value = static_cast<long double>(element);
+        if (!statistics_is_finite(value) || value < 0.0L) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        ++summary.count;
+        if (value == 0.0L) {
+            summary.has_zero = true;
+            continue;
+        }
+
+        summary.log_sum += std::log(value);
+        if (!statistics_is_finite(summary.log_sum)) {
+            return std::unexpected(make_error(error_t::range_error));
+        }
+    }
+
+    if (summary.count == 0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return summary;
+}
+
+template<statistics_range Range>
+[[nodiscard]] auto summarize_harmonic_statistics(Range&& range)
+    -> result<statistics_harmonic_summary>
+{
+    statistics_harmonic_summary summary{};
+
+    for (auto&& element : range) {
+        const long double value = static_cast<long double>(element);
+        if (!statistics_is_finite(value) || value <= 0.0L) {
+            return std::unexpected(make_error(error_t::invalid_argument));
+        }
+
+        ++summary.count;
+        summary.reciprocal_sum += 1.0L / value;
+
+        if (!statistics_is_finite(summary.reciprocal_sum)) {
+            return std::unexpected(make_error(error_t::range_error));
+        }
+    }
+
+    if (summary.count == 0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return summary;
+}
+
+[[nodiscard]] inline auto geometric_mean_from_summary(
+    const statistics_geometric_summary& summary) -> result<double>
+{
+    if (summary.count == 0) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    if (summary.has_zero) {
+        return 0.0;
+    }
+
+    return statistics_to_double(
+        std::exp(summary.log_sum / static_cast<long double>(summary.count)));
+}
+
+[[nodiscard]] inline auto harmonic_mean_from_summary(
+    const statistics_harmonic_summary& summary) -> result<double>
+{
+    if (summary.count == 0 || summary.reciprocal_sum == 0.0L) {
+        return std::unexpected(make_error(error_t::invalid_argument));
+    }
+
+    return statistics_to_double(
+        static_cast<long double>(summary.count) / summary.reciprocal_sum);
+}
 
 template<statistics_range Range>
 [[nodiscard]] auto summarize_statistics(Range&& range)
@@ -353,6 +508,165 @@ template<class T>
     }
 
     return detail::statistics_to_double(summary->mean);
+}
+
+
+/**
+ * @brief Computes the sum of a non-empty arithmetic range.
+ *
+ * @tparam Range Input range of non-bool arithmetic values.
+ * @param range Input range.
+ * @return Sum as double.
+ */
+template<detail::statistics_range Range>
+[[nodiscard]] auto sum(Range&& range) -> result<double>
+{
+    const auto value = detail::sum_statistics_values(std::forward<Range>(range));
+    if (!value) {
+        return std::unexpected(value.error());
+    }
+
+    return detail::statistics_to_double(*value);
+}
+
+/**
+ * @brief Computes the sum of a non-empty initializer list.
+ *
+ * @tparam T Non-bool arithmetic value type.
+ * @param values Input values.
+ * @return Sum as double.
+ */
+template<class T>
+    requires non_bool_arithmetic<T>
+[[nodiscard]] auto sum(std::initializer_list<T> values) -> result<double>
+{
+    const auto value = detail::sum_statistics_values(values);
+    if (!value) {
+        return std::unexpected(value.error());
+    }
+
+    return detail::statistics_to_double(*value);
+}
+
+/**
+ * @brief Computes the product of a non-empty arithmetic range.
+ *
+ * @tparam Range Input range of non-bool arithmetic values.
+ * @param range Input range.
+ * @return Product as double.
+ */
+template<detail::statistics_range Range>
+[[nodiscard]] auto product(Range&& range) -> result<double>
+{
+    const auto summary = detail::product_statistics_values(
+        std::forward<Range>(range));
+    if (!summary) {
+        return std::unexpected(summary.error());
+    }
+
+    return detail::statistics_to_double(summary->product);
+}
+
+/**
+ * @brief Computes the product of a non-empty initializer list.
+ *
+ * @tparam T Non-bool arithmetic value type.
+ * @param values Input values.
+ * @return Product as double.
+ */
+template<class T>
+    requires non_bool_arithmetic<T>
+[[nodiscard]] auto product(std::initializer_list<T> values) -> result<double>
+{
+    const auto summary = detail::product_statistics_values(values);
+    if (!summary) {
+        return std::unexpected(summary.error());
+    }
+
+    return detail::statistics_to_double(summary->product);
+}
+
+/**
+ * @brief Computes the geometric mean of a non-empty arithmetic range.
+ *
+ * All input values must be finite and non-negative.  If any value is zero,
+ * the result is zero.
+ *
+ * @tparam Range Input range of non-bool arithmetic values.
+ * @param range Input range.
+ * @return Geometric mean as double.
+ */
+template<detail::statistics_range Range>
+[[nodiscard]] auto geometric_mean(Range&& range) -> result<double>
+{
+    const auto summary = detail::summarize_geometric_statistics(
+        std::forward<Range>(range));
+    if (!summary) {
+        return std::unexpected(summary.error());
+    }
+
+    return detail::geometric_mean_from_summary(*summary);
+}
+
+/**
+ * @brief Computes the geometric mean of a non-empty initializer list.
+ *
+ * @tparam T Non-bool arithmetic value type.
+ * @param values Input values.
+ * @return Geometric mean as double.
+ */
+template<class T>
+    requires non_bool_arithmetic<T>
+[[nodiscard]] auto geometric_mean(std::initializer_list<T> values)
+    -> result<double>
+{
+    const auto summary = detail::summarize_geometric_statistics(values);
+    if (!summary) {
+        return std::unexpected(summary.error());
+    }
+
+    return detail::geometric_mean_from_summary(*summary);
+}
+
+/**
+ * @brief Computes the harmonic mean of a non-empty arithmetic range.
+ *
+ * All input values must be finite and positive.
+ *
+ * @tparam Range Input range of non-bool arithmetic values.
+ * @param range Input range.
+ * @return Harmonic mean as double.
+ */
+template<detail::statistics_range Range>
+[[nodiscard]] auto harmonic_mean(Range&& range) -> result<double>
+{
+    const auto summary = detail::summarize_harmonic_statistics(
+        std::forward<Range>(range));
+    if (!summary) {
+        return std::unexpected(summary.error());
+    }
+
+    return detail::harmonic_mean_from_summary(*summary);
+}
+
+/**
+ * @brief Computes the harmonic mean of a non-empty initializer list.
+ *
+ * @tparam T Non-bool arithmetic value type.
+ * @param values Input values.
+ * @return Harmonic mean as double.
+ */
+template<class T>
+    requires non_bool_arithmetic<T>
+[[nodiscard]] auto harmonic_mean(std::initializer_list<T> values)
+    -> result<double>
+{
+    const auto summary = detail::summarize_harmonic_statistics(values);
+    if (!summary) {
+        return std::unexpected(summary.error());
+    }
+
+    return detail::harmonic_mean_from_summary(*summary);
 }
 
 /**
