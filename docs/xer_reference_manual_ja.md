@@ -1,6 +1,6 @@
 # xer C++ Utility Library リファレンスマニュアル
 
-対象バージョン: **v0.7.0**
+対象バージョン: **v0.8.0a1**
 
 ---
 
@@ -12402,29 +12402,37 @@ auto main() -> int
 
 ---
 
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/socket.h`
+> Reason: Japanese fragment was translated from a different English source hash.
+
 # `<xer/socket.h>`
 
-## 目的
+## Purpose
 
-`<xer/socket.h>` は TCP および UDP ネットワーク用の小さなソケット API を提供します。
+`<xer/socket.h>` provides a small socket API for TCP and UDP networking.
 
-この API は理解しやすい程度に低水準に保ちつつ、プラットフォーム差を包み込み、通常の失敗を `xer::result` で報告します。
-
----
-
-## 主な役割
-
-このヘッダーは次の機能を提供します。
-
-- ムーブ専用の RAII ソケットハンドル
-- IPv4 および IPv6 ソケットの作成
-- TCP の接続、バインド、リッスン、受け入れ操作
-- UDP の送受信操作
-- ソケットから xer のバイナリストリームまたはテキストストリームへの変換
+The API is intentionally low-level enough to stay understandable, but it wraps platform differences and reports ordinary failure through `xer::result`.
 
 ---
 
-## 主な型
+## Main Role
+
+This header provides:
+
+- a move-only RAII socket handle
+- IPv4 and IPv6 socket creation
+- TCP connection, bind, listen, and accept operations
+- UDP send/receive operations
+- reliable fixed-size send/receive helpers for stream sockets
+- length-prefixed message sending for stream sockets
+- conversion of sockets to xer binary or text streams
+
+---
+
+## Main Types
 
 ```cpp
 enum class socket_family;
@@ -12450,7 +12458,7 @@ udp
 
 ### `socket_address`
 
-`socket_address` はテキスト形式のアドレスとポート番号を保持します。
+`socket_address` stores a textual address and a port number.
 
 ```cpp
 std::u8string address;
@@ -12459,15 +12467,15 @@ std::uint16_t port;
 
 ### `socket_recvfrom_result`
 
-`socket_recvfrom_result` は読み取ったバイト数とリモートエンドポイントアドレスを保持します。
+`socket_recvfrom_result` stores the number of bytes read and the remote endpoint address.
 
 ---
 
-## ソケットハンドル
+## Socket Handle
 
-`socket` はムーブ専用の RAII 型です。
+`socket` is a move-only RAII type.
 
-重要な操作には次のものがあります。
+Important operations include:
 
 ```cpp
 auto is_open() const noexcept -> bool;
@@ -12478,48 +12486,286 @@ auto release() noexcept -> native_socket_t;
 auto native_handle() const noexcept -> native_socket_t;
 ```
 
-ソケットがまだ開いている場合、デストラクタはそのソケットを閉じます。
+The destructor closes the socket if it is still open.
 
 ---
 
-## ソケット操作
+## Socket Operations
 
 ```cpp
 auto socket_create(socket_family family, socket_type type) noexcept -> xer::result<socket>;
 auto socket_close(socket& s) noexcept -> xer::result<void>;
 auto socket_connect(socket& s, std::u8string_view host, std::uint16_t port) noexcept -> xer::result<void>;
 auto socket_bind(socket& s, std::uint16_t port) noexcept -> xer::result<void>;
+auto socket_bind(socket& s, std::u8string_view address, std::uint16_t port) noexcept -> xer::result<void>;
 auto socket_getsockname(socket& s) noexcept -> xer::result<socket_address>;
 auto socket_listen(socket& s, int backlog = 16) noexcept -> xer::result<void>;
 auto socket_accept(socket& s) noexcept -> xer::result<socket>;
 auto socket_send(socket& s, std::span<const std::byte> data) noexcept -> xer::result<std::size_t>;
 auto socket_recv(socket& s, std::span<std::byte> data) noexcept -> xer::result<std::size_t>;
+auto socket_send_all(socket& s, std::span<const std::byte> data) noexcept -> xer::result<void>;
+auto socket_recv_exact(socket& s, std::span<std::byte> data) noexcept -> xer::result<void>;
+auto socket_send_message(socket& s, std::span<const std::byte> data) noexcept -> xer::result<void>;
 auto socket_sendto(socket& s, std::u8string_view host, std::uint16_t port, std::span<const std::byte> data) noexcept -> xer::result<std::size_t>;
 auto socket_recvfrom(socket& s, std::span<std::byte> data) noexcept -> xer::result<socket_recvfrom_result>;
 ```
 
+### `socket_bind(socket&, port)`
+
+```cpp
+auto socket_bind(socket& s, std::uint16_t port) noexcept -> xer::result<void>;
+```
+
+Binds a socket to the specified port on all local interfaces for the socket family.
+
+For an IPv4 socket, this uses the wildcard IPv4 address.
+For an IPv6 socket, this uses the wildcard IPv6 address.
+
+### `socket_bind(socket&, address, port)`
+
+```cpp
+auto socket_bind(socket& s, std::u8string_view address, std::uint16_t port) noexcept -> xer::result<void>;
+```
+
+Binds a socket to the specified local address and port.
+
+This overload is useful when a server must listen only on a specific interface, such as `127.0.0.1` for a local helper process.
+The address must be compatible with the socket family.
+For example, an IPv4 socket can bind to `127.0.0.1`, while an IPv6 socket can bind to `::1`.
+
+### `socket_send` and `socket_recv`
+
+```cpp
+auto socket_send(socket& s, std::span<const std::byte> data) noexcept -> xer::result<std::size_t>;
+auto socket_recv(socket& s, std::span<std::byte> data) noexcept -> xer::result<std::size_t>;
+```
+
+`socket_send` and `socket_recv` perform a single send or receive operation.
+They may transfer fewer bytes than requested, especially for stream sockets.
+The returned size reports the number of bytes actually transferred.
+
+### `socket_send_all`
+
+```cpp
+auto socket_send_all(socket& s, std::span<const std::byte> data) noexcept -> xer::result<void>;
+```
+
+Sends all bytes in `data` unless an error occurs.
+
+This function repeatedly calls `socket_send` until the entire span has been sent.
+It is intended for connected stream sockets such as TCP sockets.
+An empty span succeeds without sending anything.
+
+### `socket_recv_exact`
+
+```cpp
+auto socket_recv_exact(socket& s, std::span<std::byte> data) noexcept -> xer::result<void>;
+```
+
+Receives exactly `data.size()` bytes unless an error occurs or the peer closes the connection before enough bytes are received.
+
+This function repeatedly calls `socket_recv` until the span has been filled.
+It is intended for connected stream sockets such as TCP sockets.
+An empty span succeeds without receiving anything.
+
+### `socket_send_message`
+
+```cpp
+auto socket_send_message(socket& s, std::span<const std::byte> data) noexcept -> xer::result<void>;
+```
+
+Sends a length-prefixed message.
+
+The function first sends a 4-byte unsigned big-endian payload length, followed by all bytes in `data`.
+The payload size must fit in `std::uint32_t`; otherwise the function returns `error_t::length_error`.
+
+An empty message is valid and sends only a zero length field.
+The function uses `socket_send_all` internally, so the whole frame is sent unless an error occurs.
+
+This helper defines only the sending side of the frame format.
+The receiving side can read the 4-byte length with `socket_recv_exact`, validate it against an application-defined maximum size, and then read the payload with `socket_recv_exact`.
+
 ---
 
-## ストリーム変換
+## Length-Prefixed Message Example
 
-ソケットは xer のストリームに変換できます。
+A message sent by `socket_send_message` has the following frame format:
+
+```text
+uint32 big-endian payload_size
+payload bytes
+```
+
+For example, a 5-byte payload `hello` is sent as a 4-byte length field followed by the five payload bytes.
+
+```cpp
+constexpr std::array<std::byte, 5> hello = {
+    std::byte {'h'},
+    std::byte {'e'},
+    std::byte {'l'},
+    std::byte {'l'},
+    std::byte {'o'},
+};
+
+auto sent = xer::socket_send_message(client, hello);
+```
+
+The receiver can read the frame explicitly:
+
+```cpp
+std::array<std::byte, 4> header {};
+auto header_result = xer::socket_recv_exact(server, header);
+
+const auto size =
+    (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[0])) << 24) |
+    (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[1])) << 16) |
+    (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[2])) << 8) |
+    static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[3]));
+
+std::vector<std::byte> body(size);
+auto body_result = xer::socket_recv_exact(server, body);
+```
+
+Applications should validate `size` against their own maximum accepted message size before allocating the payload buffer.
+
+---
+
+## Example
+
+The following example binds a TCP server socket to the loopback address and exchanges fixed-size messages.
+
+```cpp
+#include <array>
+#include <bit>
+#include <chrono>
+#include <cstddef>
+#include <cstring>
+#include <iostream>
+#include <thread>
+
+#include <xer/socket.h>
+
+namespace
+{
+    auto bytes_to_text(std::span<const std::byte> bytes) -> std::string
+    {
+        std::string text(bytes.size(), '\0');
+        std::memcpy(text.data(), bytes.data(), bytes.size());
+        return text;
+    }
+}
+
+auto main() -> int
+{
+    constexpr auto port = std::uint16_t{39080};
+
+    auto server_result = xer::socket_create(xer::socket_family::ipv4, xer::socket_type::tcp);
+    if (!server_result) {
+        std::cerr << "socket_create failed\n";
+        return 1;
+    }
+
+    auto server = std::move(*server_result);
+
+    if (auto result = xer::socket_bind(server, u8"127.0.0.1", port); !result) {
+        std::cerr << "socket_bind failed\n";
+        return 1;
+    }
+
+    if (auto result = xer::socket_listen(server); !result) {
+        std::cerr << "socket_listen failed\n";
+        return 1;
+    }
+
+    auto worker = std::thread([&server] {
+        auto accepted_result = xer::socket_accept(server);
+        if (!accepted_result) {
+            return;
+        }
+
+        auto peer = std::move(*accepted_result);
+
+        auto request = std::array<std::byte, 4>{};
+        if (auto result = xer::socket_recv_exact(peer, request); !result) {
+            return;
+        }
+
+        std::cout << "server received: " << bytes_to_text(request) << '\n';
+
+        constexpr auto response = std::array{
+            std::byte{'p'},
+            std::byte{'o'},
+            std::byte{'n'},
+            std::byte{'g'},
+        };
+
+        (void) xer::socket_send_all(peer, response);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    auto client_result = xer::socket_create(xer::socket_family::ipv4, xer::socket_type::tcp);
+    if (!client_result) {
+        worker.join();
+        return 1;
+    }
+
+    auto client = std::move(*client_result);
+
+    if (auto result = xer::socket_connect(client, u8"127.0.0.1", port); !result) {
+        worker.join();
+        return 1;
+    }
+
+    constexpr auto request = std::array{
+        std::byte{'p'},
+        std::byte{'i'},
+        std::byte{'n'},
+        std::byte{'g'},
+    };
+
+    if (auto result = xer::socket_send_all(client, request); !result) {
+        worker.join();
+        return 1;
+    }
+
+    auto response = std::array<std::byte, 4>{};
+    if (auto result = xer::socket_recv_exact(client, response); !result) {
+        worker.join();
+        return 1;
+    }
+
+    std::cout << "client received: " << bytes_to_text(response) << '\n';
+
+    worker.join();
+    return 0;
+}
+```
+
+---
+
+## Stream Conversion
+
+Sockets can be converted into xer streams:
 
 ```cpp
 auto socket_open(socket&& s) noexcept -> xer::result<binary_stream>;
 auto socket_open(socket&& s, encoding_t encoding) noexcept -> xer::result<text_stream>;
 ```
 
-バイナリストリーム形式はバイト指向のプロトコルに適しています。
-テキストストリーム形式は UTF-8 または CP932 のテキスト指向通信に適しています。
+The binary stream form is suitable for byte-oriented protocols.
+The text stream form is suitable for UTF-8 or CP932 text-oriented communication.
 
 ---
 
-## 注意
+## Notes
 
-- ネットワーク関連の通常の失敗は主に `error_t::network_error` で表されます。
-- この API はコマンドシェルや外部ユーティリティを使用しません。
-- ホスト名は UTF-8 文字列として受け取り、リゾルバ API 用の通常のナロー文字列に変換されます。
-- `socket_open` はソケットオブジェクトから結果のストリームへ所有権を移します。
+- Network-related ordinary failures are represented mainly with `error_t::network_error`.
+- The API does not use command shells or external utilities.
+- Host names and textual addresses are accepted as UTF-8 strings and converted to ordinary narrow strings for resolver APIs.
+- `socket_send` and `socket_recv` may transfer only part of the supplied buffer.
+- Use `socket_send_all` and `socket_recv_exact` when a fixed amount of data must be transferred over a connected stream socket.
+- `socket_open` transfers ownership from the socket object into the resulting stream.
 
 ---
 

@@ -11,6 +11,7 @@
 #include <climits>
 #include <cstdint>
 #include <expected>
+#include <limits>
 #include <new>
 #include <span>
 #include <string>
@@ -311,6 +312,23 @@ private:
     return std::unexpected(make_error(error_t::network_error));
 }
 
+[[nodiscard]] inline auto socket_bind(socket& s, std::u8string_view address, std::uint16_t port) noexcept -> result<void> {
+    if (!s.is_open()) {
+        return std::unexpected(make_error(error_t::network_error));
+    }
+    auto info_result = detail::resolve_socket_address(address, port, s.family(), s.type());
+    if (!info_result.has_value()) {
+        return std::unexpected(info_result.error());
+    }
+    detail::addrinfo_holder info(*info_result);
+    for (addrinfo* p = info.get(); p != nullptr; p = p->ai_next) {
+        if (::bind(s.native_handle(), p->ai_addr, static_cast<socklen_t>(p->ai_addrlen)) == 0) {
+            return {};
+        }
+    }
+    return std::unexpected(make_error(error_t::network_error));
+}
+
 [[nodiscard]] inline auto socket_bind(socket& s, std::uint16_t port) noexcept -> result<void> {
     if (!s.is_open()) {
         return std::unexpected(make_error(error_t::network_error));
@@ -405,6 +423,57 @@ private:
         return std::unexpected(make_error(error_t::network_error));
     }
     return static_cast<std::size_t>(result);
+}
+
+[[nodiscard]] inline auto socket_send_all(socket& s, std::span<const std::byte> data) noexcept -> result<void> {
+    std::size_t offset = 0;
+    while (offset < data.size()) {
+        auto result = socket_send(s, data.subspan(offset));
+        if (!result.has_value()) {
+            return std::unexpected(result.error());
+        }
+        if (*result == 0) {
+            return std::unexpected(make_error(error_t::network_error));
+        }
+        offset += *result;
+    }
+    return {};
+}
+
+[[nodiscard]] inline auto socket_recv_exact(socket& s, std::span<std::byte> data) noexcept -> result<void> {
+    std::size_t offset = 0;
+    while (offset < data.size()) {
+        auto result = socket_recv(s, data.subspan(offset));
+        if (!result.has_value()) {
+            return std::unexpected(result.error());
+        }
+        if (*result == 0) {
+            return std::unexpected(make_error(error_t::network_error));
+        }
+        offset += *result;
+    }
+    return {};
+}
+
+[[nodiscard]] inline auto socket_send_message(socket& s, std::span<const std::byte> data) noexcept -> result<void> {
+    if (data.size() > static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)())) {
+        return std::unexpected(make_error(error_t::length_error));
+    }
+
+    const auto size = static_cast<std::uint32_t>(data.size());
+    const std::byte header[4] = {
+        static_cast<std::byte>((size >> 24) & 0xFFu),
+        static_cast<std::byte>((size >> 16) & 0xFFu),
+        static_cast<std::byte>((size >> 8) & 0xFFu),
+        static_cast<std::byte>(size & 0xFFu),
+    };
+
+    auto sent_header = socket_send_all(s, std::span<const std::byte>(header, 4));
+    if (!sent_header.has_value()) {
+        return std::unexpected(sent_header.error());
+    }
+
+    return socket_send_all(s, data);
 }
 
 [[nodiscard]] inline auto socket_sendto(

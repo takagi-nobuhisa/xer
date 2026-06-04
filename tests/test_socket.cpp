@@ -12,6 +12,7 @@
 #include <utility>
 
 #include <xer/assert.h>
+#include <xer/error.h>
 #include <xer/socket.h>
 #include <xer/stdio.h>
 
@@ -86,6 +87,46 @@ struct tcp_socket_pair {
     return tcp_socket_pair{std::move(*client), std::move(*server)};
 }
 
+[[nodiscard]] auto create_tcp_socket_pair_with_bound_address() -> xer::result<tcp_socket_pair>
+{
+    auto listener = xer::socket_create(xer::socket_family::ipv4, xer::socket_type::tcp);
+    if (!listener.has_value()) {
+        return std::unexpected(listener.error());
+    }
+
+    auto bound = xer::socket_bind(*listener, u8"127.0.0.1", 0);
+    if (!bound.has_value()) {
+        return std::unexpected(bound.error());
+    }
+
+    auto local = xer::socket_getsockname(*listener);
+    if (!local.has_value()) {
+        return std::unexpected(local.error());
+    }
+
+    auto listening = xer::socket_listen(*listener);
+    if (!listening.has_value()) {
+        return std::unexpected(listening.error());
+    }
+
+    auto client = xer::socket_create(xer::socket_family::ipv4, xer::socket_type::tcp);
+    if (!client.has_value()) {
+        return std::unexpected(client.error());
+    }
+
+    auto connected = xer::socket_connect(*client, u8"127.0.0.1", local->port);
+    if (!connected.has_value()) {
+        return std::unexpected(connected.error());
+    }
+
+    auto server = xer::socket_accept(*listener);
+    if (!server.has_value()) {
+        return std::unexpected(server.error());
+    }
+
+    return tcp_socket_pair{std::move(*client), std::move(*server)};
+}
+
 void test_tcp_socket_create_and_close()
 {
     auto s = xer::socket_create(xer::socket_family::ipv4, xer::socket_type::tcp);
@@ -125,6 +166,20 @@ void test_socket_getsockname_after_bind_zero()
     xer_assert(local->port != 0);
 }
 
+void test_socket_bind_with_address()
+{
+    auto s = xer::socket_create(xer::socket_family::ipv4, xer::socket_type::tcp);
+    xer_assert(s.has_value());
+
+    auto bound = xer::socket_bind(*s, u8"127.0.0.1", 0);
+    xer_assert(bound.has_value());
+
+    auto local = xer::socket_getsockname(*s);
+    xer_assert(local.has_value());
+    xer_assert_eq(local->address, u8"127.0.0.1");
+    xer_assert(local->port != 0);
+}
+
 void test_tcp_localhost_send_recv()
 {
     auto pair = create_tcp_socket_pair();
@@ -150,6 +205,117 @@ void test_tcp_localhost_send_recv()
     xer_assert(received.has_value());
     xer_assert_eq(*received, static_cast<std::size_t>(4));
     xer_assert(matches_text(buffer, "pong"));
+}
+
+void test_tcp_localhost_bind_address_send_recv()
+{
+    auto pair = create_tcp_socket_pair_with_bound_address();
+    xer_assert(pair.has_value());
+
+    auto ping = byte_array("bind");
+    auto sent = xer::socket_send(pair->client, std::span<const std::byte>(ping.data(), 4));
+    xer_assert(sent.has_value());
+    xer_assert_eq(*sent, static_cast<std::size_t>(4));
+
+    std::array<std::byte, 4> buffer{};
+    auto received = xer::socket_recv(pair->server, buffer);
+    xer_assert(received.has_value());
+    xer_assert_eq(*received, static_cast<std::size_t>(4));
+    xer_assert(matches_text(buffer, "bind"));
+}
+
+void test_tcp_socket_send_all_and_recv_exact()
+{
+    auto pair = create_tcp_socket_pair();
+    xer_assert(pair.has_value());
+
+    auto first = byte_array("send");
+    auto sent = xer::socket_send_all(pair->client, std::span<const std::byte>(first.data(), 4));
+    xer_assert(sent.has_value());
+
+    auto second = byte_array("all!");
+    sent = xer::socket_send_all(pair->client, std::span<const std::byte>(second.data(), 4));
+    xer_assert(sent.has_value());
+
+    std::array<std::byte, 8> buffer{};
+    auto received = xer::socket_recv_exact(pair->server, buffer);
+    xer_assert(received.has_value());
+    xer_assert(matches_text(buffer, "sendall!"));
+}
+
+void test_tcp_socket_send_all_and_recv_exact_empty_buffer()
+{
+    auto pair = create_tcp_socket_pair();
+    xer_assert(pair.has_value());
+
+    std::array<std::byte, 1> buffer{};
+
+    auto sent = xer::socket_send_all(pair->client, std::span<const std::byte>(buffer.data(), 0));
+    xer_assert(sent.has_value());
+
+    auto received = xer::socket_recv_exact(pair->server, std::span<std::byte>(buffer.data(), 0));
+    xer_assert(received.has_value());
+}
+
+void test_tcp_socket_recv_exact_detects_closed_peer()
+{
+    auto pair = create_tcp_socket_pair();
+    xer_assert(pair.has_value());
+
+    auto ping = byte_array("ping");
+    auto sent = xer::socket_send_all(pair->client, std::span<const std::byte>(ping.data(), 4));
+    xer_assert(sent.has_value());
+
+    auto closed = xer::socket_close(pair->client);
+    xer_assert(closed.has_value());
+
+    std::array<std::byte, 8> buffer{};
+    auto received = xer::socket_recv_exact(pair->server, buffer);
+    xer_assert_not(received.has_value());
+    xer_assert_eq(received.error().code, xer::error_t::network_error);
+}
+
+[[nodiscard]] auto decode_message_size(std::span<const std::byte, 4> header) noexcept -> std::uint32_t
+{
+    return (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[0])) << 24) |
+           (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[1])) << 16) |
+           (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[2])) << 8) |
+           static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[3]));
+}
+
+void test_tcp_socket_send_message()
+{
+    auto pair = create_tcp_socket_pair();
+    xer_assert(pair.has_value());
+
+    auto body = byte_array("hello");
+    auto sent = xer::socket_send_message(pair->client, std::span<const std::byte>(body.data(), 5));
+    xer_assert(sent.has_value());
+
+    std::array<std::byte, 4> header{};
+    auto received_header = xer::socket_recv_exact(pair->server, header);
+    xer_assert(received_header.has_value());
+    xer_assert_eq(decode_message_size(std::span<const std::byte, 4>(header)), static_cast<std::uint32_t>(5));
+
+    std::array<std::byte, 5> payload{};
+    auto received_body = xer::socket_recv_exact(pair->server, payload);
+    xer_assert(received_body.has_value());
+    xer_assert(matches_text(payload, "hello"));
+}
+
+void test_tcp_socket_send_message_empty_body()
+{
+    auto pair = create_tcp_socket_pair();
+    xer_assert(pair.has_value());
+
+    std::array<std::byte, 1> unused{};
+    auto sent = xer::socket_send_message(pair->client, std::span<const std::byte>(unused.data(), 0));
+    xer_assert(sent.has_value());
+
+    std::array<std::byte, 4> header{};
+    auto received_header = xer::socket_recv_exact(pair->server, header);
+    xer_assert(received_header.has_value());
+    xer_assert_eq(decode_message_size(std::span<const std::byte, 4>(header)), static_cast<std::uint32_t>(0));
 }
 
 void test_tcp_binary_stream_localhost()
@@ -242,9 +408,21 @@ void test_empty_socket_operations_fail()
     xer_assert_not(received.has_value());
     xer_assert_eq(received.error().code, xer::error_t::network_error);
 
+    auto received_exact = xer::socket_recv_exact(s, buffer);
+    xer_assert_not(received_exact.has_value());
+    xer_assert_eq(received_exact.error().code, xer::error_t::network_error);
+
     auto sent = xer::socket_send(s, std::span<const std::byte>(buffer.data(), buffer.size()));
     xer_assert_not(sent.has_value());
     xer_assert_eq(sent.error().code, xer::error_t::network_error);
+
+    auto sent_all = xer::socket_send_all(s, std::span<const std::byte>(buffer.data(), buffer.size()));
+    xer_assert_not(sent_all.has_value());
+    xer_assert_eq(sent_all.error().code, xer::error_t::network_error);
+
+    auto sent_message = xer::socket_send_message(s, std::span<const std::byte>(buffer.data(), buffer.size()));
+    xer_assert_not(sent_message.has_value());
+    xer_assert_eq(sent_message.error().code, xer::error_t::network_error);
 }
 
 } // namespace
@@ -254,7 +432,14 @@ auto main() -> int
     test_tcp_socket_create_and_close();
     test_udp_socket_create_and_close();
     test_socket_getsockname_after_bind_zero();
+    test_socket_bind_with_address();
     test_tcp_localhost_send_recv();
+    test_tcp_localhost_bind_address_send_recv();
+    test_tcp_socket_send_all_and_recv_exact();
+    test_tcp_socket_send_all_and_recv_exact_empty_buffer();
+    test_tcp_socket_recv_exact_detects_closed_peer();
+    test_tcp_socket_send_message();
+    test_tcp_socket_send_message_empty_body();
     test_tcp_binary_stream_localhost();
     test_tcp_text_stream_localhost();
     test_udp_localhost_sendto_recvfrom();
