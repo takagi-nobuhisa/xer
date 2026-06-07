@@ -191,6 +191,15 @@ void test_sprintf_default_specifier_percent_at() {
     xer_assert_eq(out4, std::u8string(u8"null"));
 }
 
+void test_sprintf_default_specifier_floating() {
+    std::u8string out;
+
+    const auto result = xer::sprintf(out, u8"%@", 3.5);
+
+    xer_assert(result.has_value());
+    xer_assert_eq(out, std::u8string(u8"3.5"));
+}
+
  void test_sprintf_default_specifier_more_string_types() {
     std::u8string out1;
     std::u8string out2;
@@ -423,6 +432,7 @@ int main() {
     test_sprintf_unsigned_integer_formats();
     test_sprintf_octal_and_alternate_form();
     test_sprintf_default_specifier_percent_at();
+    test_sprintf_default_specifier_floating();
     test_sprintf_default_specifier_more_string_types();
     test_sprintf_default_specifier_error_and_result();
     test_error_and_result_ostream_output();

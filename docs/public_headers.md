@@ -19,6 +19,7 @@
 - `xer/typeinfo.h`
 - `xer/diag.h`
 - `xer/scope.h`
+- `xer/convert.h`
 
 ### Character and String Processing
 
@@ -271,6 +272,23 @@ This keeps the responsibility clear:
 - `ruby_paren` selects a simple parenthesized representation
 
 Future MeCab-based automatic furigana helpers can reuse this formatter without making the low-level formatting API depend on MeCab process execution.
+
+### Why `convert.h` Is Independent
+
+Generic value conversion is broader than ordinary numeric parsing and broader than text formatting.
+It connects numeric values, explicitly encoded character strings, character values, and selected xer value types through one `xer::to<T>` entry point.
+
+For that reason, generic conversion is not absorbed into `xer/stdlib.h`, `xer/string.h`, or `xer/stdio.h`, but is provided through the independent public header `xer/convert.h`.
+
+This keeps the responsibility clear:
+
+- `xer::to<T>` returns `xer::result<T>` because parsing, range validation, and formatting may fail
+- arithmetic-to-arithmetic conversion is range-checked by `xer::in_range`
+- `char` strings are not interpreted as text because their encoding is ambiguous
+- `char8_t`, `char16_t`, `char32_t`, and `wchar_t` strings are treated as explicitly encoded text
+- conversion to `xer::path` accepts explicitly encoded text and normalizes path separators through `xer::path`
+
+Future locale-dependent or native-code-page conversion helpers can be added separately without weakening this header's encoding rule.
 
 ### Why `unicode.h` Is Independent
 

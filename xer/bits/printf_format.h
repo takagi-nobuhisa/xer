@@ -1214,8 +1214,12 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
         case printf_arg_kind::unsigned_integer:
             return format_printf_unsigned(std::get<std::uintmax_t>(arg.value), spec);
 
-        case printf_arg_kind::floating:
-            return format_printf_floating(std::get<long double>(arg.value), spec);
+        case printf_arg_kind::floating: {
+            printf_conversion_spec effective_spec = spec;
+            effective_spec.conversion = U'g';
+            effective_spec.length = printf_conversion_spec::length_t::L;
+            return format_printf_floating(std::get<long double>(arg.value), effective_spec);
+        }
 
         case printf_arg_kind::character:
             return format_printf_character(std::get<char32_t>(arg.value), spec);
