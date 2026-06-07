@@ -28,11 +28,12 @@ It keeps the spirit of the C standard library where that style is still practica
 
 xer is under active development.
 
-The project began by rebuilding practical parts of the C standard library in a way that fits its design goals. It now also covers adjacent areas that benefit from the same approach, including structured data handling, ZIP archive utilities, fixed-schema binary serialization, practical mathematics, descriptive statistics, and lightweight vector/geometry helpers, process and socket utilities, Tcl/Tk integration, a lightweight image/canvas subsystem, and Japanese text-processing helpers such as MeCab-based wakachi-gaki, furigana formatting, kansuji conversion, and braille conversion.
+The project began by rebuilding practical parts of the C standard library in a way that fits its design goals. It now also covers adjacent areas that benefit from the same approach, including result-based value conversion, structured data handling, ZIP archive utilities, fixed-schema binary serialization, practical mathematics, descriptive statistics, and lightweight vector/geometry helpers, process and socket utilities, Tcl/Tk integration, a lightweight image/canvas subsystem, and Japanese text-processing helpers such as MeCab-based wakachi-gaki, furigana formatting, kansuji conversion, and braille conversion.
 
 The current library scope includes:
 
 - string and character handling
+- result-based generic value conversion through `xer::to<T>`
 - Unicode code point traversal, grapheme cluster traversal, grapheme-cluster-based string operations, practical emoji detection, and NFC normalization
 - I/O and filesystem-oriented utilities
 - binary data helpers, including checksums, CRC, hex conversion, MD5, SHA-1, and SHA-256
@@ -42,7 +43,7 @@ The current library scope includes:
 - arithmetic helpers, elementary mathematics, descriptive statistics, lightweight vector/geometry helpers, complex-equation helpers, and numeric utility types
 - time utilities
 - JSON, INI, and TOML handling
-- process and socket utilities
+- process and socket utilities, including TCP helpers for exact byte transfer and length-prefixed messages
 - Tcl/Tk integration
 - image/canvas drawing, bitmap fonts, basic pixel processing, and arc drawing with τrad angles
 - Japanese text helpers, including kansuji, furigana, MeCab integration, kana/romaji wakachi-gaki, and braille conversion
@@ -164,6 +165,7 @@ Current public headers:
 - `xer/typeinfo.h`
 - `xer/diag.h`
 - `xer/scope.h`
+- `xer/convert.h`
 - `xer/string.h`
 - `xer/ctype.h`
 - `xer/braille.h`
