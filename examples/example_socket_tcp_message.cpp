@@ -1,16 +1,15 @@
 ﻿// XER_EXAMPLE_BEGIN: socket_tcp_message
 //
-// This example creates a localhost TCP connection and sends a length-prefixed
-// message with socket_send_message. The receiver reads the 4-byte big-endian
-// length field and then reads the message body with socket_recv_exact.
+// This example creates a localhost TCP connection and exchanges a
+// length-prefixed message with socket_send_message and socket_recv_message.
 //
 // Expected output:
 // server received: hello
 
 #include <array>
 #include <cstddef>
-#include <cstdint>
 #include <span>
+#include <string_view>
 
 #include <xer/socket.h>
 #include <xer/stdio.h>
@@ -62,17 +61,19 @@ struct tcp_socket_pair {
     return tcp_socket_pair {std::move(*client), std::move(*server)};
 }
 
-[[nodiscard]] auto decode_message_size(std::span<const std::byte, 4> header) noexcept -> std::uint32_t
+[[nodiscard]] auto byte_matches(std::span<const std::byte> data, std::string_view expected) noexcept -> bool
 {
-    return (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[0])) << 24) |
-           (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[1])) << 16) |
-           (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[2])) << 8) |
-           static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[3]));
-}
+    if (data.size() != expected.size()) {
+        return false;
+    }
 
-[[nodiscard]] auto byte_matches(std::byte value, char expected) noexcept -> bool
-{
-    return std::to_integer<unsigned char>(value) == static_cast<unsigned char>(expected);
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        if (std::to_integer<unsigned char>(data[i]) != static_cast<unsigned char>(expected[i])) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace
@@ -97,24 +98,12 @@ auto main() -> int
         return 1;
     }
 
-    std::array<std::byte, 4> header {};
-    auto received_header = xer::socket_recv_exact(pair->server, header);
-    if (!received_header) {
+    auto received = xer::socket_recv_message(pair->server, 1024);
+    if (!received) {
         return 1;
     }
 
-    if (decode_message_size(std::span<const std::byte, 4>(header)) != hello.size()) {
-        return 1;
-    }
-
-    std::array<std::byte, 5> body {};
-    auto received_body = xer::socket_recv_exact(pair->server, body);
-    if (!received_body) {
-        return 1;
-    }
-
-    if (!byte_matches(body[0], 'h') || !byte_matches(body[1], 'e') || !byte_matches(body[2], 'l') ||
-        !byte_matches(body[3], 'l') || !byte_matches(body[4], 'o')) {
+    if (!byte_matches(*received, "hello")) {
         return 1;
     }
 

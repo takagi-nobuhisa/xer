@@ -318,6 +318,83 @@ void test_tcp_socket_send_message_empty_body()
     xer_assert_eq(decode_message_size(std::span<const std::byte, 4>(header)), static_cast<std::uint32_t>(0));
 }
 
+void test_tcp_socket_recv_message()
+{
+    auto pair = create_tcp_socket_pair();
+    xer_assert(pair.has_value());
+
+    auto body = byte_array("hello");
+    auto sent = xer::socket_send_message(pair->client, std::span<const std::byte>(body.data(), 5));
+    xer_assert(sent.has_value());
+
+    auto received = xer::socket_recv_message(pair->server, 16);
+    xer_assert(received.has_value());
+    xer_assert(matches_text(*received, "hello"));
+}
+
+void test_tcp_socket_recv_message_empty_body()
+{
+    auto pair = create_tcp_socket_pair();
+    xer_assert(pair.has_value());
+
+    std::array<std::byte, 1> unused{};
+    auto sent = xer::socket_send_message(pair->client, std::span<const std::byte>(unused.data(), 0));
+    xer_assert(sent.has_value());
+
+    auto received = xer::socket_recv_message(pair->server, 0);
+    xer_assert(received.has_value());
+    xer_assert(received->empty());
+}
+
+void test_tcp_socket_recv_message_rejects_oversized_message()
+{
+    auto pair = create_tcp_socket_pair();
+    xer_assert(pair.has_value());
+
+    auto body = byte_array("hello");
+    auto sent = xer::socket_send_message(pair->client, std::span<const std::byte>(body.data(), 5));
+    xer_assert(sent.has_value());
+
+    auto received = xer::socket_recv_message(pair->server, 4);
+    xer_assert_not(received.has_value());
+    xer_assert_eq(received.error().code, xer::error_t::length_error);
+
+    std::array<std::byte, 5> payload{};
+    auto remaining = xer::socket_recv_exact(pair->server, payload);
+    xer_assert(remaining.has_value());
+    xer_assert(matches_text(payload, "hello"));
+}
+
+void test_tcp_socket_recv_message_detects_closed_peer_in_header()
+{
+    auto pair = create_tcp_socket_pair();
+    xer_assert(pair.has_value());
+
+    auto closed = xer::socket_close(pair->client);
+    xer_assert(closed.has_value());
+
+    auto received = xer::socket_recv_message(pair->server, 16);
+    xer_assert_not(received.has_value());
+    xer_assert_eq(received.error().code, xer::error_t::network_error);
+}
+
+void test_tcp_socket_recv_message_detects_closed_peer_in_body()
+{
+    auto pair = create_tcp_socket_pair();
+    xer_assert(pair.has_value());
+
+    const std::byte header[4] = {std::byte {0}, std::byte {0}, std::byte {0}, std::byte {5}};
+    auto sent_header = xer::socket_send_all(pair->client, std::span<const std::byte>(header, 4));
+    xer_assert(sent_header.has_value());
+
+    auto closed = xer::socket_close(pair->client);
+    xer_assert(closed.has_value());
+
+    auto received = xer::socket_recv_message(pair->server, 16);
+    xer_assert_not(received.has_value());
+    xer_assert_eq(received.error().code, xer::error_t::network_error);
+}
+
 void test_tcp_binary_stream_localhost()
 {
     auto pair = create_tcp_socket_pair();
@@ -423,6 +500,10 @@ void test_empty_socket_operations_fail()
     auto sent_message = xer::socket_send_message(s, std::span<const std::byte>(buffer.data(), buffer.size()));
     xer_assert_not(sent_message.has_value());
     xer_assert_eq(sent_message.error().code, xer::error_t::network_error);
+
+    auto received_message = xer::socket_recv_message(s, 16);
+    xer_assert_not(received_message.has_value());
+    xer_assert_eq(received_message.error().code, xer::error_t::network_error);
 }
 
 } // namespace
@@ -440,6 +521,11 @@ auto main() -> int
     test_tcp_socket_recv_exact_detects_closed_peer();
     test_tcp_socket_send_message();
     test_tcp_socket_send_message_empty_body();
+    test_tcp_socket_recv_message();
+    test_tcp_socket_recv_message_empty_body();
+    test_tcp_socket_recv_message_rejects_oversized_message();
+    test_tcp_socket_recv_message_detects_closed_peer_in_header();
+    test_tcp_socket_recv_message_detects_closed_peer_in_body();
     test_tcp_binary_stream_localhost();
     test_tcp_text_stream_localhost();
     test_udp_localhost_sendto_recvfrom();

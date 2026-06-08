@@ -8,7 +8,9 @@
 #ifndef XER_BITS_SOCKET_H_INCLUDED_
 #define XER_BITS_SOCKET_H_INCLUDED_
 
+#include <array>
 #include <climits>
+#include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <limits>
@@ -17,6 +19,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -474,6 +477,41 @@ private:
     }
 
     return socket_send_all(s, data);
+}
+
+[[nodiscard]] inline auto socket_recv_message(socket& s, std::size_t max_size) noexcept -> result<std::vector<std::byte>> {
+    std::array<std::byte, 4> header{};
+    auto received_header = socket_recv_exact(s, header);
+    if (!received_header.has_value()) {
+        return std::unexpected(received_header.error());
+    }
+
+    const auto size =
+        (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[0])) << 24) |
+        (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[1])) << 16) |
+        (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[2])) << 8) |
+        static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[3]));
+
+    if (static_cast<std::uintmax_t>(size) > static_cast<std::uintmax_t>(max_size) ||
+        static_cast<std::uintmax_t>(size) > static_cast<std::uintmax_t>((std::numeric_limits<std::size_t>::max)())) {
+        return std::unexpected(make_error(error_t::length_error));
+    }
+
+    std::vector<std::byte> data;
+    try {
+        data.resize(static_cast<std::size_t>(size));
+    } catch (const std::bad_alloc&) {
+        return std::unexpected(make_error(error_t::nomem));
+    } catch (...) {
+        return std::unexpected(make_error(error_t::runtime_error));
+    }
+
+    auto received_body = socket_recv_exact(s, data);
+    if (!received_body.has_value()) {
+        return std::unexpected(received_body.error());
+    }
+
+    return data;
 }
 
 [[nodiscard]] inline auto socket_sendto(

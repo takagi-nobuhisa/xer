@@ -76,11 +76,12 @@ The length field is exactly four bytes.
 The payload length is limited to the range of `std::uint32_t`.
 If the input span is larger than that, `socket_send_message` returns `error_t::length_error` without sending a partial frame.
 
-The helper currently defines only the sending side of the message frame.
-Receiving can be built explicitly from `socket_recv_exact`: first receive the 4-byte length field, validate it against an application-defined maximum size, and then receive the payload.
+`socket_recv_message` receives the same frame format.
+It requires a caller-supplied maximum payload size and returns `error_t::length_error` if the frame length exceeds that limit.
+The oversized payload is not read or discarded; callers should normally close the connection after this error.
 
-This keeps the first message-framing step useful while avoiding an allocation policy in the socket layer.
-A future receive helper may be added after the maximum-size and buffer-ownership policy is settled.
+An empty payload is valid.
+The receive helper returns an empty `std::vector<std::byte>` for an empty message.
 
 ---
 

@@ -1,6 +1,6 @@
 # xer C++ Utility Library リファレンスマニュアル
 
-対象バージョン: **v0.8.0a1**
+対象バージョン: **v0.8.0a2**
 
 ---
 
@@ -12707,6 +12707,7 @@ auto socket_recv(socket& s, std::span<std::byte> data) noexcept -> xer::result<s
 auto socket_send_all(socket& s, std::span<const std::byte> data) noexcept -> xer::result<void>;
 auto socket_recv_exact(socket& s, std::span<std::byte> data) noexcept -> xer::result<void>;
 auto socket_send_message(socket& s, std::span<const std::byte> data) noexcept -> xer::result<void>;
+auto socket_recv_message(socket& s, std::size_t max_size) noexcept -> xer::result<std::vector<std::byte>>;
 auto socket_sendto(socket& s, std::u8string_view host, std::uint16_t port, std::span<const std::byte> data) noexcept -> xer::result<std::size_t>;
 auto socket_recvfrom(socket& s, std::span<std::byte> data) noexcept -> xer::result<socket_recvfrom_result>;
 ```
@@ -12783,8 +12784,22 @@ The payload size must fit in `std::uint32_t`; otherwise the function returns `er
 An empty message is valid and sends only a zero length field.
 The function uses `socket_send_all` internally, so the whole frame is sent unless an error occurs.
 
-This helper defines only the sending side of the frame format.
-The receiving side can read the 4-byte length with `socket_recv_exact`, validate it against an application-defined maximum size, and then read the payload with `socket_recv_exact`.
+### `socket_recv_message`
+
+```cpp
+auto socket_recv_message(socket& s, std::size_t max_size) noexcept -> xer::result<std::vector<std::byte>>;
+```
+
+Receives one length-prefixed message sent in the same frame format used by `socket_send_message`.
+
+The function first receives a 4-byte unsigned big-endian payload length.
+If the payload length is greater than `max_size`, the function returns `error_t::length_error` without reading or discarding the payload.
+In that case, callers should normally close the connection because the stream is no longer positioned at the next frame.
+
+If the payload length is accepted, the function allocates a `std::vector<std::byte>` of that size, receives exactly that many payload bytes, and returns the vector.
+An empty message is valid and returns an empty vector.
+
+If the peer closes the connection before the complete length field or payload has been received, the function returns `error_t::network_error`.
 
 ---
 
@@ -12811,23 +12826,14 @@ constexpr std::array<std::byte, 5> hello = {
 auto sent = xer::socket_send_message(client, hello);
 ```
 
-The receiver can read the frame explicitly:
+The receiver can read the frame with `socket_recv_message`:
 
 ```cpp
-std::array<std::byte, 4> header {};
-auto header_result = xer::socket_recv_exact(server, header);
-
-const auto size =
-    (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[0])) << 24) |
-    (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[1])) << 16) |
-    (static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[2])) << 8) |
-    static_cast<std::uint32_t>(std::to_integer<unsigned char>(header[3]));
-
-std::vector<std::byte> body(size);
-auto body_result = xer::socket_recv_exact(server, body);
+auto body = xer::socket_recv_message(server, 1024 * 1024);
 ```
 
-Applications should validate `size` against their own maximum accepted message size before allocating the payload buffer.
+The second argument is the maximum accepted payload size.
+It prevents an untrusted length field from causing an unbounded allocation.
 
 ---
 
