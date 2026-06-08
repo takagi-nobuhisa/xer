@@ -423,7 +423,6 @@ inline auto scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
 
     bool has_any_item = false;
     bool has_prev = false;
-    char32_t prev = U'\0';
     bool prev_is_ascii = false;
     unsigned char prev_ascii = 0;
 
@@ -431,7 +430,6 @@ inline auto scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
         scan_scanset_add_char(scanset, U']');
         has_any_item = true;
         has_prev = true;
-        prev = U']';
         prev_is_ascii = true;
         prev_ascii = static_cast<unsigned char>(']');
         ++index;
@@ -480,7 +478,6 @@ inline auto scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
 
                     has_any_item = true;
                     has_prev = true;
-                    prev = next_value;
                     prev_is_ascii = true;
                     prev_ascii = next_ascii;
                     continue;
@@ -490,7 +487,6 @@ inline auto scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
                 scan_scanset_add_char(scanset, next_value);
                 has_any_item = true;
                 has_prev = true;
-                prev = next_value;
                 prev_is_ascii = next_is_ascii;
                 prev_ascii = next_ascii;
                 continue;
@@ -499,7 +495,6 @@ inline auto scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
             scan_scanset_add_char(scanset, U'-');
             has_any_item = true;
             has_prev = true;
-            prev = U'-';
             prev_is_ascii = true;
             prev_ascii = static_cast<unsigned char>('-');
             ++index;
@@ -527,7 +522,6 @@ inline auto scan_scanset_add_char(scan_scanset_t& scanset, char32_t value) noexc
         scan_scanset_add_char(scanset, value);
         has_any_item = true;
         has_prev = true;
-        prev = value;
         prev_is_ascii = value_is_ascii;
         prev_ascii = value_ascii;
     }
