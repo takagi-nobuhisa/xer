@@ -21,19 +21,10 @@
 #include <iostream>
 #include <vector>
 
+#include <xer/diag.h>
 #include <xer/statistics.h>
 
 namespace {
-
-auto print_result(const char* label, const xer::result<double>& value) -> bool
-{
-    if (!value) {
-        return false;
-    }
-
-    std::cout << label << ": " << *value << "\n";
-    return true;
-}
 
 auto print_modes(
     const char* label,
@@ -59,20 +50,20 @@ auto main() -> int
     const std::vector<double> near_values{1.00, 1.02, 1.04, 2.0, 2.04};
     const std::vector<double> mean_values{1.0, 4.0, 16.0};
 
-    if (!print_result("mean", xer::mean(values)) ||
-        !print_result("sum", xer::sum(values)) ||
-        !print_result("product", xer::product(values)) ||
-        !print_result("median", xer::median(values)) ||
-        !print_result("quantile 25%", xer::quantile(values, 0.25)) ||
-        !print_result("percentile 75", xer::percentile(values, 75.0)) ||
-        !print_result("variance", xer::variance(values)) ||
-        !print_result("stddev", xer::stddev(values)) ||
-        !print_result("sample_variance", xer::sample_variance(values)) ||
-        !print_result("sample_stddev", xer::sample_stddev(values)) ||
+    if (!xer_print(u8"mean", xer::mean(values)) ||
+        !xer_print(u8"sum", xer::sum(values)) ||
+        !xer_print(u8"product", xer::product(values)) ||
+        !xer_print(u8"median", xer::median(values)) ||
+        !xer_print(u8"quantile 25%", xer::quantile(values, 0.25)) ||
+        !xer_print(u8"percentile 75", xer::percentile(values, 75.0)) ||
+        !xer_print(u8"variance", xer::variance(values)) ||
+        !xer_print(u8"stddev", xer::stddev(values)) ||
+        !xer_print(u8"sample_variance", xer::sample_variance(values)) ||
+        !xer_print(u8"sample_stddev", xer::sample_stddev(values)) ||
         !print_modes("modes", xer::mode(values)) ||
         !print_modes("tolerant modes", xer::mode(near_values, 0.05)) ||
-        !print_result("geometric_mean", xer::geometric_mean(mean_values)) ||
-        !print_result("harmonic_mean", xer::harmonic_mean(mean_values))) {
+        !xer_print(u8"geometric_mean", xer::geometric_mean(mean_values)) ||
+        !xer_print(u8"harmonic_mean", xer::harmonic_mean(mean_values))) {
         return 1;
     }
 

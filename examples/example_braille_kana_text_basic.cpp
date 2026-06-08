@@ -10,25 +10,9 @@
 // voiced yoon: ⠘⠡ ⠘⠹ ⠘⠮ ⠨⠭
 
 #include <string>
-#include <string_view>
 
 #include <xer/braille.h>
-#include <xer/stdio.h>
-
-namespace {
-
-auto print_result(
-    std::u8string_view label,
-    const xer::result<std::u8string>& value) -> bool
-{
-    if (!value.has_value()) {
-        return false;
-    }
-
-    return xer::printf(u8"%@%@\n", label, *value).has_value();
-}
-
-} // namespace
+#include <xer/diag.h>
 
 auto main() -> int
 {
@@ -36,13 +20,13 @@ auto main() -> int
     const auto yoon = xer::ja::kana_text_to_braille(u8"きゃ きゅ きょ");
     const auto voiced_yoon = xer::ja::kana_text_to_braille(u8"ぎゃ じゅ びょ ぴゅ");
 
-    if (!print_result(u8"basic text: ", basic_text)) {
+    if (!xer_print(u8"basic text", basic_text)) {
         return 1;
     }
-    if (!print_result(u8"yoon: ", yoon)) {
+    if (!xer_print(u8"yoon", yoon)) {
         return 1;
     }
-    if (!print_result(u8"voiced yoon: ", voiced_yoon)) {
+    if (!xer_print(u8"voiced yoon", voiced_yoon)) {
         return 1;
     }
 

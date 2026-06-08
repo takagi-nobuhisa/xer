@@ -9,25 +9,9 @@
 // punctuation: ⠰⠤⠇⠨⠴⠐⠡⠒⠰⠴⠢⠖
 
 #include <string>
-#include <string_view>
 
 #include <xer/braille.h>
-#include <xer/stdio.h>
-
-namespace {
-
-auto print_result(
-    std::u8string_view label,
-    const xer::result<std::u8string>& value) -> bool
-{
-    if (!value.has_value()) {
-        return false;
-    }
-
-    return xer::printf(u8"%@%@\n", label, *value).has_value();
-}
-
-} // namespace
+#include <xer/diag.h>
 
 auto main() -> int
 {
@@ -35,13 +19,13 @@ auto main() -> int
     const auto foreign_sounds = xer::ja::kana_text_to_braille(u8"ヴォ ファ フィ フェ フォ");
     const auto punctuation = xer::ja::kana_text_to_braille(u8"「にほんごてんじ」？！");
 
-    if (!print_result(u8"sentence: ", sentence)) {
+    if (!xer_print(u8"sentence", sentence)) {
         return 1;
     }
-    if (!print_result(u8"foreign sounds: ", foreign_sounds)) {
+    if (!xer_print(u8"foreign sounds", foreign_sounds)) {
         return 1;
     }
-    if (!print_result(u8"punctuation: ", punctuation)) {
+    if (!xer_print(u8"punctuation", punctuation)) {
         return 1;
     }
 

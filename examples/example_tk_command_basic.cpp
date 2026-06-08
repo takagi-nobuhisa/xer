@@ -1,6 +1,7 @@
 ﻿#include <string>
 #include <string_view>
 
+#include <xer/diag.h>
 #include <xer/stdio.h>
 #include <xer/tk.h>
 
@@ -14,20 +15,10 @@
 //
 // Expected output:
 // 10 + 20 = 30
-// name = xer
-// upper = XER
+// name: xer
+// upper: XER
 
 // XER_TEST_FEATURES: tcltk
-
-namespace {
-
-[[nodiscard]] auto print_result(std::u8string_view label, std::u8string_view value)
-    -> bool
-{
-    return xer::printf(u8"%@ = %@\n", label, value).has_value();
-}
-
-} // namespace
 
 auto main() -> int
 {
@@ -70,7 +61,7 @@ auto main() -> int
         return 1;
     }
 
-    if (!print_result(u8"name", *name)) {
+    if (!xer_print(u8"name", *name)) {
         return 1;
     }
 
@@ -79,7 +70,7 @@ auto main() -> int
         return 1;
     }
 
-    if (!print_result(u8"upper", *upper)) {
+    if (!xer_print(u8"upper", *upper)) {
         return 1;
     }
 
