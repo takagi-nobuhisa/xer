@@ -338,6 +338,8 @@ int main() {
     test_sscanf_nullptr_discards_value();
     test_sscanf_positional_arguments();
     test_sscanf_positional_control_token();
+    test_sscanf_string_wide_targets();
+    test_sscanf_scanset_wide_targets();
     test_sscanf_percent_literal();
     test_sscanf_match_failure_returns_partial_count();
     test_sscanf_size_modifier_affects_intermediate_type();
