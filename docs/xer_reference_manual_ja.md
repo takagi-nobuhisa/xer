@@ -12671,7 +12671,7 @@ This header provides:
 - TCP connection, bind, listen, and accept operations
 - UDP send/receive operations
 - reliable fixed-size send/receive helpers for stream sockets
-- length-prefixed message sending for stream sockets
+- length-prefixed message send/receive helpers for stream sockets
 - conversion of sockets to xer binary or text streams
 
 ---
