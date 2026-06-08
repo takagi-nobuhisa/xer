@@ -158,10 +158,11 @@ Its design is guided primarily by the following ideas:
 
 * preserve practical compatibility with `errno`-style categories where useful
 * allow xer-specific error categories where necessary
-* avoid using a success enumerator inside the error type itself
+* provide `success` as the named representation of value `0`
 
 ### General Interpretation
 
+* `success` has value `0` and represents the absence of an error
 * positive values correspond, where practical, to target-environment `errno`-style meanings
 * negative values are reserved for xer-specific categories
 

@@ -55,6 +55,9 @@ namespace xer {
  */
 [[nodiscard]] constexpr auto strerror(error_t code) noexcept -> result<std::u8string_view> {
     switch (code) {
+    case error_t::success:
+        return u8"Success";
+
     case error_t::perm:
         return u8"Operation not permitted";
     case error_t::noent:
@@ -145,9 +148,6 @@ namespace xer {
         return u8"Invalid or incomplete multibyte or wide character";
 #endif
 
-    case static_cast<error_t>(0):
-        return u8"Undefined error: 0";
-
     case error_t::logic_error:
         return u8"logic error";
     case error_t::domain_error:
@@ -195,6 +195,9 @@ namespace xer {
  */
 [[nodiscard]] constexpr auto get_error_name(error_t code) noexcept -> result<std::u8string_view> {
     switch (code) {
+    case error_t::success:
+        return u8"success";
+
     case error_t::perm:
         return u8"perm";
     case error_t::noent:
@@ -285,9 +288,6 @@ namespace xer {
         return u8"ilseq";
 #endif
 
-    case static_cast<error_t>(0):
-        return u8"0";
-
     case error_t::logic_error:
         return u8"logic_error";
     case error_t::domain_error:
@@ -338,6 +338,9 @@ namespace xer {
  */
 [[nodiscard]] constexpr auto get_errno_name(error_t code) noexcept -> result<std::u8string_view> {
     switch (code) {
+    case error_t::success:
+        return u8"0";
+
     case error_t::perm:
         return u8"EPERM";
     case error_t::noent:
@@ -428,9 +431,6 @@ namespace xer {
         return u8"EILSEQ";
 #endif
 
-    case static_cast<error_t>(0):
-        return u8"0";
-
     case error_t::logic_error:
     case error_t::domain_error:
     case error_t::invalid_argument:
@@ -441,6 +441,7 @@ namespace xer {
     case error_t::overflow_error:
     case error_t::underflow_error:
     case error_t::io_error:
+    case error_t::encoding_error:
     case error_t::not_found:
     case error_t::divide_by_zero:
     case error_t::network_error:

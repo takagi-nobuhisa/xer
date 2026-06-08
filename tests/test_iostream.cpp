@@ -17,20 +17,40 @@ namespace {
 
 void test_error_t_output()
 {
-    std::ostringstream out;
-    out << xer::error_t::invalid_argument;
-    xer_assert_eq(out.str(), "invalid_argument");
+    {
+        std::ostringstream out;
+        out << xer::error_t::success;
+        xer_assert_eq(out.str(), "success");
+    }
+
+    {
+        std::ostringstream out;
+        out << xer::error_t::invalid_argument;
+        xer_assert_eq(out.str(), "invalid_argument");
+    }
 }
 
 void test_error_t_input()
 {
-    std::istringstream in("end_of_file");
-    auto code = xer::error_t::runtime_error;
+    {
+        std::istringstream in("success");
+        auto code = xer::error_t::runtime_error;
 
-    in >> code;
+        in >> code;
 
-    xer_assert(in);
-    xer_assert(code == xer::error_t::end_of_file);
+        xer_assert(in);
+        xer_assert(code == xer::error_t::success);
+    }
+
+    {
+        std::istringstream in("end_of_file");
+        auto code = xer::error_t::runtime_error;
+
+        in >> code;
+
+        xer_assert(in);
+        xer_assert(code == xer::error_t::end_of_file);
+    }
 }
 
 void test_error_t_input_unknown_fails()

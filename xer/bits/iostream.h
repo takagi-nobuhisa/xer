@@ -82,6 +82,8 @@ inline auto write_u8_to_ostream(
         return true;                                                          \
     }
 
+    XER_DETAIL_PARSE_ERROR_NAME(success)
+
     XER_DETAIL_PARSE_ERROR_NAME(perm)
     XER_DETAIL_PARSE_ERROR_NAME(noent)
     XER_DETAIL_PARSE_ERROR_NAME(srch)

@@ -30,6 +30,8 @@ namespace xer {
  * Negative values are reserved for XER-specific or extended errors.
  */
 enum class error_t : std::int32_t {
+    success = 0,
+
     perm = EPERM,
     noent = ENOENT,
     srch = ESRCH,
@@ -342,8 +344,8 @@ namespace detail {
         return "ilseq";
 #endif
 
-    case static_cast<error_t>(0):
-        return "0";
+    case error_t::success:
+        return "success";
     case error_t::logic_error:
         return "logic_error";
     case error_t::domain_error:

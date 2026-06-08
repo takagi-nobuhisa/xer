@@ -76,12 +76,12 @@ void test_strerror_negative() {
 }
 
 /**
- * @brief Tests strerror() for zero.
+ * @brief Tests strerror() for success.
  */
-void test_strerror_zero() {
-    const auto result = xer::strerror(static_cast<xer::error_t>(0));
+void test_strerror_success() {
+    const auto result = xer::strerror(xer::error_t::success);
     xer_assert(result.has_value());
-    xer_assert_eq(result.value(), std::u8string_view(u8"Undefined error: 0"));
+    xer_assert_eq(result.value(), std::u8string_view(u8"Success"));
 }
 
 /**
@@ -149,12 +149,12 @@ void test_get_error_name_negative() {
 }
 
 /**
- * @brief Tests get_error_name() for zero.
+ * @brief Tests get_error_name() for success.
  */
-void test_get_error_name_zero() {
-    const auto result = xer::get_error_name(static_cast<xer::error_t>(0));
+void test_get_error_name_success() {
+    const auto result = xer::get_error_name(xer::error_t::success);
     xer_assert(result.has_value());
-    xer_assert_eq(result.value(), std::u8string_view(u8"0"));
+    xer_assert_eq(result.value(), std::u8string_view(u8"success"));
 }
 
 /**
@@ -222,10 +222,10 @@ void test_get_errno_name_negative() {
 }
 
 /**
- * @brief Tests get_errno_name() for zero.
+ * @brief Tests get_errno_name() for success.
  */
-void test_get_errno_name_zero() {
-    const auto result = xer::get_errno_name(static_cast<xer::error_t>(0));
+void test_get_errno_name_success() {
+    const auto result = xer::get_errno_name(xer::error_t::success);
     xer_assert(result.has_value());
     xer_assert_eq(result.value(), std::u8string_view(u8"0"));
 }
@@ -240,15 +240,15 @@ void test_get_errno_name_zero() {
 int main() {
     test_strerror_positive();
     test_strerror_negative();
-    test_strerror_zero();
+    test_strerror_success();
 
     test_get_error_name_positive();
     test_get_error_name_negative();
-    test_get_error_name_zero();
+    test_get_error_name_success();
 
     test_get_errno_name_positive();
     test_get_errno_name_negative();
-    test_get_errno_name_zero();
+    test_get_errno_name_success();
 
     return 0;
 }
