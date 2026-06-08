@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: e5d24a2c1ad5822dc071d67c552a6ad4d565d52ebcece33439dc1a64b8f01a1a -->
+<!-- xer-reference-source-sha256: 474b00b92e9a9030ffb1fced47189593837f0bd89e9594995a6344f7e60d6935 -->
 
 # `<xer/diag.h>`
 
@@ -25,6 +25,8 @@ inline constexpr xer::diag_level_t xer::diag_verbose;
 
 enum class xer::diag_category : std::uint32_t;
 
+xer_print(expression)
+xer_print(label, expression)
 xer_trace(category, level, object)
 xer_log(category, level, message)
 xer_log(category, level, format, ...)
@@ -38,13 +40,48 @@ xer_log(category, level, format, ...)
 
 このヘッダーは、診断、開発時のトレース、単純な実行時ログ出力のためのものです。
 
-トレースとログ出力は、次のものを共有します。
+単純な表示、トレース、ログ出力は同じ公開診断ヘッダーを共有します。トレースとログ出力は、次のものを共有します。
 
 * `diag_category`
 * `diag_level_t`
 * 名前付きレベル定数
 
 それぞれの出力先と現在のレベルは個別に設定されます。
+
+---
+
+
+## 単純表示
+
+`xer_print(expression)` は、単純診断表示ストリームへ1行を書き込みます。
+式は1回だけ評価され、ソース式のテキストがラベルとして使われます。
+
+```cpp
+int value = 42;
+xer_print(value);
+```
+
+概念的な出力は次のとおりです。
+
+```text
+value = 42
+```
+
+`xer_print(label, expression)` は、明示的な UTF-8 ラベル付きで1行を書き込みます。
+
+```cpp
+xer_print(u8"answer", value);
+```
+
+概念的な出力は次のとおりです。
+
+```text
+answer: 42
+```
+
+値は xer の `%@` printf変換を通じて整形されます。`result<T>` の場合、成功した結果は格納値を表示し、失敗した結果は `error(name)` を表示します。`result<void>` の成功結果は `ok` を表示します。
+
+`xer_print` は、コード例、簡単な確認、軽量な診断を目的としています。`NDEBUG` によって無効化されません。
 
 ---
 
@@ -118,7 +155,7 @@ YYYY-MM-DD HH:MM:SS.mmm
 
 ## 出力ストリーム
 
-トレース出力とログ出力は、既定では標準エラーのテキストストリームに出力されます。
+単純表示の出力先は、既定では標準出力のテキストストリームです。トレース出力とログ出力は、既定では標準エラーのテキストストリームに出力されます。
 対応するストリーム設定関数を使うことで、それぞれを個別に変更できます。
 
 ---
