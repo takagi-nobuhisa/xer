@@ -26,7 +26,7 @@ namespace detail {
  * @param value Source error code.
  * @return Converted error<void> object.
  */
-[[nodiscard]] constexpr error<void> to_error_void(error_t value) noexcept
+[[nodiscard]] constexpr auto to_error_void(error_t value) noexcept -> error<void>
 {
     return make_error(value);
 }
@@ -37,7 +37,7 @@ namespace detail {
  * @param value Source error object.
  * @return Same error object.
  */
-[[nodiscard]] constexpr error<void> to_error_void(const error<void>& value) noexcept
+[[nodiscard]] constexpr auto to_error_void(const error<void>& value) noexcept -> error<void>
 {
     return value;
 }
@@ -50,7 +50,7 @@ namespace detail {
  * @return Converted error<void> object preserving code and location.
  */
 template<class Detail>
-[[nodiscard]] constexpr error<void> to_error_void(const error<Detail>& value) noexcept
+[[nodiscard]] constexpr auto to_error_void(const error<Detail>& value) noexcept -> error<void>
 {
     return error<void>(value.code, value.location);
 }
@@ -63,7 +63,7 @@ template<class Detail>
  * @return Converted error<void> object.
  */
 template<class E>
-[[nodiscard]] constexpr error<void> to_error_void(const E&) noexcept
+[[nodiscard]] constexpr auto to_error_void(const E&) noexcept -> error<void>
 {
     return make_error(error_t::runtime_error);
 }
@@ -76,8 +76,8 @@ template<class E>
  * @return Unsigned absolute value.
  */
 template<class SignedInteger>
-[[nodiscard]] constexpr make_unsigned_ex_t<SignedInteger> signed_uabs(
-    SignedInteger value) noexcept
+[[nodiscard]] constexpr auto signed_uabs(
+    SignedInteger value) noexcept -> make_unsigned_ex_t<SignedInteger>
 {
     using unsigned_type = make_unsigned_ex_t<SignedInteger>;
 

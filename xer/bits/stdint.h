@@ -91,7 +91,7 @@ struct parsed_integer_literal {
  * @param ch Character to test.
  * @return `true` if the character is `'`.
  */
-[[nodiscard]] consteval bool is_digit_separator(char ch)
+[[nodiscard]] consteval auto is_digit_separator(char ch) -> bool
 {
     return ch == '\'';
 }
@@ -101,7 +101,7 @@ struct parsed_integer_literal {
  * @param ch Character to convert.
  * @return The digit value, or `-1` if the character is invalid.
  */
-[[nodiscard]] consteval int digit_value_of(char ch)
+[[nodiscard]] consteval auto digit_value_of(char ch) -> int
 {
     if (ch >= '0' && ch <= '9') {
         return ch - '0';
@@ -125,10 +125,10 @@ struct parsed_integer_literal {
  * @param digit Digit value.
  * @return Updated accumulated value.
  */
-[[nodiscard]] consteval uintmax_t append_digit(
+[[nodiscard]] consteval auto append_digit(
     uintmax_t value,
     integer_literal_base base,
-    unsigned digit)
+    unsigned digit) -> uintmax_t
 {
     const uintmax_t base_value = static_cast<uintmax_t>(static_cast<int>(base));
 
@@ -145,7 +145,7 @@ struct parsed_integer_literal {
  * @return Parsed literal information.
  */
 template<char... Chars>
-[[nodiscard]] consteval parsed_integer_literal parse_integer_literal()
+[[nodiscard]] consteval auto parse_integer_literal() -> parsed_integer_literal
 {
     constexpr char chars[] = {Chars..., '\0'};
     constexpr std::size_t count = sizeof...(Chars);
@@ -199,7 +199,7 @@ template<char... Chars>
  * @return Parsed value converted to `T`.
  */
 template<typename T, char... Chars>
-[[nodiscard]] consteval T parse_unsigned_integer_literal()
+[[nodiscard]] consteval auto parse_unsigned_integer_literal() -> T
 {
     static_assert(std::is_integral_v<T>);
     static_assert(std::is_unsigned_v<T>);
@@ -220,7 +220,7 @@ template<typename T, char... Chars>
  * @return Parsed value converted to `T`.
  */
 template<typename T, char... Chars>
-[[nodiscard]] consteval T parse_signed_integer_literal()
+[[nodiscard]] consteval auto parse_signed_integer_literal() -> T
 {
     static_assert(std::is_integral_v<T>);
     static_assert(std::is_signed_v<T>);

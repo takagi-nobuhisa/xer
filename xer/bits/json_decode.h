@@ -35,7 +35,7 @@ namespace xer::detail {
     return ch >= u8'0' && ch <= u8'9';
 }
 
-inline void json_append_utf8(std::u8string& out, char32_t code_point)
+inline auto json_append_utf8(std::u8string& out, char32_t code_point) -> void
 {
     const std::uint32_t packed = xer::advanced::utf32_to_packed_utf8(code_point);
     if (packed == xer::advanced::detail::invalid_packed_utf8) {
@@ -117,7 +117,7 @@ private:
     std::u8string_view text;
     std::size_t pos;
 
-    void skip_whitespace() noexcept
+    auto skip_whitespace() noexcept -> void
     {
         while (pos < text.size() && json_is_whitespace(text[pos])) {
             ++pos;

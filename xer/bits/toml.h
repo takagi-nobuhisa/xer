@@ -2311,13 +2311,13 @@ private:
     return array != nullptr && toml_array_is_array_of_tables(*array);
 }
 
-inline void toml_append_two_digits(std::u8string& out, int value)
+inline auto toml_append_two_digits(std::u8string& out, int value) -> void
 {
     out.push_back(static_cast<char8_t>(u8'0' + (value / 10) % 10));
     out.push_back(static_cast<char8_t>(u8'0' + value % 10));
 }
 
-inline void toml_append_four_digits(std::u8string& out, int value)
+inline auto toml_append_four_digits(std::u8string& out, int value) -> void
 {
     out.push_back(static_cast<char8_t>(u8'0' + (value / 1000) % 10));
     out.push_back(static_cast<char8_t>(u8'0' + (value / 100) % 10));
@@ -2325,9 +2325,9 @@ inline void toml_append_four_digits(std::u8string& out, int value)
     out.push_back(static_cast<char8_t>(u8'0' + value % 10));
 }
 
-inline void toml_encode_local_date(
+inline auto toml_encode_local_date(
     std::u8string& out,
-    const toml_local_date& value)
+    const toml_local_date& value) -> void
 {
     toml_append_four_digits(out, value.year);
     out.push_back(u8'-');
@@ -2336,9 +2336,9 @@ inline void toml_encode_local_date(
     toml_append_two_digits(out, value.day);
 }
 
-inline void toml_encode_local_time(
+inline auto toml_encode_local_time(
     std::u8string& out,
-    const toml_local_time& value)
+    const toml_local_time& value) -> void
 {
     toml_append_two_digits(out, value.hour);
     out.push_back(u8':');
@@ -2365,9 +2365,9 @@ inline void toml_encode_local_time(
     }
 }
 
-inline void toml_encode_offset(
+inline auto toml_encode_offset(
     std::u8string& out,
-    int offset_minutes)
+    int offset_minutes) -> void
 {
     if (offset_minutes == 0) {
         out.push_back(u8'Z');
@@ -2386,7 +2386,7 @@ inline void toml_encode_offset(
     toml_append_two_digits(out, offset_minutes % 60);
 }
 
-inline void toml_encode_string(std::u8string& out, std::u8string_view value)
+inline auto toml_encode_string(std::u8string& out, std::u8string_view value) -> void
 {
     out.push_back(u8'"');
 
@@ -2422,7 +2422,7 @@ inline void toml_encode_string(std::u8string& out, std::u8string_view value)
     out.push_back(u8'"');
 }
 
-inline void toml_encode_key_segment(std::u8string& out, std::u8string_view key);
+inline auto toml_encode_key_segment(std::u8string& out, std::u8string_view key) -> void;
 
 [[nodiscard]] inline auto toml_encode_value(
     std::u8string& out,
@@ -2572,7 +2572,7 @@ inline void toml_encode_key_segment(std::u8string& out, std::u8string_view key);
     return std::unexpected(make_error(error_t::invalid_argument));
 }
 
-inline void toml_encode_key_segment(std::u8string& out, std::u8string_view key)
+inline auto toml_encode_key_segment(std::u8string& out, std::u8string_view key) -> void
 {
     if (toml_is_bare_key(key)) {
         out.append(key);
@@ -2582,9 +2582,9 @@ inline void toml_encode_key_segment(std::u8string& out, std::u8string_view key)
     toml_encode_string(out, key);
 }
 
-inline void toml_encode_key_path(
+inline auto toml_encode_key_path(
     std::u8string& out,
-    const std::vector<std::u8string_view>& path)
+    const std::vector<std::u8string_view>& path) -> void
 {
     for (std::size_t i = 0; i < path.size(); ++i) {
         if (i != 0) {

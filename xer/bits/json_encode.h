@@ -23,7 +23,7 @@
 
 namespace xer::detail {
 
-inline void json_encode_append_utf8(std::u8string& out, char32_t code_point)
+inline auto json_encode_append_utf8(std::u8string& out, char32_t code_point) -> void
 {
     const std::uint32_t packed = xer::advanced::utf32_to_packed_utf8(code_point);
     if (packed == xer::advanced::detail::invalid_packed_utf8) {
@@ -52,7 +52,7 @@ inline void json_encode_append_utf8(std::u8string& out, char32_t code_point)
     }
 }
 
-inline void json_encode_append_hex4(std::u8string& out, std::uint16_t value)
+inline auto json_encode_append_hex4(std::u8string& out, std::uint16_t value) -> void
 {
     constexpr char8_t hex[] = u8"0123456789ABCDEF";
 

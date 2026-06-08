@@ -449,7 +449,7 @@ private:
     return {};
 }
 
-inline void ini_encode_entry(std::u8string& out, const ini_entry& entry)
+inline auto ini_encode_entry(std::u8string& out, const ini_entry& entry) -> void
 {
     out.append(entry.key);
     out.push_back(u8'=');

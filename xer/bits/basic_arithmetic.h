@@ -76,7 +76,7 @@ struct integer_value {
  *
  * @return Overflow error.
  */
-[[nodiscard]] constexpr error<void> make_arithmetic_overflow_error() noexcept
+[[nodiscard]] constexpr auto make_arithmetic_overflow_error() noexcept -> error<void>
 {
     return make_error(error_t::overflow_error);
 }
@@ -86,7 +86,7 @@ struct integer_value {
  *
  * @return Out-of-range error.
  */
-[[nodiscard]] constexpr error<void> make_arithmetic_out_of_range_error() noexcept
+[[nodiscard]] constexpr auto make_arithmetic_out_of_range_error() noexcept -> error<void>
 {
     return make_error(error_t::out_of_range);
 }
@@ -100,7 +100,7 @@ struct integer_value {
  */
 template<typename T>
     requires(is_canonical_integer_v<T>)
-[[nodiscard]] constexpr integer_value to_integer_value(T value) noexcept
+[[nodiscard]] constexpr auto to_integer_value(T value) noexcept -> integer_value
 {
     if constexpr (std::unsigned_integral<T>) {
         return integer_value{
@@ -128,7 +128,7 @@ template<typename T>
  * @param value Source value.
  * @return Negated value.
  */
-[[nodiscard]] constexpr integer_value negate_integer_value(integer_value value) noexcept
+[[nodiscard]] constexpr auto negate_integer_value(integer_value value) noexcept -> integer_value
 {
     if (value.magnitude == 0) {
         return integer_value{false, 0};
@@ -145,9 +145,9 @@ template<typename T>
  * @param rhs Right-hand side.
  * @return Sum, or an error if the magnitude overflows `uint128_t`.
  */
-[[nodiscard]] constexpr result<integer_value> add_integer_value(
+[[nodiscard]] constexpr auto add_integer_value(
     integer_value lhs,
-    integer_value rhs) noexcept
+    integer_value rhs) noexcept -> result<integer_value>
 {
     if (lhs.negative == rhs.negative) {
         const xer::uint128_t max_value =
@@ -187,9 +187,9 @@ template<typename T>
  * @param rhs Right-hand side.
  * @return Difference, or an error if the magnitude overflows `uint128_t`.
  */
-[[nodiscard]] constexpr result<integer_value> sub_integer_value(
+[[nodiscard]] constexpr auto sub_integer_value(
     integer_value lhs,
-    integer_value rhs) noexcept
+    integer_value rhs) noexcept -> result<integer_value>
 {
     return add_integer_value(lhs, negate_integer_value(rhs));
 }
@@ -201,9 +201,9 @@ template<typename T>
  * @param rhs Right-hand side.
  * @return Product, or an error if the magnitude overflows `uint128_t`.
  */
-[[nodiscard]] constexpr result<integer_value> mul_integer_value(
+[[nodiscard]] constexpr auto mul_integer_value(
     integer_value lhs,
-    integer_value rhs) noexcept
+    integer_value rhs) noexcept -> result<integer_value>
 {
     if (lhs.magnitude == 0 || rhs.magnitude == 0) {
         return integer_value{false, 0};
@@ -288,9 +288,9 @@ to_unsigned_result(integer_value value) noexcept
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr result<xer::int64_t> add_canonical(
+[[nodiscard]] constexpr auto add_canonical(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<xer::int64_t>
 {
     const auto result =
         add_integer_value(to_integer_value(lhs), to_integer_value(rhs));
@@ -312,9 +312,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr result<xer::uint64_t> uadd_canonical(
+[[nodiscard]] constexpr auto uadd_canonical(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<xer::uint64_t>
 {
     const auto result =
         add_integer_value(to_integer_value(lhs), to_integer_value(rhs));
@@ -336,9 +336,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr result<xer::int64_t> sub_canonical(
+[[nodiscard]] constexpr auto sub_canonical(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<xer::int64_t>
 {
     const auto result =
         sub_integer_value(to_integer_value(lhs), to_integer_value(rhs));
@@ -360,9 +360,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr result<xer::uint64_t> usub_canonical(
+[[nodiscard]] constexpr auto usub_canonical(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<xer::uint64_t>
 {
     const auto result =
         sub_integer_value(to_integer_value(lhs), to_integer_value(rhs));
@@ -384,9 +384,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr result<xer::int64_t> mul_canonical(
+[[nodiscard]] constexpr auto mul_canonical(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<xer::int64_t>
 {
     const auto result =
         mul_integer_value(to_integer_value(lhs), to_integer_value(rhs));
@@ -408,9 +408,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_canonical_integer_v<A> && is_canonical_integer_v<B>)
-[[nodiscard]] constexpr result<xer::uint64_t> umul_canonical(
+[[nodiscard]] constexpr auto umul_canonical(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<xer::uint64_t>
 {
     const auto result =
         mul_integer_value(to_integer_value(lhs), to_integer_value(rhs));
@@ -426,44 +426,44 @@ template<typename A, typename B>
 namespace xer {
 
 #define XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(A, B)                              \
-    [[nodiscard]] constexpr result<xer::int64_t> add(          \
+    [[nodiscard]] constexpr auto add(                                               \
         A lhs,                                                                      \
-        B rhs) noexcept                                                             \
+        B rhs) noexcept -> result<xer::int64_t>                                     \
     {                                                                               \
         return detail::add_canonical(lhs, rhs);                                     \
     }                                                                               \
                                                                                     \
-    [[nodiscard]] constexpr result<xer::uint64_t> uadd(        \
+    [[nodiscard]] constexpr auto uadd(                                              \
         A lhs,                                                                      \
-        B rhs) noexcept                                                             \
+        B rhs) noexcept -> result<xer::uint64_t>                                    \
     {                                                                               \
         return detail::uadd_canonical(lhs, rhs);                                    \
     }                                                                               \
                                                                                     \
-    [[nodiscard]] constexpr result<xer::int64_t> sub(          \
+    [[nodiscard]] constexpr auto sub(                                               \
         A lhs,                                                                      \
-        B rhs) noexcept                                                             \
+        B rhs) noexcept -> result<xer::int64_t>                                     \
     {                                                                               \
         return detail::sub_canonical(lhs, rhs);                                     \
     }                                                                               \
                                                                                     \
-    [[nodiscard]] constexpr result<xer::uint64_t> usub(        \
+    [[nodiscard]] constexpr auto usub(                                              \
         A lhs,                                                                      \
-        B rhs) noexcept                                                             \
+        B rhs) noexcept -> result<xer::uint64_t>                                    \
     {                                                                               \
         return detail::usub_canonical(lhs, rhs);                                    \
     }                                                                               \
                                                                                     \
-    [[nodiscard]] constexpr result<xer::int64_t> mul(          \
+    [[nodiscard]] constexpr auto mul(                                               \
         A lhs,                                                                      \
-        B rhs) noexcept                                                             \
+        B rhs) noexcept -> result<xer::int64_t>                                     \
     {                                                                               \
         return detail::mul_canonical(lhs, rhs);                                     \
     }                                                                               \
                                                                                     \
-    [[nodiscard]] constexpr result<xer::uint64_t> umul(        \
+    [[nodiscard]] constexpr auto umul(                                              \
         A lhs,                                                                      \
-        B rhs) noexcept                                                             \
+        B rhs) noexcept -> result<xer::uint64_t>                                    \
     {                                                                               \
         return detail::umul_canonical(lhs, rhs);                                    \
     }

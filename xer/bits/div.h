@@ -128,7 +128,7 @@ using unsigned_div_result_t = make_unsigned_ex_t<signed_div_result_t<A, B>>;
  *
  * @return Divide-by-zero error.
  */
-[[nodiscard]] constexpr error<void> make_divide_by_zero_error() noexcept
+[[nodiscard]] constexpr auto make_divide_by_zero_error() noexcept -> error<void>
 {
     return make_error(error_t::divide_by_zero);
 }
@@ -138,7 +138,7 @@ using unsigned_div_result_t = make_unsigned_ex_t<signed_div_result_t<A, B>>;
  *
  * @return Out-of-range error.
  */
-[[nodiscard]] constexpr error<void> make_div_out_of_range_error() noexcept
+[[nodiscard]] constexpr auto make_div_out_of_range_error() noexcept -> error<void>
 {
     return make_error(error_t::out_of_range);
 }
@@ -148,7 +148,7 @@ using unsigned_div_result_t = make_unsigned_ex_t<signed_div_result_t<A, B>>;
  *
  * @return Domain error.
  */
-[[nodiscard]] constexpr error<void> make_div_domain_error() noexcept
+[[nodiscard]] constexpr auto make_div_domain_error() noexcept -> error<void>
 {
     return make_error(error_t::dom);
 }

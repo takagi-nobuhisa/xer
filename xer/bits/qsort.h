@@ -41,8 +41,8 @@ concept pointer_compare =
  * @param rhs Right index.
  */
 template<typename T>
-constexpr void indexed_swap(T* base, std::size_t lhs, std::size_t rhs) noexcept(
-    noexcept(std::swap(base[lhs], base[rhs])))
+constexpr auto indexed_swap(T* base, std::size_t lhs, std::size_t rhs) noexcept(
+    noexcept(std::swap(base[lhs], base[rhs]))) -> void
 {
     if (lhs == rhs) {
         return;
@@ -61,8 +61,8 @@ constexpr void indexed_swap(T* base, std::size_t lhs, std::size_t rhs) noexcept(
  * @param rhs Right index.
  */
 template<typename Range>
-constexpr void indexed_swap(Range& range, std::size_t lhs, std::size_t rhs) noexcept(
-    noexcept(std::swap(range[lhs], range[rhs])))
+constexpr auto indexed_swap(Range& range, std::size_t lhs, std::size_t rhs) noexcept(
+    noexcept(std::swap(range[lhs], range[rhs]))) -> void
 {
     if (lhs == rhs) {
         return;
@@ -83,7 +83,7 @@ constexpr void indexed_swap(Range& range, std::size_t lhs, std::size_t rhs) noex
  * @param comp Comparator.
  */
 template<typename T, typename Compare>
-constexpr void sift_down(T* base, std::size_t root, std::size_t count, Compare& comp)
+constexpr auto sift_down(T* base, std::size_t root, std::size_t count, Compare& comp) -> void
 {
     while (true) {
         const std::size_t left = (root * 2) + 1;
@@ -121,7 +121,7 @@ constexpr void sift_down(T* base, std::size_t root, std::size_t count, Compare& 
  * @param comp Comparator.
  */
 template<typename T, typename Compare>
-constexpr void heap_sort(T* base, std::size_t count, Compare& comp)
+constexpr auto heap_sort(T* base, std::size_t count, Compare& comp) -> void
 {
     if (count < 2) {
         return;
@@ -148,7 +148,7 @@ constexpr void heap_sort(T* base, std::size_t count, Compare& comp)
  * @param comp Comparator.
  */
 template<typename Range, typename Compare>
-constexpr void sift_down(Range& range, std::size_t root, std::size_t count, Compare& comp)
+constexpr auto sift_down(Range& range, std::size_t root, std::size_t count, Compare& comp) -> void
 {
     while (true) {
         const std::size_t left = (root * 2) + 1;
@@ -185,7 +185,7 @@ constexpr void sift_down(Range& range, std::size_t root, std::size_t count, Comp
  * @param comp Comparator.
  */
 template<typename Range, typename Compare>
-constexpr void heap_sort(Range& range, Compare& comp)
+constexpr auto heap_sort(Range& range, Compare& comp) -> void
 {
     const std::size_t count = static_cast<std::size_t>(std::ranges::size(range));
     if (count < 2) {
@@ -217,7 +217,7 @@ namespace xer {
  */
 template<typename T, typename Compare>
     requires(std::swappable<T> && detail::pointer_compare<Compare, T>)
-constexpr void qsort(T* base, std::size_t count, Compare comp)
+constexpr auto qsort(T* base, std::size_t count, Compare comp) -> void
 {
     if (count == 0) {
         return;
@@ -238,7 +238,7 @@ constexpr void qsort(T* base, std::size_t count, Compare comp)
  */
 template<typename T, std::size_t N, typename Compare>
     requires(std::swappable<T> && detail::pointer_compare<Compare, T>)
-constexpr void qsort(T (&base)[N], Compare comp)
+constexpr auto qsort(T (&base)[N], Compare comp) -> void
 {
     qsort(base, N, comp);
 }
@@ -256,7 +256,7 @@ template<typename Range, typename Compare>
         detail::mutable_random_access_searchable_range<Range> &&
         std::swappable<std::ranges::range_value_t<Range>> &&
         detail::pointer_compare<Compare, std::ranges::range_value_t<Range>>)
-constexpr void qsort(Range& base, Compare comp)
+constexpr auto qsort(Range& base, Compare comp) -> void
 {
     detail::heap_sort(base, comp);
 }

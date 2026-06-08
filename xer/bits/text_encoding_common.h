@@ -240,7 +240,7 @@ namespace xer::detail {
  * @param out Destination string.
  * @param packed Packed UTF-8 value.
  */
-inline void append_packed_utf8(std::u8string& out, std::uint32_t packed)
+inline auto append_packed_utf8(std::u8string& out, std::uint32_t packed) -> void
 {
     const unsigned char b1 = static_cast<unsigned char>(packed & 0xffu);
     const unsigned char b2 = static_cast<unsigned char>((packed >> 8) & 0xffu);

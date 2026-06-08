@@ -211,9 +211,9 @@ struct error : error<void>, detail::error_detail_storage<Detail> {
  * @param location Source location where the error is created.
  * @return Created error object.
  */
-[[nodiscard]] constexpr error<void> make_error(
+[[nodiscard]] constexpr auto make_error(
     error_t code,
-    std::source_location location = std::source_location::current()) noexcept {
+    std::source_location location = std::source_location::current()) noexcept -> error<void> {
     return error<void>(code, location);
 }
 
@@ -229,11 +229,11 @@ struct error : error<void>, detail::error_detail_storage<Detail> {
  */
 template<class Detail, class T>
     requires(!std::same_as<Detail, void> && std::constructible_from<Detail, T&&>)
-[[nodiscard]] constexpr error<Detail> make_error(
+[[nodiscard]] constexpr auto make_error(
     error_t code,
     T&& value,
     std::source_location location = std::source_location::current()) noexcept(
-    noexcept(error<Detail>(code, std::forward<T>(value), location))) {
+    noexcept(error<Detail>(code, std::forward<T>(value), location))) -> error<Detail> {
     return error<Detail>(code, std::forward<T>(value), location);
 }
 

@@ -680,9 +680,9 @@ struct romaji_syllable {
  * @param output Destination code-point buffer.
  * @param text ASCII text to append.
  */
-inline void append_romaji_ascii(
+inline auto append_romaji_ascii(
     std::vector<char32_t>& output,
-    const std::string_view text)
+    const std::string_view text) -> void
 {
     for (const char value : text) {
         output.push_back(static_cast<char32_t>(

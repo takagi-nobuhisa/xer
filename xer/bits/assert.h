@@ -58,7 +58,7 @@ concept ostream_writable = requires(std::ostringstream& os, const t& value) {
  * @param value Byte string view.
  * @return UTF-8 string.
  */
-[[nodiscard]] inline std::u8string bytes_to_u8string(std::string_view value)
+[[nodiscard]] inline auto bytes_to_u8string(std::string_view value) -> std::u8string
 {
     return std::u8string(reinterpret_cast<const char8_t*>(value.data()), value.size());
 }
@@ -68,7 +68,7 @@ concept ostream_writable = requires(std::ostringstream& os, const t& value) {
  * @param value UTF-8 string.
  * @return Byte string.
  */
-[[nodiscard]] inline std::string u8string_to_bytes(const std::u8string& value)
+[[nodiscard]] inline auto u8string_to_bytes(const std::u8string& value) -> std::string
 {
     return std::string(reinterpret_cast<const char*>(value.data()), value.size());
 }
@@ -78,7 +78,7 @@ concept ostream_writable = requires(std::ostringstream& os, const t& value) {
  * @param out Output string.
  * @param value Byte string view.
  */
-inline void append_bytes(std::u8string& out, std::string_view value)
+inline auto append_bytes(std::u8string& out, std::string_view value) -> void
 {
     out.append(reinterpret_cast<const char8_t*>(value.data()), value.size());
 }
@@ -88,7 +88,7 @@ inline void append_bytes(std::u8string& out, std::string_view value)
  * @param out Output string.
  * @param value Value to append.
  */
-inline void append_uint(std::u8string& out, std::uint_least32_t value)
+inline auto append_uint(std::u8string& out, std::uint_least32_t value) -> void
 {
     char buffer[32];
     std::size_t length = 0;
@@ -109,7 +109,7 @@ inline void append_uint(std::u8string& out, std::uint_least32_t value)
  * @param out Output string.
  * @param code_point Code point.
  */
-inline void append_utf8(std::u8string& out, char32_t code_point)
+inline auto append_utf8(std::u8string& out, char32_t code_point) -> void
 {
     constexpr char32_t replacement = U'\uFFFD';
 
@@ -145,7 +145,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value UTF-16 string view.
  * @return UTF-8 string.
  */
-[[nodiscard]] inline std::u8string utf16_to_utf8(std::u16string_view value)
+[[nodiscard]] inline auto utf16_to_utf8(std::u16string_view value) -> std::u8string
 {
     constexpr char32_t replacement = U'\uFFFD';
 
@@ -189,7 +189,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value UTF-32 string view.
  * @return UTF-8 string.
  */
-[[nodiscard]] inline std::u8string utf32_to_utf8(std::u32string_view value)
+[[nodiscard]] inline auto utf32_to_utf8(std::u32string_view value) -> std::u8string
 {
     std::u8string out;
 
@@ -205,7 +205,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Wide string view.
  * @return UTF-8 string.
  */
-[[nodiscard]] inline std::u8string wide_to_utf8(std::wstring_view value)
+[[nodiscard]] inline auto wide_to_utf8(std::wstring_view value) -> std::u8string
 {
 #if __SIZEOF_WCHAR_T__ == 2
     return utf16_to_utf8(
@@ -227,7 +227,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value CP932 string.
  * @return UTF-8 string.
  */
-[[nodiscard]] inline std::u8string cp932_to_utf8(const unsigned char* value)
+[[nodiscard]] inline auto cp932_to_utf8(const unsigned char* value) -> std::u8string
 {
     constexpr char32_t replacement = U'\uFFFD';
 
@@ -267,7 +267,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(bool value)
+[[nodiscard]] inline auto value_to_string(bool value) -> std::u8string
 {
     return value ? u8"true" : u8"false";
 }
@@ -277,7 +277,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(char value)
+[[nodiscard]] inline auto value_to_string(char value) -> std::u8string
 {
     return std::u8string(1, static_cast<char8_t>(static_cast<unsigned char>(value)));
 }
@@ -287,7 +287,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(signed char value)
+[[nodiscard]] inline auto value_to_string(signed char value) -> std::u8string
 {
     return std::u8string(1, static_cast<char8_t>(static_cast<unsigned char>(value)));
 }
@@ -297,7 +297,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(unsigned char value)
+[[nodiscard]] inline auto value_to_string(unsigned char value) -> std::u8string
 {
     std::ostringstream os;
     os << static_cast<unsigned int>(value);
@@ -309,7 +309,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(wchar_t value)
+[[nodiscard]] inline auto value_to_string(wchar_t value) -> std::u8string
 {
     return wide_to_utf8(std::wstring_view(&value, 1));
 }
@@ -319,7 +319,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(char8_t value)
+[[nodiscard]] inline auto value_to_string(char8_t value) -> std::u8string
 {
     return std::u8string(1, value);
 }
@@ -329,7 +329,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(char16_t value)
+[[nodiscard]] inline auto value_to_string(char16_t value) -> std::u8string
 {
     return utf16_to_utf8(std::u16string_view(&value, 1));
 }
@@ -339,7 +339,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(char32_t value)
+[[nodiscard]] inline auto value_to_string(char32_t value) -> std::u8string
 {
     return utf32_to_utf8(std::u32string_view(&value, 1));
 }
@@ -349,7 +349,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Pointer value.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const char* value)
+[[nodiscard]] inline auto value_to_string(const char* value) -> std::u8string
 {
     if (value == nullptr) {
         return u8"null";
@@ -363,7 +363,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Pointer value.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const signed char* value)
+[[nodiscard]] inline auto value_to_string(const signed char* value) -> std::u8string
 {
     if (value == nullptr) {
         return u8"null";
@@ -377,7 +377,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Pointer value.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const unsigned char* value)
+[[nodiscard]] inline auto value_to_string(const unsigned char* value) -> std::u8string
 {
     if (value == nullptr) {
         return u8"null";
@@ -391,7 +391,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Pointer value.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const wchar_t* value)
+[[nodiscard]] inline auto value_to_string(const wchar_t* value) -> std::u8string
 {
     if (value == nullptr) {
         return u8"null";
@@ -405,7 +405,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Pointer value.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const char8_t* value)
+[[nodiscard]] inline auto value_to_string(const char8_t* value) -> std::u8string
 {
     if (value == nullptr) {
         return u8"null";
@@ -419,7 +419,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Pointer value.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const char16_t* value)
+[[nodiscard]] inline auto value_to_string(const char16_t* value) -> std::u8string
 {
     if (value == nullptr) {
         return u8"null";
@@ -433,7 +433,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Pointer value.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const char32_t* value)
+[[nodiscard]] inline auto value_to_string(const char32_t* value) -> std::u8string
 {
     if (value == nullptr) {
         return u8"null";
@@ -447,7 +447,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const std::string& value)
+[[nodiscard]] inline auto value_to_string(const std::string& value) -> std::u8string
 {
     return bytes_to_u8string(value);
 }
@@ -457,7 +457,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(std::string_view value)
+[[nodiscard]] inline auto value_to_string(std::string_view value) -> std::u8string
 {
     return bytes_to_u8string(value);
 }
@@ -467,7 +467,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const std::wstring& value)
+[[nodiscard]] inline auto value_to_string(const std::wstring& value) -> std::u8string
 {
     return wide_to_utf8(value);
 }
@@ -477,7 +477,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(std::wstring_view value)
+[[nodiscard]] inline auto value_to_string(std::wstring_view value) -> std::u8string
 {
     return wide_to_utf8(value);
 }
@@ -487,7 +487,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const std::u8string& value)
+[[nodiscard]] inline auto value_to_string(const std::u8string& value) -> std::u8string
 {
     return value;
 }
@@ -497,7 +497,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(std::u8string_view value)
+[[nodiscard]] inline auto value_to_string(std::u8string_view value) -> std::u8string
 {
     return std::u8string(value);
 }
@@ -507,7 +507,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const std::u16string& value)
+[[nodiscard]] inline auto value_to_string(const std::u16string& value) -> std::u8string
 {
     return utf16_to_utf8(value);
 }
@@ -517,7 +517,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(std::u16string_view value)
+[[nodiscard]] inline auto value_to_string(std::u16string_view value) -> std::u8string
 {
     return utf16_to_utf8(value);
 }
@@ -527,7 +527,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(const std::u32string& value)
+[[nodiscard]] inline auto value_to_string(const std::u32string& value) -> std::u8string
 {
     return utf32_to_utf8(value);
 }
@@ -537,7 +537,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @param value Value to convert.
  * @return Diagnostic string.
  */
-[[nodiscard]] inline std::u8string value_to_string(std::u32string_view value)
+[[nodiscard]] inline auto value_to_string(std::u32string_view value) -> std::u8string
 {
     return utf32_to_utf8(value);
 }
@@ -549,7 +549,7 @@ inline void append_utf8(std::u8string& out, char32_t code_point)
  * @return Diagnostic string.
  */
 template<typename t>
-[[nodiscard]] inline std::u8string value_to_string(const t& value)
+[[nodiscard]] inline auto value_to_string(const t& value) -> std::u8string
 {
     if constexpr (ostream_writable<t>) {
         std::ostringstream os;
@@ -568,11 +568,11 @@ template<typename t>
  * @param location Source location.
  * @return Formatted message.
  */
-[[nodiscard]] inline std::u8string build_assert_message(
+[[nodiscard]] inline auto build_assert_message(
     std::string_view kind,
     std::string_view expression_text,
     std::u8string_view detail_text,
-    const std::source_location& location)
+    const std::source_location& location) -> std::u8string
 {
     std::u8string out;
 
@@ -606,21 +606,21 @@ template<typename t>
  * @param detail_text Additional detail.
  * @param location Source location.
  */
-[[noreturn]] inline void throw_assertion_failure(
+[[noreturn]] inline auto throw_assertion_failure(
     std::string_view kind,
     std::string_view expression_text,
     std::u8string_view detail_text,
-    const std::source_location& location)
+    const std::source_location& location) -> void
 {
     throw assertion_error(
         u8string_to_bytes(build_assert_message(kind, expression_text, detail_text, location)));
 }
 
-[[noreturn]] inline void throw_assertion_failure(
+[[noreturn]] inline auto throw_assertion_failure(
     std::string_view kind,
     std::string_view expression_text,
     std::string_view detail_text,
-    const std::source_location& location)
+    const std::source_location& location) -> void
 {
     throw_assertion_failure(
         kind,
@@ -635,10 +635,10 @@ template<typename t>
  * @param expression_text Text of the checked expression.
  * @param location Source location.
  */
-inline void assert_true(
+inline auto assert_true(
     bool condition,
     std::string_view expression_text,
-    const std::source_location& location)
+    const std::source_location& location) -> void
 {
     if (!condition) {
         throw_assertion_failure("xer_assert", expression_text, u8"expected true", location);
@@ -651,10 +651,10 @@ inline void assert_true(
  * @param expression_text Text of the checked expression.
  * @param location Source location.
  */
-inline void assert_false(
+inline auto assert_false(
     bool condition,
     std::string_view expression_text,
-    const std::source_location& location)
+    const std::source_location& location) -> void
 {
     if (condition) {
         throw_assertion_failure("xer_assert_not", expression_text, u8"expected false", location);
@@ -672,12 +672,12 @@ inline void assert_false(
  * @param location Source location.
  */
 template<typename lhs_t, typename rhs_t>
-inline void assert_eq(
+inline auto assert_eq(
     const lhs_t& lhs,
     const rhs_t& rhs,
     std::string_view lhs_text,
     std::string_view rhs_text,
-    const std::source_location& location)
+    const std::source_location& location) -> void
 {
     if (!(lhs == rhs)) {
         std::u8string detail;
@@ -705,12 +705,12 @@ inline void assert_eq(
  * @param location Source location.
  */
 template<typename lhs_t, typename rhs_t>
-inline void assert_ne(
+inline auto assert_ne(
     const lhs_t& lhs,
     const rhs_t& rhs,
     std::string_view lhs_text,
     std::string_view rhs_text,
-    const std::source_location& location)
+    const std::source_location& location) -> void
 {
     if (!(lhs != rhs)) {
         std::u8string detail;
@@ -738,12 +738,12 @@ inline void assert_ne(
  * @param location Source location.
  */
 template<typename lhs_t, typename rhs_t>
-inline void assert_lt(
+inline auto assert_lt(
     const lhs_t& lhs,
     const rhs_t& rhs,
     std::string_view lhs_text,
     std::string_view rhs_text,
-    const std::source_location& location)
+    const std::source_location& location) -> void
 {
     if (!(lhs < rhs)) {
         std::u8string detail;

@@ -136,7 +136,7 @@ template<typename T>
  *
  * @param ps State object.
  */
-inline void clear_state(xer::mbstate_t* ps) noexcept {
+inline auto clear_state(xer::mbstate_t* ps) noexcept -> void {
     if (ps == nullptr) {
         return;
     }

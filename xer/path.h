@@ -213,7 +213,7 @@ namespace detail {
  *
  * @param value Target UTF-8 string.
  */
-inline void normalize_separators(std::u8string& value) noexcept
+inline auto normalize_separators(std::u8string& value) noexcept -> void
 {
     for (auto& ch : value) {
         if (ch == u8'\\') {
@@ -229,7 +229,7 @@ inline void normalize_separators(std::u8string& value) noexcept
  *
  * @param value Target wide string.
  */
-inline void normalize_native_to_internal(std::wstring& value) noexcept
+inline auto normalize_native_to_internal(std::wstring& value) noexcept -> void
 {
     for (auto& ch : value) {
         if (ch == L'\\') {
@@ -243,7 +243,7 @@ inline void normalize_native_to_internal(std::wstring& value) noexcept
  *
  * @param value Target wide string.
  */
-inline void normalize_internal_to_native(std::wstring& value) noexcept
+inline auto normalize_internal_to_native(std::wstring& value) noexcept -> void
 {
     for (auto& ch : value) {
         if (ch == L'/') {
@@ -259,7 +259,7 @@ inline void normalize_internal_to_native(std::wstring& value) noexcept
  *
  * @param value Target byte string.
  */
-inline void normalize_native_to_internal(std::string& value) noexcept
+inline auto normalize_native_to_internal(std::string& value) noexcept -> void
 {
     for (auto& ch : value) {
         if (ch == '\\') {

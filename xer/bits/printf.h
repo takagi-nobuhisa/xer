@@ -32,9 +32,9 @@ namespace xer::detail {
  * @param index Current byte offset. Advanced on success.
  * @return Decoded code point on success.
  */
-[[nodiscard]] inline result<char32_t> decode_one_utf8(
+[[nodiscard]] inline auto decode_one_utf8(
     std::u8string_view text,
-    std::size_t& index)
+    std::size_t& index) -> result<char32_t>
 {
     if (index >= text.size()) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -125,9 +125,9 @@ namespace xer::detail {
  * @param text Source UTF-8 text.
  * @return Written byte count on success.
  */
-[[nodiscard]] inline result<std::size_t> write_u8_to_text_stream(
+[[nodiscard]] inline auto write_u8_to_text_stream(
     text_stream& stream,
-    std::u8string_view text)
+    std::u8string_view text) -> result<std::size_t>
 {
     if (!stream.has_value()) {
         return std::unexpected(make_error(error_t::io_error));
@@ -171,10 +171,10 @@ namespace xer {
  * @return Written byte count on success.
  */
 template<typename... Args>
-[[nodiscard]] inline result<std::size_t> fprintf(
+[[nodiscard]] inline auto fprintf(
     text_stream& stream,
     std::u8string_view format,
-    Args&&... args)
+    Args&&... args) -> result<std::size_t>
 {
     auto formatted = detail::format_printf(format, std::forward<Args>(args)...);
     if (!formatted.has_value()) {
@@ -194,10 +194,10 @@ template<typename... Args>
  * @return Written byte count on success.
  */
 template<typename... Args>
-[[nodiscard]] inline result<std::size_t> sprintf(
+[[nodiscard]] inline auto sprintf(
     std::u8string& out,
     std::u8string_view format,
-    Args&&... args)
+    Args&&... args) -> result<std::size_t>
 {
     auto formatted = detail::format_printf(format, std::forward<Args>(args)...);
     if (!formatted.has_value()) {
@@ -217,9 +217,9 @@ template<typename... Args>
  * @return Written byte count on success.
  */
 template<typename... Args>
-[[nodiscard]] inline result<std::size_t> printf(
+[[nodiscard]] inline auto printf(
     std::u8string_view format,
-    Args&&... args)
+    Args&&... args) -> result<std::size_t>
 {
 #if __has_include(<xer/bits/standard_streams.h>)
     return fprintf(standard_output, format, std::forward<Args>(args)...);

@@ -507,7 +507,7 @@ private:
     {
     }
 
-    void close_handle() noexcept
+    auto close_handle() noexcept -> void
     {
         if (handle_ != nullptr) {
             CloseHandle(handle_);
@@ -515,7 +515,7 @@ private:
         }
     }
 
-    void move_from(process& other) noexcept
+    auto move_from(process& other) noexcept -> void
     {
         handle_ = other.handle_;
         other.handle_ = nullptr;
@@ -528,12 +528,12 @@ private:
     {
     }
 
-    void close_handle() noexcept
+    auto close_handle() noexcept -> void
     {
         pid_ = -1;
     }
 
-    void move_from(process& other) noexcept
+    auto move_from(process& other) noexcept -> void
     {
         pid_ = other.pid_;
         other.pid_ = -1;

@@ -28,8 +28,8 @@ namespace xer::detail {
  * @return Unexpected error result.
  */
 template<typename T>
-[[nodiscard]] inline result<T> unexpected_explode_error(
-    const error_t code)
+[[nodiscard]] inline auto unexpected_explode_error(
+    const error_t code) -> result<T>
 {
     return std::unexpected(make_error(code));
 }
@@ -44,11 +44,10 @@ template<typename T>
  * @param limit Maximum number of elements to return.
  * @return Vector of string views on success.
  */
-[[nodiscard]] inline result<std::vector<std::u8string_view>>
-explode_view_impl(
+[[nodiscard]] inline auto explode_view_impl(
     const std::u8string_view separator,
     const std::u8string_view source,
-    int limit)
+    int limit) -> result<std::vector<std::u8string_view>>
 {
     if (separator.empty()) {
         return unexpected_explode_error<std::vector<std::u8string_view>>(
@@ -120,11 +119,10 @@ explode_view_impl(
  * @param limit Maximum number of elements to return.
  * @return Vector of owning strings on success.
  */
-[[nodiscard]] inline result<std::vector<std::u8string>>
-explode_impl(
+[[nodiscard]] inline auto explode_impl(
     const std::u8string_view separator,
     const std::u8string_view source,
-    const int limit)
+    const int limit) -> result<std::vector<std::u8string>>
 {
     const auto views = explode_view_impl(separator, source, limit);
     if (!views.has_value()) {
@@ -160,11 +158,10 @@ namespace xer {
  * @param limit Maximum number of elements to return.
  * @return Vector of owning strings on success.
  */
-[[nodiscard]] inline result<std::vector<std::u8string>>
-explode(
+[[nodiscard]] inline auto explode(
     const std::u8string_view separator,
     const std::u8string_view source,
-    const int limit = INT_MAX)
+    const int limit = INT_MAX) -> result<std::vector<std::u8string>>
 {
     return detail::explode_impl(separator, source, limit);
 }
@@ -183,11 +180,10 @@ explode(
  * @param limit Maximum number of elements to return.
  * @return Vector of string views on success.
  */
-[[nodiscard]] inline result<std::vector<std::u8string_view>>
-explode_view(
+[[nodiscard]] inline auto explode_view(
     const std::u8string_view separator,
     const std::u8string_view source,
-    const int limit = INT_MAX)
+    const int limit = INT_MAX) -> result<std::vector<std::u8string_view>>
 {
     return detail::explode_view_impl(separator, source, limit);
 }

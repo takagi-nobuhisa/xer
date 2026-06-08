@@ -43,11 +43,11 @@ concept bsearch_pointer_compare =
  * @return Found pointer on success, or an error on failure.
  */
 template<typename T, typename Compare>
-[[nodiscard]] constexpr result<T*> bsearch_pointer_impl(
+[[nodiscard]] constexpr auto bsearch_pointer_impl(
     const T* key,
     T* base,
     std::size_t count,
-    Compare& comp)
+    Compare& comp) -> result<T*>
 {
     if (count == 0) {
         return std::unexpected(make_error(error_t::not_found));
@@ -88,11 +88,11 @@ template<typename T, typename Compare>
  * @return Found pointer on success, or an error on failure.
  */
 template<typename T, typename Compare>
-[[nodiscard]] constexpr result<const T*> bsearch_pointer_impl(
+[[nodiscard]] constexpr auto bsearch_pointer_impl(
     const T* key,
     const T* base,
     std::size_t count,
-    Compare& comp)
+    Compare& comp) -> result<const T*>
 {
     if (count == 0) {
         return std::unexpected(make_error(error_t::not_found));
@@ -230,11 +230,11 @@ namespace xer {
  */
 template<typename T, typename Compare>
     requires(detail::bsearch_pointer_compare<Compare, T>)
-[[nodiscard]] constexpr result<T*> bsearch(
+[[nodiscard]] constexpr auto bsearch(
     const T* key,
     T* base,
     std::size_t count,
-    Compare comp)
+    Compare comp) -> result<T*>
 {
     return detail::bsearch_pointer_impl(key, base, count, comp);
 }
@@ -252,11 +252,11 @@ template<typename T, typename Compare>
  */
 template<typename T, typename Compare>
     requires(detail::bsearch_pointer_compare<Compare, T>)
-[[nodiscard]] constexpr result<const T*> bsearch(
+[[nodiscard]] constexpr auto bsearch(
     const T* key,
     const T* base,
     std::size_t count,
-    Compare comp)
+    Compare comp) -> result<const T*>
 {
     return detail::bsearch_pointer_impl(key, base, count, comp);
 }
@@ -274,10 +274,10 @@ template<typename T, typename Compare>
  */
 template<typename T, std::size_t N, typename Compare>
     requires(detail::bsearch_pointer_compare<Compare, T>)
-[[nodiscard]] constexpr result<T*> bsearch(
+[[nodiscard]] constexpr auto bsearch(
     const T* key,
     T (&base)[N],
-    Compare comp)
+    Compare comp) -> result<T*>
 {
     return detail::bsearch_pointer_impl(key, base, N, comp);
 }
@@ -295,10 +295,10 @@ template<typename T, std::size_t N, typename Compare>
  */
 template<typename T, std::size_t N, typename Compare>
     requires(detail::bsearch_pointer_compare<Compare, T>)
-[[nodiscard]] constexpr result<const T*> bsearch(
+[[nodiscard]] constexpr auto bsearch(
     const T* key,
     const T (&base)[N],
-    Compare comp)
+    Compare comp) -> result<const T*>
 {
     return detail::bsearch_pointer_impl(key, base, N, comp);
 }
@@ -317,10 +317,10 @@ template<typename Range, typename Compare>
     requires(
         detail::mutable_random_access_searchable_range<Range> &&
         detail::bsearch_pointer_compare<Compare, std::ranges::range_value_t<Range>>)
-[[nodiscard]] constexpr result<std::ranges::iterator_t<Range>> bsearch(
+[[nodiscard]] constexpr auto bsearch(
     const std::ranges::range_value_t<Range>* key,
     Range& base,
-    Compare comp)
+    Compare comp) -> result<std::ranges::iterator_t<Range>>
 {
     return detail::bsearch_range_impl(key, base, comp);
 }
@@ -339,10 +339,10 @@ template<typename Range, typename Compare>
     requires(
         detail::random_access_searchable_range<const Range> &&
         detail::bsearch_pointer_compare<Compare, std::ranges::range_value_t<Range>>)
-[[nodiscard]] constexpr result<std::ranges::iterator_t<const Range>> bsearch(
+[[nodiscard]] constexpr auto bsearch(
     const std::ranges::range_value_t<Range>* key,
     const Range& base,
-    Compare comp)
+    Compare comp) -> result<std::ranges::iterator_t<const Range>>
 {
     return detail::bsearch_range_impl(key, base, comp);
 }

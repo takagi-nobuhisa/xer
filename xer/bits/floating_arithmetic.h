@@ -55,7 +55,7 @@ inline constexpr bool is_floating_arithmetic_pair_v =
  */
 template<typename T>
     requires(is_floating_arithmetic_operand_v<T>)
-[[nodiscard]] constexpr long double to_long_double(T value) noexcept
+[[nodiscard]] constexpr auto to_long_double(T value) noexcept -> long double
 {
     return static_cast<long double>(value);
 }
@@ -66,7 +66,7 @@ template<typename T>
  * @param value Value to test.
  * @return `true` if finite.
  */
-[[nodiscard]] inline bool is_finite(long double value) noexcept
+[[nodiscard]] inline auto is_finite(long double value) noexcept -> bool
 {
     return std::isfinite(value);
 }
@@ -76,7 +76,7 @@ template<typename T>
  *
  * @return Domain error.
  */
-[[nodiscard]] constexpr error<void> make_floating_domain_error() noexcept
+[[nodiscard]] constexpr auto make_floating_domain_error() noexcept -> error<void>
 {
     return make_error(error_t::dom);
 }
@@ -87,8 +87,7 @@ template<typename T>
  * @param value Value to validate.
  * @return Success if finite, otherwise an error.
  */
-[[nodiscard]] inline result<long double>
-validate_operand(long double value) noexcept
+[[nodiscard]] inline auto validate_operand(long double value) noexcept -> result<long double>
 {
     if (!is_finite(value)) {
         return std::unexpected(make_floating_domain_error());
@@ -103,8 +102,7 @@ validate_operand(long double value) noexcept
  * @param value Value to validate.
  * @return Success if finite, otherwise an error.
  */
-[[nodiscard]] inline result<long double>
-validate_result(long double value) noexcept
+[[nodiscard]] inline auto validate_result(long double value) noexcept -> result<long double>
 {
     if (!is_finite(value)) {
         return std::unexpected(make_floating_domain_error());
@@ -124,9 +122,9 @@ validate_result(long double value) noexcept
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> add_floating(
+[[nodiscard]] inline auto add_floating(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<long double>
 {
     const auto left = validate_operand(to_long_double(lhs));
     if (!left) {
@@ -152,9 +150,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> sub_floating(
+[[nodiscard]] inline auto sub_floating(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<long double>
 {
     const auto left = validate_operand(to_long_double(lhs));
     if (!left) {
@@ -180,9 +178,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> mul_floating(
+[[nodiscard]] inline auto mul_floating(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<long double>
 {
     const auto left = validate_operand(to_long_double(lhs));
     if (!left) {
@@ -208,9 +206,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> div_floating(
+[[nodiscard]] inline auto div_floating(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<long double>
 {
     const auto left = validate_operand(to_long_double(lhs));
     if (!left) {
@@ -243,10 +241,10 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> div_floating(
+[[nodiscard]] inline auto div_floating(
     A lhs,
     B rhs,
-    long double* rem) noexcept
+    long double* rem) noexcept -> result<long double>
 {
     const auto left = validate_operand(to_long_double(lhs));
     if (!left) {
@@ -297,9 +295,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> mod_floating(
+[[nodiscard]] inline auto mod_floating(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<long double>
 {
     long double remainder = 0.0L;
     const auto quotient = div_floating(lhs, rhs, &remainder);
@@ -327,9 +325,9 @@ namespace xer {
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> add(
+[[nodiscard]] inline auto add(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<long double>
 {
     return detail::add_floating(lhs, rhs);
 }
@@ -347,9 +345,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> sub(
+[[nodiscard]] inline auto sub(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<long double>
 {
     return detail::sub_floating(lhs, rhs);
 }
@@ -367,9 +365,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> mul(
+[[nodiscard]] inline auto mul(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<long double>
 {
     return detail::mul_floating(lhs, rhs);
 }
@@ -387,9 +385,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> div(
+[[nodiscard]] inline auto div(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<long double>
 {
     return detail::div_floating(lhs, rhs);
 }
@@ -408,10 +406,10 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> div(
+[[nodiscard]] inline auto div(
     A lhs,
     B rhs,
-    long double* rem) noexcept
+    long double* rem) noexcept -> result<long double>
 {
     return detail::div_floating(lhs, rhs, rem);
 }
@@ -429,9 +427,9 @@ template<typename A, typename B>
  */
 template<typename A, typename B>
     requires(detail::is_floating_arithmetic_pair_v<A, B>)
-[[nodiscard]] inline result<long double> mod(
+[[nodiscard]] inline auto mod(
     A lhs,
-    B rhs) noexcept
+    B rhs) noexcept -> result<long double>
 {
     return detail::mod_floating(lhs, rhs);
 }
