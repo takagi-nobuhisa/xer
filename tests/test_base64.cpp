@@ -8,29 +8,12 @@
 #include <xer/assert.h>
 #include <xer/base64.h>
 #include <xer/error.h>
+#include "test_helpers.h"
 
 namespace {
 
-[[nodiscard]] auto bytes(std::string_view text) -> std::vector<std::byte>
-{
-    std::vector<std::byte> result;
-    result.reserve(text.size());
-
-    for (const char c : text) {
-        result.push_back(static_cast<std::byte>(static_cast<unsigned char>(c)));
-    }
-
-    return result;
-}
-
-void assert_bytes_eq(std::span<const std::byte> lhs, std::span<const std::byte> rhs)
-{
-    xer_assert_eq(lhs.size(), rhs.size());
-
-    for (std::size_t i = 0; i < lhs.size(); ++i) {
-        xer_assert(lhs[i] == rhs[i]);
-    }
-}
+using xer_test::bytes;
+using xer_test::assert_bytes_eq;
 
 void test_base64_encode_empty()
 {

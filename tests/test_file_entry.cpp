@@ -23,83 +23,18 @@
 #include <xer/bits/file_stat.h>
 #include <xer/error.h>
 #include <xer/path.h>
+#include "test_helpers.h"
 
 namespace {
 
+using xer_test::filesystem_path_to_u8string;
+using xer_test::make_unique_test_root;
+using xer_test::test_directory_guard;
+using xer_test::write_text_file;
+using xer_test::write_binary_file;
+using xer_test::read_binary_file;
+
 namespace fs = std::filesystem;
-
-[[nodiscard]] std::u8string filesystem_path_to_u8string(const fs::path& value) {
-#ifdef _WIN32
-    const std::wstring native = value.native();
-    const auto converted = xer::from_native_path(std::wstring_view(native));
-    xer_assert(converted.has_value());
-    return std::u8string(converted->str());
-#else
-    const std::string native = value.native();
-    const auto converted = xer::from_native_path(std::string_view(native));
-    xer_assert(converted.has_value());
-    return std::u8string(converted->str());
-#endif
-}
-
-[[nodiscard]] fs::path make_unique_test_root() {
-    const fs::path base = fs::temp_directory_path();
-    const auto now =
-        std::chrono::high_resolution_clock::now().time_since_epoch().count();
-
-#ifdef _WIN32
-    const unsigned long pid = ::GetCurrentProcessId();
-#else
-    const auto pid = static_cast<unsigned long>(::getpid());
-#endif
-
-    return base / ("xer_test_file_entry_" + std::to_string(pid) + "_" +
-                   std::to_string(static_cast<long long>(now)));
-}
-
-struct test_directory_guard {
-    fs::path path;
-
-    explicit test_directory_guard(fs::path value)
-        : path(std::move(value)) {
-        fs::create_directories(path);
-    }
-
-    ~test_directory_guard() {
-        std::error_code ec;
-        fs::remove_all(path, ec);
-    }
-};
-
-void write_binary_file(const fs::path& path, const std::vector<unsigned char>& data) {
-    std::ofstream stream(path, std::ios::binary);
-    xer_assert(stream.good());
-
-    if (!data.empty()) {
-        stream.write(
-            reinterpret_cast<const char*>(data.data()),
-            static_cast<std::streamsize>(data.size()));
-    }
-
-    xer_assert(stream.good());
-}
-
-void write_text_file(const fs::path& path, const std::string& contents) {
-    std::ofstream stream(path, std::ios::binary);
-    xer_assert(stream.good());
-    stream.write(contents.data(), static_cast<std::streamsize>(contents.size()));
-    xer_assert(stream.good());
-}
-
-[[nodiscard]] std::string read_binary_file(const fs::path& path) {
-    std::ifstream stream(path, std::ios::binary);
-    xer_assert(stream.good());
-
-    return std::string(
-        std::istreambuf_iterator<char>(stream),
-        std::istreambuf_iterator<char>());
-}
-
 
 void test_file_status_regular_file() {
     const test_directory_guard guard(make_unique_test_root());

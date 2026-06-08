@@ -7,19 +7,11 @@
 
 #include <xer/assert.h>
 #include <xer/bytes.h>
+#include "test_helpers.h"
 
 namespace {
 
-void assert_bytes_eq(
-    std::span<const std::byte> lhs,
-    std::span<const std::byte> rhs)
-{
-    xer_assert_eq(lhs.size(), rhs.size());
-
-    for (std::size_t i = 0; i < lhs.size(); ++i) {
-        xer_assert(lhs[i] == rhs[i]);
-    }
-}
+using xer_test::assert_bytes_eq;
 
 void test_to_bytes_view_string_view()
 {

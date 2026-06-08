@@ -13,28 +13,20 @@
 #include <xer/assert.h>
 #include <xer/error.h>
 #include <xer/zip.h>
+#include "test_helpers.h"
 
 // XER_TEST_FEATURES: zip
 
 namespace {
+
+using xer_test::bytes;
+using xer_test::assert_bytes_eq;
 
 struct sample_entry {
     std::u8string name;
     std::vector<std::byte> data;
     std::uint16_t method;
 };
-
-[[nodiscard]] auto bytes(std::string_view text) -> std::vector<std::byte>
-{
-    std::vector<std::byte> result;
-    result.reserve(text.size());
-
-    for (const char c : text) {
-        result.push_back(static_cast<std::byte>(static_cast<unsigned char>(c)));
-    }
-
-    return result;
-}
 
 void append_u16(std::vector<std::byte>& out, std::uint16_t value)
 {
@@ -181,15 +173,6 @@ void make_zip(std::string_view filename, std::span<const sample_entry> entries)
     append_u16(out, 0u);
 
     write_file(filename, out);
-}
-
-void assert_bytes_eq(std::span<const std::byte> lhs, std::span<const std::byte> rhs)
-{
-    xer_assert_eq(lhs.size(), rhs.size());
-
-    for (std::size_t i = 0; i < lhs.size(); ++i) {
-        xer_assert(lhs[i] == rhs[i]);
-    }
 }
 
 void test_zip_read_store_and_deflate()
