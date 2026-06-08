@@ -60,7 +60,35 @@ sq
 cb
 ```
 
-In addition, it provides predefined unit objects under the `xer::units` namespace.
+In addition, the public `<xer/quantity.h>` header provides predefined unit objects under the `xer::units` namespace. Internally, the core quantity framework and the predefined unit families are split so that future unit families can be added without expanding the core implementation header.
+
+---
+
+## Header Organization
+
+The public header keeps the traditional include model:
+
+```cpp
+#include <xer/quantity.h>
+```
+
+This includes the core quantity framework, the predefined SI/common units, and yard-pound units.
+
+Internally, the implementation is organized as follows:
+
+```text
+xer/bits/quantity.h
+  Core dimension, unit, quantity, arithmetic, and unit-composition support.
+
+xer/bits/units_si.h
+  SI base units, selected prefixed units, derived units, conventional metric units,
+  and angular units under xer::units.
+
+xer/bits/units_imperial.h
+  International yard-pound length and mass units under xer::units.
+```
+
+Users normally include only `<xer/quantity.h>`. The split is an implementation and maintenance detail, but it keeps the unit definitions separable from the core quantity machinery.
 
 ---
 
@@ -496,6 +524,34 @@ Examples include:
 * `kL`
 * `cal`
 * `kcal`
+
+
+### Yard-Pound Units
+
+The header also provides a small set of international yard-pound units.
+
+Length units:
+
+* `inch`
+* `ft`
+* `yd`
+* `mile`
+
+Mass units:
+
+* `oz`
+* `lb`
+
+These names intentionally use either the ordinary singular unit name (`inch`, `mile`) or the common unit symbol (`ft`, `yd`, `oz`, `lb`). Plural names such as `feet` and `pounds` are not provided.
+
+The conversion factors are exact international definitions:
+
+* `1 inch = 0.0254 m`
+* `1 ft = 0.3048 m`
+* `1 yd = 0.9144 m`
+* `1 mile = 1609.344 m`
+* `1 lb = 0.45359237 kg`
+* `1 oz = 1/16 lb`
 
 ### Aliases
 

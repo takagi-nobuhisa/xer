@@ -339,6 +339,38 @@ If needed, fully qualified names may also be used.
 auto t = 1.23f * xer::units::msec;
 ```
 
+
+### Yard-Pound Units
+
+Yard-pound units are provided as a separate predefined unit family.
+
+The initial set is intentionally small:
+
+* length: `inch`, `ft`, `yd`, `mile`
+* mass: `oz`, `lb`
+
+The units use the exact international definitions based on SI units:
+
+* `1 inch = 0.0254 m`
+* `1 ft = 0.3048 m`
+* `1 yd = 0.9144 m`
+* `1 mile = 1609.344 m`
+* `1 lb = 0.45359237 kg`
+* `1 oz = 1/16 lb`
+
+Plural aliases are not provided. Unit names should remain compact and predictable; code should use scalar values for plurality rather than encoding grammatical number in unit identifiers.
+
+### Header Organization
+
+The core quantity machinery and predefined unit families are separated internally.
+
+* `xer/bits/quantity.h` contains the core `dimension`, `unit`, `quantity`, arithmetic, and unit-composition facilities.
+* `xer/bits/units_si.h` contains SI base units, selected prefixed units, derived units, conventional metric units, and angular units under `xer::units`.
+* `xer/bits/units_imperial.h` contains international yard-pound length and mass units under `xer::units`.
+* `xer/quantity.h` remains the public entry point and includes these internal headers.
+
+This preserves source compatibility for users of `<xer/quantity.h>` while making it easier to add additional unit families without continuing to expand the core quantity implementation header.
+
 ---
 
 ## Policy for Unit Names

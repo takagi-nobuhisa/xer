@@ -88,6 +88,44 @@ void test_angle_units()
     xer_assert(quarter_turn.value(taurad) < 0.250000000001);
 }
 
+
+void test_imperial_length_units()
+{
+    using namespace xer::units;
+
+    const auto length1 = 12.0 * inch;
+    const auto length2 = 3.0 * ft;
+    const auto length3 = 1.0 * yd;
+    const auto length4 = 1.0 * mile;
+
+    xer_assert(length1.value(ft) > 0.999999999999);
+    xer_assert(length1.value(ft) < 1.000000000001);
+    xer_assert(length2.value(yd) > 0.999999999999);
+    xer_assert(length2.value(yd) < 1.000000000001);
+    xer_assert(length3.value(inch) > 35.999999999999);
+    xer_assert(length3.value(inch) < 36.000000000001);
+    xer_assert(length4.value(ft) > 5279.999999999);
+    xer_assert(length4.value(ft) < 5280.000000001);
+    xer_assert(length4.value(m) > 1609.343999999);
+    xer_assert(length4.value(m) < 1609.344000001);
+}
+
+void test_imperial_mass_units()
+{
+    using namespace xer::units;
+
+    const auto mass1 = 16.0 * oz;
+    const auto mass2 = 1.0 * lb;
+    const auto mass3 = 2.0 * lb;
+
+    xer_assert(mass1.value(lb) > 0.999999999999);
+    xer_assert(mass1.value(lb) < 1.000000000001);
+    xer_assert(mass2.value(oz) > 15.999999999999);
+    xer_assert(mass2.value(oz) < 16.000000000001);
+    xer_assert(mass3.value(kg) > 0.907184739999);
+    xer_assert(mass3.value(kg) < 0.907184740001);
+}
+
 void test_type_properties()
 {
     using namespace xer::units;
@@ -107,6 +145,8 @@ int main()
     test_force_energy_power_voltage_units();
     test_area_volume_and_alias_units();
     test_angle_units();
+    test_imperial_length_units();
+    test_imperial_mass_units();
     test_type_properties();
 
     return 0;
