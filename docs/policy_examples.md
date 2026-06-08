@@ -73,7 +73,7 @@ As a rule, a code example source file contains a `main` function.
 
 ```cpp
 auto main() -> int;
-````
+```
 
 The return type should be written in trailing form, in accordance with xer's overall policy.
 
@@ -129,8 +129,11 @@ For that reason, it is more natural for code examples to use xer's own text I/O 
 
 ### Recommended Functions
 
-For output to standard output in code examples, at least the following functions are recommended:
+For simple labeled output in code examples, `xer_print` may be used. It is especially useful when an example only needs to show the value of an expression or a `xer::result`.
 
+For ordinary text output to standard output in code examples, at least the following functions are recommended:
+
+* `xer_print`
 * `xer::puts`
 * `xer::fputs`
 * `xer::putchar`

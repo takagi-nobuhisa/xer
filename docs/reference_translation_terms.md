@@ -1,6 +1,6 @@
 # リファレンスマニュアル対訳表
 
-対象バージョン: **v0.8.0a3**
+対象バージョン: **v0.8.0b1**
 
 この文書は、`docs/xer_reference_manual_en.md` と `docs/xer_reference_manual_ja.md` の表記ゆれを抑えるための対訳表です。
 
@@ -28,6 +28,9 @@
 | helper | ヘルパー |  |
 | utility | ユーティリティ |  |
 | facility | 機能 | 文脈により「機構」も可。 |
+| generic value conversion | 汎用値変換 | `xer::to<T>` の説明で使用。 |
+| C++ cast expression | C++のキャスト式 | `static_cast` などとの対比。 |
+| range-checked conversion | 範囲チェック付き変換 | 数値変換の説明で使用。 |
 | policy | 方針 | policy文書名では原題を維持。 |
 | scope | 対象範囲 | 「スコープ」よりも原則こちらを使う。 |
 | out of scope | 対象外 |  |
@@ -91,6 +94,8 @@
 |---|---|---|
 | string | 文字列 |  |
 | string view | 文字列ビュー |  |
+| narrow `char` string | `char`文字列 | エンコーディングが曖昧な文字列として説明する場合。 |
+| explicitly encoded string | 明示的なエンコードの文字列 | `char8_t` / `char16_t` / `char32_t` / `wchar_t` 文字列など。 |
 | text | テキスト |  |
 | byte | バイト |  |
 | code unit | コード単位 |  |
@@ -221,6 +226,10 @@
 | dimensionless | 無次元 | 型名 `dimensionless` はコード表記。 |
 | unit | 単位 | 型名 `unit` はコード表記。 |
 | unit conversion | 単位変換 |  |
+| SI unit | SI単位 |  |
+| yard-pound unit | ヤード・ポンド法単位 | `inch`, `ft`, `yd`, `mile`, `oz`, `lb` など。 |
+| international yard-pound unit | 国際ヤード・ポンド法単位 | 定義値を説明する場合。 |
+| plural alias | 複数形エイリアス | `feet`, `pounds` などを提供しない説明で使用。 |
 | scale | スケール | `std::ratio` による倍率。 |
 | base dimension | 基本次元 |  |
 | length | 長さ | 次元名。 |
@@ -313,10 +322,23 @@
 | standard output | 標準出力 |  |
 | standard error | 標準エラー |  |
 | socket | ソケット |  |
+| exact byte transfer | 固定長送受信 | `socket_send_all` / `socket_recv_exact` の説明で使用。 |
+| length-prefixed message | 長さ付きメッセージ | `socket_send_message` / `socket_recv_message` の説明で使用。 |
+| message framing | メッセージフレーミング | 長さ付きメッセージ形式など。 |
 | endpoint | エンドポイント |  |
 | host | ホスト |  |
 | port | ポート |  |
 | Tcl/Tk | Tcl/Tk |  |
+
+## 診断・ログ
+
+| 英語 | 日本語 | 備考 |
+|---|---|---|
+| diagnostic print | 診断出力 | `xer_print` の説明で使用。 |
+| simple diagnostic print | 簡易診断出力 | `xer_print` の説明で使用。 |
+| trace | トレース | `xer_trace` の説明で使用。 |
+| log | ログ | `xer_log` の説明で使用。 |
+| log record | ログレコード |  |
 
 ## 翻訳運用ルール
 

@@ -29,7 +29,7 @@ The socket API covers:
 - UDP send-to and receive-from
 - socket address reporting
 - reliable fixed-size send/receive helpers for connected stream sockets
-- sending length-prefixed messages over connected stream sockets
+- sending and receiving length-prefixed messages over connected stream sockets
 - conversion of sockets to xer streams
 
 Advanced networking features are deferred.
@@ -107,7 +107,6 @@ At least the following are deferred:
 - asynchronous I/O
 - name service policy beyond basic resolver use
 - a built-in HTTP server
-- receive-side helpers for length-prefixed messages
 
 ---
 
@@ -118,6 +117,6 @@ At least the following are deferred:
 - it supports TCP, UDP, IPv4, and IPv6
 - it supports both wildcard bind and explicit-address bind
 - it provides helpers for complete fixed-size send/receive operations
-- it provides a helper for sending length-prefixed messages
+- it provides helpers for sending and receiving length-prefixed messages
 - it integrates with xer streams
 - it does not attempt to become a complete networking framework

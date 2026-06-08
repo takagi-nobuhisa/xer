@@ -40,10 +40,10 @@ The current library scope includes:
 - ZIP archive reading, writing, lookup, and extraction
 - fixed-schema binary serialization with generated `xfer` structures
 - path handling
-- arithmetic helpers, elementary mathematics, descriptive statistics, lightweight vector/geometry helpers, complex-equation helpers, and numeric utility types
+- arithmetic helpers, elementary mathematics, descriptive statistics, lightweight vector/geometry helpers, complex-equation helpers, dimension-safe physical quantities with SI and yard-pound units, and numeric utility types
 - time utilities
 - JSON, INI, and TOML handling
-- process and socket utilities, including TCP helpers for exact byte transfer and length-prefixed messages
+- process utilities, socket utilities including TCP helpers for exact byte transfer and length-prefixed messages, and lightweight diagnostic printing through `xer_print`
 - Tcl/Tk integration
 - image/canvas drawing, bitmap fonts, basic pixel processing, and arc drawing with τrad angles
 - Japanese text helpers, including kansuji, furigana, MeCab integration, kana/romaji wakachi-gaki, and braille conversion
