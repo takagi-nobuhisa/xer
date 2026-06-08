@@ -11,12 +11,12 @@
 /**
  * @brief Major version number of XER.
  */
-#define XER_VERSION_MAJOR 0
+#define XER_VERSION_MAJOR 1
 
 /**
  * @brief Minor version number of XER.
  */
-#define XER_VERSION_MINOR 8
+#define XER_VERSION_MINOR 0
 
 /**
  * @brief Patch version number of XER.
@@ -28,14 +28,14 @@
  *
  * This macro holds the non-numeric suffix part of the version string.
  */
-#define XER_VERSION_SUFFIX ""
+#define XER_VERSION_SUFFIX "a1"
 
 /**
  * @brief Full version string of XER.
  *
  * This macro holds the complete version string.
  */
-#define XER_VERSION_STRING "0.8.0"
+#define XER_VERSION_STRING "1.0.0a1"
 
 namespace xer {
 
