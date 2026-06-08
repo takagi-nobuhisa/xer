@@ -682,7 +682,8 @@ The following kinds of examples are especially suitable for this header:
 
 * constructing a quantity from a scalar and a unit
 * converting a quantity to base units and to another unit
-* dividing distance by time to obtain velocity\n* using `sq`, `cb`, `m²`, `m³`, and `sec²` in unit expressions
+* dividing distance by time to obtain velocity
+* using `sq`, `cb`, `m²`, `m³`, and `sec²` in unit expressions
 * using predefined units from `xer::units`
 * handling angle quantities with `taurad` or `rad`
 
