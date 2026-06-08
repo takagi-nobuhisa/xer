@@ -139,6 +139,59 @@ auto test_trace_level_suppression() -> void
     xer_assert_eq(output, std::u8string());
 }
 
+
+/**
+ * @brief Tests simple print output with expression and explicit labels.
+ */
+auto test_print_output_to_custom_stream() -> void
+{
+    std::u8string output;
+    auto stream_result = xer::stropen(output, "w");
+    xer_assert(stream_result.has_value());
+
+    xer::set_print_stream(*stream_result);
+
+    const int value = 42;
+    static_cast<void>(xer_print(value));
+    static_cast<void>(xer_print(u8"answer", value));
+
+    xer::reset_print_stream();
+
+    xer_assert_eq(output, std::u8string(u8"value = 42\nanswer: 42\n"));
+}
+
+/**
+ * @brief Tests simple print output for result values.
+ */
+auto test_print_result_output_to_custom_stream() -> void
+{
+    std::u8string output;
+    auto stream_result = xer::stropen(output, "w");
+    xer_assert(stream_result.has_value());
+
+    xer::set_print_stream(*stream_result);
+
+    const xer::result<int> success = 7;
+    const xer::result<int> failure = std::unexpected(xer::make_error(xer::error_t::invalid_argument));
+    const xer::result<void> void_success = {};
+    const xer::result<void> void_failure = std::unexpected(xer::make_error(xer::error_t::network_error));
+
+    static_cast<void>(xer_print(u8"success", success));
+    static_cast<void>(xer_print(u8"failure", failure));
+    static_cast<void>(xer_print(u8"void_success", void_success));
+    static_cast<void>(xer_print(u8"void_failure", void_failure));
+
+    xer::reset_print_stream();
+
+    xer_assert_eq(
+        output,
+        std::u8string(
+            u8"success: 7\n"
+            u8"failure: error(invalid_argument)\n"
+            u8"void_success: ok\n"
+            u8"void_failure: error(network_error)\n"));
+}
+
 /**
  * @brief Tests simple log output without printf formatting.
  */
@@ -210,6 +263,8 @@ auto main() -> int
     test_type_name_shortcuts();
     test_trace_output_to_custom_stream();
     test_trace_level_suppression();
+    test_print_output_to_custom_stream();
+    test_print_result_output_to_custom_stream();
     test_log_simple_output_to_custom_stream();
     test_log_formatted_output_to_custom_stream();
     test_log_level_suppression();

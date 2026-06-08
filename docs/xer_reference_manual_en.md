@@ -754,6 +754,8 @@ inline constexpr xer::diag_level_t xer::diag_verbose;
 
 enum class xer::diag_category : std::uint32_t;
 
+xer_print(expression)
+xer_print(label, expression)
 xer_trace(category, level, object)
 xer_log(category, level, message)
 xer_log(category, level, format, ...)
@@ -767,13 +769,48 @@ It also provides functions for setting trace and log output streams and levels.
 
 This header is intended for diagnostics, development-time tracing, and simple runtime logging.
 
-Tracing and logging share:
+Simple printing, tracing, and logging share the same public diagnostic header. Tracing and logging share:
 
 * `diag_category`
 * `diag_level_t`
 * the named level constants
 
 Their output destinations and current levels are configured independently.
+
+---
+
+
+## Simple Print
+
+`xer_print(expression)` writes one line to the simple diagnostic print stream.
+The expression is evaluated once, and the source expression text is used as the label:
+
+```cpp
+int value = 42;
+xer_print(value);
+```
+
+Conceptual output:
+
+```text
+value = 42
+```
+
+`xer_print(label, expression)` writes one line with an explicit UTF-8 label:
+
+```cpp
+xer_print(u8"answer", value);
+```
+
+Conceptual output:
+
+```text
+answer: 42
+```
+
+The value is formatted through xer's `%@` printf conversion. For `result<T>`, a successful result prints the contained value, and a failed result prints `error(name)`. For `result<void>`, a successful result prints `ok`.
+
+`xer_print` is intended for examples, quick checks, and lightweight diagnostics. It is not disabled by `NDEBUG`.
 
 ---
 
@@ -847,7 +884,7 @@ Logging is designed to remain reasonably lightweight.
 
 ## Output Streams
 
-Trace and log output default to the standard error text stream.
+Print output defaults to the standard output text stream. Trace and log output default to the standard error text stream.
 They can be changed independently through the corresponding stream-setting functions.
 
 ---

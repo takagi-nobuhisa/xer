@@ -5,9 +5,12 @@
 
 // XER_EXAMPLE_BEGIN: diag_basic
 //
-// This example writes one trace line and one CSV log record.
+// This example writes one simple print line, one trace line, and one CSV log record.
 //
-// Expected output is written to the standard error stream.
+// The simple print line is written to the standard output stream:
+// value = 42
+//
+// The trace and log output is written to the standard error stream.
 // The trace line is fixed:
 // [general][40] value (int) = 42
 //
@@ -24,6 +27,10 @@ constexpr int value = 42;
 
 auto main() -> int
 {
+    if (!xer_print(value)) {
+        return 1;
+    }
+
     xer::set_trace_level(xer::diag_debug);
     xer_trace(xer::diag_category::general, xer::diag_debug, value);
 
