@@ -7,19 +7,11 @@
 // The program prints the number of environment variables.
 // If PATH exists, it also prints PATH.
 
-#include <xer/stdio.h>
+#include <xer/diag.h>
 #include <xer/stdlib.h>
 
 #include <cstddef>
 
-namespace {
-
-auto print_size(std::size_t size) -> bool
-{
-    return xer::printf(u8"environment entries: %@\n", size).has_value();
-}
-
-} // namespace
 
 auto main() -> int
 {
@@ -28,17 +20,13 @@ auto main() -> int
         return 1;
     }
 
-    if (!print_size(environment->size())) {
+    if (!xer_print(u8"environment entries", environment->size())) {
         return 1;
     }
 
     const auto path = environment->find(u8"PATH");
     if (path.has_value()) {
-        if (!xer::fputs(u8"PATH = ", xer_stdout)) {
-            return 1;
-        }
-
-        if (!xer::puts(*path)) {
+        if (!xer_print(u8"PATH", *path)) {
             return 1;
         }
     }

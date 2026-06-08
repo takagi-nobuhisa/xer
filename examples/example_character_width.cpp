@@ -14,20 +14,9 @@
 #include <string_view>
 
 #include <xer/ctype.h>
-#include <xer/stdio.h>
+#include <xer/diag.h>
 #include <xer/string.h>
 
-namespace {
-
-[[nodiscard]] auto print_label_and_text(std::u8string_view label,
-                                        std::u8string_view text) -> bool {
-    std::u8string line(label);
-    line.append(text);
-
-    return xer::puts(line).has_value();
-}
-
-} // namespace
 
 auto main() -> int {
     if (xer::isctype(U'A', xer::ctype_id::halfwidth)) {
@@ -49,7 +38,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"fullwidth: ", *fullwidth)) {
+    if (!xer_print(u8"fullwidth", *fullwidth)) {
         return 1;
     }
 
@@ -60,7 +49,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"halfwidth: ", *halfwidth)) {
+    if (!xer_print(u8"halfwidth", *halfwidth)) {
         return 1;
     }
 
@@ -87,8 +76,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"strtoctrans halfwidth kana: ",
-                              *halfwidth_string)) {
+    if (!xer_print(u8"strtoctrans halfwidth kana", *halfwidth_string)) {
         return 1;
     }
 

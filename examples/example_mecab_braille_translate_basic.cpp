@@ -6,16 +6,8 @@
 // MeCab must be installed and available from PATH.
 
 #include <xer/mecab.h>
-#include <xer/stdio.h>
+#include <xer/diag.h>
 
-namespace {
-
-auto print_line(std::u8string_view label, std::u8string_view value) -> bool
-{
-    return xer::printf(u8"%@%@\n", label, value).has_value();
-}
-
-} // namespace
 
 auto main() -> int
 {
@@ -33,10 +25,10 @@ auto main() -> int
         return 1;
     }
 
-    if (!print_line(u8"input:   ", text)) {
+    if (!xer_print(u8"input", text)) {
         return 1;
     }
-    if (!print_line(u8"braille: ", *braille)) {
+    if (!xer_print(u8"braille", *braille)) {
         return 1;
     }
 

@@ -10,20 +10,9 @@
 #include <string>
 #include <string_view>
 
-#include <xer/stdio.h>
+#include <xer/diag.h>
 #include <xer/string.h>
 
-namespace {
-
-[[nodiscard]] auto print_label_and_text(std::u8string_view label,
-                                        std::u8string_view text) -> bool {
-    std::u8string line(label);
-    line.append(text);
-
-    return xer::puts(line).has_value();
-}
-
-} // namespace
 
 auto main() -> int {
     const auto lower = xer::strtolower(u8"HeLLo, XER!");
@@ -31,7 +20,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"lowercase: ", *lower)) {
+    if (!xer_print(u8"lowercase", *lower)) {
         return 1;
     }
 
@@ -40,7 +29,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"uppercase: ", *upper)) {
+    if (!xer_print(u8"uppercase", *upper)) {
         return 1;
     }
 
@@ -51,7 +40,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"latin1 uppercase: ", *latin1_upper)) {
+    if (!xer_print(u8"latin1 uppercase", *latin1_upper)) {
         return 1;
     }
 

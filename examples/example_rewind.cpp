@@ -9,17 +9,10 @@
 #include <string>
 #include <string_view>
 
+#include <xer/diag.h>
 #include <xer/stdio.h>
 
 namespace {
-
-[[nodiscard]] auto print_label_and_text(std::u8string_view label,
-                                        std::u8string_view text) -> bool {
-    std::u8string line(label);
-    line.append(text);
-
-    return xer::puts(line).has_value();
-}
 
 [[nodiscard]] auto read_all(xer::text_stream& stream) -> xer::result<std::u8string> {
     std::u8string text;
@@ -54,7 +47,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"first pass: ", *first)) {
+    if (!xer_print(u8"first pass", *first)) {
         return 1;
     }
 
@@ -67,7 +60,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"second pass: ", *second)) {
+    if (!xer_print(u8"second pass", *second)) {
         return 1;
     }
 

@@ -9,13 +9,13 @@
 // type names.
 //
 // Expected output:
-// int
-// std::pair<int, long>
-// sample_object
+// int: int
+// std::pair<int, long>: std::pair<int, long>
+// object: sample_object
 
 #include <utility>
 
-#include <xer/stdio.h>
+#include <xer/diag.h>
 #include <xer/typeinfo.h>
 
 namespace {
@@ -23,30 +23,20 @@ namespace {
 struct sample_object {
 };
 
-auto print_type_name(xer::type_info type) -> int
-{
-    const auto result = xer::puts(type.name());
-    if (!result.has_value()) {
-        return 1;
-    }
-
-    return 0;
-}
-
 } // namespace
 
 auto main() -> int
 {
-    if (print_type_name(xer_typeid(int)) != 0) {
+    if (!xer_print(u8"int", xer_typeid(int).name())) {
         return 1;
     }
 
-    if (print_type_name(xer_typeid(std::pair<int, long>)) != 0) {
+    if (!xer_print(u8"std::pair<int, long>", xer_typeid(std::pair<int, long>).name())) {
         return 1;
     }
 
     const sample_object object;
-    if (print_type_name(xer_typeid(object)) != 0) {
+    if (!xer_print(u8"object", xer_typeid(object).name())) {
         return 1;
     }
 

@@ -16,7 +16,7 @@
 #include <string_view>
 
 #include <xer/braille.h>
-#include <xer/stdio.h>
+#include <xer/diag.h>
 
 namespace {
 
@@ -53,10 +53,6 @@ auto convert_kana(const std::array<char32_t, N>& input) -> xer::result<std::u8st
     return output;
 }
 
-auto print_label_and_text(std::u8string_view label, std::u8string_view text) -> bool
-{
-    return xer::printf(u8"%@%@\n", label, text).has_value();
-}
 
 } // namespace
 
@@ -89,19 +85,19 @@ auto main() -> int
         return 1;
     }
 
-    if (!print_label_and_text(u8"basic kana: ", *basic_kana)) {
+    if (!xer_print(u8"basic kana", *basic_kana)) {
         return 1;
     }
-    if (!print_label_and_text(u8"voiced kana: ", *voiced_kana)) {
+    if (!xer_print(u8"voiced kana", *voiced_kana)) {
         return 1;
     }
-    if (!print_label_and_text(u8"semi-voiced kana: ", *semi_voiced_kana)) {
+    if (!xer_print(u8"semi-voiced kana", *semi_voiced_kana)) {
         return 1;
     }
-    if (!print_label_and_text(u8"marks: ", marks)) {
+    if (!xer_print(u8"marks", marks)) {
         return 1;
     }
-    if (!print_label_and_text(u8"katakana: ", *katakana)) {
+    if (!xer_print(u8"katakana", *katakana)) {
         return 1;
     }
 

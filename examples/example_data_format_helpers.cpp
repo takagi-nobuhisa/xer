@@ -3,25 +3,17 @@
 // This example shows JSON/TOML/INI find helpers and load/save helpers.
 //
 // Expected output:
-// xer
-// xer
-// xer
+// json name: xer
+// toml name: xer
+// ini name: xer
 // XER_EXAMPLE_END: data_format_helpers
 
 #include <xer/ini.h>
 #include <xer/json.h>
 #include <xer/path.h>
-#include <xer/stdio.h>
+#include <xer/diag.h>
 #include <xer/toml.h>
 
-namespace {
-
-auto print_line(std::u8string_view text) -> bool
-{
-    return xer::puts(text).has_value();
-}
-
-} // namespace
 
 auto main() -> int
 {
@@ -62,15 +54,15 @@ auto main() -> int
         return 1;
     }
 
-    if (!print_line(json_name->as_string())) {
+    if (!xer_print(u8"json name", json_name->as_string())) {
         return 1;
     }
 
-    if (const auto* value = toml_name->as_string(); value == nullptr || !print_line(*value)) {
+    if (const auto* value = toml_name->as_string(); value == nullptr || !xer_print(u8"toml name", *value)) {
         return 1;
     }
 
-    if (!print_line(ini_name->value)) {
+    if (!xer_print(u8"ini name", ini_name->value)) {
         return 1;
     }
 

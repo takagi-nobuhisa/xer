@@ -13,20 +13,9 @@
 #include <string>
 #include <string_view>
 
-#include <xer/stdio.h>
+#include <xer/diag.h>
 #include <xer/string.h>
 
-namespace {
-
-[[nodiscard]] auto print_label_and_text(std::u8string_view label,
-                                        std::u8string_view text) -> bool {
-    std::u8string line(label);
-    line.append(text);
-
-    return xer::puts(line).has_value();
-}
-
-} // namespace
 
 auto main() -> int {
     const auto romaji =
@@ -36,7 +25,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"romaji: ", *romaji)) {
+    if (!xer_print(u8"romaji", *romaji)) {
         return 1;
     }
 
@@ -47,7 +36,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"romaji_alt: ", *romaji_alt)) {
+    if (!xer_print(u8"romaji_alt", *romaji_alt)) {
         return 1;
     }
 
@@ -58,7 +47,7 @@ auto main() -> int {
         return 1;
     }
 
-    if (!print_label_and_text(u8"katakana: ", *katakana)) {
+    if (!xer_print(u8"katakana", *katakana)) {
         return 1;
     }
 
