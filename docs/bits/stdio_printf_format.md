@@ -154,9 +154,30 @@ The following xer types are intended to be printable through `%@`:
 xer::error_t
 xer::error<Detail>
 xer::result<T, Detail>
+xer::type_info
+xer::path
+xer::cyclic<T>
+xer::interval<T, Min, Max>
+xer::quantity<T, Dim>
+xer::matrix<T, Rows, Cols>
+xer::vec<T, N>
+xer::polar<T, 2>
+xer::image::point
+xer::image::pointf
+xer::image::size
+xer::image::sizef
+xer::image::rect
+xer::image::rectf
+xer::basic_rgb<T>
+xer::basic_gray<T>
+xer::basic_cmy<T>
+xer::basic_hsv<T>
+xer::basic_xyz<T>
+xer::basic_lab<T>
+xer::basic_luv<T>
 ```
 
-These types provide stream insertion support so that `%@` can display them through the generic stream-based route.
+Many of these types get their stream insertion operators from `<xer/iostream.h>`. Include that header when using `%@` with opt-in iostream bridge types. These types provide stream insertion support so that `%@` can display them through the generic stream-based route.
 
 ### Notes on `std::ostringstream`
 

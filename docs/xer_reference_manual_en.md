@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v0.8.0**
+Target version: **v1.0.0a1**
 
 ---
 
@@ -164,10 +164,11 @@ Its design is guided primarily by the following ideas:
 
 * preserve practical compatibility with `errno`-style categories where useful
 * allow xer-specific error categories where necessary
-* avoid using a success enumerator inside the error type itself
+* provide `success` as the named representation of value `0`
 
 ### General Interpretation
 
+* `success` has value `0` and represents the absence of an error
 * positive values correspond, where practical, to target-environment `errno`-style meanings
 * negative values are reserved for xer-specific categories
 
@@ -10848,9 +10849,30 @@ The following xer types are intended to be printable through `%@`:
 xer::error_t
 xer::error<Detail>
 xer::result<T, Detail>
+xer::type_info
+xer::path
+xer::cyclic<T>
+xer::interval<T, Min, Max>
+xer::quantity<T, Dim>
+xer::matrix<T, Rows, Cols>
+xer::vec<T, N>
+xer::polar<T, 2>
+xer::image::point
+xer::image::pointf
+xer::image::size
+xer::image::sizef
+xer::image::rect
+xer::image::rectf
+xer::basic_rgb<T>
+xer::basic_gray<T>
+xer::basic_cmy<T>
+xer::basic_hsv<T>
+xer::basic_xyz<T>
+xer::basic_lab<T>
+xer::basic_luv<T>
 ```
 
-These types provide stream insertion support so that `%@` can display them through the generic stream-based route.
+Many of these types get their stream insertion operators from `<xer/iostream.h>`. Include that header when using `%@` with opt-in iostream bridge types. These types provide stream insertion support so that `%@` can display them through the generic stream-based route.
 
 ### Notes on `std::ostringstream`
 
@@ -11277,7 +11299,7 @@ It does not assign to an output argument and does not increment the assignment c
 It does not read input by itself.
 Instead, it controls argument selection for the following conversion specification.
 
-The main purpose is to make a following conversion use a specific output argument while keeping the conversion itself written in the ordinary form.
+The main purpose is to make a following conversion use a specific output argument while keeping the conversion itself written in the ordinary form. When the following conversion produces text, such as `%s` or `%[...]`, non-scalar destination types can use their stream extraction operators through xer's generic scanning path. Include `<xer/iostream.h>` when scanning opt-in xer value types this way.
 
 ### Sequential Form
 
@@ -12256,6 +12278,8 @@ xer::cyclic<T>
 xer::interval<T, Min, Max>
 xer::quantity<T, Dim>
 xer::matrix<T, Rows, Cols>
+xer::vec<T, N>
+xer::polar<T, 2>
 xer::image::point
 xer::image::pointf
 xer::image::size
@@ -12279,15 +12303,25 @@ xer::path
 xer::cyclic<T>
 xer::interval<T, Min, Max>
 xer::quantity<T, Dim>
+xer::matrix<T, Rows, Cols>
+xer::vec<T, N>
+xer::polar<T, 2>
 xer::image::point
 xer::image::pointf
 xer::image::size
 xer::image::sizef
 xer::image::rect
 xer::image::rectf
+xer::basic_rgb<T>
+xer::basic_gray<T>
+xer::basic_cmy<T>
+xer::basic_hsv<T>
+xer::basic_xyz<T>
+xer::basic_lab<T>
+xer::basic_luv<T>
 ```
 
-Formatted extraction for matrices and color values is intentionally deferred because their insertion format is meant for diagnostics rather than as a stable serialized grammar.
+These extraction operators are intended for convenient diagnostics-oriented formatted input and generic `%@` scanning support. They are not a replacement for stable file formats such as JSON, TOML, CSV, or xer's own serialization facilities.
 
 ---
 
@@ -12407,9 +12441,32 @@ Example output for a 2x2 matrix:
 [[1, 2], [3, 4]]
 ```
 
-There is no extraction operator for matrices at this stage. Parsing a matrix would require committing the diagnostic output form to a stable input grammar, which is intentionally avoided for now.
+`operator>>` accepts the same bracketed form and allows ordinary formatted-input whitespace around punctuation and values.
 
 ---
+
+## Math Geometry Types
+
+`operator<<` and `operator>>` are provided for fixed-size `vec<T, N>` specializations and two-dimensional `polar<T, 2>` values.
+
+The vector form is compact and tuple-like:
+
+```text
+(1, 2)
+(1, 2, 3)
+(1, 2, 3, 4)
+```
+
+The polar form is:
+
+```text
+polar(2.5, 0.25)
+```
+
+For `polar<T, 2>`, the second value is the normalized cyclic turn value used by `xer::cyclic<T>`, not radians or degrees.
+
+---
+
 ## Image Geometry Types
 
 `operator<<` and `operator>>` are provided for the image geometry helper types in `xer::image`.
@@ -12460,7 +12517,7 @@ lab(50, 10, -20)
 luv(50, 10, -20)
 ```
 
-There are no extraction operators for color values at this stage. The insertion format is intended for diagnostics and `%@` formatting, not for stable serialization.
+`operator>>` accepts the same named forms and allows ordinary formatted-input whitespace around punctuation and component values. Normalized component types keep their ordinary `interval<T>` or `cyclic<T>` behavior, so finite out-of-range RGB/CMY/gray/saturation/value components are clamped and HSV hue is normalized.
 
 ---
 
@@ -12468,9 +12525,7 @@ There are no extraction operators for color values at this stage. The insertion 
 
 The following are intentionally deferred from the current implementation:
 
-- `operator<<` and `operator>>` for `error<Detail>`
-- `operator>>` for `matrix`
-- `operator>>` for color types
+- `operator>>` for `error<Detail>`
 - `operator<<` and `operator>>` for JSON, INI, and TOML values
 - stream insertion for resource handles such as `binary_stream`, `text_stream`, `process`, and `socket`
 
@@ -12488,6 +12543,7 @@ These types either need additional formatting policy or are not ordinary value t
 - `<xer/cyclic.h>`
 - `<xer/interval.h>`
 - `<xer/quantity.h>`
+- `<xer/math.h>`
 - `<xer/matrix.h>`
 - `<xer/image.h>`
 - `<xer/color.h>`
@@ -12512,6 +12568,7 @@ The rough boundary is:
 #include <xer/image.h>
 #include <xer/interval.h>
 #include <xer/iostream.h>
+#include <xer/math.h>
 #include <xer/matrix.h>
 #include <xer/path.h>
 #include <xer/quantity.h>
@@ -12525,6 +12582,8 @@ auto main() -> int
     const auto gain = xer::interval<double>(1.25);
     const auto distance = 1.5 * km;
     const auto transform = xer::matrix<double, 2, 2>(1.0, 2.0, 3.0, 4.0);
+    const auto vector = xer::vec<int, 3>{1, 2, 3};
+    const auto position = xer::polar<double, 2>{2.5, xer::cyclic<double>(0.25)};
     const auto area = xer::image::rect(
         xer::image::point(10, 20),
         xer::image::size(30, 40));
@@ -12535,15 +12594,21 @@ auto main() -> int
     std::cout << gain << '\n';
     std::cout << distance << '\n';
     std::cout << transform << '\n';
+    std::cout << vector << '\n';
+    std::cout << position << '\n';
     std::cout << color << '\n';
 
-    std::istringstream input("logs/output.txt -0.25 0.5 2.5");
+    std::istringstream input("logs/output.txt -0.25 0.5 2.5 [[1, 2], [3, 4]] (1, 2, 3) rgb(1, 0.5, 0)");
     xer::path read_path;
     xer::cyclic<double> read_angle;
     xer::interval<double> read_gain;
     xer::quantity<double, xer::units::length_dim> read_distance;
+    xer::matrix<double, 2, 2> read_transform;
+    xer::vec<int, 3> read_vector{};
+    xer::rgb read_color;
 
-    input >> read_path >> read_angle >> read_gain >> read_distance;
+    input >> read_path >> read_angle >> read_gain >> read_distance
+          >> read_transform >> read_vector >> read_color;
     return input ? 0 : 1;
 }
 ```

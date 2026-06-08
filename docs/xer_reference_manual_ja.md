@@ -1,23 +1,29 @@
 # xer C++ Utility Library リファレンスマニュアル
 
-対象バージョン: **v0.8.0**
+対象バージョン: **v1.0.0a1**
 
 ---
+
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/error.h`
+> Reason: Japanese fragment was translated from a different English source hash.
 
 # `<xer/error.h>`
 
-## 目的
+## Purpose
 
-`<xer/error.h>` は、xer 全体で使う中核的なエラー機能と結果型の機能を提供します。
+`<xer/error.h>` provides the core error and result facilities used throughout xer.
 
-xer では、実用的な範囲で、通常の失敗を例外や特別な番兵値ではなく明示的に表します。
-このヘッダーは、そのために使う共通の語彙を定義します。
+In xer, ordinary failure is represented explicitly rather than by exceptions or special sentinel values wherever practical.
+This header defines the common vocabulary used for that purpose.
 
 ---
 
-## 主な要素
+## Main Entities
 
-少なくとも、`<xer/error.h>` は次の要素を提供します。
+At minimum, `<xer/error.h>` provides the following entities:
 
 ```cpp
 enum class xer::error_t : std::int32_t;
@@ -41,60 +47,60 @@ constexpr auto xer::make_error(
     -> error<Detail>;
 ```
 
-`error_t` の列挙子の正確な集合は、ライブラリの発展に応じて増える可能性がありますが、全体の設計は安定しています。
+The exact set of enumerators in `error_t` may grow as the library evolves, but the overall design is stable.
 
 ---
 
-## 設計上の役割
+## Design Role
 
-このヘッダーは、xer の基本的なエラー報告モデルを定義します。
+This header defines the basic error-reporting model for xer.
 
-このヘッダーの役割は、次のことを可能にすることです。
+Its role is to make the following possible:
 
-* 通常の失敗を明示的に報告する
-* 通常の公開APIを理解しやすく保つ
-* 必要に応じて任意の構造化された詳細情報を付加する
-* 診断のためにソース位置情報を保持する
+* report normal failure explicitly
+* keep ordinary public APIs easy to understand
+* attach optional structured detail when needed
+* preserve source-location information for diagnostics
 
-言い換えると、`<xer/error.h>` は xer 方式の失敗処理の基盤です。
+In other words, `<xer/error.h>` is the foundation for xer-style failure handling.
 
 ---
 
 ## `xer::result`
 
-`xer::result<T, Detail>` は、xer の標準的な結果型です。
+`xer::result<T, Detail>` is the standard result type in xer.
 
-一般的な場合、
+For the common case:
 
 ```cpp
 xer::result<T>
 ```
 
-は、次の意味になります。
+means:
 
 ```cpp
 std::expected<T, xer::error<void>>
 ```
 
-追加の詳細情報が必要な場合は、第2テンプレート引数を指定できます。
+When extra detail is needed, a second template argument may be supplied:
 
 ```cpp
 xer::result<T, Detail>
 ```
 
-これは次の意味になります。
+which means:
 
 ```cpp
 std::expected<T, xer::error<Detail>>
 ```
 
-### 基本方針
+### Basic Policy
 
-原則として、失敗しうる xer の公開APIは `xer::result` を返します。
+As a rule, fallible public APIs in xer return `xer::result`.
 
-これにより、通常の成功と通常の失敗が型システム上で明示されます。
+This keeps normal success and normal failure explicit in the type system.
 
-### 典型的なパターン
+### Typical Pattern
 
 ```cpp
 const auto result = some_operation();
@@ -105,73 +111,74 @@ if (!result.has_value()) {
 const auto& value = *result;
 ```
 
-正確なスタイルは場合によって異なりますが、明示的に確認することが通常の前提です。
+The exact style may vary, but explicit checking is the normal expectation.
 
 ---
 
 ## `xer::error<void>`
 
-`xer::error<void>` は、追加のペイロードが不要な場合に使う共通のエラー型です。
+`xer::error<void>` is the common error type used when no additional payload is needed.
 
-少なくとも次の情報を格納します。
+It stores at least the following information:
 
-* エラーコード
-* エラーが作成されたソース位置
+* the error code
+* the source location at which the error was created
 
-これにより、軽量でありながら有用な診断用コンテキストを保持できます。
+This makes it lightweight while still preserving useful diagnostic context.
 
-### 目的
+### Purpose
 
-`error<void>` は、次のような場合に適しています。
+`error<void>` is suitable when:
 
-* エラーカテゴリだけが重要である
-* 追加の構造化データが不要である
-* 呼び出し側が主に成功と失敗を区別できればよい
+* only the error category matters
+* no extra structured data is necessary
+* the caller mainly needs to distinguish success from failure
 
 ---
 
 ## `xer::error<Detail>`
 
-`xer::error<Detail>` は、エラーに追加の構造化された情報が必要な場合に使います。
+`xer::error<Detail>` is used when an error needs additional structured information.
 
-正確な表現は `Detail` の設計によって異なりますが、意図は次のとおりです。
+The exact representation depends on the design of `Detail`, but the intent is:
 
-* 共通のエラーコードとソース位置を保持する
-* その失敗に固有の追加情報を運ぶ
+* preserve the common error code and source location
+* carry extra information specific to that failure
 
-これは、次のような場合に有用です。
+This is useful for cases such as:
 
-* 位置を付加する
-* 問題のある値を付加する
-* 後で報告するための構造化されたコンテキストを付加する
+* attaching a position
+* attaching a problematic value
+* attaching structured context for later reporting
 
-### 設計方針
+### Design Direction
 
-`Detail` がクラス型である場合、`error<Detail>` は継承または同等の仕組みによって、その詳細情報を自然に公開しても構いません。
-`Detail` がクラス型でない場合は、メンバーとして格納しても構いません。
+If `Detail` is a class type, `error<Detail>` may expose that detail naturally through inheritance or an equivalent mechanism.
+If `Detail` is not a class type, it may be stored as a member.
 
-重要なのは内部表現そのものではなく、追加の詳細情報が明示的で型安全なままであることです。
+The important point is not the internal representation itself, but that the extra detail remains explicit and type-safe.
 
 ---
 
 ## `xer::error_t`
 
-`xer::error_t` は、xer 全体で使う共通のエラーコード列挙型です。
+`xer::error_t` is the common error-code enumeration used across xer.
 
-### 基本方針
+### Basic Direction
 
-この設計は、主に次の考え方に基づいています。
+Its design is guided primarily by the following ideas:
 
-* 有用な場合は `errno` 風のカテゴリとの実用的な互換性を保つ
-* 必要に応じて xer 固有のエラーカテゴリを許す
-* エラー型そのものの中には成功を表す列挙子を置かない
+* preserve practical compatibility with `errno`-style categories where useful
+* allow xer-specific error categories where necessary
+* provide `success` as the named representation of value `0`
 
-### 一般的な解釈
+### General Interpretation
 
-* 正の値は、実用的な範囲で、対象環境の `errno` 風の意味に対応します
-* 負の値は、xer 固有のカテゴリ用に予約されます
+* `success` has value `0` and represents the absence of an error
+* positive values correspond, where practical, to target-environment `errno`-style meanings
+* negative values are reserved for xer-specific categories
 
-xer 固有のカテゴリの例には、次のようなものがあります。
+Examples of xer-specific categories may include things such as:
 
 * `logic_error`
 * `invalid_argument`
@@ -181,33 +188,33 @@ xer 固有のカテゴリの例には、次のようなものがあります。
 * `end_of_file`
 * `divide_by_zero`
 
-正確な列挙子の集合は実装で定義されます。
+The exact enumerator set is defined by the implementation.
 
-逐次入力操作では、入力を使い切って次の項目を読めない場合に `end_of_file` を使用します。名前やキーで指定した対象が存在しない場合、検索操作では `not_found` を使用します。
+Sequential input operations use `end_of_file` when the next item cannot be read because the input is exhausted. Lookup operations use `not_found` when a named or keyed target does not exist.
 
 ---
 
 ## `xer::make_error`
 
-`make_error` は、xer のエラーオブジェクトを構築する標準ヘルパーです。
+`make_error` is the standard helper for constructing xer error objects.
 
-### `make_error` が存在する理由
+### Why `make_error` Exists
 
-このヘルパーが存在する理由は次のとおりです。
+The helper exists so that:
 
-* 呼び出し側が `std::source_location::current()` を繰り返し書かなくてよい
-* ライブラリ全体でエラー構築を統一できる
-* コードを簡潔で読みやすく保てる
+* callers do not need to repeat `std::source_location::current()`
+* error construction stays uniform across the library
+* code remains concise and readable
 
-### 基本形
+### Basic Forms
 
-追加の詳細情報がない場合:
+Without extra detail:
 
 ```cpp
 const auto error = xer::make_error(xer::error_t::invalid_argument);
 ```
 
-追加の詳細情報がある場合:
+With extra detail:
 
 ```cpp
 const auto error = xer::make_error<my_detail>(
@@ -216,42 +223,42 @@ const auto error = xer::make_error<my_detail>(
 );
 ```
 
-### ソース位置
+### Source Location
 
-ソース位置は、`make_error` のデフォルト引数を通じて呼び出し地点で取得されます。
+The source location is captured at the call site through the default argument of `make_error`.
 
-これは、単に型が定義された場所ではなく、エラーが作成された場所を記録するため重要です。
+This is important because it records where the error was created, not merely where the type was defined.
 
 ---
 
-## 他の方針との関係
+## Relationship to Other Policies
 
-`<xer/error.h>` は、次のプロジェクト全体の方針と密接に関係しています。
+`<xer/error.h>` is closely related to the following project-wide policies:
 
-* 通常の失敗は `xer::result` で表す
-* 通常の公開APIは、一般に `xer::result` 引数ではなく通常の値を受け取る
-* 例外は、アサーション失敗や根本的に例外的な状況など、設計上適切な場合に予約する
+* normal failure is represented by `xer::result`
+* ordinary public APIs generally take ordinary values rather than `xer::result` arguments
+* exceptions are reserved for cases where they are appropriate by design, such as assertion failures or fundamentally exceptional situations
 
-したがって、このヘッダーは次の文書とあわせて理解する必要があります。
+Accordingly, this header should be understood together with:
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
 
 ---
 
-## ドキュメント上の注意
+## Documentation Notes
 
-`xer::result` を使う失敗しうるAPIを文書化するときは、通常、次の内容を説明すれば十分です。
+When documenting a fallible API that uses `xer::result`, it is usually enough to describe:
 
-* 成功値
-* 一般的な失敗条件
-* 重要な場合の主なエラーカテゴリ
+* the success value
+* the general failure condition
+* important error categories when they matter
 
-その区別が利用者にとって重要でない限り、考えられるすべての `error_t` 値を列挙する必要は必ずしもありません。
+It is not always necessary to enumerate every possible `error_t` value unless that distinction is important to users.
 
 ---
 
-## 例
+## Example
 
 ```cpp
 #include <xer/error.h>
@@ -267,14 +274,14 @@ auto parse_positive(int value) -> xer::result<int>
 }
 ```
 
-この例は、通常の xer パターンを示しています。
+This example shows the normal xer pattern:
 
-* 成功時は成功値を直接返す
-* 失敗時は `std::unexpected(xer::make_error(...))` を返す
+* return a success value directly on success
+* return `std::unexpected(xer::make_error(...))` on failure
 
 ---
 
-## 関連項目
+## See Also
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
@@ -9698,125 +9705,131 @@ auto toml_save(const path& filename, const toml_value& value)
 
 ---
 
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/stdio.h`
+> Reason: Japanese fragment was translated from a different English source hash.
+
 # `<xer/stdio.h>`
 
-## 目的
+## Purpose
 
-`<xer/stdio.h>` は、xer のストリームベースの入出力機能を提供します。
+`<xer/stdio.h>` provides stream-based input and output facilities in xer.
 
-その役割は C 標準ライブラリの `<stdio.h>` と精神的には似ていますが、文字どおりの再実装を目的とするものではありません。
-代わりに、明示的なストリーム型、明示的なエンコーディング、xer の通常の失敗モデルを中心に、実用的な I/O を再構成します。
+Its role is similar in spirit to the C standard library `<stdio.h>`, but it is not intended to be a literal reproduction.
+Instead, it reconstructs practical I/O around explicit stream types, explicit encodings, and xer's ordinary failure model.
 
-このヘッダーは、次のような主要なユーザー向け経路を提供するため、xer の中でも特に重要な公開ヘッダーの一つです。
+This header is one of the most important public headers in xer because it provides the main user-facing path for:
 
-- バイナリストリーム I/O
-- テキストストリーム I/O
-- 書式付き入出力
-- ファイルエントリ操作
-- CSV 入出力
-- ストリーム状態と位置指定
-- ストリームの巻き戻し
-- ストリーム内容の便利操作
-- ファイル全体の内容を扱う便利操作
-
----
-
-## 主な役割
-
-`<xer/stdio.h>` の主な役割は、次の原則に基づく一貫した I/O モデルを提供することです。
-
-- `FILE*` を公開抽象として直接公開しない
-- バイナリ I/O とテキスト I/O を明示的に区別する
-- ストリームの生存期間管理に RAII を使用する
-- テキストエンコーディングをロケールではなく明示的に扱う
-- 通常の失敗を `xer::result` で報告する
-
-これにより、古典的な C スタイル関数名の親しみやすさを保ちながら、現代的な C++ コードからより安全に使いやすいヘッダーになります。
+- binary stream I/O
+- text stream I/O
+- formatted input/output
+- file-entry operations
+- CSV input/output
+- stream state and positioning
+- stream rewinding
+- stream content convenience operations
+- whole-file content convenience operations
 
 ---
 
-## 中核となるストリーム型
+## Main Role
 
-少なくとも、`<xer/stdio.h>` は次の公開ストリーム型を提供します。
+The main role of `<xer/stdio.h>` is to provide a coherent I/O model built on the following principles:
+
+- do not expose `FILE*` directly as the public abstraction
+- distinguish binary I/O from text I/O explicitly
+- use RAII for stream lifetime management
+- handle text encodings explicitly rather than through locale
+- report ordinary failure through `xer::result`
+
+This makes the header easier to use safely from modern C++ code while preserving the familiarity of many classic C-style function names.
+
+---
+
+## Core Stream Types
+
+At minimum, `<xer/stdio.h>` provides the following public stream types:
 
 ```cpp
 class binary_stream;
 class text_stream;
 ```
 
-これらはこのヘッダーの中心的な抽象です。
+These are the central abstractions of the header.
 
 ### `binary_stream`
 
-`binary_stream` はバイナリ入出力を表します。
+`binary_stream` represents binary input/output.
 
-これは次の用途に使われます。
+It is used for:
 
-* バイナリモードで開いたファイル
-* メモリを背後に持つバイナリストリーム
-* バイナリ一時ストリーム
-* その他のバイト指向ストリーム対象
+* files opened in binary mode
+* memory-backed binary streams
+* binary temporary streams
+* other byte-oriented stream targets
 
 ### `text_stream`
 
-`text_stream` はテキスト入出力を表します。
+`text_stream` represents text input/output.
 
-これは次の用途に使われます。
+It is used for:
 
-* 明示的なテキストエンコーディングで開いたファイル
-* UTF-8 または CP932 のテキスト入力元
-* 文字列を背後に持つテキストストリーム
-* テキスト一時ストリーム
-* 標準のテキスト指向入出力対象
+* files opened with explicit text encoding
+* UTF-8 or CP932 text sources
+* string-backed text streams
+* text temporary streams
+* standard text-oriented input/output targets
 
-### 設計方針
+### Design Direction
 
-これら 2 つのストリーム型は意図的に分離されています。
+These two stream types are intentionally separate.
 
-xer は、モード切り替えを持つ 1 つのストリームクラスとしてこれらをモデル化しません。
-代わりに、バイナリ I/O とテキスト I/O の区別を型レベルで明示します。
-
----
-
-## ムーブ専用 RAII オブジェクト
-
-`binary_stream` と `text_stream` はムーブ専用の RAII オブジェクトです。
-
-### 意味
-
-これは少なくとも次のことを意味します。
-
-* コピーできない
-* ムーブできる
-* オブジェクトの生存期間を通じてストリームリソースを獲得・解放する
-* デストラクタが自動クリーンアップを行う
-
-### なぜ重要か
-
-これにより、ストリーム所有権が明示され、生ハンドル共有に伴う多くの曖昧さを避けられます。
-
-また、明示的な所有権と明示的な失敗処理を好む xer の全体的な設計にも合っています。
+xer does not model them as one stream class with a mode switch.
+Instead, the distinction between binary and text I/O is made explicit at the type level.
 
 ---
 
-## ストリームを開く
+## Move-Only RAII Objects
 
-`<xer/stdio.h>` は、ファイル、メモリ、文字列からストリームを開く関数を提供します。
+`binary_stream` and `text_stream` are move-only RAII objects.
 
-### ファイルを開く
+### Meaning
 
-少なくとも、公開されるファイルオープン形式は次のとおりです。
+This implies at least the following:
+
+* they are not copyable
+* they are movable
+* they acquire and release stream resources through object lifetime
+* the destructor performs automatic cleanup
+
+### Why This Matters
+
+This makes stream ownership explicit and avoids many ambiguities associated with raw handle sharing.
+
+It also fits xer's broader design preference for explicit ownership and explicit failure handling.
+
+---
+
+## Stream Opening
+
+`<xer/stdio.h>` provides functions for opening streams from files, memory, and strings.
+
+### File Opening
+
+At minimum, the public file-opening forms are:
 
 ```cpp
 auto fopen(const path& filename, const char* mode) noexcept -> xer::result<binary_stream>;
 auto fopen(const path& filename, const char* mode, encoding_t encoding) noexcept -> xer::result<text_stream>;
 ```
 
-これら 2 つのオーバーロードは、バイナリオープンとテキストオープンを分離します。
+These two overloads separate binary opening from text opening.
 
-### メモリを開く
+### Memory Opening
 
-メモリを背後に持つストリームについては、次のような形式を提供する場合があります。
+For memory-backed streams, the header may provide forms such as:
 
 ```cpp
 auto memopen(std::span<std::byte> memory, const char* mode) noexcept -> xer::result<binary_stream>;
@@ -9824,21 +9837,21 @@ auto stropen(std::u8string_view text, const char* mode) noexcept -> xer::result<
 auto stropen(std::u8string& text, const char* mode) noexcept -> xer::result<text_stream>;
 ```
 
-### 設計方針
+### Design Direction
 
-これらの open 関数は、次のようになるよう設計されています。
+These open functions are designed so that:
 
-* バイナリストリームとテキストストリームをオープン時点で区別する
-* 背後のコンテナの通常の所有権を暗黙に移譲しない
-* 借用されたストレージであることを API 形状で明示する
+* binary streams and text streams are distinguished at open time
+* ordinary ownership of the backing container is not silently transferred
+* borrowed storage remains explicit in the API shape
 
 ---
 
-## テキストエンコーディングの選択
+## Text Encoding Selection
 
-テキストストリームでは、`<xer/stdio.h>` は明示的なエンコーディング選択を提供します。
+For text streams, `<xer/stdio.h>` provides explicit encoding selection.
 
-少なくとも、公開エンコーディング列挙は次のとおりです。
+At minimum, the public encoding enumeration is:
 
 ```cpp
 enum class encoding_t {
@@ -9848,27 +9861,27 @@ enum class encoding_t {
 };
 ```
 
-### 意味
+### Meaning
 
-* `utf8` は UTF-8 テキストを意味します
-* `cp932` は CP932 テキストを意味します
-* `auto_detect` は、サポートするエンコーディング間で入力側の自動判定を行うことを意味します
+* `utf8` means UTF-8 text
+* `cp932` means CP932 text
+* `auto_detect` means automatic input-side detection between supported encodings
 
-### 重要な注意
+### Important Notes
 
-* xer のテキスト I/O はロケール中心ではありません
-* エンコーディングはストリームオープンモデルの一部です
-* `auto_detect` は入力用であり、一般的な書き込み側の振る舞いを表すものではありません
+* text I/O in xer is not locale-centered
+* encoding is part of the stream-opening model
+* `auto_detect` is intended for input, not for general write-side behavior
 
-これは、従来のロケール駆動の C テキスト I/O との最も明確な違いの一つです。
+This is one of the clearest differences from traditional locale-driven C text I/O.
 
 ---
 
-## バイナリ I/O
+## Binary I/O
 
-バイナリストリームに対して、このヘッダーはバイト指向操作を提供します。
+For binary streams, the header provides byte-oriented operations.
 
-少なくとも、次のような関数を含みます。
+At minimum, this includes functions such as:
 
 ```cpp
 fread
@@ -9877,37 +9890,37 @@ fgetb
 fputb
 ```
 
-### このグループの役割
+### Role of This Group
 
-これらの関数は次を提供します。
+These functions provide:
 
-* ブロック入出力
-* 1 バイト入出力
-* バイト単位のバイナリストリーム操作
+* block input/output
+* single-byte input/output
+* binary-stream operations in byte units
 
-### 設計方針
+### Design Direction
 
-バイナリデータは、テキストではなく生のバイト指向データとして扱います。
+Binary data is handled as raw byte-oriented data rather than as text.
 
-そのため、`fgetc` と `fputc` は 1 バイトのバイナリ I/O インターフェイスではありません。
-代わりに、xer はその役割に `fgetb` と `fputb` を使用します。
+`fgetc` and `fputc` are therefore not the single-byte binary I/O interface.
+Instead, xer uses `fgetb` and `fputb` for that role.
 
-### EOF の扱い
+### EOF Handling
 
-逐次入力関数は、入力ストリームを使い切った状態を `error_t::end_of_file` として報告します。
-これは、`fread`、`fgetb`、`fgetc`、`fgets` などで新しいデータを読めない場合に適用されます。
+Sequential input functions report an exhausted input stream as `error_t::end_of_file`.
+This applies to operations such as `fread`, `fgetb`, `fgetc`, and `fgets` when no new data can be read.
 
-部分読み取りは成功のままです。
-たとえば、`fread` が要求されたバイト数より少なくても 1 バイト以上を読み取った場合は、実際に読み取ったバイト数を返します。
-`stream_get_contents` は、内容を収集する際に `end_of_file` を自然な終了条件として扱います。
+Partial reads remain successful.
+For example, if `fread` reads at least one byte but fewer bytes than requested, it returns the number of bytes actually read.
+`stream_get_contents` treats `end_of_file` as the natural termination condition while collecting contents.
 
 ---
 
-## テキスト I/O
+## Text I/O
 
-テキストストリームに対して、このヘッダーは文字指向および文字列指向の操作を提供します。
+For text streams, the header provides character- and string-oriented operations.
 
-少なくとも、次のような関数を含みます。
+At minimum, this includes functions such as:
 
 ```cpp
 fgetc
@@ -9923,33 +9936,33 @@ fputs
 puts
 ```
 
-### このグループの役割
+### Role of This Group
 
-これらの関数は次を提供します。
+These functions provide:
 
-* 1 文字のテキスト入出力
-* 文字列指向のテキスト入出力
-* 標準ストリーム向けの便利操作
-* `ungetc` による限定的な押し戻しサポート
+* single-character text input/output
+* string-oriented text input/output
+* standard-stream convenience operations
+* limited push-back support through `ungetc`
 
-### 設計方針
+### Design Direction
 
-テキストストリームは内部的に xer のテキストモデルを中心に正規化されます。
+Text streams are normalized internally around xer's text model.
 
-特に次の点が重要です。
+In particular:
 
-* 1 文字入力は `char32_t` を中心にします
-* 文字列指向テキスト処理は UTF-8 `char8_t` 文字列を中心にします
+* single-character input is centered on `char32_t`
+* string-oriented text handling is centered on UTF-8 `char8_t` strings
 
-実際に見えるオーバーロード集合は実装に依存しますが、概念的なモデルは同じです。
+The exact visible overload set depends on the implementation, but the conceptual model remains the same.
 
 ---
 
-## 書式付き入出力
+## Formatted Input and Output
 
-`<xer/stdio.h>` は書式付き I/O 機能も提供します。
+`<xer/stdio.h>` also provides formatted I/O facilities.
 
-少なくとも、次のファミリを含みます。
+At minimum, this includes the following families:
 
 ```cpp
 fprintf
@@ -9961,20 +9974,20 @@ sscanf
 scanf
 ```
 
-### このグループの役割
+### Role of This Group
 
-これらの関数は、C に慣れたユーザーにも近づきやすいスタイルで、親しみのある書式付き I/O を提供します。
+These functions provide familiar formatted I/O in a style approachable to users familiar with C.
 
-### 設計方針
+### Design Direction
 
-名前は標準ライブラリに似ていますが、周辺設計は xer 独自です。
+Although the naming resembles the standard library, the surrounding design is xer's own:
 
-* ストリーム型は明示的です
-* テキストモデルは UTF-8 指向です
-* 通常の失敗は、該当する箇所では xer スタイルの結果処理で報告します
-* C の厳密なソースレベル再現よりも、xer のストリーム抽象との統合を優先します
+* stream types are explicit
+* text model is UTF-8-oriented
+* ordinary failure is reported through xer-style result handling where applicable
+* integration with xer stream abstractions takes priority over strict source-level emulation of C
 
-### printf 書式の詳細
+### printf Format Details
 
 # xer printf Format Specifiers
 
@@ -10132,9 +10145,30 @@ The following xer types are intended to be printable through `%@`:
 xer::error_t
 xer::error<Detail>
 xer::result<T, Detail>
+xer::type_info
+xer::path
+xer::cyclic<T>
+xer::interval<T, Min, Max>
+xer::quantity<T, Dim>
+xer::matrix<T, Rows, Cols>
+xer::vec<T, N>
+xer::polar<T, 2>
+xer::image::point
+xer::image::pointf
+xer::image::size
+xer::image::sizef
+xer::image::rect
+xer::image::rectf
+xer::basic_rgb<T>
+xer::basic_gray<T>
+xer::basic_cmy<T>
+xer::basic_hsv<T>
+xer::basic_xyz<T>
+xer::basic_lab<T>
+xer::basic_luv<T>
 ```
 
-These types provide stream insertion support so that `%@` can display them through the generic stream-based route.
+Many of these types get their stream insertion operators from `<xer/iostream.h>`. Include that header when using `%@` with opt-in iostream bridge types. These types provide stream insertion support so that `%@` can display them through the generic stream-based route.
 
 ### Notes on `std::ostringstream`
 
@@ -10157,7 +10191,7 @@ The exact error category may be refined as the implementation evolves, but inval
 This document is intended to describe the user-visible printf-family behavior.
 When implementation details in `xer/bits/printf_format.h` change, this document should be kept in sync.
 
-### scanf 書式の詳細
+### scanf Format Details
 
 # xer scanf Format Specifiers
 
@@ -10561,7 +10595,7 @@ It does not assign to an output argument and does not increment the assignment c
 It does not read input by itself.
 Instead, it controls argument selection for the following conversion specification.
 
-The main purpose is to make a following conversion use a specific output argument while keeping the conversion itself written in the ordinary form.
+The main purpose is to make a following conversion use a specific output argument while keeping the conversion itself written in the ordinary form. When the following conversion produces text, such as `%s` or `%[...]`, non-scalar destination types can use their stream extraction operators through xer's generic scanning path. Include `<xer/iostream.h>` when scanning opt-in xer value types this way.
 
 ### Sequential Form
 
@@ -10751,35 +10785,35 @@ When implementation details in `xer/bits/scanf_format.h` or `xer/bits/scanf.h` c
 
 ---
 
-## CSV サポート
+## CSV Support
 
-`<xer/stdio.h>` は CSV 向けヘルパーも含みます。
+`<xer/stdio.h>` also includes CSV-oriented helpers:
 
 ```cpp
 fgetcsv
 fputcsv
 ```
 
-### このグループの役割
+### Role of This Group
 
-これらの関数は、xer ストリーム上で便利な CSV 入出力を提供します。
+These functions provide convenient CSV input and output on top of xer streams.
 
-CSV はテキスト指向フォーマットであり、次との統合によって特に有用になります。
+They are particularly useful because CSV is a text-oriented format that benefits from integration with:
 
-* 明示的なテキストエンコーディング
-* 明示的なストリーム所有権
-* UTF-8 指向文字列
+* explicit text encodings
+* explicit stream ownership
+* UTF-8-oriented strings
 
-### 設計方針
+### Design Direction
 
-これらの関数は単なる文字列ヘルパーではありません。
-ストリームと書式付きテキストレコードを操作するため、自然に I/O 層に属します。
+These functions are not merely string helpers.
+They belong naturally in the I/O layer because they operate on streams and formatted text records.
 
 ---
 
-## 位置とストリーム状態のヘルパー
+## Position and Stream State Helpers
 
-少なくとも、`<xer/stdio.h>` は次のようなヘルパーを提供します。
+At minimum, `<xer/stdio.h>` provides helpers such as:
 
 ```cpp
 fseek
@@ -10791,52 +10825,51 @@ ferror
 clearerr
 ```
 
-また、関連する公開型は次のとおりです。
+and the related public types:
 
 ```cpp
 enum seek_origin_t { seek_set, seek_cur, seek_end };
 using fpos_t = std::uint64_t;
 ```
 
-### このグループの役割
+### Role of This Group
 
-これらの機能は次を提供します。
+These facilities provide:
 
-* バイトまたは位置指向のストリーム移動
-* ストリーム状態の検査
-* ストリームエラー状態の制御
-* 明示的なテキストストリーム位置処理
+* byte- or position-oriented stream movement
+* stream status inspection
+* stream error-state control
+* explicit text-stream position handling
 
-### バイナリとテキストの位置指定
+### Binary vs Text Positioning
 
-基本的な意図は次のとおりです。
+The basic intended distinction is:
 
-* `fseek` / `ftell` は `binary_stream` の通常の位置ヘルパーです
-* `fgetpos` / `fsetpos` は `text_stream` の主要な位置ヘルパーです
+* `fseek` / `ftell` are the ordinary position helpers for `binary_stream`
+* `fgetpos` / `fsetpos` are the primary position helpers for `text_stream`
 
-これは、テキストストリームがデコードやバッファリングの後で単純なバイトオフセットにきれいに対応するとは限らないことを反映しています。
+This reflects the fact that text streams may not always map cleanly to simple byte offsets after decoding and buffering.
 
 ---
 
-## 巻き戻し
+## Rewinding
 
-`<xer/stdio.h>` は、両方のストリーム種別に対して `rewind` を提供します。
+`<xer/stdio.h>` provides `rewind` for both stream kinds:
 
 ```cpp
 auto rewind(binary_stream& stream) noexcept -> xer::result<void>;
 auto rewind(text_stream& stream) noexcept -> xer::result<void>;
 ```
 
-C 標準ライブラリ関数と異なり、xer の `rewind` は `xer::result<void>` を返すため、無効なストリームやシーク失敗を明示的に報告できます。
+Unlike the C standard-library function, xer's `rewind` returns `xer::result<void>` so that invalid streams and seek failures can be reported explicitly.
 
-テキストストリームでは、巻き戻し時に押し戻し文字、先読みバイト、途中のデコード状態もクリアします。
-ストリームが `encoding_t::auto_detect` で開かれていた場合、具体的なエンコーディングは未決定状態に戻ります。
+For text streams, rewinding also clears pushed-back characters, lookahead bytes, and partial decoding state. If the stream was opened with `encoding_t::auto_detect`, the concrete encoding is returned to the undecided state.
 
 ---
 
-## ストリーム全体の便利操作
+## Whole-Stream Convenience Operations
 
-`<xer/stdio.h>` は、ストリーム全体の便利操作を提供します。
+`<xer/stdio.h>` provides whole-stream convenience operations:
 
 ```cpp
 auto stream_get_contents(
@@ -10858,15 +10891,15 @@ auto stream_put_contents(
     -> xer::result<void>;
 ```
 
-### 目的
+### Purpose
 
-`stream_get_contents` と `stream_put_contents` は、すでに開いている xer ストリームから読み取る、またはそこへ書き込むための簡潔なヘルパーです。
+`stream_get_contents` and `stream_put_contents` provide compact helpers for reading from and writing to an already-open xer stream.
 
-これらは `file_get_contents` と `file_put_contents` のストリームレベル版です。
+They are the stream-level counterparts of `file_get_contents` and `file_put_contents`.
 
-ファイル名ではなくストリームに対して動作するため、ファイル、一時ファイル、メモリストリーム、文字列ストリーム、プロセスパイプ、適用可能な場合のソケット由来ストリームなど、xer がサポートする任意のストリーム入出力元・宛先で使用できます。
+Because they operate on streams rather than file names, they can be used with any stream source or destination supported by xer, including files, temporary files, memory streams, string streams, process pipes, and socket-derived streams where applicable.
 
-### バイナリ `stream_get_contents`
+### Binary `stream_get_contents`
 
 ```cpp
 auto stream_get_contents(
@@ -10875,41 +10908,41 @@ auto stream_get_contents(
     -> xer::result<std::vector<std::byte>>;
 ```
 
-このオーバーロードは、`stream` の現在位置からバイナリデータを読み取ります。
+This overload reads binary data from the current position of `stream`.
 
-最大で `length` バイトを読み取り、EOF に到達した場合はそこで停止します。
+It reads at most `length` bytes, or stops earlier if EOF is reached.
 
-`length` が 0 の場合、関数は成功し、空のバイトベクタを返します。
+If `length` is zero, the function succeeds and returns an empty byte vector.
 
-### オフセット引数が無い理由
+### No Offset Argument
 
-xer は、意図的に `stream_get_contents` にオフセット引数を提供しません。
+xer intentionally does not provide an offset parameter for `stream_get_contents`.
 
-ストリームにはすでに現在位置があります。呼び出し側が開始位置を選びたい場合は、`stream_get_contents` を呼ぶ前に `fseek`、`fsetpos`、またはその他の適切な位置指定関数を明示的に使用してください。
+A stream already has a current position. If the caller needs to choose the starting position, the caller should use `fseek`, `fsetpos`, or another appropriate positioning function explicitly before calling `stream_get_contents`.
 
-これにより、PHP の `file_get_contents` と `stream_get_contents` で offset と length の引数順が異なるという混乱も避けられます。
+This also avoids the confusing argument-order difference found in PHP, where `file_get_contents` and `stream_get_contents` place offset and length differently.
 
-xer での規則は単純です。
+In xer, the rule is simple:
 
-* `file_get_contents` は内部でファイルを開くため、オフセットを取ることがあります
-* `stream_get_contents` はストリームの現在位置から読み取ります
+* `file_get_contents` may take an offset because it opens the file internally
+* `stream_get_contents` reads from the stream's current position
 
-### テキスト `stream_get_contents`
+### Text `stream_get_contents`
 
 ```cpp
 auto stream_get_contents(text_stream& stream)
     -> xer::result<std::u8string>;
 ```
 
-このオーバーロードは、`stream` の現在位置から EOF までテキストを読み取ります。
+This overload reads text from the current position of `stream` until EOF.
 
-返される文字列は UTF-8 テキストです。
+The returned string is UTF-8 text.
 
-外部バイト列をどのようにデコードするかは、ストリーム自身のエンコーディング状態によって制御されます。
+The stream's own encoding state controls how external bytes are decoded.
 
-テキストモードの `stream_get_contents` は、`offset` や `length` 引数を提供しません。バイトオフセット、デコード済み文字、行末処理、エンコーディング状態が曖昧になり得るためです。
+Text-mode `stream_get_contents` does not provide `offset` or `length` arguments because byte offsets, decoded characters, line ending behavior, and encoding state can otherwise become ambiguous.
 
-### バイナリ `stream_put_contents`
+### Binary `stream_put_contents`
 
 ```cpp
 auto stream_put_contents(
@@ -10918,13 +10951,13 @@ auto stream_put_contents(
     -> xer::result<void>;
 ```
 
-このオーバーロードは、`contents` 内の全バイトを `stream` の現在位置へ書き込みます。
+This overload writes all bytes in `contents` to the current position of `stream`.
 
-正確な配置の振る舞いは、ストリームの現在位置とオープンモードによって決まります。
+The exact placement behavior is determined by the stream's current position and open mode.
 
-たとえば、ストリームが追記モードで開かれている場合、書き込みはそのストリームの追記動作に従います。
+For example, if the stream was opened in append mode, the write follows the stream's append behavior.
 
-### テキスト `stream_put_contents`
+### Text `stream_put_contents`
 
 ```cpp
 auto stream_put_contents(
@@ -10933,49 +10966,49 @@ auto stream_put_contents(
     -> xer::result<void>;
 ```
 
-このオーバーロードは、`contents` 内の UTF-8 テキストを `stream` の現在位置へ書き込みます。
+This overload writes the UTF-8 text in `contents` to the current position of `stream`.
 
-その UTF-8 テキストを外部へどのようにエンコードするかは、ストリームのエンコーディングによって決まります。
+The stream's encoding controls how the UTF-8 text is encoded externally.
 
-### ファイル便利関数との関係
+### Relationship to File Convenience Functions
 
-`file_get_contents` と `file_put_contents` は、これらのストリームレベルヘルパーを包むファイルオープン用の便利ラッパーです。
+`file_get_contents` and `file_put_contents` are file-opening convenience wrappers around these stream-level helpers.
 
-概念的には次のようになります。
+Conceptually:
 
 ```cpp
 auto stream = xer::fopen(filename, "r");
 return xer::stream_get_contents(*stream);
 ```
 
-または次のようになります。
+or:
 
 ```cpp
 auto stream = xer::fopen(filename, "w");
 return xer::stream_put_contents(*stream, contents);
 ```
 
-ストリームレベル関数は再利用可能な読み書きロジックを持ち、ファイルレベル関数はファイルを開き、バイナリ `offset` 引数などのファイル固有オプションを適用します。
+The stream-level functions contain the reusable read/write logic, while the file-level functions handle opening the file and applying file-specific options such as the binary `offset` argument.
 
-### エラー処理
+### Error Handling
 
-これらの関数は xer の通常の失敗モデルに従います。
+These functions follow xer's ordinary failure model.
 
-成功時は次のようになります。
+On success:
 
-* `stream_get_contents` は読み取ったデータを返します
-* `stream_put_contents` は空の成功値を返します
+* `stream_get_contents` returns the read data
+* `stream_put_contents` returns an empty success value
 
-失敗時は、`xer::result` によってエラーを返します。
+On failure, they return an error through `xer::result`.
 
-代表的な失敗条件は次のとおりです。
+Typical failure conditions include:
 
-* 要求された操作に対してストリームが読み取り可能または書き込み可能でない
-* 読み取りまたは書き込みに失敗する
-* テキストのデコードまたはエンコードに失敗する
-* 結果を収集する途中でメモリ確保に失敗する
+* the stream is not readable or writable for the requested operation
+* reading or writing fails
+* text decoding or encoding fails
+* memory allocation fails while collecting the result
 
-### 例
+### Example
 
 ```cpp
 std::u8string buffer;
@@ -11006,9 +11039,9 @@ if (!text.has_value()) {
 
 ---
 
-## クローズとフラッシュ
+## Closing and Flushing
 
-このヘッダーは、次のような操作も提供します。
+This header also provides operations such as:
 
 ```cpp
 fclose
@@ -11016,29 +11049,29 @@ fflush
 tmpfile
 ```
 
-また、明示的にエンコードされたテキストストリーム向けのテキスト指向一時ファイルオーバーロード、または同等のヘルパーも提供します。
+and a text-oriented temporary-file overload or equivalent helper for explicitly encoded text streams.
 
-### このグループの役割
+### Role of This Group
 
-これらの関数は次をサポートします。
+These functions support:
 
-* 明示的なクローズ
-* 明示的なフラッシュ制御
-* 一時ストリーム作成
+* explicit closing
+* explicit flush control
+* temporary stream creation
 
-### 設計方針
+### Design Direction
 
-ストリームのデストラクタは自動クリーンアップを行いますが、それでも明示的な close と flush 操作は重要です。
+Even though stream destructors perform automatic cleanup, explicit close and flush operations still matter because:
 
-* 呼び出し側が決定的なリソース解放を望むことがあります
-* 呼び出し側が破棄前にエラーを明示的に観測したいことがあります
-* 明示的なフラッシュは通常のストリーム制御の一部です
+* callers may want deterministic resource release
+* callers may want explicit error observation before destruction
+* explicit flushing is part of normal stream control
 
 ---
 
-## ファイルエントリ操作
+## File-Entry Operations
 
-`<xer/stdio.h>` は、次のようなファイルエントリ操作も提供します。
+`<xer/stdio.h>` also provides file-entry operations such as:
 
 ```cpp
 file_exists
@@ -11066,31 +11099,31 @@ file_get_contents
 file_put_contents
 ```
 
-### このグループの役割
+### Role of This Group
 
-これらの関数は、開いているストリームオブジェクトではなく、ファイルシステムエントリに対して動作します。
+These functions operate on filesystem entries rather than on open stream objects.
 
-ストリームやファイル処理と操作上近いため、ここにまとめられています。
+They are grouped here because they are operationally close to stream/file handling.
 
-### 設計方針
+### Design Direction
 
-これらの関数はストリームオブジェクトそのものとは意図的に分離されています。
+These functions are intentionally separate from stream objects themselves.
 
-通常は、生のネイティブパス文字列ではなく `xer::path` に対して動作します。
+They typically operate on `xer::path`, not on raw native path strings.
 
-これは、パス値を内部的に UTF-8 文字列で表し、正規化された区切り文字として `/` を使う xer 独自のパスモデルと整合します。
+This aligns them with xer's own path model, where path values are represented internally as UTF-8 strings with `/` as the normalized separator.
 
-このグループの一部の関数は単純な述語であり、別の関数は実際のファイルシステム操作を行います。
+Some functions in this group are simple predicates, while others perform actual filesystem operations.
 
-`file_exists`、`is_file`、`is_dir`、`is_readable`、`is_writable` などの述語関数は `bool` を返します。
+Predicate functions such as `file_exists`, `is_file`, `is_dir`, `is_readable`, and `is_writable` return `bool`.
 
-通常失敗し得る操作は `xer::result` を返します。
+Operations that can fail normally return `xer::result`.
 
-### ファイル時刻ヘルパー
+### File Time Helpers
 
-`fileatime`、`filemtime`、`filectime` は、POSIX エポックからの秒数としてファイル時刻フィールドを返します。これらはプラットフォーム通常のパス状態取得操作を使い、そのプラットフォームの通常の stat 風操作がシンボリックリンクをたどる場合はそれに従うことがあります。
+`fileatime`, `filemtime`, and `filectime` return file time fields as seconds since the POSIX epoch. They use the platform's ordinary path status operation and may follow symbolic links when the platform's normal stat-like operation does so.
 
-`filectime` は `xer::stat::ctime` と同じ ctime フィールドを返します。そのフィールドのプラットフォーム固有の意味は `xer::stat` で文書化されています。
+`filectime` returns the same ctime field as `xer::stat::ctime`. The platform-specific meaning of that field is documented on `xer::stat`.
 
 ```cpp
 auto fileatime(const path& filename) -> xer::result<time_t>;
@@ -11107,15 +11140,15 @@ auto touch(
     time_t atime = -1) -> xer::result<void>;
 ```
 
-`touch` は対象の変更時刻とアクセス時刻を変更します。対象が存在しない場合は、空の通常ファイルを作成します。
+`touch` changes the target's modification and access times. If the target does not exist, it creates an empty regular file.
 
-負の `mtime` は現在時刻を使用することを意味します。負の `atime` は、解決済みの `mtime` をアクセス時刻としても使用することを意味します。有限でない時刻値は不正な引数として拒否されます。
+A negative `mtime` means that the current time is used. A negative `atime` means that the resolved `mtime` is also used as the access time. Non-finite time values are rejected as invalid arguments.
 
 ---
 
-## カレントワーキングディレクトリ操作
+## Current Working Directory Operations
 
-`<xer/stdio.h>` はカレントワーキングディレクトリのヘルパーを提供します。
+`<xer/stdio.h>` provides current-working-directory helpers:
 
 ```cpp
 auto chdir(const path& target) -> xer::result<void>;
@@ -11124,32 +11157,32 @@ auto getcwd() -> xer::result<path>;
 
 ### `chdir`
 
-`chdir` はプロセス全体のカレントワーキングディレクトリを変更します。
+`chdir` changes the process-wide current working directory.
 
 ```cpp
 auto chdir(const path& target) -> xer::result<void>;
 ```
 
-引数は `xer::path` です。
+The argument is a `xer::path`.
 
-成功時、関数は空の成功値を返します。
-失敗時は、`xer::result` によってエラーを返します。
+On success, the function returns an empty success value.
+On failure, it returns an error through `xer::result`.
 
-カレントワーキングディレクトリはプロセス全体の状態であるため、複数のコンポーネントやスレッドがカレントディレクトリに依存する可能性があるプログラムでは、この関数を慎重に使用してください。
+Because the current working directory is process-wide state, callers should use this function carefully in programs where multiple components or threads may depend on the current directory.
 
 ### `getcwd`
 
-`getcwd` はカレントワーキングディレクトリを返します。
+`getcwd` returns the current working directory.
 
 ```cpp
 auto getcwd() -> xer::result<path>;
 ```
 
-返される値は `xer::path` です。
+The returned value is a `xer::path`.
 
-パスは xer の内部 UTF-8 表現へ変換され、正規化された区切り文字として `/` を使用します。
+The path is converted into xer's internal UTF-8 representation and uses `/` as the normalized separator.
 
-結果は、呼び出し時点のプロセス全体のカレントワーキングディレクトリのスナップショットです。
+The result is a snapshot of the process-wide current working directory at the time of the call.
 
 ---
 
@@ -11159,51 +11192,51 @@ auto getcwd() -> xer::result<path>;
 auto realpath(const path& filename) -> xer::result<path>;
 ```
 
-### 目的
+### Purpose
 
-`realpath` は、存在するファイルシステムエントリの正規化された絶対パスを返します。
+`realpath` returns the canonicalized absolute path of an existing filesystem entry.
 
-これは、プラットフォームのパス正規化機構を通じて実際のファイルシステムに問い合わせます。
+It queries the actual filesystem through the platform path canonicalization mechanism.
 
-### 振る舞い
+### Behavior
 
-対象パスは存在していなければなりません。
+The target path must exist.
 
-相対パス要素は解決されます。
-シンボリックリンクやその他のファイルシステムレベルの間接参照は、基盤プラットフォームの振る舞いに従って解決されます。
+Relative path components are resolved.
+Symbolic links and other filesystem-level indirections are resolved according to the behavior of the underlying platform.
 
-POSIX 風環境では、振る舞いはプラットフォームの `realpath` 機能に従います。
-Windows では、実装は Windows のパス正規化機能を使用し、その結果を xer のパス表現へ戻します。
+On POSIX-like environments, the behavior follows the platform `realpath` facility.
+On Windows, the implementation uses Windows path canonicalization facilities and converts the result back into xer's path representation.
 
-### 戻り値
+### Return Value
 
-成功時、`realpath` は `xer::path` を返します。
+On success, `realpath` returns a `xer::path`.
 
-返されるパスは次の性質を持ちます。
+The returned path:
 
-* 絶対パスである
-* 存在するファイルシステムエントリを参照する
-* xer の UTF-8 パス表現へ変換される
-* 内部区切り文字として `/` を使用する
+* is absolute
+* refers to an existing filesystem entry
+* is converted to xer's UTF-8 path representation
+* uses `/` as the internal separator
 
-失敗時は、`xer::result` によってエラーを返します。
+On failure, it returns an error through `xer::result`.
 
-代表的な失敗条件は次のとおりです。
+Typical failure conditions include:
 
-* 対象パスが存在しない
-* 呼び出し側にパスへアクセスする権限がない
-* ネイティブパス変換に失敗する
-* プラットフォームのパス正規化に失敗する
+* the target path does not exist
+* the caller lacks permission to access the path
+* native path conversion fails
+* platform path canonicalization fails
 
-### 字句的なパス操作との違い
+### Difference from Lexical Path Operations
 
-`realpath` は純粋に字句的なパス操作ではありません。
+`realpath` is not a purely lexical path operation.
 
-これは実際のファイルシステムに依存し、シンボリックリンク、マウント済みボリューム、権限、既存エントリなどのファイルシステム状態を観測することがあります。
+It depends on the actual filesystem and may observe filesystem state such as symbolic links, mounted volumes, permissions, and existing entries.
 
-純粋に字句的なパス操作には、`basename`、`parent_path`、`extension`、`stem`、`is_absolute`、`is_relative` などのパスヘルパーを使用してください。
+For purely lexical path manipulation, use path helpers such as `basename`, `parent_path`, `extension`, `stem`, `is_absolute`, and `is_relative`.
 
-### 例
+### Example
 
 ```cpp
 const auto resolved = xer::realpath(xer::path(u8"."));
@@ -11212,13 +11245,13 @@ if (!resolved.has_value()) {
 }
 ```
 
-成功後、`resolved` にはカレントディレクトリの正規化された絶対パスが入ります。
+After success, `resolved` contains the canonicalized absolute path of the current directory.
 
 ---
 
-## ファイル全体の便利操作
+## Whole-File Convenience Operations
 
-`<xer/stdio.h>` は、PHP に着想を得たファイル全体の便利操作を提供します。
+`<xer/stdio.h>` provides PHP-inspired whole-file convenience operations:
 
 ```cpp
 auto file_get_contents(
@@ -11244,24 +11277,24 @@ auto file_put_contents(
     -> xer::result<void>;
 ```
 
-### 目的
+### Purpose
 
-`file_get_contents` と `file_put_contents` は、手動でストリームを開かずにファイル全体を読み書きするための簡潔なヘルパーです。
+`file_get_contents` and `file_put_contents` provide compact helpers for reading and writing an entire file without manually opening a stream.
 
-これらは `stream_get_contents` と `stream_put_contents` を包むファイルオープン用の便利ラッパーです。再利用可能な読み書きの振る舞いはストリームレベルヘルパーに属し、ファイルレベルヘルパーはさらに対象ファイルを開き、ファイル固有オプションを適用します。
+They are file-opening convenience wrappers around `stream_get_contents` and `stream_put_contents`. The reusable read/write behavior belongs to the stream-level helpers, while the file-level helpers additionally open the target file and apply file-specific options.
 
-同名の PHP 関数に着想を得ていますが、その振る舞いは xer のストリームおよびエンコーディングモデルに従います。
+They are inspired by PHP functions of the same names, but their behavior follows xer's stream and encoding model.
 
-### バイナリとテキストの選択
+### Binary and Text Selection
 
-オーバーロード集合は、`encoding_t` 引数の有無によってバイナリまたはテキストの振る舞いを選択します。
+The overload set uses the presence or absence of an `encoding_t` argument to select binary or text behavior.
 
-* エンコーディングが指定されていない場合、ファイルは `binary_stream` として扱われます
-* エンコーディングが指定されている場合、ファイルは `text_stream` として扱われます
+* when no encoding is specified, the file is handled through `binary_stream`
+* when an encoding is specified, the file is handled through `text_stream`
 
-これにより、別個のモードフラグを導入せずに、呼び出し箇所を明示的に保てます。
+This keeps the call site explicit without introducing a separate mode flag.
 
-### バイナリ `file_get_contents`
+### Binary `file_get_contents`
 
 ```cpp
 auto file_get_contents(
@@ -11271,17 +11304,17 @@ auto file_get_contents(
     -> xer::result<std::vector<std::byte>>;
 ```
 
-このオーバーロードはファイルをバイナリとして開き、その内容を `std::vector<std::byte>` として返します。
+This overload opens the file as binary and returns its contents as `std::vector<std::byte>`.
 
-省略可能な `offset` と `length` 引数はバイト単位です。
+The optional `offset` and `length` arguments are byte-based.
 
-`offset` がファイルサイズより大きい場合、関数は `error_t::invalid_argument` を返します。
+If `offset` is greater than the file size, the function returns `error_t::invalid_argument`.
 
-`offset` がファイルサイズとちょうど等しい場合、関数は成功し、空のバイトベクタを返します。
+If `offset` is exactly equal to the file size, the function succeeds and returns an empty byte vector.
 
-`length` が 0 の場合、関数は成功し、空のバイトベクタを返します。
+If `length` is zero, the function succeeds and returns an empty byte vector.
 
-### テキスト `file_get_contents`
+### Text `file_get_contents`
 
 ```cpp
 auto file_get_contents(
@@ -11290,15 +11323,15 @@ auto file_get_contents(
     -> xer::result<std::u8string>;
 ```
 
-このオーバーロードはファイルをテキストとして開き、その内容を UTF-8 テキストとして返します。
+This overload opens the file as text and returns its contents as UTF-8 text.
 
-指定したエンコーディングは、外部ファイルバイト列をどのようにデコードするかを制御します。
+The specified encoding controls how the external file bytes are decoded.
 
-`encoding_t::auto_detect` は、この入力側操作では有効です。
+`encoding_t::auto_detect` is valid for this input-side operation.
 
-テキストモードの `file_get_contents` は、`offset` や `length` 引数を提供しません。バイトオフセット、デコード済み文字、行末処理、エンコーディング状態が曖昧になり得るためです。
+Text-mode `file_get_contents` does not provide `offset` or `length` arguments because byte offsets, decoded characters, line ending behavior, and encoding state can otherwise become ambiguous.
 
-### バイナリ `file_put_contents`
+### Binary `file_put_contents`
 
 ```cpp
 auto file_put_contents(
@@ -11307,11 +11340,11 @@ auto file_put_contents(
     -> xer::result<void>;
 ```
 
-このオーバーロードはファイルをバイナリとして開き、`contents` 内の全バイトを書き込みます。
+This overload opens the file as binary and writes all bytes in `contents`.
 
-既存のファイル内容は置き換えられます。
+Existing file contents are replaced.
 
-### テキスト `file_put_contents`
+### Text `file_put_contents`
 
 ```cpp
 auto file_put_contents(
@@ -11321,41 +11354,43 @@ auto file_put_contents(
     -> xer::result<void>;
 ```
 
-このオーバーロードはファイルをテキストとして開き、`contents` 内の UTF-8 テキストを指定した出力エンコーディングで書き込みます。
+This overload opens the file as text and writes the UTF-8 text in `contents` using the specified output encoding.
 
-`encoding_t::auto_detect` は書き込みでは不正であり、`error_t::invalid_argument` になります。
+`encoding_t::auto_detect` is invalid for writing and results in `error_t::invalid_argument`.
 
-### PHP スタイルのフラグを提供しない理由
+### Why PHP-Style Flags Are Not Provided
 
-xer は、これらの関数に PHP スタイルの `flags` 引数を意図的に提供しません。
+xer intentionally does not provide PHP-style `flags` arguments for these functions.
 
-特に、追記動作やロック動作を `file_put_contents` の内部に隠しません。
+In particular, append behavior and locking behavior are not hidden inside `file_put_contents`.
 
-ファイルロックが必要な場合、呼び出し側は `flock` などの外側の操作で明示的に行ってください。
+If file locking is required, the caller should perform it explicitly with an outer operation such as `flock`.
 
-追記形式の出力が必要な場合、呼び出し側は追記モードでストリームを開き、`fwrite`、`fputs`、または `stream_put_contents` で書き込むなど、ストリーム API を直接使用してください。
+If append-style output is required, the caller should use stream APIs directly, such as opening a stream with append mode and writing with `fwrite` or `fputs`.
 
-### エラー処理
+If append-style output is required, the caller should use stream APIs directly, such as opening a stream with append mode and writing with `fwrite`, `fputs`, or `stream_put_contents`.
 
-これらの関数は xer の通常の失敗モデルに従います。
+### Error Handling
 
-成功時は次のようになります。
+These functions follow xer's ordinary failure model.
 
-* `file_get_contents` は読み取ったデータを返します
-* `file_put_contents` は空の成功値を返します
+On success:
 
-失敗時は、`xer::result` によってエラーを返します。
+* `file_get_contents` returns the read data
+* `file_put_contents` returns an empty success value
 
-代表的な失敗条件は次のとおりです。
+On failure, they return an error through `xer::result`.
 
-* ファイルを開けない
-* シークに失敗する
-* 読み取りまたは書き込みに失敗する
-* `offset` が不正である
-* テキスト出力に `encoding_t::auto_detect` が使用されている
-* テキストのデコードまたはエンコードに失敗する
+Typical failure conditions include:
 
-### 例
+* the file cannot be opened
+* seeking fails
+* reading or writing fails
+* `offset` is invalid
+* `encoding_t::auto_detect` is used for text output
+* text decoding or encoding fails
+
+### Example
 
 ```cpp
 const auto text = xer::file_get_contents(
@@ -11378,52 +11413,52 @@ if (!written.has_value()) {
 
 ---
 
-## ネイティブハンドルアクセス
+## Native Handle Access
 
-このヘッダーは、ネイティブハンドルアクセスに関連するサポートを公開する場合があります。
+The header may also expose support related to native-handle access.
 
-### 役割
+### Role
 
-これは、呼び出し側が xer ストリーム抽象をより低レベルのプラットフォーム機能またはランタイム機能へ橋渡しする必要がある場合のために存在します。
+This exists for cases where callers need to bridge xer stream abstractions to lower-level platform or runtime facilities.
 
-### 設計方針
+### Design Direction
 
-このようなサポートは中心的なものではなく補助的なものです。
-通常のユーザー向け抽象はネイティブハンドルではなく、`binary_stream` または `text_stream` のままです。
-
----
-
-## 内部設計方針
-
-`<xer/stdio.h>` は公開ヘッダーですが、その概念設計は次の考え方に依存しています。
-
-* ストリームオブジェクトは軽量な公開ハンドルである
-* 内部状態はそれらのハンドルの背後に隠されている
-* バイナリストリームとテキストストリームは、関数ポインタベースの内部ディスパッチを使う場合がある
-* テキストストリーム状態は、バッファリング、エンコーディング解決、マルチバイト中間状態を含む場合がある
-
-これらの実装上の考え方は、内部構造そのものが公開抽象ではないとしても、公開 API の形を理解するうえで重要です。
+Such support is supplementary rather than central.
+The normal user-facing abstraction remains `binary_stream` or `text_stream`, not the native handle.
 
 ---
 
-## xer のテキストモデルとの関係
+## Internal Design Direction
 
-`<xer/stdio.h>` は、xer の全体的なテキストモデルと最も強く結び付いたヘッダーの一つです。
+Although `<xer/stdio.h>` is a public header, its conceptual design depends on the following ideas:
 
-特に次の点が重要です。
+* stream objects are lightweight public handles
+* internal state is hidden behind those handles
+* binary and text streams may use function-pointer-based internal dispatch
+* text-stream state may include buffering, encoding resolution, and multibyte intermediate state
 
-* UTF-8 は主要な公開文字列表現です
-* 必要に応じて、個々のテキスト文字には `char32_t` を使用します
-* テキストストリームは UTF-8 と CP932 を明示的にサポートします
-* 自動テキスト入力判定は限定的かつ明示的です
-
-そのため、`<xer/stdio.h>` は、より広いエンコーディング関連方針とあわせて読む必要があります。
+These implementation ideas are important to understand the shape of the public API, even though the internal structures themselves are not the public abstraction.
 
 ---
 
-## 他のヘッダーおよび方針との関係
+## Relationship to xer's Text Model
 
-`<xer/stdio.h>` は次とあわせて理解してください。
+`<xer/stdio.h>` is one of the headers most tightly coupled to xer's overall text model.
+
+In particular:
+
+* UTF-8 is the primary public string representation
+* `char32_t` is used for individual text characters where appropriate
+* text streams support UTF-8 and CP932 explicitly
+* automatic text input detection is limited and explicit
+
+This means that `<xer/stdio.h>` should always be read together with the broader encoding-related policies.
+
+---
+
+## Relationship to Other Headers and Policies
+
+`<xer/stdio.h>` should be understood together with:
 
 * `policy_project_outline.md`
 * `policy_stdio.md`
@@ -11431,54 +11466,54 @@ if (!written.has_value()) {
 * `header_path.md`
 * `header_stdlib.md`
 
-おおまかな境界は次のとおりです。
+The rough boundary is:
 
-* `<xer/path.h>` は字句的なパス表現とネイティブパス変換を扱います
-* `<xer/stdio.h>` はストリーム I/O とファイルエントリ操作を扱います
-* `<xer/stdlib.h>` はマルチバイト変換と関連するユーティリティ機能を扱います
-* エンコーディング方針は、テキストストリームの背後にあるより広いテキストエンコーディングモデルを説明します
-
----
-
-## ドキュメント上の注意
-
-このヘッダーを生成ドキュメントで扱う場合、通常は次を説明すれば十分です。
-
-* xer が `binary_stream` と `text_stream` を区別すること
-* テキストエンコーディングがロケール駆動ではなく明示的であること
-* ストリームオブジェクトがムーブ専用 RAII 型であること
-* 低レベル I/O と、書式付き I/O や CSV などの高レベル機能の両方を含むこと
-* パス指向のファイルエントリ操作がこのヘッダーの一部であること
-* `realpath` がファイルシステム依存であり、字句的なパス操作とは異なること
-* `stream_get_contents` は現在のストリーム位置から読み取り、意図的にオフセット引数を提供しないこと
-* `file_get_contents` と `file_put_contents` は、エンコーディング引数の有無によってバイナリ/テキスト動作が選択される便利 API であること
-* `file_get_contents` と `file_put_contents` はストリームレベルの内容ヘルパーを包むファイルオープン用ラッパーであること
-
-関数ごとの詳細な意味は、リファレンスマニュアルまたは生成された API セクションで説明してください。
+* `<xer/path.h>` handles lexical path representation and native-path conversion
+* `<xer/stdio.h>` handles stream I/O and file-entry operations
+* `<xer/stdlib.h>` handles multibyte conversion and related utility facilities
+* encoding policy explains the broader text-encoding model behind text streams
 
 ---
 
-## 例として示す価値のある話題
+## Documentation Notes
 
-このヘッダーには、特に次のような例が適しています。
+When this header is used in generated documentation, it is usually enough to explain:
 
-* バイナリファイルを開いてバイトを読み取る
-* UTF-8 テキストストリームを開いてテキストを読み取る
-* `puts` または `fputs` でテキストを書き込む
-* `fgetpos` / `fsetpos` を使用する
-* `tmpfile` を使用する
-* CSV を読み書きする
-* `rename`、`remove`、`copy` を実行する
-* `chdir` と `getcwd` でカレントワーキングディレクトリを変更し、復元する
-* `realpath` で既存パスを正規化する
-* `stream_get_contents` と `stream_put_contents` で、すでに開いているストリームを読み書きする
-* `file_get_contents` と `file_put_contents` でファイル全体を読み書きする
+* that xer distinguishes `binary_stream` and `text_stream`
+* that text encodings are explicit rather than locale-driven
+* that stream objects are move-only RAII types
+* that both low-level I/O and higher-level facilities such as formatted I/O and CSV are included
+* that path-oriented file-entry operations are part of the header
+* that `realpath` is filesystem-dependent and distinct from lexical path operations
+* that `stream_get_contents` reads from the current stream position and intentionally does not provide an offset argument
+* that `file_get_contents` and `file_put_contents` are convenience APIs whose binary/text behavior is selected by the presence of an encoding argument
+* that `file_get_contents` and `file_put_contents` are file-opening wrappers around the stream-level content helpers
 
-これらは `examples/` 以下の実行可能な例の候補として適しています。
+Detailed per-function semantics should be described in the reference manual or generated API sections.
 
 ---
 
-## 例
+## Example Topics Commonly Worth Showing
+
+The following kinds of examples are especially suitable for this header:
+
+* opening a binary file and reading bytes
+* opening a UTF-8 text stream and reading text
+* writing text with `puts` or `fputs`
+* using `fgetpos` / `fsetpos`
+* using `tmpfile`
+* reading or writing CSV
+* performing `rename`, `remove`, or `copy`
+* changing and restoring the current working directory with `chdir` and `getcwd`
+* canonicalizing an existing path with `realpath`
+* reading and writing already-open streams with `stream_get_contents` and `stream_put_contents`
+* reading and writing whole files with `file_get_contents` and `file_put_contents`
+
+These are good candidates for executable examples under `examples/`.
+
+---
+
+## Example
 
 ```cpp
 #include <xer/stdio.h>
@@ -11493,15 +11528,15 @@ auto main() -> int
 }
 ```
 
-この例は、基本的な xer スタイルを示しています。
+This example shows the basic xer style:
 
-* xer のテキスト I/O を直接使用する
-* UTF-8 指向テキストを扱う
-* `xer::result` を明示的に確認する
+* use xer text I/O directly
+* work with UTF-8-oriented text
+* check `xer::result` explicitly
 
 ---
 
-## 関連項目
+## See Also
 
 * `policy_project_outline.md`
 * `policy_stdio.md`
@@ -11514,21 +11549,27 @@ auto main() -> int
 
 ---
 
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/iostream.h`
+> Reason: Japanese fragment was translated from a different English source hash.
+
 # `<xer/iostream.h>`
 
-## 目的
+## Purpose
 
-`<xer/iostream.h>` は、選択された xer の値型に対して、標準 iostream の書式付き挿入演算子と抽出演算子を提供します。
+`<xer/iostream.h>` provides formatted iostream insertion and extraction operators for selected xer value types.
 
-このヘッダーは、iostream を xer の主たる入出力モデルにするためのものではありません。xer の基本的な入出力モデルは、引き続き `binary_stream`、`text_stream`、および `<xer/stdio.h>` が提供する関数を中心とします。`<xer/iostream.h>` の役割はより限定的で、診断、テスト、例、および汎用 `%@` 書式化・読み取り支援の実装に使う橋渡しです。
+This header does not make iostreams the main input/output model of xer. xer's primary I/O model remains based on `binary_stream`, `text_stream`, and the functions provided by `<xer/stdio.h>`. The role of `<xer/iostream.h>` is narrower: it provides a bridge for diagnostics, tests, examples, and the implementation of generic `%@` formatting and scanning support.
 
-このヘッダーは明示的に opt-in です。通常の C++ iostream 演算子を xer の値型に対して使いたい場合にだけインクルードします。
+The header is intentionally opt-in. Users include it only when they want ordinary C++ iostream operators for xer value types.
 
 ---
 
-## 主なエンティティ
+## Main Entities
 
-少なくとも、`<xer/iostream.h>` は次の型に対して `operator<<` を利用可能にします。`error_t` と `error<void>` の挿入演算子は `<xer/error.h>` で定義され、このヘッダーがそれをインクルードするため利用できます。
+At minimum, `<xer/iostream.h>` makes `operator<<` available for the following types. The `error_t` and `error<void>` insertion operators are defined by `<xer/error.h>` and are available because this header includes it:
 
 ```cpp
 xer::error_t
@@ -11539,6 +11580,8 @@ xer::cyclic<T>
 xer::interval<T, Min, Max>
 xer::quantity<T, Dim>
 xer::matrix<T, Rows, Cols>
+xer::vec<T, N>
+xer::polar<T, 2>
 xer::image::point
 xer::image::pointf
 xer::image::size
@@ -11554,7 +11597,7 @@ xer::basic_lab<T>
 xer::basic_luv<T>
 ```
 
-また、書式付き抽出が素直に定義できる次の型について `operator>>` も提供します。
+It also provides `operator>>` for the following types where formatted extraction is straightforward:
 
 ```cpp
 xer::error_t
@@ -11562,41 +11605,53 @@ xer::path
 xer::cyclic<T>
 xer::interval<T, Min, Max>
 xer::quantity<T, Dim>
+xer::matrix<T, Rows, Cols>
+xer::vec<T, N>
+xer::polar<T, 2>
 xer::image::point
 xer::image::pointf
 xer::image::size
 xer::image::sizef
 xer::image::rect
 xer::image::rectf
+xer::basic_rgb<T>
+xer::basic_gray<T>
+xer::basic_cmy<T>
+xer::basic_hsv<T>
+xer::basic_xyz<T>
+xer::basic_lab<T>
+xer::basic_luv<T>
 ```
 
-行列と色値の抽出は、現時点では意図的に後回しです。これらの挿入形式は診断用であり、安定した直列化文法として固定するためのものではありません。
+These extraction operators are intended for convenient diagnostics-oriented formatted input and generic `%@` scanning support. They are not a replacement for stable file formats such as JSON, TOML, CSV, or xer's own serialization facilities.
 
 ---
 
-## 設計上の役割
+## Design Role
 
-このヘッダーの主な役割は、xer が提供する値型を、ストリームベースの汎用書式化経路で扱えるようにすることです。
+The main design role of this header is to make xer-provided value types usable by generic stream-based formatting paths.
 
-特に、printf / scanf 系の拡張 `%@` の既定処理のように、内部的にストリーム挿入または抽出に依存する機能を支援します。
+In particular, it supports facilities that internally rely on stream insertion or extraction for default formatting, such as enhanced `%@` handling in the printf and scanf families.
 
-これらの演算子は、xer 自身のテキスト入出力 API を置き換えることを意図していません。
+The operators are not intended to replace xer's own text I/O APIs.
 
 ---
 
-## UTF-8 の扱い
+## UTF-8 Handling
 
-xer は UTF-8 テキストに `char8_t` と `std::u8string_view` を使います。一方、通常の iostream は `char` ストリームです。
+xer uses `char8_t` and `std::u8string_view` for UTF-8 text. Ordinary iostreams use `char` streams.
 
-そのため、`<xer/iostream.h>` は `path` や `type_info` のような UTF-8 指向の表示文字列を持つ型について、UTF-8 の基礎バイト列をロケール依存の変換なしで `std::ostream` に書き込みます。
+For this reason, `<xer/iostream.h>` writes UTF-8 text to `std::ostream` by copying the underlying UTF-8 bytes to the stream without locale-dependent conversion. This applies to types such as `path` and `type_info`, whose display strings are UTF-8-oriented.
 
-`std::istream` からの書式付き抽出では、通常の narrow トークンを読み取り、必要に応じてそのバイト列を UTF-8 ストレージへコピーします。
+Formatted extraction from `std::istream` reads ordinary narrow tokens and copies the bytes into UTF-8 storage where appropriate.
 
 ---
 
 ## `error_t`
 
-`error_t` の `operator<<` は、`get_error_name` が返す列挙子名を書き込みます。
+`operator<<` for `error_t` writes the enumerator name returned by `get_error_name`.
+
+Example output:
 
 ```text
 invalid_argument
@@ -11604,55 +11659,55 @@ not_found
 io_error
 ```
 
-`operator>>` は `error_t::` 接頭辞を付けない列挙子名を受け付けます。未知の名前を読んだ場合、ストリームの fail bit を設定します。
+`operator>>` accepts enumerator names without the `error_t::` prefix. Unknown names set the stream fail bit.
 
 ---
 
 ## `error<void>`
 
-`error<void>` の `operator<<` は、`<xer/error.h>` が提供する短い診断表現を書き込みます。
+`operator<<` for `error<void>` writes the compact diagnostic representation already provided by `<xer/error.h>`:
 
 ```text
 xer::error{code=invalid_argument}
 ```
 
-エラーオブジェクトに保存されたソース位置は出力されません。これは、アサーションメッセージ、トレース出力、`%@` 書式化に適した短い既定表現にするためです。
+The source location stored in the error object is not written. This keeps the default representation short and suitable for assertion messages, trace output, and `%@` formatting.
 
-`error<void>` の抽出演算子はありません。エラーオブジェクトは通常、書式付き入力から読むものではなく、失敗した操作によって作られるものです。
+There is no extraction operator for `error<void>`. Error objects are normally created by failed operations, not read from formatted input.
 
 ---
 
 ## `type_info`
 
-`type_info` の `operator<<` は、`type_info::name()` が返す表示名を書き込みます。
+`operator<<` for `type_info` writes the display name returned by `type_info::name()`.
 
-これは診断用です。表記は基礎となる型情報機構と同様に実装依存です。
+This is intended for diagnostics. The spelling remains implementation-dependent, just like the underlying type information facility.
 
-`type_info` の抽出演算子はありません。
+There is no extraction operator for `type_info`.
 
 ---
 
 ## `path`
 
-`path` の `operator<<` は、`path::str()` が返す正規化済み UTF-8 パスを書き込みます。
+`operator<<` for `path` writes the normalized UTF-8 path returned by `path::str()`.
 
-`operator>>` は空白で区切られた 1 個のトークンを読み取り、それから `path` を構築します。書式付き抽出の通常の性質どおり、空白を含むパスはこの演算子では扱いません。そのようなパスが必要な場合は、行単位入力を行い、明示的に `xer::path` を構築してください。
+`operator>>` reads one whitespace-delimited token and constructs a `path` from it. As usual for formatted extraction, paths containing whitespace are not handled by this operator. Use line-oriented input and construct `xer::path` explicitly when such paths are needed.
 
 ---
 
 ## `cyclic<T>`
 
-`cyclic<T>` の `operator<<` は、`value()` が返す正規化済みスカラー値を書き込みます。
+`operator<<` for `cyclic<T>` writes the normalized scalar value returned by `value()`.
 
-`operator>>` はスカラー値を読み取り、それから `cyclic<T>` を構築します。通常の `cyclic` 正規化規則が適用されます。
+`operator>>` reads a scalar value and constructs `cyclic<T>` from it. The ordinary `cyclic` normalization rules apply.
 
-たとえば、
+Example:
 
 ```text
 -0.25
 ```
 
-は次の正規化済み循環値として読み込まれます。
+is read as the normalized cyclic value:
 
 ```text
 0.75
@@ -11662,41 +11717,63 @@ xer::error{code=invalid_argument}
 
 ## `interval<T, Min, Max>`
 
-`interval<T, Min, Max>` の `operator<<` は、`value()` が返す保存済みスカラー値を書き込みます。
+`operator<<` for `interval<T, Min, Max>` writes the stored scalar value returned by `value()`.
 
-`operator>>` はスカラー値を読み取り、それから interval 値を構築します。通常の `interval` 規則が適用されます。有限の範囲外値はクランプされ、NaN や無限大のような不正な浮動小数点値が interval 構築で拒否される場合は、抽出によりストリームの fail bit が設定されます。
+`operator>>` reads a scalar value and constructs an interval value from it. The ordinary `interval` rules apply: finite out-of-range values are clamped, while invalid floating-point values such as NaN or infinity cause extraction to set the stream fail bit if interval construction rejects them.
 
 ---
 
 ## `quantity<T, Dim>`
 
-`quantity<T, Dim>` の `operator<<` は、基準単位系での保存値を書き込みます。
+`operator<<` for `quantity<T, Dim>` writes the stored value in the base unit system.
 
-`operator>>` はスカラー値を読み取り、宛先次元の量を構築します。入力値はすでに基準単位系へ正規化済みであるものとして解釈されます。
+`operator>>` reads a scalar value and constructs a quantity of the destination dimension. The input value is interpreted as already normalized to the base unit system.
 
-たとえば宛先型が長さの量であれば、入力値はキロメートルやセンチメートルではなくメートルとして解釈されます。
+For example, if the destination type is a length quantity, the input value is interpreted as meters, not as kilometers or centimeters.
 
 ---
 
 ## `matrix<T, Rows, Cols>`
 
-`matrix<T, Rows, Cols>` の `operator<<` は、行優先の短い診断形式を書き込みます。
+`operator<<` for `matrix<T, Rows, Cols>` writes a compact row-major diagnostic form.
 
-2x2 行列の出力例です。
+Example output for a 2x2 matrix:
 
 ```text
 [[1, 2], [3, 4]]
 ```
 
-現時点では行列の抽出演算子はありません。行列の構文解析を提供すると、診断用出力形式を安定した入力文法として固定する必要があるため、今は意図的に避けています。
+`operator>>` accepts the same bracketed form and allows ordinary formatted-input whitespace around punctuation and values.
 
 ---
 
-## 画像ジオメトリ型
+## Math Geometry Types
 
-`xer::image` の画像ジオメトリ補助型には、`operator<<` と `operator>>` が提供されます。
+`operator<<` and `operator>>` are provided for fixed-size `vec<T, N>` specializations and two-dimensional `polar<T, 2>` values.
 
-ストリーム形式は意図的に短くしています。
+The vector form is compact and tuple-like:
+
+```text
+(1, 2)
+(1, 2, 3)
+(1, 2, 3, 4)
+```
+
+The polar form is:
+
+```text
+polar(2.5, 0.25)
+```
+
+For `polar<T, 2>`, the second value is the normalized cyclic turn value used by `xer::cyclic<T>`, not radians or degrees.
+
+---
+
+## Image Geometry Types
+
+`operator<<` and `operator>>` are provided for the image geometry helper types in `xer::image`.
+
+The stream forms are intentionally compact:
 
 ```text
 point  -> (x, y)
@@ -11704,7 +11781,7 @@ size   -> {width, height}
 rect   -> (x, y) {width, height}
 ```
 
-浮動小数点版も同じ表記です。
+The floating-point variants use the same spelling:
 
 ```text
 pointf -> (x, y)
@@ -11712,7 +11789,7 @@ sizef  -> {width, height}
 rectf  -> (x, y) {width, height}
 ```
 
-抽出は同じ形式を受け付け、句読点や値の周囲の通常の書式付き入力空白を許します。たとえば `rect` の読み取りでは次のいずれも有効です。
+Extraction accepts the same forms and allows ordinary formatted-input whitespace around punctuation and values. For example, all of the following are valid when reading a `rect`:
 
 ```text
 (10,20){30,40}
@@ -11720,17 +11797,17 @@ rectf  -> (x, y) {width, height}
 ( 10, 20 ) { 30, 40 }
 ```
 
-抽出文法は句読点について意図的に厳密です。点は丸括弧、サイズは波括弧、矩形は点に続くサイズです。`point(10, 20)`、`size(30, 40)`、`rect(10, 20, 30, 40)` のような形式は受け付けません。
+The extraction grammar is intentionally strict about punctuation. A point uses parentheses, a size uses braces, and a rectangle is a point followed by a size. Forms such as `point(10, 20)`, `size(30, 40)`, and `rect(10, 20, 30, 40)` are not accepted by these operators.
 
-これらの演算子により、画像ジオメトリ値はストリーム挿入・抽出に依存する汎用 `%@` 書式化・読み取り経路でも利用できます。
+These operators also make image geometry values usable through generic `%@` formatting and scanning paths that rely on stream insertion or extraction.
 
 ---
 
-## 色型
+## Color Types
 
-基本色値型には `operator<<` が提供されます。
+`operator<<` is provided for the basic color value types.
 
-出力例です。
+Example output:
 
 ```text
 rgb(1, 0.5, 0)
@@ -11742,27 +11819,25 @@ lab(50, 10, -20)
 luv(50, 10, -20)
 ```
 
-現時点では色値の抽出演算子はありません。挿入形式は診断と `%@` 書式化のためのものであり、安定した直列化形式ではありません。
+`operator>>` accepts the same named forms and allows ordinary formatted-input whitespace around punctuation and component values. Normalized component types keep their ordinary `interval<T>` or `cyclic<T>` behavior, so finite out-of-range RGB/CMY/gray/saturation/value components are clamped and HSV hue is normalized.
 
 ---
 
-## 後回しにしている項目
+## Deferred Items
 
-現在の実装では、次の項目を意図的に後回しにしています。
+The following are intentionally deferred from the current implementation:
 
-- `error<Detail>` の `operator<<` / `operator>>`
-- `matrix` の `operator>>`
-- 色型の `operator>>`
-- JSON、INI、TOML 値の `operator<<` / `operator>>`
-- `binary_stream`、`text_stream`、`process`、`socket` などのリソースハンドルのストリーム挿入
+- `operator>>` for `error<Detail>`
+- `operator<<` and `operator>>` for JSON, INI, and TOML values
+- stream insertion for resource handles such as `binary_stream`, `text_stream`, `process`, and `socket`
 
-これらの型は、追加の書式方針が必要であるか、既定の書式付き抽出に適した通常の値型ではありません。
+These types either need additional formatting policy or are not ordinary value types suitable for default formatted extraction.
 
 ---
 
-## 他のヘッダーとの関係
+## Relationship to Other Headers
 
-`<xer/iostream.h>` は次のヘッダーと関係します。
+`<xer/iostream.h>` is related to the following headers:
 
 - `<xer/error.h>`
 - `<xer/typeinfo.h>`
@@ -11770,20 +11845,21 @@ luv(50, 10, -20)
 - `<xer/cyclic.h>`
 - `<xer/interval.h>`
 - `<xer/quantity.h>`
+- `<xer/math.h>`
 - `<xer/matrix.h>`
 - `<xer/image.h>`
 - `<xer/color.h>`
 - `<xer/stdio.h>`
 
-おおまかな境界は次のとおりです。
+The rough boundary is:
 
-- `<xer/stdio.h>` は通常の xer テキスト入出力ヘッダーであり続ける
-- `<xer/iostream.h>` は標準 iostream 書式化との opt-in 互換性を提供する
-- 個々の値型ヘッダーは iostream 支援を取り込まなくても利用できる
+- `<xer/stdio.h>` remains the ordinary xer text I/O header
+- `<xer/iostream.h>` provides opt-in compatibility with standard iostream formatting
+- individual value-type headers remain usable without pulling in iostream support
 
 ---
 
-## 例
+## Example
 
 ```cpp
 #include <iostream>
@@ -11794,6 +11870,7 @@ luv(50, 10, -20)
 #include <xer/image.h>
 #include <xer/interval.h>
 #include <xer/iostream.h>
+#include <xer/math.h>
 #include <xer/matrix.h>
 #include <xer/path.h>
 #include <xer/quantity.h>
@@ -11807,6 +11884,8 @@ auto main() -> int
     const auto gain = xer::interval<double>(1.25);
     const auto distance = 1.5 * km;
     const auto transform = xer::matrix<double, 2, 2>(1.0, 2.0, 3.0, 4.0);
+    const auto vector = xer::vec<int, 3>{1, 2, 3};
+    const auto position = xer::polar<double, 2>{2.5, xer::cyclic<double>(0.25)};
     const auto area = xer::image::rect(
         xer::image::point(10, 20),
         xer::image::size(30, 40));
@@ -11817,22 +11896,28 @@ auto main() -> int
     std::cout << gain << '\n';
     std::cout << distance << '\n';
     std::cout << transform << '\n';
+    std::cout << vector << '\n';
+    std::cout << position << '\n';
     std::cout << color << '\n';
 
-    std::istringstream input("logs/output.txt -0.25 0.5 2.5");
+    std::istringstream input("logs/output.txt -0.25 0.5 2.5 [[1, 2], [3, 4]] (1, 2, 3) rgb(1, 0.5, 0)");
     xer::path read_path;
     xer::cyclic<double> read_angle;
     xer::interval<double> read_gain;
     xer::quantity<double, xer::units::length_dim> read_distance;
+    xer::matrix<double, 2, 2> read_transform;
+    xer::vec<int, 3> read_vector{};
+    xer::rgb read_color;
 
-    input >> read_path >> read_angle >> read_gain >> read_distance;
+    input >> read_path >> read_angle >> read_gain >> read_distance
+          >> read_transform >> read_vector >> read_color;
     return input ? 0 : 1;
 }
 ```
 
 ---
 
-## 関連項目
+## See Also
 
 - `header_error.md`
 - `header_typeinfo.md`

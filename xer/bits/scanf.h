@@ -1742,6 +1742,7 @@ template<typename T>
     std::istringstream stream{scan_to_byte_string(*text)};
     T temp{};
     stream >> temp;
+    stream >> std::ws;
 
     if (!stream || !stream.eof()) {
         return std::unexpected(make_error(error_t::invalid_argument));

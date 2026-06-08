@@ -400,7 +400,7 @@ It does not assign to an output argument and does not increment the assignment c
 It does not read input by itself.
 Instead, it controls argument selection for the following conversion specification.
 
-The main purpose is to make a following conversion use a specific output argument while keeping the conversion itself written in the ordinary form.
+The main purpose is to make a following conversion use a specific output argument while keeping the conversion itself written in the ordinary form. When the following conversion produces text, such as `%s` or `%[...]`, non-scalar destination types can use their stream extraction operators through xer's generic scanning path. Include `<xer/iostream.h>` when scanning opt-in xer value types this way.
 
 ### Sequential Form
 
