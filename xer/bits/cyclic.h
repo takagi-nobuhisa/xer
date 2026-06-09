@@ -362,35 +362,6 @@ template<std::floating_point T>
     return value * tau_v<T>;
 }
 
-/**
- * @brief Converts radians to a cyclic value.
- *
- * This is a compatibility alias of `from_rad`.
- *
- * @tparam T Floating-point type.
- * @param value Radian value.
- * @return Corresponding cyclic value.
- */
-template<std::floating_point T>
-[[nodiscard]] constexpr auto from_radian(T value) noexcept -> cyclic<T>
-{
-    return from_rad(value);
-}
-
-/**
- * @brief Converts a cyclic value to radians.
- *
- * This is a compatibility alias of `to_rad`.
- *
- * @tparam T Floating-point type.
- * @param value Cyclic value.
- * @return Radian value.
- */
-template<std::floating_point T>
-[[nodiscard]] constexpr auto to_radian(cyclic<T> value) noexcept -> T
-{
-    return to_rad(value);
-}
 
 } // namespace xer
 

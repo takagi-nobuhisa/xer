@@ -148,13 +148,13 @@ void test_degree_conversion_from_direction_functions()
 void test_radian_conversion()
 {
     const auto quarter_turn =
-        xer::from_radian<double>(xer::pi_v<double> / 2.0);
+        xer::from_rad<double>(xer::pi_v<double> / 2.0);
     const auto quarter_turn_short =
         xer::from_rad<double>(xer::pi_v<double> / 2.0);
 
     xer_assert(std::abs(quarter_turn.value() - 0.25) < 1e-12);
     xer_assert(std::abs(quarter_turn_short.value() - 0.25) < 1e-12);
-    xer_assert(std::abs(xer::to_radian(quarter_turn) - (xer::pi_v<double> / 2.0)) < 1e-12);
+    xer_assert(std::abs(xer::to_rad(quarter_turn) - (xer::pi_v<double> / 2.0)) < 1e-12);
     xer_assert(std::abs(xer::to_rad(quarter_turn) - (xer::pi_v<double> / 2.0)) < 1e-12);
     xer_assert(std::abs(xer::to_rad(0.25) - (xer::pi_v<double> / 2.0)) < 1e-12);
     xer_assert(std::abs(xer::𝜋<double> - xer::pi_v<double>) < 1e-18);

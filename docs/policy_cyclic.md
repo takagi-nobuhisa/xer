@@ -346,11 +346,6 @@ auto from_degree(T value) noexcept -> cyclic<T>;
 template <std::floating_point T>
 auto to_degree(cyclic<T> value) noexcept -> T;
 
-template <std::floating_point T>
-auto from_radian(T value) noexcept -> cyclic<T>;
-
-template <std::floating_point T>
-auto to_radian(cyclic<T> value) noexcept -> T;
 ```
 
 The exact function names may be reconsidered during implementation, but they should not be member functions.
@@ -444,11 +439,6 @@ constexpr auto from_degree(T value) noexcept -> cyclic<T>;
 template <std::floating_point T>
 constexpr auto to_degree(cyclic<T> value) noexcept -> T;
 
-template <std::floating_point T>
-constexpr auto from_radian(T value) noexcept -> cyclic<T>;
-
-template <std::floating_point T>
-constexpr auto to_radian(cyclic<T> value) noexcept -> T;
 ```
 
 ---

@@ -89,12 +89,12 @@ void test_to_polar()
     const auto p = xer::to_polar(xer::vec<double>{3.0, 4.0});
 
     xer_assert(xer::detail::equation_near(p.r, 5.0));
-    xer_assert(p.theta.eq(xer::from_radian(std::atan2(4.0, 3.0))));
+    xer_assert(p.theta.eq(xer::from_rad(std::atan2(4.0, 3.0))));
 }
 
 void test_to_cartesian()
 {
-    const auto v = xer::to_cartesian(xer::polar<double>{5.0, xer::from_radian(std::atan2(4.0, 3.0))});
+    const auto v = xer::to_cartesian(xer::polar<double>{5.0, xer::from_rad(std::atan2(4.0, 3.0))});
 
     xer_assert(xer::detail::equation_near(v.x, 3.0));
     xer_assert(xer::detail::equation_near(v.y, 4.0));
