@@ -72,7 +72,7 @@ enum class ctype_id {
  */
 [[nodiscard]] constexpr auto isascii(char32_t c) noexcept -> bool
 {
-    return c >= U'\0' && c <= U'\x7f';
+    return c <= U'\x7f';
 }
 
 /**
@@ -160,7 +160,7 @@ enum class ctype_id {
  */
 [[nodiscard]] constexpr auto iscntrl(char32_t c) noexcept -> bool
 {
-    return (c >= U'\0' && c <= U'\x1f') || c == U'\x7f';
+    return c <= U'\x1f' || c == U'\x7f';
 }
 
 /**
