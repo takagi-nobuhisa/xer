@@ -349,15 +349,35 @@ namespace xer {
 
 #define XER_DETAIL_DECLARE_DIV_PAIR(A, B)                                            \
     [[nodiscard]] constexpr auto div(A lhs, B rhs) noexcept                          \
-        -> result<rem_quot<detail::signed_div_result_t<A, B>>>   \
+        -> result<rem_quot<detail::signed_div_result_t<A, B>>>                       \
     {                                                                                \
         return detail::div_canonical(lhs, rhs);                                      \
     }                                                                                \
                                                                                      \
     [[nodiscard]] constexpr auto udiv(A lhs, B rhs) noexcept                         \
-        -> result<rem_quot<detail::unsigned_div_result_t<A, B>>> \
+        -> result<rem_quot<detail::unsigned_div_result_t<A, B>>>                     \
     {                                                                                \
         return detail::udiv_canonical(lhs, rhs);                                     \
+    }                                                                                \
+                                                                                     \
+    [[nodiscard]] constexpr auto mod(A lhs, B rhs) noexcept                          \
+        -> result<detail::signed_div_result_t<A, B>>                                 \
+    {                                                                                \
+        const auto result = detail::div_canonical(lhs, rhs);                         \
+        if (!result) {                                                               \
+            return std::unexpected(result.error());                                  \
+        }                                                                            \
+        return result->rem;                                                         \
+    }                                                                                \
+                                                                                     \
+    [[nodiscard]] constexpr auto umod(A lhs, B rhs) noexcept                         \
+        -> result<detail::unsigned_div_result_t<A, B>>                               \
+    {                                                                                \
+        const auto result = detail::udiv_canonical(lhs, rhs);                        \
+        if (!result) {                                                               \
+            return std::unexpected(result.error());                                  \
+        }                                                                            \
+        return result->rem;                                                         \
     }
 
 XER_DETAIL_DECLARE_DIV_PAIR(int, int)
@@ -460,6 +480,32 @@ template<typename A, typename B>
         static_cast<detail::forwarded_div_integer_t<B>>(rhs));
 }
 
+template<typename A, typename B>
+    requires(detail::is_forwardable_div_integer_v<A> ||
+             detail::is_forwardable_div_integer_v<B>)
+[[nodiscard]] constexpr auto mod(A lhs, B rhs) noexcept
+    -> decltype(mod(
+        static_cast<detail::forwarded_div_integer_t<A>>(lhs),
+        static_cast<detail::forwarded_div_integer_t<B>>(rhs)))
+{
+    return mod(
+        static_cast<detail::forwarded_div_integer_t<A>>(lhs),
+        static_cast<detail::forwarded_div_integer_t<B>>(rhs));
+}
+
+template<typename A, typename B>
+    requires(detail::is_forwardable_div_integer_v<A> ||
+             detail::is_forwardable_div_integer_v<B>)
+[[nodiscard]] constexpr auto umod(A lhs, B rhs) noexcept
+    -> decltype(umod(
+        static_cast<detail::forwarded_div_integer_t<A>>(lhs),
+        static_cast<detail::forwarded_div_integer_t<B>>(rhs)))
+{
+    return umod(
+        static_cast<detail::forwarded_div_integer_t<A>>(lhs),
+        static_cast<detail::forwarded_div_integer_t<B>>(rhs));
+}
+
 template<typename T, typename U>
     requires(std::integral<T> && !std::same_as<T, bool> &&
              std::integral<U> && !std::same_as<U, bool>)
@@ -554,6 +600,102 @@ template<typename T, typename U>
     }
 
     return udiv(*lhs, *rhs);
+}
+
+template<typename T, typename U>
+    requires(std::integral<T> && !std::same_as<T, bool> &&
+             std::integral<U> && !std::same_as<U, bool>)
+[[nodiscard]] constexpr auto mod(
+    const result<T>& lhs,
+    U rhs) noexcept -> decltype(mod(std::declval<T>(), rhs))
+{
+    if (!lhs) {
+        return std::unexpected(lhs.error());
+    }
+
+    return mod(*lhs, rhs);
+}
+
+template<typename T, typename U>
+    requires(std::integral<T> && !std::same_as<T, bool> &&
+             std::integral<U> && !std::same_as<U, bool>)
+[[nodiscard]] constexpr auto mod(
+    T lhs,
+    const result<U>& rhs) noexcept
+    -> decltype(mod(lhs, std::declval<U>()))
+{
+    if (!rhs) {
+        return std::unexpected(rhs.error());
+    }
+
+    return mod(lhs, *rhs);
+}
+
+template<typename T, typename U>
+    requires(std::integral<T> && !std::same_as<T, bool> &&
+             std::integral<U> && !std::same_as<U, bool>)
+[[nodiscard]] constexpr auto mod(
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept
+    -> decltype(mod(std::declval<T>(), std::declval<U>()))
+{
+    if (!lhs) {
+        return std::unexpected(lhs.error());
+    }
+
+    if (!rhs) {
+        return std::unexpected(rhs.error());
+    }
+
+    return mod(*lhs, *rhs);
+}
+
+template<typename T, typename U>
+    requires(std::integral<T> && !std::same_as<T, bool> &&
+             std::integral<U> && !std::same_as<U, bool>)
+[[nodiscard]] constexpr auto umod(
+    const result<T>& lhs,
+    U rhs) noexcept -> decltype(umod(std::declval<T>(), rhs))
+{
+    if (!lhs) {
+        return std::unexpected(lhs.error());
+    }
+
+    return umod(*lhs, rhs);
+}
+
+template<typename T, typename U>
+    requires(std::integral<T> && !std::same_as<T, bool> &&
+             std::integral<U> && !std::same_as<U, bool>)
+[[nodiscard]] constexpr auto umod(
+    T lhs,
+    const result<U>& rhs) noexcept
+    -> decltype(umod(lhs, std::declval<U>()))
+{
+    if (!rhs) {
+        return std::unexpected(rhs.error());
+    }
+
+    return umod(lhs, *rhs);
+}
+
+template<typename T, typename U>
+    requires(std::integral<T> && !std::same_as<T, bool> &&
+             std::integral<U> && !std::same_as<U, bool>)
+[[nodiscard]] constexpr auto umod(
+    const result<T>& lhs,
+    const result<U>& rhs) noexcept
+    -> decltype(umod(std::declval<T>(), std::declval<U>()))
+{
+    if (!lhs) {
+        return std::unexpected(lhs.error());
+    }
+
+    if (!rhs) {
+        return std::unexpected(rhs.error());
+    }
+
+    return umod(*lhs, *rhs);
 }
 
 } // namespace xer

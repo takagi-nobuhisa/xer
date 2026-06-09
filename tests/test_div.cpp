@@ -137,6 +137,60 @@ void test_udiv_sign_mismatch()
 }
 
 /**
+ * @brief Tests signed remainder helpers.
+ */
+void test_mod_basic()
+{
+    {
+        const auto result = xer::mod(10, 3);
+        xer_assert(result.has_value());
+        xer_assert_eq(*result, 1);
+    }
+
+    {
+        const auto result = xer::mod(-10, 3);
+        xer_assert(result.has_value());
+        xer_assert_eq(*result, -1);
+    }
+
+    {
+        const auto result = xer::mod(10, -3);
+        xer_assert(result.has_value());
+        xer_assert_eq(*result, 1);
+    }
+
+    {
+        const auto result = xer::mod(1, 0);
+        xer_assert_not(result.has_value());
+        xer_assert_eq(result.error().code, xer::error_t::divide_by_zero);
+    }
+}
+
+/**
+ * @brief Tests unsigned remainder helpers.
+ */
+void test_umod_basic()
+{
+    {
+        const auto result = xer::umod(10, 3);
+        xer_assert(result.has_value());
+        xer_assert_eq(*result, static_cast<unsigned int>(1));
+    }
+
+    {
+        const auto result = xer::umod(-10, -3);
+        xer_assert(result.has_value());
+        xer_assert_eq(*result, static_cast<unsigned int>(1));
+    }
+
+    {
+        const auto result = xer::umod(10, -3);
+        xer_assert_not(result.has_value());
+        xer_assert_eq(result.error().code, xer::error_t::dom);
+    }
+}
+
+/**
  * @brief Tests forwarding from narrow integer types.
  */
 void test_narrow_integer_forwarding()
@@ -194,6 +248,18 @@ void test_expected_propagation()
 
     {
         const auto result = xer::udiv(ng, ok2);
+        xer_assert_not(result.has_value());
+        xer_assert_eq(result.error().code, xer::error_t::dom);
+    }
+
+    {
+        const auto result = xer::mod(ok1, ok2);
+        xer_assert(result.has_value());
+        xer_assert_eq(*result, 1);
+    }
+
+    {
+        const auto result = xer::umod(ok1, ng);
         xer_assert_not(result.has_value());
         xer_assert_eq(result.error().code, xer::error_t::dom);
     }
@@ -284,6 +350,8 @@ int main()
     test_divide_by_zero();
     test_udiv_same_sign();
     test_udiv_sign_mismatch();
+    test_mod_basic();
+    test_umod_basic();
     test_narrow_integer_forwarding();
     test_expected_propagation();
 #if defined(__SIZEOF_INT128__)
