@@ -1,0 +1,44 @@
+@startuml
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultFontName Monospaced
+skinparam titleFontSize 18
+skinparam rectangleFontSize 13
+skinparam legendFontSize 12
+
+title xer::image coordinate and stride model
+
+rectangle "Logical canvas\ncoordinates are (x, y)\norigin = top-left" as logical
+rectangle "Owning canvas<Width, Height, Policy>\nvisible width = Width\nheight = Height\nstorage stride = Width" as owning
+rectangle "Future stride-aware view\nvisible width = width\nheight = height\nstorage stride may be larger" as view
+
+logical --> owning : normal public API
+owning ..> view : possible future low-level view
+
+legend
+== Logical coordinates ==
+|= row y / column x |= 0 |= 1 |= 2 |= 3 |= 4 |
+| 0 | (0,0) | (1,0) | (2,0) | (3,0) | (4,0) |
+| 1 | (0,1) | (1,1) | (2,1) | (3,1) | (4,1) |
+| 2 | (0,2) | (1,2) | (2,2) | (3,2) | (4,2) |
+
+== Owning canvas storage: width == stride ==
+|= storage index |= 0 |= 1 |= 2 |= 3 |= 4 |
+| y = 0 | p00 | p10 | p20 | p30 | p40 |
+| y = 1 | p01 | p11 | p21 | p31 | p41 |
+| y = 2 | p02 | p12 | p22 | p32 | p42 |
+
+index = y * width + x
+
+== Future stride-aware storage: stride > width ==
+|= storage index |= 0 |= 1 |= 2 |= 3 |= 4 |= 5 |= 6 |= 7 |
+| y = 0 | p00 | p10 | p20 | p30 | p40 | pad | pad | pad |
+| y = 1 | p01 | p11 | p21 | p31 | p41 | pad | pad | pad |
+| y = 2 | p02 | p12 | p22 | p32 | p42 | pad | pad | pad |
+
+index = y * stride + x
+
+The current owning canvas does not expose physical storage references.
+Normal access uses get_pixel, set_pixel, drawing, and image-processing functions.
+endlegend
+@enduml

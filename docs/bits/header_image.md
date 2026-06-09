@@ -749,6 +749,14 @@ Returning a reference to the physical storage element would expose the framebuff
 
 `set_pixel` accepts signed coordinates and does nothing when the coordinates are outside the canvas boundary.
 
+The coordinate origin is the top-left pixel. `x` increases to the right and `y` increases downward.
+
+![xer::image coordinate and stride model](images/image_coordinates_and_stride.png)
+
+The PlantUML source for this diagram is `docs/diagrams/image_coordinates_and_stride.puml`.
+
+For the owning `canvas` type, the visible width and the storage stride are the same. The effective storage index is therefore `y * width + x`. If stride-aware external memory access becomes necessary, it should be introduced through a separate view type or low-level helper rather than complicating the primary owning `canvas` type.
+
 The coverage overloads blend the source pixel over the destination. Coverage is clamped to `[0.0f, 1.0f]`. A coverage value of `0.0f` leaves the destination unchanged. A coverage value of `1.0f` applies the source pixel alpha normally.
 
 `set_pixel_unchecked` does not perform boundary checks. The caller must guarantee that `x < width()` and `y < height()`. It is intended for code that has already performed clipping or bounds checks outside the inner drawing loop.

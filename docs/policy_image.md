@@ -282,8 +282,18 @@ The public API should preserve this distinction.
 
 For the initial owning `canvas` type, the display width and the memory width are the same.
 
+![xer::image coordinate and stride model](images/image_coordinates_and_stride.png)
+
+The PlantUML source for this diagram is `docs/diagrams/image_coordinates_and_stride.puml`.
+
 This is acceptable because ordinary users are not expected to manipulate framebuffer array elements directly.
 All normal access goes through logical operations such as `get_pixel`, `set_pixel`, drawing functions, and image-processing functions.
+
+For an owning `canvas`, the effective storage index is therefore:
+
+```text
+index = y * width + x
+```
 
 If stride-aware external memory access becomes necessary, it should be introduced through a separate view type or low-level helper rather than complicating the primary owning `canvas` type.
 
@@ -294,7 +304,7 @@ image_view
 framebuffer_view
 ```
 
-These may carry explicit stride information.
+These may carry explicit stride information. In such a view, the visible width and the storage stride may differ, and the storage index would be based on stride rather than visible width.
 
 ---
 
