@@ -69,12 +69,13 @@ Font conversion tools should be placed together with other project PHP utilities
 php/
 ```
 
-For example:
+Current tool:
 
 ```text
 php/convert_bdf_font.php
-php/convert_bitmap_font_image.php
 ```
+
+Additional bitmap-font-related helper scripts may be placed in the same directory when needed.
 
 ---
 

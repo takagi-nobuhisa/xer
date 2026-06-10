@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v1.0.0b1**
+Target version: **v1.0.0rc1**
 
 ---
 
@@ -5082,7 +5082,7 @@ These are planned on top of the raw layer and are described at the policy level 
 - `<xer/error.h>`
 - `policy_mecab.md`
 - `policy_project_outline.md`
-- `<xer/toctrans.h>`
+- `<xer/ctype.h>`
 - `<xer/braille.h>`
 
 ---
