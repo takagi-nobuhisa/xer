@@ -23,6 +23,33 @@ The core design principle is:
 
 ---
 
+## Layer Selection Guide
+
+The MeCab facility is intentionally layered.
+Callers should choose the lowest layer that gives them the information they need.
+
+| Need | Recommended API | Notes |
+|---|---|---|
+| Inspect MeCab token surfaces and raw features | `mecab_parse` | This is the raw foundation layer. |
+| Inspect part of speech, base form, reading, or pronunciation | `mecab_parse` and `mecab_token::features` | Field meanings are dictionary-dependent, but IPADIC-style named members are provided. |
+| Get practical bunsetsu-like ranges | `mecab_split_phrases` | This is an xer rule-based approximation, not a native MeCab result. |
+| Convert analyzed text to kana without spacing | `mecab_to_kana` | Uses MeCab readings when available. |
+| Produce readable kana wakachi-gaki | `mecab_kana_wakati` | Uses phrase ranges and inserts spaces. |
+| Produce readable romaji wakachi-gaki | `mecab_romaji_wakati` | Converts via kana and `strtoctrans`. |
+| Produce Japanese braille wakachi-gaki from tokens | `mecab_braille_wakati` or `mecab_ip_braille_wakati` | Use the information-processing variant for technical ASCII fragments. |
+| Convert source text directly to braille | `mecab_braille_translate` or `mecab_ip_braille_translate` | Convenience wrappers around parse and braille wakachi-gaki conversion. |
+
+The general rule is:
+
+```text
+parse once, then reuse tokens for derived conversions
+```
+
+When an application needs several derived forms from the same text, it should usually call `mecab_parse` once and pass the resulting token vector to the helper functions.
+The direct translate wrappers are most useful when the caller only needs one braille result and does not need to inspect the tokens.
+
+---
+
 ## Why This Facility Exists
 
 Many applications benefit from Japanese text processing such as:
@@ -751,6 +778,26 @@ The low-level kana and punctuation conversion rules are defined in `<xer/braille
 
 ---
 
+## Example Programs
+
+The MeCab examples are organized by pipeline layer.
+
+| Example | Demonstrates |
+|---|---|
+| `example_mecab_parse_basic.cpp` | raw token analysis with `mecab_parse` |
+| `example_mecab_split_phrases_basic.cpp` | bunsetsu-like phrase ranges |
+| `example_mecab_kana_wakati_basic.cpp` | kana wakachi-gaki |
+| `example_mecab_romaji_wakati_basic.cpp` | romaji wakachi-gaki |
+| `example_mecab_braille_wakati_basic.cpp` | braille wakachi-gaki from analyzed tokens |
+| `example_mecab_braille_japanese_wakati.cpp` | Japanese braille-oriented wakachi-gaki behavior |
+| `example_mecab_braille_translate_basic.cpp` | direct source-text to braille conversion |
+| `example_mecab_ip_braille_translate_basic.cpp` | direct source-text to information-processing braille conversion |
+
+The examples intentionally start from low-level token inspection and then move upward to derived conversions.
+This order mirrors the design of the API and the processing pipeline diagram.
+
+---
+
 ## Current Error Model
 
 The raw-analysis layer currently uses:
@@ -762,6 +809,23 @@ The raw-analysis layer currently uses:
 | process execution fails, MeCab exits unsuccessfully, or output is malformed | `error_t::process_error` |
 
 Underlying process or stream failures may retain their own xer error code when they occur before the final MeCab-specific validation step.
+
+### Error Behavior by Layer
+
+| API | Return type | Typical failure source |
+|---|---|---|
+| `mecab_parse` | `xer::result<std::vector<mecab_token>>` | invalid UTF-8, executable lookup, process execution, malformed MeCab output |
+| `mecab_split_phrases` | `std::vector<mecab_phrase>` | no ordinary runtime failure is reported |
+| `mecab_to_kana` | `std::u8string` | no ordinary runtime failure is reported |
+| `mecab_kana_wakati` | `std::u8string` | no ordinary runtime failure is reported |
+| `mecab_romaji_wakati` | `xer::result<std::u8string>` | romaji conversion failure |
+| `mecab_braille_wakati` | `xer::result<std::u8string>` | braille conversion failure |
+| `mecab_ip_braille_wakati` | `xer::result<std::u8string>` | information-processing braille conversion failure |
+| `mecab_braille_translate` | `xer::result<std::u8string>` | errors from both parsing and braille conversion |
+| `mecab_ip_braille_translate` | `xer::result<std::u8string>` | errors from both parsing and information-processing braille conversion |
+
+The helpers that operate only on already-parsed token sequences return plain values when their current operation is deterministic and has no ordinary runtime failure path.
+Helpers that invoke MeCab or perform conversion steps that can fail return `xer::result`.
 
 ---
 

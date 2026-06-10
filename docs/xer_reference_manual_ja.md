@@ -1,6 +1,6 @@
 # xer C++ Utility Library リファレンスマニュアル
 
-対象バージョン: **v1.0.0a3**
+対象バージョン: **v1.0.0a4**
 
 ---
 
@@ -4120,6 +4120,35 @@ This keeps the integration compatible with xer's header-only model while making 
 
 ---
 
+## Choosing an API
+
+Use the following table as a quick guide.
+
+| Task | Function |
+|---|---|
+| Parse source text into MeCab tokens | `mecab_parse` |
+| Read raw surface text and feature strings | `mecab_token::surface`, `mecab_token::feature` |
+| Access split IPADIC-style feature fields | `mecab_token::features` |
+| Derive practical bunsetsu-like ranges | `mecab_split_phrases` |
+| Convert tokens to kana without spaces | `mecab_to_kana` |
+| Convert tokens to kana with phrase spaces | `mecab_kana_wakati` |
+| Convert tokens to romaji with phrase spaces | `mecab_romaji_wakati` |
+| Convert tokens to Japanese braille wakachi-gaki | `mecab_braille_wakati` |
+| Convert tokens to information-processing braille wakachi-gaki | `mecab_ip_braille_wakati` |
+| Convert source text directly to braille | `mecab_braille_translate` |
+| Convert source text directly to information-processing braille | `mecab_ip_braille_translate` |
+
+For repeated processing of the same input, prefer:
+
+```cpp
+auto tokens = xer::ja::mecab_parse(text);
+```
+
+and then reuse `*tokens` with the token-sequence helpers.
+The direct translate wrappers are convenience APIs for one-shot braille conversion.
+
+---
+
 ## Environment Assumption
 
 The current implementation assumes UTF-8 MeCab I/O.
@@ -4249,6 +4278,23 @@ auto mecab_parse(
     const mecab_options& options = {})
     -> xer::result<std::vector<mecab_token>>;
 ```
+
+---
+
+## Example Programs
+
+The following examples correspond to the main layers of the API.
+
+| Example | Main API |
+|---|---|
+| `example_mecab_parse_basic.cpp` | `mecab_parse` |
+| `example_mecab_split_phrases_basic.cpp` | `mecab_split_phrases` |
+| `example_mecab_kana_wakati_basic.cpp` | `mecab_kana_wakati` |
+| `example_mecab_romaji_wakati_basic.cpp` | `mecab_romaji_wakati` |
+| `example_mecab_braille_wakati_basic.cpp` | `mecab_braille_wakati` |
+| `example_mecab_braille_japanese_wakati.cpp` | Japanese braille-oriented wakachi-gaki |
+| `example_mecab_braille_translate_basic.cpp` | `mecab_braille_translate` |
+| `example_mecab_ip_braille_translate_basic.cpp` | `mecab_ip_braille_translate` |
 
 ---
 
@@ -4891,6 +4937,51 @@ This function is the convenient entry point for Japanese text that may contain c
 
 ---
 
+## Common Usage Patterns
+
+### Inspect tokens first
+
+```cpp
+const auto tokens = xer::ja::mecab_parse(u8"私は猫です。");
+if (!tokens) {
+    return;
+}
+
+for (const auto& token : *tokens) {
+    // token.surface
+    // token.feature
+    // token.features.品詞
+    // token.features.読み
+}
+```
+
+Use this form when the caller needs dictionary details, part-of-speech information, or custom processing.
+
+### Parse once and derive several outputs
+
+```cpp
+const auto tokens = xer::ja::mecab_parse(text);
+if (!tokens) {
+    return;
+}
+
+const auto kana = xer::ja::mecab_kana_wakati(*tokens);
+const auto romaji = xer::ja::mecab_romaji_wakati(*tokens);
+const auto braille = xer::ja::mecab_braille_wakati(*tokens);
+```
+
+This pattern avoids invoking MeCab multiple times for the same text.
+
+### Use direct wrappers for one-shot braille conversion
+
+```cpp
+const auto braille = xer::ja::mecab_braille_translate(text);
+```
+
+Use the direct wrapper when the program only needs the final braille result and does not need to inspect tokens or phrase ranges.
+
+---
+
 ## Executable Resolution
 
 If `mecab_options::program` is empty, xer:
@@ -4909,6 +5000,18 @@ error_t::not_found
 ---
 
 ## Error Model
+
+| API | Return type | Notes |
+|---|---|---|
+| `mecab_parse` | `xer::result<std::vector<mecab_token>>` | Can fail because it invokes MeCab and validates UTF-8 output. |
+| `mecab_split_phrases` | `std::vector<mecab_phrase>` | Pure token-sequence helper. |
+| `mecab_to_kana` | `std::u8string` | Pure token-sequence helper. |
+| `mecab_kana_wakati` | `std::u8string` | Pure token-sequence helper using phrase ranges. |
+| `mecab_romaji_wakati` | `xer::result<std::u8string>` | Can fail through romaji conversion. |
+| `mecab_braille_wakati` | `xer::result<std::u8string>` | Can fail through braille conversion. |
+| `mecab_ip_braille_wakati` | `xer::result<std::u8string>` | Can fail through information-processing braille conversion. |
+| `mecab_braille_translate` | `xer::result<std::u8string>` | Propagates parse and braille errors. |
+| `mecab_ip_braille_translate` | `xer::result<std::u8string>` | Propagates parse and information-processing braille errors. |
 
 `mecab_parse` returns `xer::result<std::vector<mecab_token>>`.
 
