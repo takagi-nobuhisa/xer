@@ -1,0 +1,132 @@
+@startuml
+' MeCab processing pipeline for xer
+
+title xer MeCab processing pipeline
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Monospaced
+skinparam defaultTextAlignment center
+skinparam rectangle {
+  BackgroundColor #FFFDE7
+  BorderColor #444444
+  RoundCorner 8
+}
+skinparam note {
+  BackgroundColor #F5F5F5
+  BorderColor #777777
+}
+skinparam arrow {
+  Color #AA0055
+  Thickness 1
+}
+left to right direction
+
+rectangle "UTF-8 source text\nstd::u8string_view" as Source
+rectangle "mecab_parse(text, options)\nreturns: result<vector<mecab_token>>" as Parse
+note bottom of Parse
+- resolves mecab executable
+- launches mecab as a child process
+- sends UTF-8 input
+- validates UTF-8 output
+end note
+
+rectangle "vector<mecab_token>\n- surface\n- feature\n- features: mecab_features" as Tokens
+rectangle "mecab_split_phrases(tokens)\nreturns: vector<mecab_phrase>" as Phrases
+note bottom of Phrases
+Practical phrase ranges
+- bunsetsu-like ranges
+- symbol ranges
+end note
+
+rectangle "mecab_to_kana(tokens, kana_options)\nreturns: u8string" as ToKana
+note bottom of ToKana
+Uses MeCab readings
+Optional particle reading correction
+end note
+
+rectangle "mecab_kana_wakati(tokens, kana_options)\nreturns: u8string" as KanaWakati
+rectangle "mecab_romaji_wakati(tokens, romaji_options)\nreturns: result<u8string>" as RomajiWakati
+rectangle "mecab_braille_wakati(tokens, kana_options)\nreturns: result<u8string>" as BrailleWakati
+rectangle "mecab_ip_braille_wakati(tokens, kana_options)\nreturns: result<u8string>" as IpBrailleWakati
+
+note right of KanaWakati
+Combines:
+- phrase ranges
+- kana conversion
+- spaces between phrases
+end note
+
+note right of RomajiWakati
+Combines:
+- phrase ranges
+- kana conversion
+- strtoctrans / romaji conversion
+- symbol ranges kept as surface text
+end note
+
+note right of BrailleWakati
+Combines:
+- phrase ranges
+- kana conversion
+- Japanese punctuation handling
+- ASCII fragment conversion
+- <xer/braille.h>
+end note
+
+note right of IpBrailleWakati
+Same as braille_wakati,
+but ASCII fragments use
+information-processing braille
+end note
+
+rectangle "mecab_braille_translate(text, parse_options, kana_options)\nreturns: result<u8string>" as BrailleTranslate
+rectangle "mecab_ip_braille_translate(text, parse_options, kana_options)\nreturns: result<u8string>" as IpBrailleTranslate
+note bottom of BrailleTranslate
+Convenience wrapper:
+parse + braille_wakati
+end note
+note bottom of IpBrailleTranslate
+Convenience wrapper:
+parse + ip_braille_wakati
+end note
+
+Source --> Parse
+Parse --> Tokens
+Tokens --> Phrases
+Tokens --> ToKana
+
+Tokens --> KanaWakati
+Phrases --> KanaWakati
+ToKana --> KanaWakati
+
+Tokens --> RomajiWakati
+Phrases --> RomajiWakati
+ToKana --> RomajiWakati
+
+Tokens --> BrailleWakati
+Phrases --> BrailleWakati
+ToKana --> BrailleWakati
+
+Tokens --> IpBrailleWakati
+Phrases --> IpBrailleWakati
+ToKana --> IpBrailleWakati
+
+Source --> BrailleTranslate
+BrailleTranslate ..> Parse : internally uses
+BrailleTranslate ..> BrailleWakati : then calls
+
+Source --> IpBrailleTranslate
+IpBrailleTranslate ..> Parse : internally uses
+IpBrailleTranslate ..> IpBrailleWakati : then calls
+
+legend bottom
+|= Layer |= Main role |
+| Parse | Run MeCab and build tokens |
+| Phrase | Derive practical phrase ranges |
+| Kana | Convert token readings to kana |
+| Output helpers | Build kana / romaji / braille wakachi-gaki |
+| Convenience wrappers | Parse text and convert directly |
+endlegend
+
+@enduml

@@ -22,6 +22,10 @@ The current implementation focuses on the lowest-level public foundation:
 
 Higher-level Japanese text processing such as ruby generation is planned to build on top of this analysis layer. Braille-oriented wakachi-gaki conversion now has an initial helper built on the kana layer.
 
+The following diagram shows how the public MeCab helpers build on one another:
+
+![xer MeCab processing pipeline](images/mecab_processing_pipeline.png)
+
 ---
 
 ## Main Role

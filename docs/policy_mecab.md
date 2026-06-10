@@ -13,6 +13,10 @@ The intended direction is:
 - derive practical bunsetsu segmentation
 - provide human-readable Japanese transformations and counts on top of that foundation
 
+The following diagram summarizes the current processing pipeline:
+
+![xer MeCab processing pipeline](images/mecab_processing_pipeline.png)
+
 The core design principle is:
 
 > xer should aim for results that are **not perfect, but sufficiently good** for practical use.

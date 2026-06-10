@@ -4059,78 +4059,89 @@ if (!parsed) {
 
 ---
 
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/mecab.h`
+> Reason: Japanese fragment was translated from a different English source hash.
+
 # `<xer/mecab.h>`
 
-## 目的
+## Purpose
 
-`<xer/mecab.h>` は、xer における初期の MeCab ベース日本語テキスト解析 API を提供します。
+`<xer/mecab.h>` provides xer's initial MeCab-based Japanese text analysis API.
 
-現在の実装は、もっとも低レベルな公開基盤に重点を置いています。
+The current implementation focuses on the lowest-level public foundation:
 
-- MeCab を子プロセスとして起動する
-- UTF-8 の入力テキストを MeCab に渡す
-- UTF-8 の解析出力を受け取る
-- 形態素トークンの結果を返す
-- 生の feature テキストを保持する
-- 一般的な MeCab/IPADIC 形式の列を分割済み feature フィールドとして提供する
-- 実用的な文節風の句範囲と記号範囲を導出する
-- MeCab 由来の読みを仮名テキストへ変換する
-- 句範囲を使って仮名分かち書きテキストを生成する
-- 仮名変換と `strtoctrans` を組み合わせてローマ字分かち書きテキストを生成する
-- 句範囲、MeCab 由来の仮名読み、日本語句読点処理、ASCII 断片変換、`<xer/braille.h>` を組み合わせて日本語点字分かち書きテキストを生成する
-- ASCII 断片向けに情報処理点字の変種を生成する
-- 便宜ラッパーにより、入力テキストを解析して直接点字へ変換する
+- invoking MeCab as a child process
+- sending UTF-8 source text to MeCab
+- receiving UTF-8 analysis output
+- returning morphological token results
+- preserving raw feature text
+- providing split feature fields for common MeCab/IPADIC-style columns
+- deriving practical bunsetsu-like phrase ranges and symbol ranges
+- converting MeCab-derived readings to kana text
+- producing kana wakachi-gaki text using the phrase ranges
+- producing romaji wakachi-gaki text by combining kana conversion and `strtoctrans`
+- producing Japanese braille wakachi-gaki text by combining phrase ranges, MeCab-derived kana readings, Japanese punctuation handling, ASCII fragment conversion, and `<xer/braille.h>`
+- producing information-processing braille variants for ASCII fragments
+- parsing source text and converting it directly to braille through convenience wrappers
 
-ルビ生成などのより高レベルな日本語テキスト処理は、この解析層の上に構築する予定です。点字向け分かち書き変換については、仮名層の上に初期ヘルパーが用意されています。
+Higher-level Japanese text processing such as ruby generation is planned to build on top of this analysis layer. Braille-oriented wakachi-gaki conversion now has an initial helper built on the kana layer.
 
----
+The following diagram shows how the public MeCab helpers build on one another:
 
-## 主な役割
-
-現段階の `<xer/mecab.h>` の主な役割は、MeCab の形態素解析結果を xer ユーザーが直接確認し再利用できる形で公開することです。
-
-生の feature 文字列は保持されます。また、xer はそれを `mecab_features` に分割するため、品詞や読みなどの一般的な項目を、ユーザーコードでカンマ区切り feature 文字列を再解析せずに参照できます。
-
-トークン層の上では、xer は `mecab_split_phrases` により、実用的な文節風の範囲と独立した記号範囲を導出します。MeCab 自体は文節境界を返さないため、この層は xer の規則ベース近似です。
-
-仮名層は、利用可能な場合には `mecab_features::読み` を使用し、読みベースの実用的な変換ヘルパーとして `mecab_to_kana` と `mecab_kana_wakati` を提供します。
-
-点字層は、トークン、句、仮名、句読点、ASCII 断片変換の各層の上に構築されます。`mecab_braille_wakati` は、MeCab トークン列向けの実用的な日本語点字分かち書きヘルパーです。`mecab_kana_wakati` と異なり、記号範囲を直接扱うため、日本語句読点を点字出力により自然に付けられます。また、ASCII 英数字・句読点断片は MeCab の読みではなく、元の表層形から変換します。
-
-情報処理点字版は `mecab_ip_braille_wakati` です。同じ日本語読み規則と空白規則を使いますが、ASCII 断片を情報処理点字として変換します。
-
-入力テキストを直接渡したい呼び出し側のために、`mecab_braille_translate` と `mecab_ip_braille_translate` は、`mecab_parse` と対応する点字分かち書きヘルパーを組み合わせます。
-
-ローマ字層は、仮名層と `strtoctrans` の上に構築されます。`mecab_romaji_wakati` は、実用的なローマ字分かち書きヘルパーです。ローマ字化の前に助詞読み補正を行うため、`は`、`へ`、`を` などの助詞は最終出力で `wa`、`e`、`o` になります。
-
-xer は MeCab ライブラリへリンクしません。代わりに、xer のプロセス機能を使って `mecab` コマンドを子プロセスとして実行します。
-
-これにより、MeCab 由来の解析データを通常の `xer::result` API で利用可能にしつつ、xer のヘッダーオンリーモデルと互換性のある統合にしています。
+![xer MeCab processing pipeline](images/mecab_processing_pipeline.png)
 
 ---
 
-## 環境上の前提
+## Main Role
 
-現在の実装は、MeCab の入出力が UTF-8 であることを前提にしています。
+The main role of `<xer/mecab.h>` at the current stage is to expose MeCab's morphological analysis result in a form that xer users can inspect and reuse directly.
 
-この機能で使う通常の対象環境として、プロジェクトでは次を確認しています。
+The raw feature string is preserved, and xer also splits it into `mecab_features` so that common items such as part of speech and reading can be accessed without reparsing the comma-separated feature string in user code.
 
-- 通常のパッケージ導入手順で MeCab をインストールした Ubuntu
-- 通常の MeCab パッケージを使用する MSYS2 UCRT64
+On top of the token layer, xer provides `mecab_split_phrases` to derive practical bunsetsu-like ranges and separate symbol ranges. MeCab itself does not return bunsetsu boundaries, so this layer is an xer rule-based approximation.
 
-どちらの場合も、設計確認時には `mecab -D` が辞書エンコーディングとして UTF-8 を報告しました。
+The kana layer uses `mecab_features::読み` where available and provides `mecab_to_kana` and `mecab_kana_wakati` as practical reading-based conversion helpers.
 
-そのため、xer は次のように動作します。
+The braille layer builds on the token, phrase, kana, punctuation, and ASCII-fragment conversion layers. It provides `mecab_braille_wakati` as a practical Japanese braille wakachi-gaki helper for MeCab token sequences. Unlike `mecab_kana_wakati`, it handles symbol ranges directly so that Japanese punctuation can be attached more naturally in braille output. It also converts ASCII alphanumeric-and-punctuation fragments from the original surface text rather than from MeCab readings.
 
-- UTF-8 入力テキストを MeCab に送る
-- MeCab 出力を UTF-8 として検証する
-- MeCab プロセスの前後で文字セット変換を行わない
+The information-processing braille variant is `mecab_ip_braille_wakati`. It uses the same Japanese reading and spacing rules, but converts ASCII fragments through information-processing braille.
+
+For callers that want to pass source text directly, `mecab_braille_translate` and `mecab_ip_braille_translate` combine `mecab_parse` with the corresponding braille wakachi-gaki helper.
+
+The romaji layer builds on the kana layer and `strtoctrans`. It provides `mecab_romaji_wakati` as a practical romaji wakachi-gaki helper. Particle reading correction is performed before romanization, so particles such as `は`, `へ`, and `を` can become `wa`, `e`, and `o` in the final output.
+
+xer does not link against the MeCab library.
+Instead, it executes the `mecab` command as a child process using xer's process facilities.
+
+This keeps the integration compatible with xer's header-only model while making MeCab-derived analysis data available through ordinary `xer::result` APIs.
 
 ---
 
-## 主なエンティティ
+## Environment Assumption
 
-`<xer/mecab.h>` は現在、次を提供します。
+The current implementation assumes UTF-8 MeCab I/O.
+
+The project has checked the ordinary target environments used for this feature:
+
+- Ubuntu with MeCab installed through the usual package flow
+- MSYS2 UCRT64 with the ordinary MeCab packages
+
+In both cases, `mecab -D` reported UTF-8 dictionary encoding during design verification.
+
+xer therefore:
+
+- sends UTF-8 input text to MeCab
+- validates MeCab output as UTF-8
+- does not perform character-set conversion around the MeCab process
+
+---
+
+## Main Entities
+
+`<xer/mecab.h>` currently provides:
 
 ```cpp
 struct mecab_options {
@@ -4249,18 +4260,18 @@ struct mecab_options {
 };
 ```
 
-`mecab_options` は、xer が MeCab 実行ファイルをどのように見つけるかを制御します。
+`mecab_options` controls how xer locates the MeCab executable.
 
 ### `program`
 
-`program` は MeCab 実行ファイルのパスを明示的に指定します。
+`program` specifies the MeCab executable path explicitly.
 
-`program` が空の場合、xer は `PATH` 環境変数から、プラットフォームで通常使われる実行ファイル名を検索します。
+If `program` is empty, xer searches the `PATH` environment variable for the platform's ordinary executable name:
 
 - Windows: `mecab.exe`
-- POSIX 風環境: `mecab`
+- POSIX-like environments: `mecab`
 
-例:
+Example:
 
 ```cpp
 xer::ja::mecab_options options {
@@ -4268,7 +4279,7 @@ xer::ja::mecab_options options {
 };
 ```
 
-通常の Ubuntu や MSYS2 UCRT64 のインストールでは、呼び出し側は普通これを空のままにします。
+In ordinary Ubuntu and MSYS2 UCRT64 installations, callers will usually leave this empty.
 
 ---
 
@@ -4289,29 +4300,33 @@ struct mecab_features {
 };
 ```
 
-`mecab_features` は、MeCab の生 feature 文字列を分割した形で保持します。
+`mecab_features` stores the split form of MeCab's raw feature string.
 
-名前付きメンバーは、通常の MeCab/IPADIC 形式の feature 順序に従います。
+The named members follow the ordinary MeCab/IPADIC-style feature order:
 
 | Member | Source field | Meaning |
 |---|---:|---|
-| `品詞` | 0 | 品詞 |
-| `品詞細分類1` | 1 | 品詞細分類1 |
-| `品詞細分類2` | 2 | 品詞細分類2 |
-| `品詞細分類3` | 3 | 品詞細分類3 |
-| `活用型` | 4 | 活用型 |
-| `活用形` | 5 | 活用形 |
-| `原形` | 6 | 原形 |
-| `読み` | 7 | 読み |
-| `発音` | 8 | 発音 |
+| `品詞` | 0 | part of speech |
+| `品詞細分類1` | 1 | part-of-speech subclass 1 |
+| `品詞細分類2` | 2 | part-of-speech subclass 2 |
+| `品詞細分類3` | 3 | part-of-speech subclass 3 |
+| `活用型` | 4 | conjugation type |
+| `活用形` | 5 | conjugation form |
+| `原形` | 6 | base form |
+| `読み` | 7 | reading |
+| `発音` | 8 | pronunciation |
 
-`項目` は、名前付きメンバーを持たない辞書固有フィールドを含め、すべてのカンマ区切りフィールドを順序どおりに保持します。フィールドが存在しない場合、対応する名前付きメンバーは空文字列になります。
+`項目` stores all comma-separated fields in order, including dictionary-specific fields that do not have named members.
+If a field is missing, the corresponding named member is an empty string.
 
-IPADIC 形式の順序と異なる feature レイアウトを持つ辞書との実用的な互換性のため、直接の IPADIC 形式フィールドが存在しない場合、`*` である場合、または仮名らしくない場合、xer は分割済みの `項目` フィールドを走査して仮名のみの値を探し、`読み` と `発音` を補うことがあります。これは仮名分かち書きやローマ字分かち書きなどの高レベルヘルパー向けの便宜機能であり、完全な辞書正規化層ではありません。
+For practical compatibility with dictionaries whose feature layout differs from IPADIC-style order, xer may supplement `読み` and `発音` by scanning the split `項目` fields for kana-only values when the direct IPADIC-style field is missing, `*`, or not kana-like. This is a convenience for higher-level helpers such as kana and romaji wakachi-gaki, not a complete dictionary-normalization layer.
 
-メンバー名は MeCab feature 用語に直接対応するため、意図的に日本語識別子を使っています。xer は識別子を ASCII に制限しません。これらのメンバーを直接参照する場合、利用者はその識別子を扱えるソースコード環境を使う必要があります。
+The member names intentionally use Japanese identifiers because they correspond directly to MeCab feature terminology.
+xer does not restrict identifiers to ASCII.
+Users are responsible for using a source-code environment that can handle these identifiers when they access the members directly.
 
-`mecab_features` は文字列を所有します。`mecab_token::feature` への `std::u8string_view` は保存しないため、`mecab_token` は `std::vector` 要素として安全にコピー可能です。
+`mecab_features` owns its strings.
+It does not store `std::u8string_view` into `mecab_token::feature`, so `mecab_token` remains safely copyable as a `std::vector` element.
 
 ---
 
@@ -4325,23 +4340,25 @@ struct mecab_token {
 };
 ```
 
-`mecab_token` は、MeCab が返す 1 個のトークンを表します。
+`mecab_token` represents one token returned by MeCab.
 
 ### `surface`
 
-`surface` はトークンの表層テキストです。
+`surface` is the surface text of the token.
 
 ### `feature`
 
-`feature` は、MeCab の `%H` フォーマッタが出力する生の MeCab feature 文字列です。
+`feature` is the raw MeCab feature string emitted by MeCab's `%H` formatter.
 
-正確な内容は、インストールされている MeCab 辞書に依存します。xer は、デバッグ用途や辞書固有データを必要とする利用者のために、生テキストとしてこれを保持します。
+Its exact contents depend on the installed MeCab dictionary.
+xer preserves it as raw text for debugging and for users that need dictionary-specific data.
 
 ### `features`
 
-`features` は、`feature` から導出された解析済み feature データです。
+`features` is the parsed feature data derived from `feature`.
 
-生 feature 文字列を再解析せずに品詞を調べる、読みを取得する、活用形を確認する、といった一般的な日本語処理向けに用意されています。
+It is intended for common Japanese-processing operations such as inspecting part of speech, obtaining readings, or checking conjugation forms without reparsing the raw feature string.
+
 
 ---
 
@@ -4354,14 +4371,14 @@ enum class mecab_phrase_kind {
 };
 ```
 
-`mecab_phrase_kind` は、`mecab_split_phrases` が返す範囲の種類を識別します。
+`mecab_phrase_kind` identifies the kind of range returned by `mecab_split_phrases`.
 
 | Value | Meaning |
 |---|---|
-| `bunsetsu` | MeCab トークンから導出された文節風の句 |
-| `symbol` | 記号トークン、または連続する記号トークンの範囲 |
+| `bunsetsu` | A bunsetsu-like phrase derived from MeCab tokens |
+| `symbol` | A symbol token or consecutive symbol-token range |
 
-`symbol` は意図的に `bunsetsu` から分離されています。これにより、仮名の空白付け、ローマ字化、点字向け変換など、句読点やその他の記号を個別に扱う必要がある後続処理が容易になります。
+`symbol` is intentionally separated from `bunsetsu`. This makes later processing easier for kana spacing, romanization, and braille-oriented conversion, where punctuation and other symbols often need their own handling.
 
 ---
 
@@ -4375,11 +4392,11 @@ struct mecab_phrase {
 };
 ```
 
-`mecab_phrase` は、元の `mecab_token` 列の部分範囲を表します。
+`mecab_phrase` represents a subrange of the original `mecab_token` sequence.
 
-この範囲はトークン文字列を所有せず、コピーもしません。`index` は元のトークン列における最初のトークンのインデックスであり、`count` は範囲内のトークン数です。
+The range does not own or copy token text. `index` is the first token index in the original token sequence, and `count` is the number of tokens in the range.
 
-この表現は意図的に単純です。呼び出し側は元のトークンオブジェクトを再利用し、feature を調べ、次の処理段階で必要な形で表層形や読みを結合できます。
+This representation is intentionally simple so that callers can reuse the original token objects, inspect their features, and join surfaces or readings in the way required by the next processing step.
 
 ---
 
@@ -4392,33 +4409,33 @@ auto mecab_split_phrases(
     -> std::vector<mecab_phrase>;
 ```
 
-### 目的
+### Purpose
 
-`mecab_split_phrases` は、MeCab トークン列を実用的な文節風の句範囲と記号範囲に分割します。
+`mecab_split_phrases` splits a MeCab token sequence into practical bunsetsu-like phrase ranges and symbol ranges.
 
-MeCab 自体は文節分割を提供しません。そのため、xer は `mecab_token::features` の分割済み feature フィールドから近似的な句境界を導出します。
+MeCab itself does not provide bunsetsu segmentation. xer therefore derives approximate phrase boundaries from the split feature fields in `mecab_token::features`.
 
-### 基本規則
+### Basic Rules
 
-現在の規則セットは、言語学的に完全なものではなく実用重視です。
+The current rule set is practical rather than linguistically complete.
 
-- `features.品詞` が `記号` であるトークンは `mecab_phrase_kind::symbol` として出力される
-- 連続する記号は 1 つの `symbol` 範囲にまとめられる
-- `助詞`、`助動詞`、接尾辞風トークン、非自立トークンは直前の `bunsetsu` に付く
-- `接頭詞` は、次のトークンを同じ `bunsetsu` に保つことで後続トークンに付く
-- 連続する `名詞` トークンは、実用的な複合語規則として同じ `bunsetsu` に残る
-- `活用形` が `連用` で始まる `動詞` または `形容詞` は、後続の自立語と同じ範囲に残る
-- その他の自立語は通常、新しい `bunsetsu` を開始する
+- Tokens whose `features.品詞` is `記号` are emitted as `mecab_phrase_kind::symbol`
+- Consecutive symbols are grouped into one `symbol` range
+- `助詞`, `助動詞`, suffix-like tokens, and non-independent tokens attach to the preceding `bunsetsu`
+- `接頭詞` attaches to the following token by keeping the next token in the same `bunsetsu`
+- Consecutive `名詞` tokens remain in the same `bunsetsu` as a practical compound-word rule
+- A `動詞` or `形容詞` whose `活用形` starts with `連用` remains with the following independent word
+- Other independent words usually begin a new `bunsetsu`
 
-### 例
+### Example
 
-次のテキストに対応するトークン列がある場合:
+For a token sequence corresponding to:
 
 ```text
 私は明日、学校へ行きます。
 ```
 
-`mecab_split_phrases` は、次と同等の範囲を生成することを意図しています。
+`mecab_split_phrases` is intended to produce ranges equivalent to:
 
 ```text
 bunsetsu: 私 は
@@ -4429,17 +4446,17 @@ bunsetsu: 行き ます
 symbol: 。
 ```
 
-実際のトークン表層形と feature 値は、インストールされている MeCab 辞書に依存します。
+Actual token surfaces and feature values still depend on the installed MeCab dictionary.
 
-### 空入力
+### Empty Input
 
-空のトークンスパンは、空の句ベクターを返します。
+An empty token span returns an empty phrase vector.
 
-### エラーモデル
+### Error Model
 
-`mecab_split_phrases` は MeCab を起動せず、外部資源も確保しません。`xer::result` ではなく通常の `std::vector<mecab_phrase>` を返します。
+`mecab_split_phrases` does not invoke MeCab and does not allocate external resources. It returns a plain `std::vector<mecab_phrase>` instead of `xer::result`.
 
-この関数は、`tokens` が `mecab_parse` によって生成されたか、互換性のある feature データを含むことを前提とします。feature データが欠けていたり辞書固有であったりする場合、結果は自然さに欠ける可能性がありますが、それでも文書化された規則に従います。
+The function assumes that `tokens` was produced by `mecab_parse` or otherwise contains compatible feature data. If feature data is missing or dictionary-specific, the result may be less natural but still follows the documented rules.
 
 ---
 
@@ -4453,15 +4470,15 @@ enum class mecab_kana_kind {
 };
 ```
 
-`mecab_kana_kind` は、MeCab 由来の読みをどの仮名で書くかを制御します。
+`mecab_kana_kind` controls how MeCab-derived readings are written as kana.
 
 | Value | Meaning |
 |---|---|
-| `mixed` | 既定ではひらがなを使い、カタカナ風の入力トークンはカタカナとして保持する |
-| `hiragana` | 読みをひらがなへ変換する |
-| `katakana` | 読みをカタカナへ変換する |
+| `mixed` | Use hiragana by default, while preserving katakana-like source tokens as katakana |
+| `hiragana` | Convert readings to hiragana |
+| `katakana` | Convert readings to katakana |
 
-`mixed` が既定値です。通常の日本語読みを読みやすく保ちながら、`コンピューター` のような一般的なカタカナ語を保持できるためです。
+`mixed` is the default because it keeps ordinary Japanese readings readable while preserving common katakana words such as `コンピューター`.
 
 ---
 
@@ -4474,17 +4491,17 @@ struct mecab_kana_options {
 };
 ```
 
-`mecab_kana_options` は、読みベースの仮名変換を制御します。
+`mecab_kana_options` controls reading-based kana conversion.
 
 ### `kind`
 
-`kind` は仮名出力スタイルを選択します。
+`kind` selects the kana output style.
 
-既定値は `mecab_kana_kind::mixed` です。
+The default is `mecab_kana_kind::mixed`.
 
 ### `particle_reading`
 
-`particle_reading` が `true` の場合、xer は一般的な助詞について発音寄りの読みを使います。
+When `particle_reading` is `true`, xer uses pronunciation-oriented readings for common particles:
 
 | Surface | Condition | Hiragana output | Katakana output |
 |---|---|---|---|
@@ -4492,9 +4509,9 @@ struct mecab_kana_options {
 | `へ` | `features.品詞 == u8"助詞"` | `え` | `エ` |
 | `を` | always | `お` | `オ` |
 
-仮名分かち書き、ローマ字化、点字向け処理では通常、発音寄りの助詞読みが必要になるため、既定値は `true` です。
+The default is `true` because kana wakachi-gaki, romanization, and braille-oriented processing usually need pronunciation-oriented particle readings.
 
-`particle_reading` が `false` の場合、この関数は MeCab の読みフィールドを使い、読みが利用できない場合はトークンの表層形を使います。
+When `particle_reading` is `false`, the function uses MeCab's reading field, or the token surface when the reading is unavailable.
 
 ---
 
@@ -4508,29 +4525,29 @@ auto mecab_to_kana(
     -> std::u8string;
 ```
 
-### 目的
+### Purpose
 
-`mecab_to_kana` は、MeCab トークン列を仮名テキストへ変換します。
+`mecab_to_kana` converts a MeCab token sequence to kana text.
 
-各トークンは独立して変換されます。`mecab_features::読み` が利用可能で、かつ `*` でない場合はそれを使います。それ以外の場合は `mecab_token::surface` にフォールバックします。
+Each token is converted independently. The function uses `mecab_features::読み` when it is available and not `*`; otherwise, it falls back to `mecab_token::surface`.
 
-この関数はトークン間に空白を挿入しません。呼び出し側が目的のトークン範囲や句範囲をすでに持っている場合に便利です。
+This function does not insert spaces between tokens. It is useful when the caller already has the desired token or phrase range.
 
-### 例
+### Example
 
-次のテキストに対応するトークンの場合:
+For tokens corresponding to:
 
 ```text
 私はコンピューターを使います。
 ```
 
-既定の `mixed` モードでは、次に近い仮名テキストを生成することを意図しています。
+The default `mixed` mode is intended to produce kana text close to:
 
 ```text
 わたしわコンピューターおつかいます。
 ```
 
-実際の読みは、インストールされている MeCab 辞書に依存します。
+Actual readings depend on the installed MeCab dictionary.
 
 ---
 
@@ -4544,41 +4561,42 @@ auto mecab_kana_wakati(
     -> std::u8string;
 ```
 
-### 目的
+### Purpose
 
-`mecab_kana_wakati` は、MeCab トークン列を仮名分かち書きテキストへ変換します。
+`mecab_kana_wakati` converts a MeCab token sequence to kana wakachi-gaki text.
 
-この関数はまず `mecab_split_phrases` を呼び出し、返された句範囲の間に ASCII 空白を 1 つ挿入します。記号は独立した範囲として保持されるため、この低レベルヘルパーでは句読点やその他の記号も空白で分離されます。
+The function first calls `mecab_split_phrases`, then inserts one ASCII space between the returned phrase ranges. Symbols are kept as independent ranges, so punctuation and other symbols are also separated by spaces in this low-level helper.
 
-たとえば、次のテキストに対応するトークン列がある場合:
+For example, a token sequence corresponding to:
 
 ```text
 私はコンピューターを使います。
 ```
 
-次に近い出力を生成することを意図しています。
+is intended to produce output close to:
 
 ```text
 わたしわ コンピューターお つかいます 。
 ```
 
-`mecab_kana_kind::hiragana` では、カタカナ風の入力語もひらがなへ変換されます。
+With `mecab_kana_kind::hiragana`, katakana-like source words are also converted to hiragana:
 
 ```text
 わたしわ こんぴゅーたーお つかいます 。
 ```
 
-`mecab_kana_kind::katakana` では、出力はカタカナ寄りになります。
+With `mecab_kana_kind::katakana`, the output is katakana-oriented:
 
 ```text
 ワタシワ コンピューターオ ツカイマス 。
 ```
 
-### エラーモデル
+### Error Model
 
-`mecab_kana_wakati` は MeCab を起動せず、`xer::result` も返しません。入力トークン列がすでに `mecab_parse` または互換性のある同等の情報源によって生成されていることを前提とします。
+`mecab_kana_wakati` does not invoke MeCab and does not return `xer::result`.
+It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
 
-句読点を前の句へ付ける表示向けの空白処理は、後でこの上に重ねられます。現在のヘルパーは、後続のローマ字化や点字向け処理でその分離が必要になることが多いため、意図的に記号を独立させています。
+Display-oriented spacing that attaches punctuation to the previous phrase can be layered on top later. The current helper intentionally keeps symbols independent because later romanization and braille-oriented processing often need that separation.
 
 ---
 
@@ -4592,52 +4610,52 @@ auto mecab_braille_wakati(
     -> xer::result<std::u8string>;
 ```
 
-### 目的
+### Purpose
 
-`mecab_braille_wakati` は、MeCab トークン列を日本語点字分かち書きテキストへ変換します。
+`mecab_braille_wakati` converts a MeCab token sequence to Japanese braille wakachi-gaki text.
 
-この関数は `mecab_split_phrases` を使い、文節風の範囲と記号範囲を分けて処理します。
+The function uses `mecab_split_phrases` to process bunsetsu-like ranges and symbol ranges separately.
 
-通常の文節風の範囲では、普通は同じ仮名オプションで `mecab_to_kana` を呼び出し、その結果の仮名テキストを `xer::ja::kana_text_to_braille` で変換します。
+For ordinary bunsetsu-like ranges, it normally calls `mecab_to_kana` with the same kana options and then converts the resulting kana text through `xer::ja::kana_text_to_braille`.
 
-トークン表層形が ASCII 英数字・句読点断片である場合、この関数は MeCab の読みを使わず、元の表層テキストを `xer::braille::alnum_punct_text_to_braille` で変換します。これにより、`ABC123` や `UTF-8` のような断片が、点字出力でも可視の ASCII 形を保てます。
+When a token surface is an ASCII alphanumeric-and-punctuation fragment, the function converts that fragment from the original surface text through `xer::braille::alnum_punct_text_to_braille` instead of using MeCab readings. This allows fragments such as `ABC123` or `UTF-8` to keep their visible ASCII form in braille output.
 
-記号範囲では、各記号を `<xer/braille.h>` が使う日本語句読点変換層で直接変換します。これにより、`。`、`、`、`」`、`）` などの句読点の前に不要な空白を挿入することを避けます。
+For symbol ranges, it converts each symbol directly through the Japanese punctuation conversion layer used by `<xer/braille.h>`. This avoids inserting unnecessary spaces before punctuation such as `。`, `、`, `」`, or `）`.
 
-空白は次のように制御されます。
+Spacing is controlled as follows:
 
-- 通常の文節風範囲は ASCII 空白で区切られる
-- `「`、`『`、`（`、`(` などの開き記号は、必要な前置空白のあと、後続の句に付く
-- 閉じ記号、文末記号、読点、リーダー類は、後続空白を要求する
-- 助詞または助動詞風トークンが閉じ引用符や閉じ括弧の後に続く場合、余分な空白を強制せず同じ点字句に付く
-- ASCII 記号のみのトークン範囲は、`+`、`=`、`&&` などのトークン化された断片を ASCII 点字変換経路で扱えるように、点字記号範囲として扱われる
-- 記号自体は表層テキストではなく点字句読点として出力される
+- ordinary bunsetsu-like ranges are separated by ASCII spaces
+- opening symbols such as `「`, `『`, `（`, and `(` are attached to the following phrase after any required preceding space
+- closing symbols, sentence-ending symbols, pause symbols, and leaders request a following space
+- when a particle or auxiliary-like token follows a closing quotation or closing bracket, it remains attached to the same braille phrase instead of forcing an extra space
+- ASCII-symbol-only token ranges are treated as braille symbol ranges so that tokenized fragments such as `+`, `=`, or `&&` can be handled by the ASCII braille conversion path
+- symbol marks themselves are emitted as braille punctuation, not as surface text
 
-たとえば、次のテキストに対応するトークン列がある場合:
+For example, a token sequence corresponding to:
 
 ```text
 私は猫です。
 ```
 
-次の仮名表現に相当する点字分かち書きに近い出力を生成することを意図しています。
+is intended to produce braille wakachi-gaki close to the braille representation of:
 
 ```text
 わたしわ ねこです。
 ```
 
-このとき、日本語句点の前に余分な空白は入りません。
+without an extra space before the Japanese full stop.
 
-引用発話のあとに助詞が続くようなテキストでは、点字向け空白層は閉じ引用符の直後に不要な切れ目を作らないことを意図しています。たとえば、表層パターン `」と` の周辺が該当します。
+For text such as quoted speech followed by a particle, the braille-oriented spacing layer is intended to avoid an unnecessary break immediately after the closing quotation mark, for example around the surface pattern `」と`.
 
-正確な読みと句境界は、インストールされている MeCab 辞書に依存します。
+The exact reading and phrase boundaries depend on the installed MeCab dictionary.
 
-### エラーモデル
+### Error Model
 
-`mecab_braille_wakati` は、点字変換層が失敗する可能性があるため `xer::result<std::u8string>` を返します。
+`mecab_braille_wakati` returns `xer::result<std::u8string>` because the braille conversion layer can fail.
 
-`xer::ja::kana_text_to_braille`、`xer::braille::alnum_punct_text_to_braille`、日本語句読点変換層からのエラーは伝播されます。たとえば、トークン列が日本語点字句読点として対応していない記号を含む場合、または ASCII 断片が通常の英語点字句読点変換で対応していない句読点を含む場合、この関数は `error_t::invalid_argument` を返します。
+Errors from `xer::ja::kana_text_to_braille`, `xer::braille::alnum_punct_text_to_braille`, and the Japanese punctuation conversion layer are propagated. For example, if the token sequence contains a symbol that is not supported as Japanese braille punctuation, or an ASCII fragment contains punctuation that is not supported by ordinary English braille punctuation conversion, the function returns `error_t::invalid_argument`.
 
-`mecab_braille_wakati` は MeCab を起動しません。入力トークン列がすでに `mecab_parse` または互換性のある同等の情報源によって生成されていることを前提とします。
+`mecab_braille_wakati` does not invoke MeCab. It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
 
 ---
 
@@ -4651,19 +4669,21 @@ auto mecab_ip_braille_wakati(
     -> xer::result<std::u8string>;
 ```
 
-### 目的
+### Purpose
 
-`mecab_ip_braille_wakati` は、`mecab_braille_wakati` の情報処理点字版です。
+`mecab_ip_braille_wakati` is the information-processing braille variant of `mecab_braille_wakati`.
 
-日本語トークンは、`mecab_braille_wakati` と同じ MeCab 読み、仮名変換、句読点、空白規則で変換されます。ASCII 英数字・句読点断片は、元の表層テキストから `xer::braille::ip_alnum_punct_text_to_braille` で変換されます。
+Japanese tokens are converted with the same MeCab reading, kana conversion, punctuation, and spacing rules as `mecab_braille_wakati`.
+ASCII alphanumeric-and-punctuation fragments are converted from the original surface text through `xer::braille::ip_alnum_punct_text_to_braille`.
 
-この変種は、`C++23`、`UTF-8`、`x>=10` など、通常の英語点字句読点より情報処理点字句読点の方が適切な、プログラミング言語風 ASCII 断片を含む混在日本語テキストを意図しています。
+This variant is intended for mixed Japanese text that contains programming-language-like ASCII fragments, such as `C++23`, `UTF-8`, `x>=10`, or similar text where information-processing braille punctuation is more appropriate than ordinary English braille punctuation.
 
-### エラーモデル
+### Error Model
 
-`mecab_ip_braille_wakati` は `xer::result<std::u8string>` を返します。
+`mecab_ip_braille_wakati` returns `xer::result<std::u8string>`.
 
-仮名変換、日本語句読点変換、情報処理 ASCII 変換からのエラーは伝播されます。この関数は MeCab を起動せず、入力トークン列がすでに `mecab_parse` または互換性のある同等の情報源によって生成されていることを前提とします。
+Errors from kana conversion, Japanese punctuation conversion, and information-processing ASCII conversion are propagated.
+It does not invoke MeCab and assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
 
 ---
 
@@ -4676,15 +4696,15 @@ struct mecab_romaji_options {
 };
 ```
 
-`mecab_romaji_options` は、ローマ字分かち書き変換を制御します。
+`mecab_romaji_options` controls romaji wakachi-gaki conversion.
 
 ### `kana`
 
-`kana` は、ローマ字化の前に行う仮名変換を制御します。
+`kana` controls the kana conversion performed before romanization.
 
-既定では `mecab_kana_options::particle_reading` が有効なままなので、一般的な助詞はローマ字化される前に発音で変換されます。
+The default keeps `mecab_kana_options::particle_reading` enabled, so common particles are converted by pronunciation before they are romanized.
 
-たとえば、助詞は次のようにローマ字化されることを意図しています。
+For example, particles are intended to romanize as follows:
 
 | Surface | Kana after particle correction | Romaji |
 |---|---|---|
@@ -4694,16 +4714,16 @@ struct mecab_romaji_options {
 
 ### `romaji`
 
-`romaji` は `strtoctrans` のローマ字化モードを選択します。
+`romaji` selects the `strtoctrans` romanization mode.
 
-対応する値は次のとおりです。
+Supported values are:
 
 | Value | Meaning |
 |---|---|
-| `ctrans_id::romaji` | マクロンを使う長音表記 |
-| `ctrans_id::romaji_alt` | 仮名つづりベースの代替表記 |
+| `ctrans_id::romaji` | Macron-based long-vowel form |
+| `ctrans_id::romaji_alt` | Kana-spelling-based alternate form |
 
-その他の `ctrans_id` 値は `error_t::invalid_argument` で拒否されます。
+Other `ctrans_id` values are rejected with `error_t::invalid_argument`.
 
 ---
 
@@ -4717,37 +4737,37 @@ auto mecab_romaji_wakati(
     -> xer::result<std::u8string>;
 ```
 
-### 目的
+### Purpose
 
-`mecab_romaji_wakati` は、MeCab トークン列をローマ字分かち書きテキストへ変換します。
+`mecab_romaji_wakati` converts a MeCab token sequence to romaji wakachi-gaki text.
 
-この関数はまず `mecab_split_phrases` を呼び出します。各 `bunsetsu` 範囲は仮名へ変換され、その後 `strtoctrans` でローマ字化されます。各 `symbol` 範囲は表層テキストとして保持され、`strtoctrans` には渡されません。句範囲の間には ASCII 空白が 1 つ挿入されます。
+The function first calls `mecab_split_phrases`. Each `bunsetsu` range is converted to kana, then romanized through `strtoctrans`. Each `symbol` range is preserved as surface text and is not passed to `strtoctrans`. One ASCII space is inserted between phrase ranges.
 
-たとえば、次のテキストに対応するトークン列がある場合:
+For example, a token sequence corresponding to:
 
 ```text
 私は猫です。
 ```
 
-次に近い出力を生成することを意図しています。
+is intended to produce output close to:
 
 ```text
 watashiwa nekodesu 。
 ```
 
-`ctrans_id::romaji_alt` では、長音に仮名つづりベースの代替形式を使います。
+With `ctrans_id::romaji_alt`, long vowels use the alternate kana-spelling-based form.
 
-正確な結果は、読みとトークン境界が辞書に依存するため、インストールされている MeCab 辞書に依存します。
+The exact result depends on the installed MeCab dictionary, because readings and token boundaries are dictionary-dependent.
 
-### エラーモデル
+### Error Model
 
-`mecab_to_kana` や `mecab_kana_wakati` と異なり、`mecab_romaji_wakati` は `xer::result<std::u8string>` を返します。
+Unlike `mecab_to_kana` and `mecab_kana_wakati`, `mecab_romaji_wakati` returns `xer::result<std::u8string>`.
 
-`options.romaji` が `ctrans_id::romaji` または `ctrans_id::romaji_alt` でない場合、`error_t::invalid_argument` を報告します。
+It reports `error_t::invalid_argument` when `options.romaji` is not `ctrans_id::romaji` or `ctrans_id::romaji_alt`.
 
-`strtoctrans` が仮名列をローマ字化できない場合、`strtoctrans` からのエラーが伝播されます。
+If `strtoctrans` cannot romanize a kana sequence, the error from `strtoctrans` is propagated.
 
-`mecab_romaji_wakati` は MeCab を起動しません。入力トークン列がすでに `mecab_parse` または互換性のある同等の情報源によって生成されていることを前提とします。
+`mecab_romaji_wakati` does not invoke MeCab. It assumes that the input token sequence was already produced by `mecab_parse` or by an equivalent compatible source.
 
 ---
 
@@ -4761,39 +4781,39 @@ auto mecab_parse(
     -> xer::result<std::vector<mecab_token>>;
 ```
 
-### 目的
+### Purpose
 
-`mecab_parse` は MeCab を起動し、生の形態素解析結果を返します。
+`mecab_parse` invokes MeCab and returns raw morphological analysis results.
 
-### 内部で使用する出力形式
+### Output Format Used Internally
 
-xer は MeCab に対して、1 トークン 1 行で次の形式を出力するよう明示的に要求します。
+xer explicitly asks MeCab to emit one token per line in this format:
 
 ```text
 surface<TAB>feature
 ```
 
-`EOS` マーカーは内部で消費され、トークンとしては返されません。
+The `EOS` marker is consumed internally and is not returned as a token.
 
-概念的には、xer は MeCab に対して、通常トークンと未知語トークンが同等の生出力構造になるよう設定します。
+Conceptually, xer configures MeCab so that normal and unknown tokens use equivalent raw output structure:
 
 ```text
 %m<TAB>%H
 ```
 
-これにより、パーサーは人間向けの MeCab 既定出力形式に依存しません。
+This keeps the parser independent from human-readable MeCab default formatting.
 
-### 空入力
+### Empty Input
 
-空の入力文字列は受け付けられます。
+An empty input string is accepted.
 
 ```cpp
 const auto tokens = xer::ja::mecab_parse(u8"");
 ```
 
-成功時、結果は空のトークンベクターです。
+On success, the result is an empty token vector.
 
-### 基本例
+### Basic Example
 
 ```cpp
 const auto tokens = xer::ja::mecab_parse(u8"私は猫です。");
@@ -4809,7 +4829,7 @@ for (const auto& token : *tokens) {
 }
 ```
 
-正確なトークン化、feature 文字列、分割 feature フィールドは、インストールされている辞書に依存します。
+The exact tokenization, feature strings, and split feature fields depend on the installed dictionary.
 
 ---
 
@@ -4824,20 +4844,21 @@ auto mecab_braille_translate(
     -> xer::result<std::u8string>;
 ```
 
-### 目的
+### Purpose
 
-`mecab_braille_translate` は、UTF-8 入力テキストを MeCab で解析し、その結果のトークン列を `mecab_braille_wakati` で変換します。
+`mecab_braille_translate` parses UTF-8 source text with MeCab and converts the resulting token sequence with `mecab_braille_wakati`.
 
-これは、中間のトークン列を調べる必要がない呼び出し側向けの便宜ラッパーです。MeCab は日本語テキストの読みを決定します。ASCII 英数字・句読点断片は、通常点字の ASCII 断片変換層により元の表層テキストから変換されます。
+It is a convenience wrapper for callers that do not need to inspect the intermediate token sequence.
+MeCab determines readings for Japanese text. ASCII alphanumeric-and-punctuation fragments are converted from the original surface text by the ordinary braille ASCII-fragment conversion layer.
 
-### エラーモデル
+### Error Model
 
-`mecab_braille_translate` は両方の段階からのエラーを伝播します。
+`mecab_braille_translate` propagates errors from both stages:
 
 - `mecab_parse`
 - `mecab_braille_wakati`
 
-つまり、この関数は MeCab 実行エラー、UTF-8 エラー、点字変換エラーを報告できます。
+This means the function can report MeCab execution errors, UTF-8 errors, and braille conversion errors.
 
 ---
 
@@ -4852,33 +4873,34 @@ auto mecab_ip_braille_translate(
     -> xer::result<std::u8string>;
 ```
 
-### 目的
+### Purpose
 
-`mecab_ip_braille_translate` は、UTF-8 入力テキストを MeCab で解析し、その結果のトークン列を `mecab_ip_braille_wakati` で変換します。
+`mecab_ip_braille_translate` parses UTF-8 source text with MeCab and converts the resulting token sequence with `mecab_ip_braille_wakati`.
 
-日本語テキストは `mecab_braille_translate` と同じ方法で処理されます。ASCII 英数字・句読点断片は情報処理点字の ASCII 断片変換層で変換されます。
+Japanese text is handled in the same way as `mecab_braille_translate`.
+ASCII alphanumeric-and-punctuation fragments are converted through the information-processing braille ASCII-fragment conversion layer.
 
-この関数は、コード風または技術的な ASCII 断片を含む可能性がある日本語テキスト向けの便利な入口です。
+This function is the convenient entry point for Japanese text that may contain code-like or technical ASCII fragments.
 
-### エラーモデル
+### Error Model
 
-`mecab_ip_braille_translate` は両方の段階からのエラーを伝播します。
+`mecab_ip_braille_translate` propagates errors from both stages:
 
 - `mecab_parse`
 - `mecab_ip_braille_wakati`
 
 ---
 
-## 実行ファイルの解決
+## Executable Resolution
 
-`mecab_options::program` が空の場合、xer は次の手順を行います。
+If `mecab_options::program` is empty, xer:
 
-1. `PATH` を読む
-2. 各パス要素を検索する
-3. プラットフォームで通常使われる MeCab 実行ファイル名を確認する
-4. 最初に一致したファイルを実行する
+1. reads `PATH`
+2. searches each path entry
+3. checks for the platform's ordinary MeCab executable name
+4. executes the first matching file
 
-実行ファイルが見つからない場合、`mecab_parse` は次を返します。
+If no executable is found, `mecab_parse` returns:
 
 ```cpp
 error_t::not_found
@@ -4886,71 +4908,72 @@ error_t::not_found
 
 ---
 
-## エラーモデル
+## Error Model
 
-`mecab_parse` は `xer::result<std::vector<mecab_token>>` を返します。
+`mecab_parse` returns `xer::result<std::vector<mecab_token>>`.
 
-現在の実装では次のエラーを使います。
+The current implementation uses these errors:
 
 | Condition | Error |
 |---|---|
-| 入力テキストが妥当な UTF-8 ではない | `error_t::encoding_error` |
-| MeCab 出力が妥当な UTF-8 ではない | `error_t::encoding_error` |
-| 実行ファイルの自動検索で MeCab が見つからない | `error_t::not_found` |
-| MeCab を実行できない、MeCab が失敗終了する、または想定外の出力を出す | `error_t::process_error` |
+| input text is not valid UTF-8 | `error_t::encoding_error` |
+| MeCab output is not valid UTF-8 | `error_t::encoding_error` |
+| automatic executable search cannot find MeCab | `error_t::not_found` |
+| MeCab cannot be executed, exits unsuccessfully, or emits unexpected output | `error_t::process_error` |
 
-一部の低レベルなプロセスまたはストリームの失敗は、最終的な MeCab レベルの検証段階より前に発生した場合、それぞれの xer エラーコードを保持することがあります。
-
----
-
-## 辞書依存性
-
-`mecab_token::feature` と `mecab_token::features` は辞書に依存します。
-
-異なる MeCab 辞書は、次の点で異なる可能性があります。
-
-- テキストを異なる単位に分割する
-- 異なる feature 列レイアウトを報告する
-- 異なる読みや原形フィールドを生成する
-
-xer は `%H` が出力するカンマ区切り構造に従って feature 文字列を分割し、通常の MeCab/IPADIC 形式のフィールド位置を使って名前付きメンバーを埋めます。これは実用的な便宜機能であり、あらゆる辞書に対する完全な正規化層ではありません。
-
-高レベルな xer 日本語テキスト処理機能は、必要に応じて独自の対応解釈方針を後で定義する可能性があります。
+Some lower-level process or stream failures may preserve their own xer error code when they arise before the final MeCab-level validation step.
 
 ---
 
-## 現在の範囲
+## Dictionary Dependence
 
-現段階の `<xer/mecab.h>` は、低レベルな MeCab 形態素解析基盤を提供します。
+`mecab_token::feature` and `mecab_token::features` are dictionary-dependent.
 
-実装済み:
+Different MeCab dictionaries may:
 
-- UTF-8 MeCab 子プロセス起動
-- 実行ファイルパスの解決
-- トークン収集
-- 表層テキストの保持
-- 生 feature テキストの保持
-- 分割済み feature フィールドの保持
-- 一般的な MeCab/IPADIC 形式の名前付き feature メンバー
-- `mecab_split_phrases` による実用的な文節風の句分割と記号分割
-- `mecab_to_kana` による MeCab 由来の読みベースの仮名変換
-- `mecab_kana_wakati` による仮名分かち書き
-- `mecab_braille_wakati` と `mecab_ip_braille_wakati` による点字分かち書き
-- `mecab_braille_translate` と `mecab_ip_braille_translate` による直接点字変換
-- `mecab_romaji_wakati` によるローマ字分かち書き
+- split text differently
+- report different feature-column layouts
+- produce different readings or base-form fields
 
-このヘッダーで未実装:
+xer splits the feature string according to the comma-separated structure emitted by `%H`, and fills named members using the ordinary MeCab/IPADIC-style field positions.
+This is a practical convenience, not a complete normalization layer for all possible dictionaries.
 
-- ルビ向け構造
-- 単語数または文節数カウントヘルパー
-
-これらは生の層の上に構築する予定であり、`policy_mecab.md` のポリシーレベルで説明されています。
+Higher-level xer Japanese text processing facilities may later define their own supported interpretation strategy where needed.
 
 ---
 
-## 他ヘッダーとの関係
+## Current Scope
 
-`<xer/mecab.h>` は次と関係します。
+At the current stage, `<xer/mecab.h>` provides the low-level MeCab morphological analysis foundation.
+
+Implemented:
+
+- UTF-8 MeCab child-process invocation
+- executable-path resolution
+- token collection
+- surface text preservation
+- raw feature text preservation
+- split feature field preservation
+- common MeCab/IPADIC-style named feature members
+- practical bunsetsu-like phrase and symbol segmentation through `mecab_split_phrases`
+- kana conversion based on MeCab-derived readings through `mecab_to_kana`
+- kana wakachi-gaki through `mecab_kana_wakati`
+- braille wakachi-gaki through `mecab_braille_wakati` and `mecab_ip_braille_wakati`
+- direct braille translation through `mecab_braille_translate` and `mecab_ip_braille_translate`
+- romaji wakachi-gaki through `mecab_romaji_wakati`
+
+Not yet implemented in this header:
+
+- ruby-oriented structures
+- word or bunsetsu counting helpers
+
+These are planned on top of the raw layer and are described at the policy level in `policy_mecab.md`.
+
+---
+
+## Relationship to Other Headers
+
+`<xer/mecab.h>` is related to:
 
 - `<xer/process.h>`
 - `<xer/path.h>`
