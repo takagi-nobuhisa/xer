@@ -325,8 +325,8 @@ In the initial stage, `example_` is used as a prefix.
 Examples:
 
 * `example_trim.cpp`
-* `example_json_decode.cpp`
-* `example_path_join.cpp`
+* `example_json.cpp`
+* `example_path.cpp`
 
 ### Uniqueness
 
