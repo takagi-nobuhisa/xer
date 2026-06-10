@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v1.0.0a4**
+Target version: **v1.0.0b1**
 
 ---
 
