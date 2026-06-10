@@ -11,6 +11,11 @@ Conversion to and from external representations such as degrees and radians is h
 
 ---
 
+The following diagram compares `cyclic<T>` with `interval<T>`:
+
+![xer cyclic and interval concepts](images/cyclic_interval_concepts.png)
+
+
 ## Basic Policy
 
 ### Scope

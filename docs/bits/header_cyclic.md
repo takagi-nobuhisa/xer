@@ -17,6 +17,11 @@ Instead, it provides a lightweight value type that makes circular semantics expl
 
 ---
 
+The following diagram compares `cyclic<T>` with `interval<T>`:
+
+![xer cyclic and interval concepts](images/cyclic_interval_concepts.png)
+
+
 ## Main Role
 
 The main role of `<xer/cyclic.h>` is to provide a compact and explicit model for circular values that:

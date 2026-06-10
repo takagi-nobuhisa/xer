@@ -1,0 +1,86 @@
+@startuml
+' cyclic and interval concept diagram for xer
+
+title xer cyclic and interval concepts
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Monospaced
+skinparam defaultTextAlignment center
+skinparam rectangle {
+  BackgroundColor #FFFDE7
+  BorderColor #444444
+  RoundCorner 8
+}
+skinparam note {
+  BackgroundColor #F5F5F5
+  BorderColor #777777
+}
+skinparam arrow {
+  Color #AA0055
+  Thickness 1
+}
+skinparam usecase {
+  BackgroundColor #E8F5E9
+  BorderColor #444444
+}
+left to right direction
+
+rectangle "interval<T>\nbounded linear value" as Interval {
+  rectangle "lower bound" as IMin
+  rectangle "stored value\nclamped or constrained" as IValue
+  rectangle "upper bound" as IMax
+
+  IMin --> IValue : range
+  IValue --> IMax : range
+}
+
+note bottom of Interval
+Typical model:
+a value lives inside a finite
+linear interval such as [0, 1].
+
+Examples:
+- normalized color component
+- clamped scalar value
+end note
+
+rectangle "cyclic<T>\nwrapped circular value" as Cyclic {
+  usecase "0" as C0
+  usecase "1/4" as C1
+  usecase "1/2" as C2
+  usecase "3/4" as C3
+
+  C0 -right- C1
+  C1 -down- C2
+  C2 -left- C3
+  C3 -up- C0
+}
+
+note bottom of Cyclic
+Typical model:
+values wrap around a cycle.
+
+In xer, one full turn is represented
+as 1.0, and angle helpers convert
+between radian / degree / turn-like
+cyclic values.
+end note
+
+rectangle "Linear arithmetic" as LinearOps
+rectangle "Circular arithmetic" as CircularOps
+
+Interval --> LinearOps : saturate / constrain\ninside bounds
+Cyclic --> CircularOps : normalize / wrap\nmodulo one full turn
+
+rectangle "Use in other facilities" as Uses
+Interval --> Uses : color components\nbasic_rgb<T>::r/g/b\nbasic_gray<T>::y
+Cyclic --> Uses : hue\nbasic_hsv<T>::h\nangle-like quantities
+
+legend bottom
+|= Type |= Concept |= Behavior |
+| interval<T> | bounded line segment | keeps value inside lower and upper bounds |
+| cyclic<T> | circular domain | wraps values around a repeated cycle |
+endlegend
+
+@enduml

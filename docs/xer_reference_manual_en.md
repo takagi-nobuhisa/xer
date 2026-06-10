@@ -16642,6 +16642,11 @@ Instead, it provides a lightweight value type that makes circular semantics expl
 
 ---
 
+The following diagram compares `cyclic<T>` with `interval<T>`:
+
+![xer cyclic and interval concepts](images/cyclic_interval_concepts.png)
+
+
 ## Main Role
 
 The main role of `<xer/cyclic.h>` is to provide a compact and explicit model for circular values that:
@@ -17197,6 +17202,11 @@ The main entity is `xer::interval<T, Min, Max>`, a lightweight value type that s
 The default interval is `[0, 1]`, which is useful for values such as color components, alpha values, normalized ratios, opacity, brightness, gain, and other bounded control values.
 
 ---
+
+The following diagram compares `interval<T>` with `cyclic<T>`:
+
+![xer cyclic and interval concepts](images/cyclic_interval_concepts.png)
+
 
 ## Main Entity
 

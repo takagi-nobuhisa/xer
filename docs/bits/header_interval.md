@@ -10,6 +10,11 @@ The default interval is `[0, 1]`, which is useful for values such as color compo
 
 ---
 
+The following diagram compares `interval<T>` with `cyclic<T>`:
+
+![xer cyclic and interval concepts](images/cyclic_interval_concepts.png)
+
+
 ## Main Entity
 
 At minimum, `<xer/interval.h>` provides the following entity:

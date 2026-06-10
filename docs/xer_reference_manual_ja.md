@@ -15784,6 +15784,11 @@ Instead, it provides a lightweight value type that makes circular semantics expl
 
 ---
 
+The following diagram compares `cyclic<T>` with `interval<T>`:
+
+![xer cyclic and interval concepts](images/cyclic_interval_concepts.png)
+
+
 ## Main Role
 
 The main role of `<xer/cyclic.h>` is to provide a compact and explicit model for circular values that:
@@ -16328,21 +16333,32 @@ For custom interval bounds, use `interval<T, Min, Max>::from_ratio(value.ratio()
 
 ---
 
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/interval.h`
+> Reason: Japanese fragment was translated from a different English source hash.
+
 # `<xer/interval.h>`
 
-## 目的
+## Purpose
 
-`<xer/interval.h>` は、境界付き浮動小数点値型を提供します。
+`<xer/interval.h>` provides bounded floating-point value types.
 
-主なエンティティは `xer::interval<T, Min, Max>` です。これは、固定された閉区間内に制約された有限スカラー値を格納する軽量な値型です。
+The main entity is `xer::interval<T, Min, Max>`, a lightweight value type that stores a finite scalar value constrained to a fixed closed interval.
 
-既定の区間は `[0, 1]` です。この区間は、色成分、アルファ値、正規化比率、不透明度、明るさ、ゲインなど、境界を持つ制御値に有用です。
+The default interval is `[0, 1]`, which is useful for values such as color components, alpha values, normalized ratios, opacity, brightness, gain, and other bounded control values.
 
 ---
 
-## 主なエンティティ
+The following diagram compares `interval<T>` with `cyclic<T>`:
 
-`<xer/interval.h>` は、少なくとも次のエンティティを提供します。
+![xer cyclic and interval concepts](images/cyclic_interval_concepts.png)
+
+
+## Main Entity
+
+At minimum, `<xer/interval.h>` provides the following entity:
 
 ```cpp
 template <
@@ -16352,13 +16368,13 @@ template <
 class interval;
 ```
 
-実装は対応する内部ヘッダーで提供されます。
+The implementation is provided through the corresponding internal header:
 
 ```cpp
 #include <xer/bits/interval.h>
 ```
 
-ユーザーコードでは、通常、公開ヘッダーをインクルードします。
+Users should normally include the public header:
 
 ```cpp
 #include <xer/interval.h>
@@ -16366,54 +16382,56 @@ class interval;
 
 ---
 
-## 設計上の役割
+## Design Role
 
-`interval` は、不変条件を維持することを主な目的とする小さな数値値型です。
+`interval` is a small numeric value type whose main purpose is to preserve an invariant.
 
-`interval<T, Min, Max>` では、格納値は常に次を満たします。
+For `interval<T, Min, Max>`, the stored value always satisfies:
 
 ```text
 Min <= value() <= Max
 ```
 
-格納値は常に有限値です。
+The stored value is always finite.
 
-有限の範囲外値は、もっとも近い境界値へクランプされます。`NaN` や無限大のような無効な浮動小数点値は、例外を投げて拒否されます。
+Finite out-of-range values are clamped to the nearest bound.
+Invalid floating-point values such as `NaN` and infinity are rejected by throwing an exception.
 
-これにより、通常の使用中に既知の範囲から逸脱してはいけない値を扱いやすくなります。
-
----
-
-## `cyclic` との関係
-
-`interval` は `cyclic` と近い関係にありますが、表す概念は異なります。
-
-`cyclic<T>` は `[0, 1)` に正規化される循環値を表します。
-
-典型例は次のとおりです。
-
-- 色相
-- 角度
-- 位相
-- 方向
-
-`interval<T, Min, Max>` は `[Min, Max]` 内の線形な境界付き値を表します。
-
-典型例は次のとおりです。
-
-- 赤、緑、青の成分
-- アルファ値
-- グレースケール値
-- 明るさ
-- ゲイン
-- 不透明度
-- 正規化比率
-
-この区別は、色処理では特に重要です。色相は自然に循環しますが、色成分は循環しません。
+This makes `interval` useful for values that should never escape a known range during ordinary use.
 
 ---
 
-## テンプレートパラメータ
+## Relationship to `cyclic`
+
+`interval` is closely related to `cyclic`, but the two types represent different concepts.
+
+`cyclic<T>` represents a circular value normalized into `[0, 1)`.
+
+Typical examples include:
+
+- hue
+- angle
+- phase
+- direction
+
+`interval<T, Min, Max>` represents a linear bounded value in `[Min, Max]`.
+
+Typical examples include:
+
+- red, green, and blue components
+- alpha values
+- grayscale values
+- brightness
+- gain
+- opacity
+- normalized ratios
+
+This distinction is especially important in color handling.
+Hue naturally wraps around, while color components do not.
+
+---
+
+## Template Parameters
 
 ```cpp
 template <
@@ -16425,85 +16443,85 @@ class interval;
 
 ### `T`
 
-`T` は格納される浮動小数点型です。
+`T` is the stored floating-point type.
 
-主に想定される型は次のとおりです。
+The main intended types are:
 
 - `float`
 - `double`
 - `long double`
 
-整数型は受け付けません。
+Integer types are not accepted.
 
 ### `Min`
 
-`Min` は下限値です。下限は区間に含まれます。
+`Min` is the inclusive lower bound.
 
 ### `Max`
 
-`Max` は上限値です。上限は区間に含まれます。
+`Max` is the inclusive upper bound.
 
-この型は次を要求します。
+The type requires:
 
 ```cpp
 Min < Max
 ```
 
-空の区間や逆向きの区間は受け付けません。
+An empty interval or reversed interval is not accepted.
 
 ---
 
-## 既定の区間
+## Default Interval
 
-既定の形式は次のとおりです。
+The default form:
 
 ```cpp
 xer::interval<float>
 ```
 
-これは次を意味します。
+means:
 
 ```cpp
 xer::interval<float, 0.0f, 1.0f>
 ```
 
-これは正規化値にもっともよく使われる形式です。
+This is the most common form for normalized values.
 
-例:
+Example:
 
 ```cpp
 using component = xer::interval<float>;
 
-auto r = component(1.25f);  // 1.0f として格納
-auto g = component(0.5f);   // 0.5f として格納
-auto b = component(-0.25f); // 0.0f として格納
+auto r = component(1.25f);  // stored as 1.0f
+auto g = component(0.5f);   // stored as 0.5f
+auto b = component(-0.25f); // stored as 0.0f
 ```
 
 ---
 
-## カスタム区間
+## Custom Intervals
 
-浮動小数点の非型テンプレートパラメータとして、独自の境界を指定できます。
+Custom bounds can be specified as floating-point non-type template parameters.
 
-例:
+Example:
 
 ```cpp
 using gain = xer::interval<float, -1.0f, 1.0f>;
 
 auto center = gain(0.0f);
-auto upper = gain(2.0f);   // 1.0f にクランプ
-auto lower = gain(-2.0f);  // -1.0f にクランプ
+auto upper = gain(2.0f);   // clamped to 1.0f
+auto lower = gain(-2.0f);  // clamped to -1.0f
 ```
 
-これは、値が `[0, 1]` 以外の自然な範囲を持つ場合に有用です。
+This is useful when a value has a natural range other than `[0, 1]`.
 
 ---
 
-## 構築
+## Construction
 
-### 既定構築
+### Default Construction
 
-既定構築では、格納値は `Min` に初期化されます。
+Default construction initializes the stored value to `Min`.
 
 ```cpp
 xer::interval<float> x;
@@ -16513,17 +16531,17 @@ xer::interval<float, -1.0f, 1.0f> y;
 // y.value() == -1.0f
 ```
 
-### 生の値からの構築
+### Construction from a Raw Value
 
-生のスカラー値からの構築は明示的です。
+Construction from a raw scalar is explicit.
 
 ```cpp
 explicit constexpr interval(T value);
 ```
 
-有限値は受け付けられ、区間内へクランプされます。
+Finite values are accepted and clamped into the interval.
 
-`xer::interval<float>` の場合:
+For `xer::interval<float>`:
 
 ```cpp
 auto a = xer::interval<float>(0.5f);   // 0.5f
@@ -16531,257 +16549,474 @@ auto b = xer::interval<float>(-0.5f);  // 0.0f
 auto c = xer::interval<float>(1.5f);   // 1.0f
 ```
 
-`NaN` と無限大は例外で拒否されます。
+`NaN` and infinity are rejected by exception.
 
 ---
 
-## 例外ポリシー
+## Exception Policy
 
-`interval` は、有効な有限区間値として表現できない値に対して `std::domain_error` を投げます。
+`interval` throws `std::domain_error` for values that cannot be represented as valid finite interval values.
 
-少なくとも次の場合は例外になります。
+At minimum, the following cases throw:
 
-- `NaN` からの構築
-- 正の無限大からの構築
-- 負の無限大からの構築
-- `NaN` の代入
-- 無限大の代入
+- construction from `NaN`
+- construction from positive infinity
+- construction from negative infinity
+- assignment from `NaN`
+- assignment from infinity
+- arithmetic that produces `NaN`
+- arithmetic that produces infinity
+- division by zero
 
-有限の範囲外値は例外ではなく、境界値へクランプされます。
+This is intentional.
+Silently clamping `NaN` or infinity would hide a serious numeric error.
 
 ---
 
-## メンバー型と定数
+## Member Types and Constants
 
-`interval` は、格納型や境界値を参照するためのメンバー型および定数を提供します。
-
-概念的には次のような情報を利用できます。
+`interval` provides the following public members:
 
 ```cpp
 using value_type = T;
+
 static constexpr T min_value = Min;
 static constexpr T max_value = Max;
 ```
 
-これにより、ジェネリックコードで区間の値型や境界を扱いやすくなります。
+`value_type` is the stored floating-point type.
+
+`min_value` and `max_value` expose the compile-time interval bounds.
 
 ---
 
-## 値へのアクセス
+## Value Access
 
 ### `value`
 
 ```cpp
-auto value() const noexcept -> T;
+constexpr auto value() const noexcept -> T;
 ```
 
-`value()` は、格納されている生の浮動小数点値を返します。
+Returns the stored scalar value.
 
-戻り値は常に有限で、`[Min, Max]` の範囲内です。
+The returned value is always finite and always inside `[Min, Max]`.
 
 ---
 
-## 代入
+## Assignment
 
 ### `assign`
 
-`assign` は、新しい値を割り当てます。
-
-有限値は区間内へクランプされます。`NaN` や無限大は例外で拒否されます。
-
-### `T` からの代入
-
-`interval` は、格納型 `T` からの代入をサポートします。
-
 ```cpp
-xer::interval<float> x;
-x = 1.5f; // 1.0f にクランプ
+constexpr auto assign(T value) -> void;
 ```
 
-代入後も、不変条件は維持されます。
+Assigns a raw scalar value.
+
+Finite values are clamped into `[Min, Max]`.
+`NaN` and infinity throw `std::domain_error`.
+
+### Assignment from `T`
+
+```cpp
+constexpr auto operator=(T value) -> interval&;
+```
+
+Assigns a raw scalar value and returns `*this`.
+
+This behaves the same as `assign`.
+
+Example:
+
+```cpp
+auto x = xer::interval<float>();
+
+x = 0.75f; // stored as 0.75f
+x = 2.0f;  // stored as 1.0f
+```
 
 ---
 
-## 比率変換
+## Ratio Conversion
 
 ### `ratio`
 
-`ratio()` は、現在の値を既定の `[0, 1]` 比率に変換します。
-
 ```cpp
-auto r = value.ratio();
+constexpr auto ratio() const noexcept -> T;
 ```
 
-`Min` は `0` に、`Max` は `1` に対応します。
+Returns the relative position of the stored value in the interval.
+
+The result is in `[0, 1]`.
+
+Conceptually:
+
+```text
+(value() - Min) / (Max - Min)
+```
+
+Example:
+
+```cpp
+using level = xer::interval<float, 10.0f, 20.0f>;
+
+auto x = level(15.0f);
+auto r = x.ratio(); // 0.5f
+```
 
 ### `from_ratio`
 
-`from_ratio` は、`[0, 1]` 比率から区間値を作ります。
-
 ```cpp
-auto x = my_interval::from_ratio(0.5f);
+static constexpr auto from_ratio(T ratio) -> interval;
 ```
 
-比率が範囲外の場合は、通常の構築と同じく境界へクランプされます。`NaN` や無限大は拒否されます。
+Creates an interval value from a relative position.
 
----
+The input ratio is treated as a bounded value in `[0, 1]`.
 
-## 比較
+Finite input is clamped into `[0, 1]`.
+`NaN` and infinity throw `std::domain_error`.
 
-`interval` は、同じ区間型同士の比較をサポートします。
+Conceptually:
 
-比較は格納値に基づいて行われます。
-
-値型であるため、等価比較や順序比較は自然に扱えます。ただし、異なる区間型同士の比較については、意味を慎重に扱う必要があります。
-
----
-
-## interval 値同士の算術演算
-
-`interval` 値同士の算術演算では、演算結果も同じ区間型として格納されます。
-
-結果が区間外に出る場合は、通常の代入・構築と同じく境界値へクランプされます。無効な浮動小数点結果は例外で拒否されます。
-
----
-
-## 右辺スカラー値との算術演算
-
-`interval` 値と右辺スカラー値の演算もサポートされます。
-
-```cpp
-auto x = xer::interval<float>(0.5f);
-auto y = x * 2.0f;
+```text
+Min + ratio * (Max - Min)
 ```
 
-演算結果は区間内へ収められます。
-
----
-
-## 左辺スカラー値との乗算
-
-スカラー値を左辺に置いた乗算も、意味が明確なものについてはサポートされます。
-
-```cpp
-auto y = 2.0f * x;
-```
-
-これは、係数を掛ける操作として自然に読めるためです。
-
----
-
-## サポートしない左辺スカラー形式
-
-一方、左辺スカラーの加算や減算など、意味が曖昧になりやすい形は意図的に提供しない場合があります。
-
-`interval` は任意の数値の代替ではなく、境界付き値を表す型です。演算子の範囲は、その意味が自然であるものに限定されます。
-
----
-
-## 複合代入
-
-`interval` は、対応する算術演算に合わせて複合代入を提供します。
-
-```cpp
-x += y;
-x -= y;
-x *= scalar;
-x /= scalar;
-```
-
-各操作後も、不変条件は維持されます。
-
----
-
-## 単項演算子
-
-`interval` は、値型として自然な単項演算子を提供する場合があります。
-
-ただし、単項マイナスのように結果が区間外へ出やすい操作では、通常のクランプ規則や例外規則に従います。
-
----
-
-## エラー処理モデル
-
-`interval` は値型であり、通常の範囲外入力はエラーではなくクランプで処理します。
-
-一方、`NaN` や無限大は、有効な区間値として意味を持たないため例外で拒否します。
-
-この設計により、通常の UI 値や色成分などでは扱いやすく、異常な浮動小数点値は早期に検出できます。
-
----
-
-## 典型的な用途
-
-### 色成分
-
-```cpp
-using component = xer::interval<float>;
-```
-
-RGB や CMY のような正規化色成分に適しています。
-
-### ゲイン
+Example:
 
 ```cpp
 using gain = xer::interval<float, -1.0f, 1.0f>;
+
+auto center = gain::from_ratio(0.5f);
+// center.value() == 0.0f
 ```
 
-中心値を持つ制御量に適しています。
+---
 
-### 明るさ調整
+## Comparison
 
-明るさ、不透明度、正規化比率など、有限範囲内で扱いたい値にも適しています。
+`interval` represents a linear bounded value, so comparison operators are provided.
+
+At minimum, the type supports:
+
+```cpp
+operator==
+operator<=>
+```
+
+The remaining comparison operators are available through ordinary C++ comparison rewriting.
+
+Comparison is based on the stored scalar value.
+
+Unlike `cyclic`, `interval` does not use tolerance-based equality.
+Since `interval` rejects `NaN`, ordinary linear ordering is meaningful.
+
+Example:
+
+```cpp
+auto a = xer::interval<float>(0.25f);
+auto b = xer::interval<float>(0.75f);
+
+if (a < b) {
+    // true
+}
+```
 
 ---
 
-## 他のヘッダーとの関係
+## Arithmetic Between Interval Values
 
-`<xer/interval.h>` は次のヘッダーやポリシーと関係します。
+Arithmetic between values of the same `interval` type is supported.
+
+```cpp
+operator+
+operator-
+operator*
+operator/
+```
+
+The operation is ordinary scalar arithmetic on the stored values, followed by validation and clamping.
+
+Example:
+
+```cpp
+using component = xer::interval<float>;
+
+auto a = component(0.8f);
+auto b = component(0.5f);
+
+auto sum = a + b;       // 1.0f
+auto product = a * b;   // 0.4f
+auto diff = b - a;      // 0.0f
+```
+
+Division by an interval value whose stored value is zero throws `std::domain_error`.
+
+---
+
+## Arithmetic with Right-Hand Scalar Values
+
+The following forms are supported:
+
+```cpp
+interval + scalar
+interval - scalar
+interval * scalar
+interval / scalar
+```
+
+They are useful for increasing, decreasing, scaling, and dividing bounded values.
+
+Example:
+
+```cpp
+using component = xer::interval<float>;
+
+auto brightness = component(0.5f);
+
+brightness += 0.25f; // 0.75f
+brightness *= 2.0f;  // 1.0f
+brightness -= 2.0f;  // 0.0f
+```
+
+The scalar is converted to the interval's value type and then validated.
+
+`NaN`, infinity, and division by zero throw `std::domain_error`.
+
+---
+
+## Left-Hand Scalar Multiplication
+
+Scalar multiplication is also supported in the left-hand form:
+
+```cpp
+scalar * interval
+```
+
+Example:
+
+```cpp
+using component = xer::interval<float>;
+
+auto brightness = component(0.75f);
+auto dimmed = 0.5f * brightness;
+// dimmed.value() == 0.375f
+```
+
+This form is provided because multiplication is natural in either order.
+
+---
+
+## Unsupported Left-Hand Scalar Forms
+
+The following forms are intentionally not provided:
+
+```cpp
+scalar + interval
+scalar - interval
+scalar / interval
+```
+
+Scalar addition and subtraction are intended to express increasing or decreasing the interval value.
+For readability, the interval value should appear on the left-hand side.
+
+Scalar division by an interval value has a reciprocal-like meaning and is not considered a common bounded-value operation.
+
+If such behavior is needed, callers can use `value()` explicitly.
+
+---
+
+## Compound Assignment
+
+`interval` provides compound assignment operators.
+
+With another interval value:
+
+```cpp
+operator+=
+operator-=
+operator*=
+operator/=
+```
+
+With a right-hand scalar value:
+
+```cpp
+operator+=
+operator-=
+operator*=
+operator/=
+```
+
+Each operation preserves the interval invariant.
+
+Example:
+
+```cpp
+using component = xer::interval<float>;
+
+auto x = component(0.5f);
+
+x += 0.2f; // 0.7f
+x *= 2.0f; // 1.0f
+x /= 4.0f; // 0.25f
+```
+
+---
+
+## Unary Operators
+
+Unary plus and unary minus are provided.
+
+```cpp
++x
+-x
+```
+
+Unary plus returns the value unchanged.
+
+Unary minus negates the stored value and then constructs a new interval value from the result.
+For the default `[0, 1]` interval, this usually clamps to `0`.
+
+Example:
+
+```cpp
+auto x = xer::interval<float>(0.25f);
+auto y = -x;
+// y.value() == 0.0f
+```
+
+For a symmetric interval, unary minus behaves more naturally.
+
+```cpp
+using gain = xer::interval<float, -1.0f, 1.0f>;
+
+auto x = gain(0.25f);
+auto y = -x;
+// y.value() == -0.25f
+```
+
+---
+
+## Error Handling Model
+
+`interval` uses exceptions only for exceptional numeric conditions.
+
+This differs from ordinary xer APIs that return `xer::result` for normal recoverable failures.
+
+The reason is that `interval` is a value type with a simple invariant.
+`NaN`, infinity, and division by zero are treated as invalid numeric states rather than ordinary input failures.
+
+This design keeps normal arithmetic expressions readable:
+
+```cpp
+auto x = xer::interval<float>(0.5f);
+auto y = x + 0.25f;
+auto z = 0.5f * y;
+```
+
+---
+
+## Typical Uses
+
+### Color Components
+
+```cpp
+using component = xer::interval<float>;
+
+auto r = component(1.25f);  // 1.0f
+auto g = component(0.5f);   // 0.5f
+auto b = component(-0.25f); // 0.0f
+```
+
+### Gain
+
+```cpp
+using gain = xer::interval<float, -1.0f, 1.0f>;
+
+auto center = gain::from_ratio(0.5f);
+// center.value() == 0.0f
+```
+
+### Brightness Adjustment
+
+```cpp
+using component = xer::interval<float>;
+
+auto brightness = component(0.5f);
+brightness += 0.25f;
+brightness *= 2.0f;
+```
+
+---
+
+## Relationship to Other Headers
+
+`<xer/interval.h>` is related to the following headers:
 
 - `<xer/cyclic.h>`
-- `<xer/color.h>`
 - `<xer/arithmetic.h>`
-- `policy_interval.md`
-- `policy_color.md`
+- `<xer/stdfloat.h>`
+
+The rough boundary is:
+
+- `<xer/cyclic.h>` handles circular normalized values
+- `<xer/interval.h>` handles linear bounded values
+- `<xer/arithmetic.h>` provides arithmetic helper functions
+- `<xer/stdfloat.h>` provides floating-point type aliases and literals
+
+`interval` is not absorbed into `<xer/arithmetic.h>` because it is a value type with an invariant, not merely an arithmetic helper function group.
 
 ---
 
-## ドキュメント上の注意
+## Documentation Notes
 
-このヘッダーを説明するときは、次の点を明確にします。
+When documenting `interval`, it is important to make the following points explicit:
 
-- `interval` は境界付き浮動小数点値型であること
-- 既定の区間は `[0, 1]` であること
-- 有限の範囲外値はクランプされること
-- `NaN` と無限大は例外で拒否されること
-- `cyclic` とは異なり、循環値ではなく線形境界値であること
+- the interval is closed
+- the default interval is `[0, 1]`
+- finite out-of-range values are clamped
+- `NaN` and infinity throw
+- division by zero throws
+- arithmetic is scalar arithmetic followed by clamping
+- this is not mathematical interval arithmetic
+- `interval` is linear and non-wrapping, unlike `cyclic`
 
 ---
 
-## 例
+## Example
 
 ```cpp
 #include <xer/interval.h>
-
-#include <stdexcept>
+#include <xer/stdio.h>
 
 auto main() -> int
 {
     using component = xer::interval<float>;
 
-    const auto a = component(0.5f);
-    const auto b = component(1.5f);
-    const auto c = component(-0.5f);
+    const auto r = component(1.25f);
+    const auto g = component(0.5f);
+    const auto b = component(-0.25f);
 
-    if (a.value() != 0.5f) {
+    if (!xer::printf(u8"r = %g\n", static_cast<double>(r.value())).has_value()) {
+        return 1;
+    }
+    if (!xer::printf(u8"g = %g\n", static_cast<double>(g.value())).has_value()) {
+        return 1;
+    }
+    if (!xer::printf(u8"b = %g\n", static_cast<double>(b.value())).has_value()) {
         return 1;
     }
 
-    if (b.value() != 1.0f) {
-        return 1;
-    }
+    auto brightness = component(0.5f);
+    brightness += 0.25f;
 
-    if (c.value() != 0.0f) {
+    if (!xer::printf(
+            u8"brightness = %g\n",
+            static_cast<double>(brightness.value()))
+            .has_value()) {
         return 1;
     }
 
@@ -16789,28 +17024,60 @@ auto main() -> int
 }
 ```
 
+This example shows the basic xer style:
+
+- use the public header
+- construct bounded values naturally
+- let finite out-of-range input clamp
+- use xer formatted output for examples
+- check fallible output operations explicitly
+
 ---
 
-## 関連項目
+## See Also
 
 - `policy_interval.md`
-- `policy_color.md`
+- `policy_cyclic.md`
 - `header_cyclic.md`
-- `header_color.md`
+- `policy_arithmetic.md`
 - `header_arithmetic.md`
 
 ---
 
-## `cyclic` との明示的な変換
+## Explicit Conversion with `cyclic`
 
-`interval` と `cyclic` は、どちらも `[0, 1]` 付近の値を扱うため、表面上は似ています。
+`interval` provides explicit helper functions for conversion with `cyclic`.
 
-しかし、意味は異なります。
+```cpp
+template <std::floating_point T, T Min, T Max>
+constexpr auto to_cyclic(interval<T, Min, Max> value) noexcept -> cyclic<T>;
 
-- `interval` は線形な境界付き値です。
-- `cyclic` は循環する正規化値です。
+template <std::floating_point T>
+constexpr auto to_interval(cyclic<T> value) -> interval<T>;
+```
 
-そのため、両者を暗黙に混ぜるのではなく、必要に応じて明示的に変換するのが安全です。
+`to_cyclic(interval)` first maps the interval value to `[0, 1]` using `ratio()`, then constructs a cyclic value from that ratio.
+Because `cyclic` uses `[0, 1)`, the upper endpoint of an interval maps to the zero position of the cycle.
+
+```cpp
+using level = xer::interval<float, 10.0f, 20.0f>;
+
+auto a = xer::to_cyclic(level(10.0f)); // 0.0f
+auto b = xer::to_cyclic(level(15.0f)); // 0.5f
+auto c = xer::to_cyclic(level(20.0f)); // 0.0f
+```
+
+`to_interval(cyclic)` maps a cyclic value to the default interval `[0, 1]`.
+
+For custom interval bounds, use `from_ratio` explicitly.
+
+```cpp
+using gain = xer::interval<float, -1.0f, 1.0f>;
+
+auto value = gain::from_ratio(hue.ratio());
+```
+
+Implicit conversion constructors are intentionally not provided.
 
 ---
 

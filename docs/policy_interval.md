@@ -16,6 +16,11 @@ Instead, `interval` is a lightweight value type that maintains a simple invarian
 
 ---
 
+The following diagram compares `interval<T>` with `cyclic<T>`:
+
+![xer cyclic and interval concepts](images/cyclic_interval_concepts.png)
+
+
 ## Basic Policy
 
 ### Scope
