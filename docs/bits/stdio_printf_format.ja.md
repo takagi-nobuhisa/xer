@@ -1,4 +1,5 @@
-<!-- xer-reference-source-sha256: 0ae6de9a20a07cb09588e12c1d2a329b2e13e841a93713e43c460219f4e47cab -->
+<!-- xer-reference-source-sha256: 87e255fb9a1269fcd6762e7bde7c44db426a7cbc052b9d6a8b7891d37d01585c -->
+
 # xer printf 書式指定子
 
 ## 範囲

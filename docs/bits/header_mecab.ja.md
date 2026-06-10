@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 88560c0f1fdf95b44976dbbfdeb9b95cbac4eb4d67dc80760f1c9ab876a031fb -->
+<!-- xer-reference-source-sha256: 68cbd56eecd34346c30afffbecfa0d226117e0908cdb0c3c69b5e24eb6705355 -->
 
 # `<xer/mecab.h>`
 
@@ -47,6 +47,35 @@
 xer は MeCab ライブラリへリンクしません。代わりに、xer のプロセス機能を使って `mecab` コマンドを子プロセスとして実行します。
 
 これにより、MeCab 由来の解析データを通常の `xer::result` API で利用可能にしつつ、xer のヘッダーオンリーモデルと互換性のある統合にしています。
+
+---
+
+## API の選び方
+
+クイックガイドとして、次の表を利用できます。
+
+| 目的 | 関数 |
+|---|---|
+| 入力テキストを MeCab トークン列に解析する | `mecab_parse` |
+| 生の surface 文字列と feature 文字列を読む | `mecab_token::surface`, `mecab_token::feature` |
+| 分割済みの IPADIC 風 feature フィールドへアクセスする | `mecab_token::features` |
+| 実用的な文節風の範囲を得る | `mecab_split_phrases` |
+| トークン列を空白なしの仮名へ変換する | `mecab_to_kana` |
+| トークン列を文節空白付きの仮名へ変換する | `mecab_kana_wakati` |
+| トークン列を文節空白付きのローマ字へ変換する | `mecab_romaji_wakati` |
+| トークン列を日本語点字分かち書きへ変換する | `mecab_braille_wakati` |
+| トークン列を情報処理点字分かち書きへ変換する | `mecab_ip_braille_wakati` |
+| 入力テキストを直接点字へ変換する | `mecab_braille_translate` |
+| 入力テキストを直接情報処理点字へ変換する | `mecab_ip_braille_translate` |
+
+同じ入力に対して繰り返し処理する場合は、まず次のようにします。
+
+```cpp
+auto tokens = xer::ja::mecab_parse(text);
+```
+
+そのうえで、`*tokens` をトークン列向け補助関数へ渡して再利用します。
+直接変換ラッパーは、1 回だけ点字変換したい場合の便利 API です。
 
 ---
 
@@ -179,6 +208,23 @@ auto mecab_parse(
     const mecab_options& options = {})
     -> xer::result<std::vector<mecab_token>>;
 ```
+
+---
+
+## コード例
+
+次のコード例は、API の主なレイヤーに対応しています。
+
+| コード例 | 主な API |
+|---|---|
+| `example_mecab_parse_basic.cpp` | `mecab_parse` |
+| `example_mecab_split_phrases_basic.cpp` | `mecab_split_phrases` |
+| `example_mecab_kana_wakati_basic.cpp` | `mecab_kana_wakati` |
+| `example_mecab_romaji_wakati_basic.cpp` | `mecab_romaji_wakati` |
+| `example_mecab_braille_wakati_basic.cpp` | `mecab_braille_wakati` |
+| `example_mecab_braille_japanese_wakati.cpp` | 日本語点字向け分かち書き |
+| `example_mecab_braille_translate_basic.cpp` | `mecab_braille_translate` |
+| `example_mecab_ip_braille_translate_basic.cpp` | `mecab_ip_braille_translate` |
 
 ---
 
@@ -807,6 +853,51 @@ auto mecab_ip_braille_translate(
 
 - `mecab_parse`
 - `mecab_ip_braille_wakati`
+
+---
+
+## よく使う処理パターン
+
+### まずトークンを確認する
+
+```cpp
+const auto tokens = xer::ja::mecab_parse(u8"私は猫です。");
+if (!tokens) {
+    return;
+}
+
+for (const auto& token : *tokens) {
+    // token.surface
+    // token.feature
+    // token.features.品詞
+    // token.features.読み
+}
+```
+
+辞書の詳細、品詞情報、独自処理が必要な場合はこの形を使います。
+
+### 一度だけ解析して複数の出力を派生させる
+
+```cpp
+const auto tokens = xer::ja::mecab_parse(text);
+if (!tokens) {
+    return;
+}
+
+const auto kana = xer::ja::mecab_kana_wakati(*tokens);
+const auto romaji = xer::ja::mecab_romaji_wakati(*tokens);
+const auto braille = xer::ja::mecab_braille_wakati(*tokens);
+```
+
+このパターンにより、同じテキストに対して MeCab を何度も起動することを避けられます。
+
+### 1 回だけ点字へ変換する場合は直接ラッパーを使う
+
+```cpp
+const auto braille = xer::ja::mecab_braille_translate(text);
+```
+
+プログラムが最終的な点字結果だけを必要とし、トークン列や文節範囲を確認しない場合は、直接ラッパーを使います。
 
 ---
 

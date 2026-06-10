@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: e0d345a79849f928d8c210deddf0c21e44641608fce243b64411817061dc58ae -->
+<!-- xer-reference-source-sha256: 6f608f9b28a6910acc13a5d6b9700e846074b8ec78984352f197116fbc4affd3 -->
 
 # `<xer/interval.h>`
 
@@ -11,6 +11,11 @@
 既定の区間は `[0, 1]` です。この区間は、色成分、アルファ値、正規化比率、不透明度、明るさ、ゲインなど、境界を持つ制御値に有用です。
 
 ---
+
+
+次の図は、`interval<T>` と `cyclic<T>` の違いを比較したものです。
+
+![xer cyclic and interval concepts](images/cyclic_interval_concepts.png)
 
 ## 主なエンティティ
 
@@ -435,7 +440,7 @@ using gain = xer::interval<float, -1.0f, 1.0f>;
 ```cpp
 #include <xer/interval.h>
 
-#include <stdexcept>
+#include <xer/stdio.h>
 
 auto main() -> int
 {

@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 4000a013a195689aa34b2dee7dc5cbe8d169136ec46d31413269659cbcf7a1eb -->
+<!-- xer-reference-source-sha256: b450e5b0f8c53aefa75835248a1afec9af88e0562d30e3dcc28e250f56ed53df -->
 
 # `<xer/cyclic.h>`
 
@@ -17,6 +17,11 @@
 その役割は単なる剰余算を提供することではありません。代わりに、時計回り距離や反時計回り距離のような概念を含め、循環的な意味を明示する軽量な値型を提供します。
 
 ---
+
+
+次の図は、`cyclic<T>` と `interval<T>` の違いを比較したものです。
+
+![xer cyclic and interval concepts](images/cyclic_interval_concepts.png)
 
 ## 主な役割
 
@@ -59,11 +64,7 @@ auto to_rad(cyclic<T> value) noexcept -> T;
 template <std::floating_point T>
 auto to_rad(T value) noexcept -> T;
 
-template <std::floating_point T>
-auto from_radian(T value) noexcept -> cyclic<T>;
 
-template <std::floating_point T>
-auto to_radian(cyclic<T> value) noexcept -> T;
 ```
 
 正確なオーバーロード集合は今後増える可能性がありますが、これが本質的な公開形です。
@@ -390,11 +391,7 @@ auto to_rad(cyclic<T> value) noexcept -> T;
 template <std::floating_point T>
 auto to_rad(T value) noexcept -> T;
 
-template <std::floating_point T>
-auto from_radian(T value) noexcept -> cyclic<T>;
 
-template <std::floating_point T>
-auto to_radian(cyclic<T> value) noexcept -> T;
 ```
 
 ### なぜ自由関数か
@@ -411,7 +408,7 @@ auto to_radian(cyclic<T> value) noexcept -> T;
 * 1 周を `1` とする τrad スカラー値
 * 内部の 1 周基準表現
 
-`from_rad` と `to_rad` は、ラジアン変換の推奨される短い名前です。`from_radian` と `to_radian` は互換性のための別名として残ります。
+`from_rad` と `to_rad` は、ラジアン変換のための名前です。
 
 `to_degree(T)` と `to_rad(T)` は、`cw`、`ccw`、`diff`、`angle` の戻り値のような τrad スカラー値も受け取ります。これらのスカラーオーバーロードは入力を正規化しません。
 

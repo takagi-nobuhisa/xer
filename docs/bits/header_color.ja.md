@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 57465de8541ba18b35efbf641867cb7ca0e56ac8dc9c0bc515699da4965622c4 -->
+<!-- xer-reference-source-sha256: 8daa06d1c2c9d585855dcd6a49b027d18ce0b14ef0d95f32dead4b9adc03736c -->
 
 # `<xer/color.h>`
 
@@ -19,6 +19,11 @@
 - CIE 1976 L*u*v*
 
 このヘッダーは、完全なカラーマネジメントシステムを目指していません。ICC プロファイル、色順応、分光データ、名前付き色、カラーパレット管理などは扱いません。
+
+この図は、サポートされている変換関係をまとめたものです。
+
+![xer color conversion relationships](images/color_conversion_relationships.png)
+
 
 ---
 
@@ -513,7 +518,7 @@ Luv も測色系であり、成分は正規化区間値ではありません。
 ```cpp
 #include <xer/color.h>
 
-#include <xer/arithmetic.h>
+#include <xer/stdio.h>
 
 auto main() -> int
 {

@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 23ff3d606dfed5a5f970a9ce1ef1d4869e4835f6cdb6f659f94806ba55878f5b -->
+<!-- xer-reference-source-sha256: ee81bde7ff962c2a742d1a33a31cfeba2f13cd9a7b94ac6655fdb688074fd6ad -->
 
 # `<xer/image.h>`
 
@@ -12,6 +12,11 @@
 純粋な画像処理と描画は `<xer/image.h>` に属します。Tcl/Tk photo 連携は `<xer/tk.h>` に属します。
 
 ---
+
+
+次の図は、`xer::image` の座標系と stride モデルを示しています。
+
+![xer::image coordinate and stride model](images/image_coordinates_and_stride.png)
 
 ## 名前空間
 

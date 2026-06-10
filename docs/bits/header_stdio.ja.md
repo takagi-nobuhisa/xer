@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: a0a8d4eda501a5e2f3dc70d7eeb9399931fcb098d31d8a1e479782a7a7a919ce -->
+<!-- xer-reference-source-sha256: 10aab8ccac4f2419be96f7cb9dba7763f23e7d8fcbebdd6bc2392e65ad16ab40 -->
 
 # `<xer/stdio.h>`
 

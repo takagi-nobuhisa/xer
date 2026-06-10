@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 4b6b5a6bb7db934fe7fc782ae116406c1829e9b23ad831ffd3cb45b2958fe4ad -->
+<!-- xer-reference-source-sha256: 87ff0b0a3d009579403f1f67c06c74310b385071fd2c9c7a3c80196f3ae80066 -->
 
 # `<xer/iostream.h>`
 
@@ -25,6 +25,8 @@ xer::cyclic<T>
 xer::interval<T, Min, Max>
 xer::quantity<T, Dim>
 xer::matrix<T, Rows, Cols>
+xer::vec<T, N>
+xer::polar<T, 2>
 xer::image::point
 xer::image::pointf
 xer::image::size
@@ -48,15 +50,25 @@ xer::path
 xer::cyclic<T>
 xer::interval<T, Min, Max>
 xer::quantity<T, Dim>
+xer::matrix<T, Rows, Cols>
+xer::vec<T, N>
+xer::polar<T, 2>
 xer::image::point
 xer::image::pointf
 xer::image::size
 xer::image::sizef
 xer::image::rect
 xer::image::rectf
+xer::basic_rgb<T>
+xer::basic_gray<T>
+xer::basic_cmy<T>
+xer::basic_hsv<T>
+xer::basic_xyz<T>
+xer::basic_lab<T>
+xer::basic_luv<T>
 ```
 
-行列と色値の抽出は、現時点では意図的に後回しです。これらの挿入形式は診断用であり、安定した直列化文法として固定するためのものではありません。
+これらの抽出演算子は、診断向けの簡便な書式付き入力と、汎用 `%@` 読み取り支援のためのものです。JSON、TOML、CSV、xer 独自の直列化機能のような安定したファイル形式を置き換えるものではありません.
 
 ---
 
@@ -178,6 +190,15 @@ xer::error{code=invalid_argument}
 
 ---
 
+## 数学ジオメトリ型
+
+`vec<T, N>` と `polar<T, 2>` は、`<xer/math.h>` が提供する幾何値型です。
+
+これらの挿入演算子は、診断しやすい短い表現を書き込みます。
+抽出演算子は、対応する診断表現から値を読み取るために用意されています。
+
+---
+
 ## 画像ジオメトリ型
 
 `xer::image` の画像ジオメトリ補助型には、`operator<<` と `operator>>` が提供されます。
@@ -280,6 +301,7 @@ luv(50, 10, -20)
 #include <xer/image.h>
 #include <xer/interval.h>
 #include <xer/iostream.h>
+#include <xer/math.h>
 #include <xer/matrix.h>
 #include <xer/path.h>
 #include <xer/quantity.h>
