@@ -1,0 +1,65 @@
+@startuml
+' Color conversion relationship diagram for xer
+
+title xer color conversion relationships
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Monospaced
+skinparam defaultTextAlignment center
+skinparam rectangle {
+  BackgroundColor #FFFDE7
+  BorderColor #444444
+  RoundCorner 8
+}
+skinparam note {
+  BackgroundColor #F5F5F5
+  BorderColor #777777
+}
+skinparam arrow {
+  Color #AA0055
+  Thickness 1
+}
+left to right direction
+
+rectangle "basic_rgb<T>\nrgb" as RGB
+rectangle "basic_cmy<T>\ncmy" as CMY
+rectangle "basic_hsv<T>\nhsv" as HSV
+rectangle "basic_gray<T>\ngray" as GRAY
+rectangle "basic_xyz<T>\nxyz\nCIE 1931 XYZ" as XYZ
+rectangle "basic_lab<T>\nlab\nCIE 1976 L*a*b*" as LAB
+rectangle "basic_luv<T>\nluv\nCIE 1976 L*u*v*" as LUV
+
+note top of RGB
+Public name is rgb,
+but RGB <-> XYZ assumes
+sRGB with the D65 white point.
+end note
+
+note bottom of GRAY
+RGB -> gray has practical variants:
+- to_luma_gray
+- to_luminance_gray
+- to_gray
+end note
+
+RGB <--> CMY : to_cmy / to_rgb
+RGB <--> HSV : to_hsv / to_rgb
+RGB --> GRAY : to_luma_gray\n/to_luminance_gray\n/to_gray
+GRAY --> RGB : to_rgb
+RGB <--> XYZ : to_xyz / to_rgb
+XYZ <--> LAB : to_lab / to_xyz
+XYZ <--> LUV : to_luv / to_xyz
+
+legend bottom
+|= Space |= Role |
+| RGB | Normalized display-oriented RGB values |
+| CMY | Complementary subtractive representation |
+| HSV | Hue-saturation-value representation |
+| Gray | Display-oriented grayscale value |
+| XYZ | Colorimetric hub for Lab and Luv |
+| Lab | Perceptual color space based on XYZ |
+| Luv | Perceptual color space based on XYZ |
+endlegend
+
+@enduml

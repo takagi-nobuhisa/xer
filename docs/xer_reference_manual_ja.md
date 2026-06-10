@@ -16814,31 +16814,42 @@ auto main() -> int
 
 ---
 
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/color.h`
+> Reason: Japanese fragment was translated from a different English source hash.
+
 # `<xer/color.h>`
 
-## 目的
+## Purpose
 
-`<xer/color.h>` は、色体系の値型と色変換関数を提供します。
+`<xer/color.h>` provides color-system value types and color conversion functions.
 
-このヘッダーの目的は、軽量な xer らしい形で、実用的な数式ベースの色表現と変換を支援することです。
+The purpose of this header is to support practical formula-based color representation and conversion in a lightweight xer style.
 
-初期段階でサポートする色体系は次のとおりです。
+The initial supported color systems are:
 
 - RGB
-- グレースケール
+- Grayscale
 - CMY
 - HSV
 - CIE 1931 XYZ
 - CIE 1976 L*a*b*
 - CIE 1976 L*u*v*
 
-このヘッダーは、完全なカラーマネジメントシステムを目指していません。ICC プロファイル、色順応、分光データ、名前付き色、カラーパレット管理などは扱いません。
+This header does not attempt to become a complete color management system.
+It does not handle ICC profiles, chromatic adaptation, spectral data, named colors, or color palette management.
+
+The following diagram summarizes the supported conversion relationships:
+
+![xer color conversion relationships](images/color_conversion_relationships.png)
 
 ---
 
-## 主なエンティティ
+## Main Entities
 
-`<xer/color.h>` は、少なくとも次のクラステンプレートを提供します。
+At minimum, `<xer/color.h>` provides the following class templates:
 
 ```cpp
 template <std::floating_point T>
@@ -16863,7 +16874,7 @@ template <std::floating_point T>
 struct basic_luv;
 ```
 
-通常用途向けに、`float` を使う別名も提供します。
+It also provides ordinary `float` aliases:
 
 ```cpp
 using rgb = basic_rgb<float>;
@@ -16875,49 +16886,49 @@ using lab = basic_lab<float>;
 using luv = basic_luv<float>;
 ```
 
-公開ヘッダーは次のとおりです。
+The public header is:
 
 ```cpp
 #include <xer/color.h>
 ```
 
-実装は次の内部ヘッダーで提供されます。
+The implementation is provided through:
 
 ```cpp
 #include <xer/bits/color.h>
 ```
 
-ユーザーコードでは公開ヘッダーをインクルードしてください。
+Users should include the public header.
 
 ---
 
-## 設計上の役割
+## Design Role
 
-`<xer/color.h>` は、一般的な色体系のための小さな値型と変換関数を提供します。
+`<xer/color.h>` provides small value types and conversion functions for common color systems.
 
-設計は次の考え方に基づきます。
+The design is based on these ideas:
 
-- 色値は公開データメンバーを持つ単純な構造体にする
-- 通常の別名は `float` を使う
-- 正規化された境界付き成分には `xer::interval<T>` を使う
-- 色相には `xer::cyclic<T>` を使う
-- XYZ、Lab、Luv のような測色系では生の浮動小数点メンバーを使う
-- 変換関数は自由関数にする
-- 決定的な算術変換は変換先の値を直接返す
+- color values are simple structs with public data members
+- ordinary aliases use `float`
+- normalized bounded components use `xer::interval<T>`
+- hue uses `xer::cyclic<T>`
+- colorimetric spaces such as XYZ, Lab, and Luv use raw floating-point members
+- conversion functions are free functions
+- deterministic arithmetic conversions return the destination value directly
 
 ---
 
-## `float` 別名
+## Float Aliases
 
-テンプレート自体は `float`、`double`、`long double` を使えますが、実用的な色処理では通常 `float` を使います。
+Although the templates can use `float`, `double`, or `long double`, practical color handling usually uses `float`.
 
-そのため、通常の別名は `float` を使います。
+For this reason, the ordinary aliases use `float`.
 
 ```cpp
 xer::rgb color(0.25f, 0.5f, 0.75f);
 ```
 
-別の精度が必要な場合は、対応するテンプレートを直接使います。
+If a different precision is needed, use the corresponding template directly.
 
 ```cpp
 xer::basic_rgb<double> color(0.25, 0.5, 0.75);
@@ -16941,9 +16952,9 @@ struct basic_rgb {
 };
 ```
 
-`basic_rgb<T>` は、正規化された赤、緑、青の成分を持つ RGB 色を表します。
+`basic_rgb<T>` represents an RGB color with normalized red, green, and blue components.
 
-各成分は `interval<T>` で表されるため、`[0, 1]` に保たれます。
+Each component is represented by `interval<T>` and is therefore kept in `[0, 1]`.
 
 ```cpp
 auto color = xer::rgb(1.25f, 0.5f, -0.25f);
@@ -16953,30 +16964,32 @@ auto color = xer::rgb(1.25f, 0.5f, -0.25f);
 // color.b.value() == 0.0f
 ```
 
-### sRGB の仮定
+### sRGB Assumption
 
-公開型名は `rgb` であり、`srgb` ではありません。
+The public type name is `rgb`, not `srgb`.
 
-ただし、RGB と XYZ の変換では、D65 白色点の sRGB を仮定します。
+However, conversion between RGB and XYZ assumes sRGB with the D65 white point.
 
-つまり、次の意味になります。
+That means:
 
-- `to_xyz(rgb)` は RGB 成分を非線形 sRGB 成分として扱います。
-- `to_rgb(xyz)` は非線形 sRGB 成分を生成します。
+- `to_xyz(rgb)` treats RGB components as nonlinear sRGB components
+- `to_rgb(xyz)` produces nonlinear sRGB components
 
-RGB を XYZ、Lab、Luv と組み合わせて使う場合は、この仮定に注意してください。
+This assumption must be kept in mind when using RGB together with XYZ, Lab, or Luv.
 
-### アルファ
+### Alpha
 
-アルファは `basic_rgb` には含まれません。
+Alpha is not part of `basic_rgb`.
 
-アルファは、主にグラフィックス、合成、画像処理で有用です。色そのものの一般的な成分ではなく、印刷、塗装、照明、測色などの分野では不要です。
+Alpha is mainly useful for graphics, compositing, and image processing.
+It is not a general component of color itself and is unnecessary for areas such as printing, coating, lighting, and colorimetry.
 
-将来アルファ対応が必要になった場合は、`basic_rgba<T>` のような別型として提供するのがよいです。`basic_rgb<T>` に混ぜるべきではありません。
+If alpha support becomes necessary later, it should be provided as a separate type such as `basic_rgba<T>`.
+It should not be mixed into `basic_rgb<T>`.
 
 ---
 
-## グレースケール
+## Grayscale
 
 ## `basic_gray`
 
@@ -16990,11 +17003,9 @@ struct basic_gray {
 };
 ```
 
-`basic_gray<T>` は、表示指向のグレースケール値を表します。成分は `interval<T>` で表され、`[0, 1]` に保たれます。
+`basic_gray<T>` represents a display-oriented grayscale value. The component is represented by `interval<T>` and is kept in `[0, 1]`.
 
-`to_luma_gray` は、非線形 sRGB 成分から単純なルーマを直接計算します。`to_luminance_gray` は、sRGB をデコードして相対輝度を求め、それを表示グレースケール値へ再エンコードします。`to_gray` は `to_luma_gray` の別名です。`to_rgb(gray)` はグレースケール成分を RGB の各成分へ複製します。
-
----
+`to_luma_gray` computes simple luma directly from nonlinear sRGB components. `to_luminance_gray` computes relative luminance after sRGB decoding and then encodes it back to a display grayscale value. `to_gray` is an alias for `to_luma_gray`. `to_rgb(gray)` duplicates the grayscale component into RGB.
 
 ## CMY
 
@@ -17012,13 +17023,13 @@ struct basic_cmy {
 };
 ```
 
-`basic_cmy<T>` は、単純な正規化 CMY 色を表します。
+`basic_cmy<T>` represents a simple normalized CMY color.
 
-各成分は `interval<T>` で表されるため、`[0, 1]` に保たれます。
+Each component is represented by `interval<T>` and is therefore kept in `[0, 1]`.
 
-xer の CMY は RGB の単純な補色モデルです。
+CMY in xer is the simple complement model of RGB.
 
-概念的には次の関係です。
+Conceptually:
 
 ```text
 C = 1 - R
@@ -17026,7 +17037,7 @@ M = 1 - G
 Y = 1 - B
 ```
 
-および:
+and:
 
 ```text
 R = 1 - C
@@ -17034,7 +17045,8 @@ G = 1 - M
 B = 1 - Y
 ```
 
-CMYK や印刷用のカラーマネジメントは扱いません。
+This is not a complete printer color-management model.
+It does not represent CMYK, ink behavior, ICC profiles, or device-specific calibration.
 
 ---
 
@@ -17055,9 +17067,18 @@ struct basic_hsv {
 };
 ```
 
-`basic_hsv<T>` は、色相、彩度、明度を持つ HSV 色を表します。
+`basic_hsv<T>` represents hue, saturation, and value.
 
-色相 `h` は循環値なので `cyclic<T>` で表されます。彩度 `s` と明度 `v` は `[0, 1]` の境界付き値なので `interval<T>` で表されます。
+The components are:
+
+- `h`: hue, represented by `cyclic<T>` in `[0, 1)`
+- `s`: saturation, represented by `interval<T>` in `[0, 1]`
+- `v`: value, represented by `interval<T>` in `[0, 1]`
+
+Hue is circular, so it uses `cyclic<T>` rather than `interval<T>`.
+
+For grayscale colors, where saturation is zero, hue is not meaningful.
+The current conversion from RGB to HSV sets hue to zero in that case.
 
 ---
 
@@ -17076,11 +17097,14 @@ struct basic_xyz {
 };
 ```
 
-`basic_xyz<T>` は CIE 1931 XYZ 色を表します。
+`basic_xyz<T>` represents CIE 1931 XYZ tristimulus values.
 
-XYZ は正規化成分型ではなく、測色値として生の浮動小数点値を保持します。
+XYZ is used as the central connection point between RGB and the CIE Lab/Luv spaces.
 
-RGB との変換では、sRGB と D65 白色点を仮定します。
+XYZ components are raw floating-point values.
+They are not represented by `interval<T>` because XYZ values are colorimetric quantities rather than normalized UI components.
+
+The initial implementation uses D65 as the reference white for conversions.
 
 ---
 
@@ -17099,11 +17123,21 @@ struct basic_lab {
 };
 ```
 
-`basic_lab<T>` は CIE 1976 L*a*b* 色を表します。
+`basic_lab<T>` represents CIE 1976 L*a*b* values.
 
-`l` は明度、`a` と `b` は色度成分です。
+The member names are lowercase ASCII identifiers:
 
-Lab は、RGB のような `[0, 1]` 成分ではありません。値域は変換元や白色点に依存するため、生の浮動小数点値として表します。
+- `l`
+- `a`
+- `b`
+
+The public API does not use identifiers such as `L*`, `a*`, or `b*`.
+
+Lab components are raw floating-point values.
+They are not represented by `interval<T>`.
+
+Although `L*` is commonly in `[0, 100]`, the initial implementation does not force it into an interval wrapper.
+The `a*` and `b*` components are signed and do not have a simple universal fixed range.
 
 ---
 
@@ -17122,233 +17156,390 @@ struct basic_luv {
 };
 ```
 
-`basic_luv<T>` は CIE 1976 L*u*v* 色を表します。
+`basic_luv<T>` represents CIE 1976 L*u*v* values.
 
-`l` は明度、`u` と `v` は色度成分です。
+The member names are lowercase ASCII identifiers:
 
-Lab と同様に、正規化区間値ではなく生の浮動小数点値として表します。
+- `l`
+- `u`
+- `v`
+
+The public API does not use identifiers such as `L*`, `u*`, or `v*`.
+
+Luv components are raw floating-point values.
+They are not represented by `interval<T>`.
 
 ---
 
-## コンストラクタ
+## Constructors
+
+Each color type supports default construction and construction from component values.
 
 ### RGB
 
-RGB は、赤、緑、青の値から構築できます。
-
 ```cpp
-xer::rgb color(0.25f, 0.5f, 0.75f);
+constexpr basic_rgb();
+constexpr basic_rgb(T r, T g, T b);
+constexpr basic_rgb(component_type r, component_type g, component_type b) noexcept;
 ```
 
-入力値は `interval<T>` の規則に従って `[0, 1]` にクランプされます。`NaN` や無限大は例外で拒否されます。
+Default construction creates black.
+
+```cpp
+xer::rgb color;
+// r == 0, g == 0, b == 0
+```
+
+Construction from raw component values clamps finite out-of-range values through `interval<T>`.
 
 ### CMY
 
-CMY は、シアン、マゼンタ、イエローの値から構築できます。
-
 ```cpp
-xer::cmy color(0.0f, 0.5f, 1.0f);
+constexpr basic_cmy();
+constexpr basic_cmy(T c, T m, T y);
+constexpr basic_cmy(component_type c, component_type m, component_type y) noexcept;
 ```
+
+Construction from raw component values clamps finite out-of-range values through `interval<T>`.
 
 ### HSV
 
-HSV は、色相、彩度、明度から構築できます。
+```cpp
+constexpr basic_hsv();
+constexpr basic_hsv(T h, T s, T v);
+constexpr basic_hsv(hue_type h, component_type s, component_type v) noexcept;
+```
+
+Hue is normalized through `cyclic<T>`.
+Saturation and value are clamped through `interval<T>`.
+
+### XYZ, Lab, and Luv
+
+XYZ, Lab, and Luv store raw floating-point values.
 
 ```cpp
-xer::hsv color(0.5f, 1.0f, 0.75f);
+constexpr basic_xyz(T x, T y, T z) noexcept;
+constexpr basic_lab(T l, T a, T b) noexcept;
+constexpr basic_luv(T l, T u, T v) noexcept;
 ```
 
-色相は `cyclic<T>` として扱われ、循環正規化されます。彩度と明度は `interval<T>` として扱われます。
-
-### XYZ、Lab、Luv
-
-XYZ、Lab、Luv は、対応する成分値から構築できます。
-
-これらの測色系では、成分は生の浮動小数点値です。正規化成分ではありません。
+The initial implementation does not add special validation to these raw colorimetric values.
 
 ---
 
-## 変換関数
+## Conversion Functions
 
-変換関数は自由関数として提供されます。
+Conversions are provided as free functions.
 
----
+## RGB and CMY
 
-## RGB と CMY
+```cpp
+template <std::floating_point T>
+constexpr auto to_cmy(basic_rgb<T> value) -> basic_cmy<T>;
 
-RGB と CMY の相互変換は、単純な補色関係に基づきます。
-
-```text
-C = 1 - R
-M = 1 - G
-Y = 1 - B
+template <std::floating_point T>
+constexpr auto to_rgb(basic_cmy<T> value) -> basic_rgb<T>;
 ```
 
-および:
+RGB and CMY conversion uses simple normalized complement conversion.
 
-```text
-R = 1 - C
-G = 1 - M
-B = 1 - Y
+Example:
+
+```cpp
+const auto cmy = xer::to_cmy(xer::rgb(0.25f, 0.5f, 0.75f));
+
+// cmy.c.value() == 0.75f
+// cmy.m.value() == 0.5f
+// cmy.y.value() == 0.25f
 ```
 
 ---
 
-## RGB と HSV
+## RGB and HSV
 
-RGB と HSV の変換は、一般的な数式に基づきます。
+```cpp
+template <std::floating_point T>
+constexpr auto to_hsv(basic_rgb<T> value) -> basic_hsv<T>;
 
-HSV の色相は循環値として扱われ、彩度と明度は `[0, 1]` に保たれます。
+template <std::floating_point T>
+constexpr auto to_rgb(basic_hsv<T> value) -> basic_rgb<T>;
+```
 
-グレースケールに近い入力では、色相の意味が弱くなる点に注意してください。
+RGB and HSV conversion uses the common normalized HSV model.
 
----
+- RGB components are in `[0, 1]`
+- hue is normalized to `[0, 1)`
+- saturation is in `[0, 1]`
+- value is in `[0, 1]`
 
-## RGB と XYZ
+For grayscale RGB colors, `to_hsv` sets hue to zero.
 
-RGB と XYZ の変換では、sRGB と D65 白色点を仮定します。
+Example:
 
-RGB から XYZ への変換では、非線形 sRGB 成分を線形化してから変換します。
-
-XYZ から RGB への変換では、線形 RGB へ変換した後、sRGB エンコードを行います。結果の RGB 成分は `interval<T>` によって `[0, 1]` に収められます。
-
----
-
-## XYZ と Lab
-
-XYZ と Lab の相互変換は、CIE 1976 L*a*b* の式に基づきます。
-
-白色点は、RGB/XYZ 変換と整合するように扱われます。
-
----
-
-## XYZ と Luv
-
-XYZ と Luv の相互変換は、CIE 1976 L*u*v* の式に基づきます。
-
-Luv も測色系であり、成分は正規化区間値ではありません。
+```cpp
+const auto hsv = xer::to_hsv(xer::rgb(0.25f, 0.5f, 0.75f));
+const auto rgb = xer::to_rgb(hsv);
+```
 
 ---
 
-## 直接変換ポリシー
+## RGB and XYZ
 
-直接変換関数は、必要に応じて中間色空間を経由しても構いません。
+```cpp
+template <std::floating_point T>
+auto to_xyz(basic_rgb<T> value) -> basic_xyz<T>;
 
-たとえば、RGB から Lab への変換は、概念的には RGB から XYZ、XYZ から Lab への変換を組み合わせたものです。
+template <std::floating_point T>
+auto to_rgb(basic_xyz<T> value) -> basic_rgb<T>;
+```
 
-公開 API として重要なのは、呼び出し側が意図する変換を直接書けることです。
+RGB and XYZ conversion assumes sRGB with the D65 white point.
+
+`to_xyz(rgb)` performs:
+
+1. sRGB transfer-function decoding from nonlinear RGB to linear RGB
+2. matrix conversion from linear RGB to XYZ
+
+`to_rgb(xyz)` performs:
+
+1. matrix conversion from XYZ to linear RGB
+2. sRGB transfer-function encoding
+3. clamping into RGB component intervals
+
+The public names are `to_xyz(rgb)` and `to_rgb(xyz)`, not `to_xyz(srgb)` or `to_srgb(xyz)`.
+
+Example:
+
+```cpp
+const auto xyz = xer::to_xyz(xer::rgb(1.0f, 1.0f, 1.0f));
+
+// approximately D65 white:
+// x == 0.95047f
+// y == 1.0f
+// z == 1.08883f
+```
 
 ---
 
-## エラーと例外のポリシー
+## XYZ and Lab
 
-決定的な算術変換は、通常、変換先の値を直接返します。
+```cpp
+template <std::floating_point T>
+auto to_lab(basic_xyz<T> value) -> basic_lab<T>;
 
-正規化成分では、`interval<T>` が範囲外値をクランプし、`NaN` や無限大を例外で拒否します。
+template <std::floating_point T>
+constexpr auto to_xyz(basic_lab<T> value) -> basic_xyz<T>;
+```
 
-色変換そのものは、通常の失敗を `xer::result` で返す操作としてではなく、値変換として扱います。
+XYZ and Lab conversion uses CIE 1976 L*a*b* formulas with D65 as the reference white.
+
+Example:
+
+```cpp
+const auto lab = xer::to_lab(xer::xyz(0.95047f, 1.0f, 1.08883f));
+
+// approximately:
+// l == 100
+// a == 0
+// b == 0
+```
 
 ---
 
-## サポートする色体系とサポートしない色体系
+## XYZ and Luv
 
-### サポート対象
+```cpp
+template <std::floating_point T>
+auto to_luv(basic_xyz<T> value) -> basic_luv<T>;
 
-現在サポートする色体系は次のとおりです。
+template <std::floating_point T>
+auto to_xyz(basic_luv<T> value) -> basic_xyz<T>;
+```
+
+XYZ and Luv conversion uses CIE 1976 L*u*v* formulas with D65 as the reference white.
+
+Example:
+
+```cpp
+const auto luv = xer::to_luv(xer::xyz(0.95047f, 1.0f, 1.08883f));
+
+// approximately:
+// l == 100
+// u == 0
+// v == 0
+```
+
+---
+
+## Direct Conversion Policy
+
+The initial API does not provide direct conversion functions for every possible pair of supported color systems.
+
+For example, RGB to Lab can be written explicitly through XYZ:
+
+```cpp
+const auto xyz = xer::to_xyz(color);
+const auto lab = xer::to_lab(xyz);
+```
+
+This keeps the public API small and avoids unnecessary duplication.
+
+Direct conversion functions may be added later if they become clearly useful.
+
+---
+
+## Error and Exception Policy
+
+Color conversion functions generally return the destination color value directly.
+
+They do not return `xer::result`, because the supported conversions are deterministic arithmetic operations and do not have ordinary recoverable failure modes.
+
+However:
+
+- RGB, grayscale, CMY, and HSV normalized components use `interval<T>`
+- hue uses `cyclic<T>`
+
+Therefore, invalid finite-state cases such as `NaN` or infinity may be rejected according to the policies of `interval<T>` and `cyclic<T>`.
+
+For raw colorimetric types such as XYZ, Lab, and Luv, the initial implementation stores raw floating-point values directly and does not add special validation.
+
+---
+
+## Supported and Unsupported Color Systems
+
+### Supported
+
+The initial supported color systems are:
 
 - RGB
-- グレースケール
+- Grayscale
 - CMY
 - HSV
 - CIE 1931 XYZ
 - CIE 1976 L*a*b*
 - CIE 1976 L*u*v*
 
-### サポート対象外
+### Unsupported
 
-現在サポートしないものは次のとおりです。
+The following systems are outside the scope of xer:
 
-- ICC プロファイル
+- Munsell color system
+- PCCS
+- Ostwald color system
+- NCS
+- ABC tone system
+
+This is not merely a temporary omission.
+Unless there is a major reason to reconsider, these systems should remain outside the scope of xer.
+
+The main reason is that they are color-order, color-notation, perceptual, or tone-classification systems rather than lightweight formula-based numeric color spaces suitable for xer's core API.
+
+---
+
+## Deferred Items
+
+The following items are deferred:
+
+- alpha / RGBA
 - CMYK
 - HSL
 - HWB
-- スペクトル色
-- 名前付き色
-- カラーパレット管理
-- デバイス依存の詳細なカラーマネジメント
+- linear RGB
+- configurable white points
+- chromatic adaptation
+- ICC profile handling
+- color appearance models
+- spectral color representation
+- color difference formulas such as Delta E
+- color temperature
+- named colors
+- palette utilities
+- direct conversion functions for every pair of supported spaces
+
+Some of these may be useful later, but they are not part of the initial color-system facility.
 
 ---
 
-## 後回しにしている項目
+## Relationship to Other Headers
 
-次の項目は、初期実装では意図的に後回しにしています。
-
-- アルファ付き色型
-- ICC プロファイル対応
-- 色順応
-- CMYK
-- HSL や HWB などの追加色体系
-- 色差計算
-- 名前付き色
-- パレット処理
-
-これらは、必要性が明確になってから別の型や関数として追加するのがよいです。
-
----
-
-## 他のヘッダーとの関係
-
-`<xer/color.h>` は次のヘッダーやポリシーと関係します。
+`<xer/color.h>` is related to:
 
 - `<xer/interval.h>`
 - `<xer/cyclic.h>`
-- `<xer/arithmetic.h>`
-- `policy_color.md`
-- `policy_interval.md`
+- `<xer/stdfloat.h>`
 
-`interval` は正規化成分に使われ、`cyclic` は色相に使われます。
+The rough boundary is:
 
----
-
-## ドキュメント上の注意
-
-このヘッダーを説明するときは、次の点を明確にします。
-
-- 色値は単純な構造体であること
-- 正規化成分は `interval<T>` を使うこと
-- 色相は `cyclic<T>` を使うこと
-- RGB/XYZ 変換では sRGB と D65 を仮定すること
-- 完全なカラーマネジメントシステムではないこと
+- `<xer/interval.h>` handles bounded linear scalar values
+- `<xer/cyclic.h>` handles circular scalar values such as hue
+- `<xer/color.h>` composes these into color-system value types and conversions
+- `<xer/stdfloat.h>` provides floating-point type aliases and literals
 
 ---
 
-## 例
+## Documentation Notes
+
+When documenting `<xer/color.h>`, it is important to state:
+
+- `rgb` is used as the code name, not `srgb`
+- RGB/XYZ conversion assumes sRGB/D65
+- RGB, grayscale, CMY, and HSV normalized components use `interval<T>`
+- HSV hue uses `cyclic<T>`
+- XYZ, Lab, and Luv use raw floating-point members
+- alpha is not part of RGB
+- the facility is not a complete color management system
+- unsupported color systems are intentionally outside the scope
+
+---
+
+## Example
 
 ```cpp
 #include <xer/color.h>
-
-#include <xer/arithmetic.h>
+#include <xer/stdio.h>
 
 auto main() -> int
 {
-    const auto color = xer::rgb(1.25f, 0.5f, -0.25f);
-
-    if (color.r.value() != 1.0f) {
-        return 1;
-    }
-
-    if (color.g.value() != 0.5f) {
-        return 1;
-    }
-
-    if (color.b.value() != 0.0f) {
-        return 1;
-    }
+    const xer::rgb color(0.25f, 0.5f, 0.75f);
 
     const auto cmy = xer::to_cmy(color);
-    const auto rgb = xer::to_rgb(cmy);
+    const auto hsv = xer::to_hsv(color);
+    const auto xyz = xer::to_xyz(color);
+    const auto lab = xer::to_lab(xyz);
 
-    if (!xer::is_close(rgb.r.value(), 1.0f, 1e-6f)) {
+    if (!xer::printf(
+             u8"RGB: r=%g, g=%g, b=%g\n",
+             static_cast<double>(color.r.value()),
+             static_cast<double>(color.g.value()),
+             static_cast<double>(color.b.value()))
+             .has_value()) {
+        return 1;
+    }
+
+    if (!xer::printf(
+             u8"CMY: c=%g, m=%g, y=%g\n",
+             static_cast<double>(cmy.c.value()),
+             static_cast<double>(cmy.m.value()),
+             static_cast<double>(cmy.y.value()))
+             .has_value()) {
+        return 1;
+    }
+
+    if (!xer::printf(
+             u8"HSV: h=%g, s=%g, v=%g\n",
+             static_cast<double>(hsv.h.value()),
+             static_cast<double>(hsv.s.value()),
+             static_cast<double>(hsv.v.value()))
+             .has_value()) {
+        return 1;
+    }
+
+    if (!xer::printf(
+             u8"Lab: l=%g, a=%g, b=%g\n",
+             static_cast<double>(lab.l),
+             static_cast<double>(lab.a),
+             static_cast<double>(lab.b))
+             .has_value()) {
         return 1;
     }
 
@@ -17356,15 +17547,24 @@ auto main() -> int
 }
 ```
 
+This example shows the basic xer style:
+
+- use the public header
+- construct an `rgb` value directly
+- convert through free functions
+- use `value()` when printing interval components
+- use `<xer/stdio.h>` for output in examples
+- check fallible output operations explicitly
+
 ---
 
-## 関連項目
+## See Also
 
 - `policy_color.md`
 - `policy_interval.md`
+- `policy_cyclic.md`
 - `header_interval.md`
 - `header_cyclic.md`
-- `header_arithmetic.md`
 
 ---
 

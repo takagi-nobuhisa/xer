@@ -42,6 +42,10 @@ At minimum, the facility should support:
 - conversion between XYZ and CIE L*a*b*
 - conversion between XYZ and CIE L*u*v*
 
+The following diagram summarizes the supported conversion relationships:
+
+![xer color conversion relationships](images/color_conversion_relationships.png)
+
 ### Scope
 
 The initial scope is numeric color representation and conversion.

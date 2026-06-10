@@ -17944,6 +17944,10 @@ The initial supported color systems are:
 This header does not attempt to become a complete color management system.
 It does not handle ICC profiles, chromatic adaptation, spectral data, named colors, or color palette management.
 
+The following diagram summarizes the supported conversion relationships:
+
+![xer color conversion relationships](images/color_conversion_relationships.png)
+
 ---
 
 ## Main Entities
