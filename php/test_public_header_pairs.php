@@ -18,8 +18,9 @@ declare(strict_types=1);
  *   php test_public_header_pairs.php --skip-unavailable-features=0
  *
  * By default, this script runs only pairs that include public headers whose
- * content fingerprint differs from the last successful run. Use --all to run
- * every ordered pair.
+ * modification time differs from the last successful run. If any internal
+ * xer/bits header changes, every ordered pair is run. Use --all to run every
+ * ordered pair.
  */
 
 final class Config
@@ -70,6 +71,9 @@ function main(array $argv): int
     $features = detect_features($config);
 
     $headers = find_public_headers($config->xerDir);
+    $dependencyHeaders = find_internal_dependency_headers($config->xerDir);
+    $trackedHeaders = array_values(array_merge($headers, $dependencyHeaders));
+
     if (count($headers) < 2) {
         fwrite(STDERR, "error: fewer than 2 public headers were found under {$config->xerDir}\n");
         return 1;
@@ -78,7 +82,7 @@ function main(array $argv): int
     clear_directory($config->buildDir);
 
     $currentState = make_header_pair_state(
-        headers: $headers,
+        headers: $trackedHeaders,
         projectRoot: $config->projectRoot,
         timestamp: $runStartedAt
     );
@@ -104,7 +108,12 @@ function main(array $argv): int
             $changedHeaders = $headers;
             $changeReason = 'all headers, because no previous compatible successful run was recorded';
         } else {
-            $changeSet = find_changed_headers_by_state($headers, $currentState, $previousState);
+            $changeSet = find_changed_headers_by_state(
+                publicHeaders: $headers,
+                dependencyHeaders: $dependencyHeaders,
+                currentState: $currentState,
+                previousState: $previousState
+            );
             $changedHeaders = $changeSet['headers'];
             $changeReason = $changeSet['reason'];
         }
@@ -126,6 +135,7 @@ function main(array $argv): int
     echo "Compiler     : {$config->compiler}\n";
     echo "C++ standard : {$config->cppStd}\n";
     echo "Headers      : " . count($headers) . "\n";
+    echo "Dependencies : " . count($dependencyHeaders) . "\n";
     echo "Mode         : " . ($config->incremental ? 'incremental' : 'all') . "\n";
     echo "Tcl/Tk       : " . ($features->tcltkAvailable ? 'available' : 'unavailable') . "\n";
     if ($features->tcltkAvailable && $features->tcltkCflags !== '') {
@@ -981,6 +991,46 @@ function find_public_headers(string $xerDir): array
 }
 
 /**
+ * @return array<int, string>
+ */
+function find_internal_dependency_headers(string $xerDir): array
+{
+    $bitsDir = $xerDir . DIRECTORY_SEPARATOR . 'bits';
+    if (!is_dir($bitsDir)) {
+        return [];
+    }
+
+    $headers = [];
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator(
+            $bitsDir,
+            FilesystemIterator::SKIP_DOTS
+        )
+    );
+
+    foreach ($iterator as $entry) {
+        if (!$entry instanceof SplFileInfo || !$entry->isFile()) {
+            continue;
+        }
+
+        if ($entry->getExtension() !== 'h') {
+            continue;
+        }
+
+        $path = $entry->getPathname();
+        $relative = substr($path, strlen($xerDir) + 1);
+        if ($relative === false) {
+            throw new RuntimeException("failed to make relative header path: {$path}");
+        }
+
+        $headers[] = 'xer/' . str_replace(DIRECTORY_SEPARATOR, '/', $relative);
+    }
+
+    sort($headers, SORT_STRING);
+    return $headers;
+}
+
+/**
  * @param array<int, string> $headers
  * @return array<int, array{0:string, 1:string}>
  */
@@ -1031,7 +1081,7 @@ function filter_pairs_by_headers(array $pairs, array $headers): array
  *   version:int,
  *   last_successful_run_at:int,
  *   last_successful_run_at_text:string,
- *   headers:array<string, array{mtime:int, size:int, sha1:string}>
+ *   headers:array<string, array{mtime:int}>
  * }
  */
 function make_header_pair_state(array $headers, string $projectRoot, int $timestamp): array
@@ -1046,27 +1096,15 @@ function make_header_pair_state(array $headers, string $projectRoot, int $timest
             throw new RuntimeException("failed to read file modification time: {$path}");
         }
 
-        $size = filesize($path);
-        if ($size === false) {
-            throw new RuntimeException("failed to read file size: {$path}");
-        }
-
-        $sha1 = sha1_file($path);
-        if ($sha1 === false) {
-            throw new RuntimeException("failed to hash file: {$path}");
-        }
-
         $fingerprints[$header] = [
             'mtime' => $mtime,
-            'size' => $size,
-            'sha1' => $sha1,
         ];
     }
 
     ksort($fingerprints, SORT_STRING);
 
     return [
-        'version' => 2,
+        'version' => 3,
         'last_successful_run_at' => $timestamp,
         'last_successful_run_at_text' => format_timestamp($timestamp),
         'headers' => $fingerprints,
@@ -1083,7 +1121,7 @@ function header_to_path(string $projectRoot, string $header): string
  *   version:int,
  *   last_successful_run_at:int,
  *   last_successful_run_at_text:string,
- *   headers:array<string, array{mtime:int, size:int, sha1:string}>
+ *   headers:array<string, array{mtime:int}>
  * }
  */
 function read_header_pair_state(string $stateFile): ?array
@@ -1102,7 +1140,7 @@ function read_header_pair_state(string $stateFile): ?array
         return null;
     }
 
-    if (($data['version'] ?? null) !== 2) {
+    if (($data['version'] ?? null) !== 3) {
         return null;
     }
 
@@ -1127,30 +1165,20 @@ function read_header_pair_state(string $stateFile): ?array
         }
 
         $mtime = $fingerprint['mtime'] ?? null;
-        $size = $fingerprint['size'] ?? null;
-        $sha1 = $fingerprint['sha1'] ?? null;
 
         if (!is_int($mtime) || $mtime < 0) {
-            return null;
-        }
-        if (!is_int($size) || $size < 0) {
-            return null;
-        }
-        if (!is_string($sha1) || !preg_match('/^[0-9a-f]{40}$/', $sha1)) {
             return null;
         }
 
         $normalizedHeaders[$header] = [
             'mtime' => $mtime,
-            'size' => $size,
-            'sha1' => $sha1,
         ];
     }
 
     ksort($normalizedHeaders, SORT_STRING);
 
     return [
-        'version' => 2,
+        'version' => 3,
         'last_successful_run_at' => $timestamp,
         'last_successful_run_at_text' => $timestampText,
         'headers' => $normalizedHeaders,
@@ -1158,49 +1186,93 @@ function read_header_pair_state(string $stateFile): ?array
 }
 
 /**
- * @param array<int, string> $headers
+ * @param array<int, string> $publicHeaders
+ * @param array<int, string> $dependencyHeaders
  * @param array{
  *   version:int,
  *   last_successful_run_at:int,
  *   last_successful_run_at_text:string,
- *   headers:array<string, array{mtime:int, size:int, sha1:string}>
+ *   headers:array<string, array{mtime:int}>
  * } $currentState
  * @param array{
  *   version:int,
  *   last_successful_run_at:int,
  *   last_successful_run_at_text:string,
- *   headers:array<string, array{mtime:int, size:int, sha1:string}>
+ *   headers:array<string, array{mtime:int}>
  * } $previousState
  * @return array{headers:array<int, string>, reason:string}
  */
-function find_changed_headers_by_state(array $headers, array $currentState, array $previousState): array
-{
+function find_changed_headers_by_state(
+    array $publicHeaders,
+    array $dependencyHeaders,
+    array $currentState,
+    array $previousState
+): array {
     $currentFingerprints = $currentState['headers'];
     $previousFingerprints = $previousState['headers'];
 
-    $deletedHeaders = array_values(array_diff(
-        array_keys($previousFingerprints),
-        array_keys($currentFingerprints)
-    ));
+    $currentPublicSet = array_fill_keys($publicHeaders, true);
 
-    if (count($deletedHeaders) > 0) {
+    $previousHeaders = array_keys($previousFingerprints);
+    $previousPublicHeaders = [];
+    $previousDependencyHeaders = [];
+    foreach ($previousHeaders as $header) {
+        if (str_starts_with($header, 'xer/bits/')) {
+            $previousDependencyHeaders[] = $header;
+        } else {
+            $previousPublicHeaders[] = $header;
+        }
+    }
+
+    sort($previousPublicHeaders, SORT_STRING);
+    sort($previousDependencyHeaders, SORT_STRING);
+
+    if ($publicHeaders !== $previousPublicHeaders) {
         return [
-            'headers' => $headers,
+            'headers' => $publicHeaders,
             'reason' => 'all headers, because public header set changed',
         ];
     }
 
+    if ($dependencyHeaders !== $previousDependencyHeaders) {
+        return [
+            'headers' => $publicHeaders,
+            'reason' => 'all headers, because internal dependency header set changed',
+        ];
+    }
+
+    foreach ($dependencyHeaders as $header) {
+        $current = $currentFingerprints[$header] ?? null;
+        $previous = $previousFingerprints[$header] ?? null;
+        if (!is_array($current) || !is_array($previous)) {
+            return [
+                'headers' => $publicHeaders,
+                'reason' => 'all headers, because internal dependency state is incomplete',
+            ];
+        }
+
+        if ($current['mtime'] !== $previous['mtime']) {
+            return [
+                'headers' => $publicHeaders,
+                'reason' => 'all headers, because internal dependency header modification time changed',
+            ];
+        }
+    }
+
     $changed = [];
-    foreach ($headers as $header) {
-        if (!isset($previousFingerprints[$header])) {
+    foreach ($publicHeaders as $header) {
+        if (!isset($currentPublicSet[$header])) {
+            continue;
+        }
+
+        $current = $currentFingerprints[$header] ?? null;
+        $previous = $previousFingerprints[$header] ?? null;
+        if (!is_array($current) || !is_array($previous)) {
             $changed[] = $header;
             continue;
         }
 
-        $current = $currentFingerprints[$header];
-        $previous = $previousFingerprints[$header];
-
-        if ($current['sha1'] !== $previous['sha1']) {
+        if ($current['mtime'] !== $previous['mtime']) {
             $changed[] = $header;
         }
     }
@@ -1208,13 +1280,13 @@ function find_changed_headers_by_state(array $headers, array $currentState, arra
     if (count($changed) === 0) {
         return [
             'headers' => [],
-            'reason' => 'no public header content changed',
+            'reason' => 'no public header or internal dependency header modification time changed',
         ];
     }
 
     return [
         'headers' => $changed,
-        'reason' => 'public header content changed',
+        'reason' => 'public header modification time changed',
     ];
 }
 
@@ -1223,7 +1295,7 @@ function find_changed_headers_by_state(array $headers, array $currentState, arra
  *   version:int,
  *   last_successful_run_at:int,
  *   last_successful_run_at_text:string,
- *   headers:array<string, array{mtime:int, size:int, sha1:string}>
+ *   headers:array<string, array{mtime:int}>
  * } $state
  */
 function write_header_pair_state(string $stateFile, array $state): void
