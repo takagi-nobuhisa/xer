@@ -17,10 +17,18 @@ declare(strict_types=1);
  *
  *   php run_tests.php
  *   php run_tests.php tests
+ *   php run_tests.php test
  *   php run_tests.php examples
+ *   php run_tests.php example
  *   php run_tests.php tests examples
  *   php run_tests.php --jobs=8
  *   php run_tests.php --jobs=8 tests examples
+ *   php run_tests.php --all
+ *   php run_tests.php --clean-cache
+ *   php run_tests.php --tc=gcc
+ *   php run_tests.php --tc=clang
+ *   php run_tests.php --tc=all
+ *   php run_tests.php --compiler=clang++
  *   php run_tests.php --build-id=msys2-ucrt64
  *   php run_tests.php tests/test_string.cpp
  *   php run_tests.php test_string.cpp
@@ -162,6 +170,12 @@ function normalize_targets(array $targets): array
         if ($value === '') {
             continue;
         }
+
+        $value = match ($value) {
+            'test' => 'tests',
+            'example' => 'examples',
+            default => $value,
+        };
 
         $normalized[] = $value;
     }
@@ -474,10 +488,16 @@ function split_command_fragment(string $value): array
  * @param list<string> $argv
  * @return array{
  *   cxx:string,
+ *   all:bool,
+ *   clean_cache:bool,
  *   cxxflags:list<string>,
  *   ldflags:list<string>,
  *   jobs:int,
  *   build_id:string,
+ *   toolchain:string,
+ *   compiler_explicit:bool,
+ *   cxxflags_explicit:bool,
+ *   ldflags_explicit:bool,
  *   tcltk_cflags:list<string>,
  *   tcltk_libs:list<string>,
  *   icu_cflags:list<string>,
@@ -501,25 +521,72 @@ function parse_arguments(array $argv): array
     $icuLibs = split_command_fragment(getenv('XER_TEST_ICU_LIBS') ?: '');
     $jobs = detect_default_jobs();
     $buildId = detect_default_build_id();
+    $toolchain = getenv('XER_TEST_TOOLCHAIN');
+    if (!is_string($toolchain) || trim($toolchain) === '') {
+        $toolchain = 'gcc';
+    }
+    $compilerExplicit = false;
+    $cxxflagsExplicit = false;
+    $ldflagsExplicit = false;
     $targets = [];
     $sourceSelectors = [];
+    $all = false;
+    $cleanCache = false;
 
     foreach (array_slice($argv, 1) as $arg) {
+        if ($arg === '--all') {
+            $all = true;
+            continue;
+        }
+
+        if ($arg === '--clean-cache') {
+            $cleanCache = true;
+            continue;
+        }
+
+        if (str_starts_with($arg, '--tc=')) {
+            $toolchain = substr($arg, strlen('--tc='));
+            if (trim($toolchain) === '') {
+                fail('Invalid --tc value.');
+            }
+            continue;
+        }
+
+        if (str_starts_with($arg, '--toolchain=')) {
+            $toolchain = substr($arg, strlen('--toolchain='));
+            if (trim($toolchain) === '') {
+                fail('Invalid --toolchain value.');
+            }
+            continue;
+        }
+
+        if (str_starts_with($arg, '--compiler=')) {
+            $cxx = substr($arg, strlen('--compiler='));
+            if (trim($cxx) === '') {
+                fail('Invalid --compiler value.');
+            }
+            $compilerExplicit = true;
+            continue;
+        }
+
         if (str_starts_with($arg, '--cxx=')) {
             $cxx = substr($arg, strlen('--cxx='));
             if (trim($cxx) === '') {
                 fail('Invalid --cxx value.');
             }
+            $compilerExplicit = true;
             continue;
         }
 
         if (str_starts_with($arg, '--cxxflags=')) {
             $cxxflags = split_command_fragment(substr($arg, strlen('--cxxflags=')));
+            $cxxflagsExplicit = true;
             continue;
         }
 
         if (str_starts_with($arg, '--ldflags=')) {
             $ldflags = split_command_fragment(substr($arg, strlen('--ldflags=')));
+            $ldflagsExplicit = true;
             continue;
         }
 
@@ -563,10 +630,16 @@ function parse_arguments(array $argv): array
 
     return [
         'cxx' => $cxx,
+        'all' => $all,
+        'clean_cache' => $cleanCache,
         'cxxflags' => $cxxflags,
         'ldflags' => $ldflags,
         'jobs' => $jobs,
         'build_id' => $buildId,
+        'toolchain' => $toolchain,
+        'compiler_explicit' => $compilerExplicit,
+        'cxxflags_explicit' => $cxxflagsExplicit,
+        'ldflags_explicit' => $ldflagsExplicit,
         'tcltk_cflags' => $tcltkCflags,
         'tcltk_libs' => $tcltkLibs,
         'icu_cflags' => $icuCflags,
@@ -574,6 +647,105 @@ function parse_arguments(array $argv): array
         'targets' => normalize_targets($targets),
         'source_selectors' => normalize_source_selectors($sourceSelectors),
     ];
+}
+
+
+/**
+ * @return array<string, array<string, mixed>>
+ */
+function load_test_toolchains(string $scriptDir): array
+{
+    $path = normalize_path($scriptDir . '/test_toolchains.php');
+    if (!is_file($path)) {
+        return [
+            'gcc' => [
+                'compiler' => 'g++',
+                'cxxflags' => [],
+                'ldflags' => [],
+            ],
+        ];
+    }
+
+    $toolchains = require $path;
+    if (!is_array($toolchains)) {
+        fail('Invalid toolchain configuration: ' . $path);
+    }
+
+    foreach ($toolchains as $name => $config) {
+        if (!is_string($name) || trim($name) === '') {
+            fail('Invalid toolchain name in: ' . $path);
+        }
+        if (!is_array($config)) {
+            fail('Invalid toolchain entry: ' . $name);
+        }
+        if (!isset($config['compiler']) || !is_string($config['compiler']) || trim($config['compiler']) === '') {
+            fail('Toolchain compiler is missing: ' . $name);
+        }
+    }
+
+    return $toolchains;
+}
+
+/**
+ * @param array<string, mixed> $parsed
+ * @param array<string, mixed> $config
+ * @return array<string, mixed>
+ */
+function apply_toolchain_config(array $parsed, array $config): array
+{
+    if (($parsed['compiler_explicit'] ?? false) !== true) {
+        $parsed['cxx'] = (string) $config['compiler'];
+    }
+
+    if (($parsed['cxxflags_explicit'] ?? false) !== true) {
+        $parsed['cxxflags'] = array_values($config['cxxflags'] ?? []);
+    }
+
+    if (($parsed['ldflags_explicit'] ?? false) !== true) {
+        $parsed['ldflags'] = array_values($config['ldflags'] ?? []);
+    }
+
+    return $parsed;
+}
+
+/**
+ * @param list<string> $argv
+ * @param list<string> $toolchainNames
+ * @return never
+ */
+function run_all_toolchains(array $argv, array $toolchainNames): never
+{
+    $php = PHP_BINARY;
+    $script = $argv[0] ?? 'run_tests.php';
+    $baseArgs = [];
+
+    foreach (array_slice($argv, 1) as $arg) {
+        if ($arg === '--tc=all' || $arg === '--toolchain=all') {
+            continue;
+        }
+        if (str_starts_with($arg, '--tc=') || str_starts_with($arg, '--toolchain=')) {
+            continue;
+        }
+        $baseArgs[] = $arg;
+    }
+
+    $overallExitCode = EXIT_SUCCESS_CODE;
+
+    foreach ($toolchainNames as $toolchainName) {
+        echo PHP_EOL;
+        echo '############################################################' . PHP_EOL;
+        echo 'Toolchain: ' . $toolchainName . PHP_EOL;
+        echo '############################################################' . PHP_EOL;
+
+        $command = array_merge([$php, $script, '--tc=' . $toolchainName], $baseArgs);
+        passthru(format_command_line($command), $exitCode);
+
+        if ($exitCode !== EXIT_SUCCESS_CODE) {
+            $overallExitCode = EXIT_FAILURE_CODE;
+        }
+    }
+
+    exit($overallExitCode);
 }
 
 /**
@@ -1326,6 +1498,202 @@ function build_compile_command(array $task, array $options): array
     );
 }
 
+
+/**
+ * @param list<string> $command
+ * @return string
+ */
+function command_signature(array $command): string
+{
+    return hash('sha256', implode("\0", $command));
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function read_json_file(string $path): ?array
+{
+    if (!is_file($path)) {
+        return null;
+    }
+
+    $content = file_get_contents($path);
+    if ($content === false || $content === '') {
+        return null;
+    }
+
+    $decoded = json_decode($content, true);
+    return is_array($decoded) ? $decoded : null;
+}
+
+/**
+ * @param array<string, mixed> $data
+ * @return void
+ */
+function write_json_file(string $path, array $data): void
+{
+    $content = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if ($content === false) {
+        fail('Failed to encode JSON: ' . $path);
+    }
+
+    write_text_file($path, $content . PHP_EOL);
+}
+
+/**
+ * @param list<string> $paths
+ * @return int
+ */
+function latest_mtime(array $paths): int
+{
+    $latest = 0;
+
+    foreach ($paths as $path) {
+        if (!file_exists($path)) {
+            continue;
+        }
+
+        $mtime = filemtime($path);
+        if ($mtime !== false && $mtime > $latest) {
+            $latest = $mtime;
+        }
+    }
+
+    return $latest;
+}
+
+/**
+ * @return list<string>
+ */
+function find_header_files(string $projectRoot): array
+{
+    $headers = [];
+    $root = normalize_path($projectRoot . '/xer');
+
+    if (!is_dir($root)) {
+        return [];
+    }
+
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS)
+    );
+
+    foreach ($iterator as $entry) {
+        if (!$entry->isFile()) {
+            continue;
+        }
+
+        $path = normalize_path($entry->getPathname());
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        if (in_array($extension, ['h', 'hpp', 'ipp'], true)) {
+            $headers[] = $path;
+        }
+    }
+
+    sort($headers, SORT_STRING);
+    return array_values($headers);
+}
+
+/**
+ * @param array<string, mixed> $task
+ * @param array<string, mixed> $options
+ * @return bool
+ */
+function can_reuse_compile_result(array $task, array $options): bool
+{
+    if (!is_file($task['executable']) || !is_file($task['compile_log'])) {
+        return false;
+    }
+
+    $cache = read_json_file($task['cache_file']);
+    if ($cache === null) {
+        return false;
+    }
+
+    $command = build_compile_command($task, $options);
+    if (($cache['compile_signature'] ?? '') !== command_signature($command)) {
+        return false;
+    }
+
+    if (($cache['compile_success'] ?? false) !== true) {
+        return false;
+    }
+
+    $exeMtime = filemtime($task['executable']);
+    if ($exeMtime === false) {
+        return false;
+    }
+
+    return $exeMtime >= (int) $task['dependency_mtime'];
+}
+
+/**
+ * @param array<string, mixed> $task
+ * @return bool
+ */
+function can_reuse_run_result(array $task): bool
+{
+    if (!is_file($task['run_log'])) {
+        return false;
+    }
+
+    $cache = read_json_file($task['cache_file']);
+    if ($cache === null) {
+        return false;
+    }
+
+    if (($cache['run_signature'] ?? '') !== command_signature([$task['executable']])) {
+        return false;
+    }
+
+    if (($cache['run_success'] ?? false) !== true) {
+        return false;
+    }
+
+    $runLogMtime = filemtime($task['run_log']);
+    $exeMtime = filemtime($task['executable']);
+    if ($runLogMtime === false || $exeMtime === false) {
+        return false;
+    }
+
+    return $runLogMtime >= $exeMtime;
+}
+
+/**
+ * @param array<string, mixed> $task
+ * @param array<string, mixed> $options
+ * @param list<string> $command
+ * @return void
+ */
+function update_compile_cache(array $task, array $options, array $command, bool $success): void
+{
+    $cache = read_json_file($task['cache_file']) ?? [];
+    $cache['source_file'] = $task['source_file'];
+    $cache['executable'] = $task['executable'];
+    $cache['dependency_mtime'] = $task['dependency_mtime'];
+    $cache['compile_signature'] = command_signature($command);
+    $cache['compile_success'] = $success;
+    if (!$success) {
+        $cache['run_success'] = false;
+    }
+    $cache['cxx'] = $options['cxx'];
+    $cache['updated_at'] = date(DATE_ATOM);
+    write_json_file($task['cache_file'], $cache);
+}
+
+/**
+ * @param array<string, mixed> $task
+ * @return void
+ */
+function update_run_cache(array $task, bool $success): void
+{
+    $cache = read_json_file($task['cache_file']) ?? [];
+    $cache['run_signature'] = command_signature([$task['executable']]);
+    $cache['run_success'] = $success;
+    $cache['updated_at'] = date(DATE_ATOM);
+    write_json_file($task['cache_file'], $cache);
+}
+
 /**
  * @param array<string, mixed> $task
  * @param array<string, mixed> $options
@@ -1365,6 +1733,8 @@ function build_tasks(array $targets, string $buildRoot, string $projectRoot, arr
 {
     $tasks = [];
     $targetTotals = [];
+    $headerFiles = find_header_files($projectRoot);
+    $headerMtime = latest_mtime($headerFiles);
 
     foreach ($targets as $target) {
         $sourceDir = normalize_path($projectRoot . '/' . $target);
@@ -1383,14 +1753,17 @@ function build_tasks(array $targets, string $buildRoot, string $projectRoot, arr
         }
 
         $buildDir = normalize_path($buildRoot . '/' . $target);
+        $relativeBuildRoot = normalize_path('build/' . basename(dirname($buildRoot)) . '/' . basename($buildRoot));
         $exeDir = normalize_path($buildDir . '/bin');
         $logDir = normalize_path($buildDir . '/log');
         $workBaseDir = normalize_path($buildDir . '/work');
+        $cacheDir = normalize_path($buildDir . '/cache');
 
         ensure_directory($buildDir);
         ensure_directory($exeDir);
         ensure_directory($logDir);
         ensure_directory($workBaseDir);
+        ensure_directory($cacheDir);
 
         $targetTotals[$target] = count($sourceFiles);
 
@@ -1400,7 +1773,9 @@ function build_tasks(array $targets, string $buildRoot, string $projectRoot, arr
             $compileLog = normalize_path($logDir . '/' . $baseName . '.compile.log');
             $runLog = normalize_path($logDir . '/' . $baseName . '.run.log');
             $workDir = normalize_path($workBaseDir . '/' . $baseName);
+            $cacheFile = normalize_path($cacheDir . '/' . $baseName . '.json');
             $features = detect_source_features($sourceFile);
+            $dependencyMtime = max((int) (filemtime($sourceFile) ?: 0), $headerMtime);
 
             if (is_windows()) {
                 $executable .= '.exe';
@@ -1415,9 +1790,11 @@ function build_tasks(array $targets, string $buildRoot, string $projectRoot, arr
                 'compile_log' => $compileLog,
                 'run_log' => $runLog,
                 'work_dir' => $workDir,
-                'relative_compile_log' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/log/' . $baseName . '.compile.log'),
-                'relative_run_log' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/log/' . $baseName . '.run.log'),
-                'relative_work_dir' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/work/' . $baseName),
+                'cache_file' => $cacheFile,
+                'dependency_mtime' => $dependencyMtime,
+                'relative_compile_log' => normalize_path('./' . $relativeBuildRoot . '/' . $target . '/log/' . $baseName . '.compile.log'),
+                'relative_run_log' => normalize_path('./' . $relativeBuildRoot . '/' . $target . '/log/' . $baseName . '.run.log'),
+                'relative_work_dir' => normalize_path('./' . $relativeBuildRoot . '/' . $target . '/work/' . $baseName),
                 'features' => $features,
                 'feature_cflags' => collect_feature_cflags($features, $featureOptions),
                 'feature_libs' => collect_feature_libs($features, $featureOptions),
@@ -1434,7 +1811,7 @@ function build_tasks(array $targets, string $buildRoot, string $projectRoot, arr
 
 /**
  * @param array<string, int> $targetTotals
- * @return array<string, array{total:int, skipped:int, compile_success:int, run_success:int}>
+ * @return array<string, array{total:int, skipped:int, up_to_date:int, compile_success:int, run_success:int}>
  */
 function initialize_target_stats(array $targetTotals): array
 {
@@ -1444,6 +1821,7 @@ function initialize_target_stats(array $targetTotals): array
         $stats[$target] = [
             'total' => $total,
             'skipped' => 0,
+            'up_to_date' => 0,
             'compile_success' => 0,
             'run_success' => 0,
         ];
@@ -1478,7 +1856,7 @@ function print_feature_summary(array $featureOptions): void
 }
 
 /**
- * @param array<string, array{total:int, skipped:int, compile_success:int, run_success:int}> $targetStats
+ * @param array<string, array{total:int, skipped:int, up_to_date:int, compile_success:int, run_success:int}> $targetStats
  * @return void
  */
 function print_target_headers(array $targetStats): void
@@ -1533,8 +1911,21 @@ function print_run_result(array $task, bool $runOk): void
     echo '[WDIR  ] ' . $task['relative_work_dir'] . PHP_EOL;
 }
 
+
 /**
- * @param array<string, array{total:int, skipped:int, compile_success:int, run_success:int}> $targetStats
+ * @param array<string, mixed> $task
+ * @return void
+ */
+function print_up_to_date_result(array $task): void
+{
+    echo '[CACHE ] up-to-date' . PHP_EOL;
+    echo '[CLOG  ] ' . $task['relative_compile_log'] . PHP_EOL;
+    echo '[RLOG  ] ' . $task['relative_run_log'] . PHP_EOL;
+    echo '[WDIR  ] ' . $task['relative_work_dir'] . PHP_EOL;
+}
+
+/**
+ * @param array<string, array{total:int, skipped:int, up_to_date:int, compile_success:int, run_success:int}> $targetStats
  * @return void
  */
 function print_target_summaries(array $targetStats): void
@@ -1548,8 +1939,8 @@ function print_target_summaries(array $targetStats): void
         echo 'Total programs  : ' . $stats['total'] . PHP_EOL;
         echo 'Skipped         : ' . $stats['skipped'] . PHP_EOL;
         echo 'Active programs : ' . $active . PHP_EOL;
-        echo 'Compile success : ' . $stats['compile_success'] . PHP_EOL;
-        echo 'Run success     : ' . $stats['run_success'] . PHP_EOL;
+        echo 'Up-to-date      : ' . $stats['up_to_date'] . PHP_EOL;
+        echo 'Compile success : ' . $stats['compile_success'] . PHP_EOL;        echo 'Run success     : ' . $stats['run_success'] . PHP_EOL;
         echo 'Compile failed  : ' . ($active - $stats['compile_success']) . PHP_EOL;
         echo 'Run failed      : ' . ($stats['compile_success'] - $stats['run_success']) . PHP_EOL;
         echo PHP_EOL;
@@ -1557,7 +1948,7 @@ function print_target_summaries(array $targetStats): void
 }
 
 /**
- * @param array<string, array{total:int, skipped:int, compile_success:int, run_success:int}> $targetStats
+ * @param array<string, array{total:int, skipped:int, up_to_date:int, compile_success:int, run_success:int}> $targetStats
  * @param list<string> $targets
  * @param list<array{target:string, name:string, stage:string}> $failedPrograms
  * @param list<array{target:string, name:string, reason:string}> $skippedPrograms
@@ -1567,12 +1958,14 @@ function print_overall_summary(array $targetStats, array $targets, array $failed
 {
     $grandTotalCount = 0;
     $grandSkippedCount = 0;
+    $grandUpToDateCount = 0;
     $grandCompileSuccessCount = 0;
     $grandRunSuccessCount = 0;
 
     foreach ($targetStats as $stats) {
         $grandTotalCount += $stats['total'];
         $grandSkippedCount += $stats['skipped'];
+        $grandUpToDateCount += $stats['up_to_date'];
         $grandCompileSuccessCount += $stats['compile_success'];
         $grandRunSuccessCount += $stats['run_success'];
     }
@@ -1586,8 +1979,8 @@ function print_overall_summary(array $targetStats, array $targets, array $failed
     echo 'Total programs  : ' . $grandTotalCount . PHP_EOL;
     echo 'Skipped         : ' . $grandSkippedCount . PHP_EOL;
     echo 'Active programs : ' . $grandActiveCount . PHP_EOL;
-    echo 'Compile success : ' . $grandCompileSuccessCount . PHP_EOL;
-    echo 'Run success     : ' . $grandRunSuccessCount . PHP_EOL;
+    echo 'Up-to-date      : ' . $grandUpToDateCount . PHP_EOL;
+    echo 'Compile success : ' . $grandCompileSuccessCount . PHP_EOL;    echo 'Run success     : ' . $grandRunSuccessCount . PHP_EOL;
     echo 'Compile failed  : ' . ($grandActiveCount - $grandCompileSuccessCount) . PHP_EOL;
     echo 'Run failed      : ' . ($grandCompileSuccessCount - $grandRunSuccessCount) . PHP_EOL;
 
@@ -1627,7 +2020,7 @@ function print_overall_summary(array $targetStats, array $targets, array $failed
 
 /**
  * @param list<array<string, mixed>> $tasks
- * @param array<string, array{total:int, skipped:int, compile_success:int, run_success:int}> $targetStats
+ * @param array<string, array{total:int, skipped:int, up_to_date:int, compile_success:int, run_success:int}> $targetStats
  * @param list<array{target:string, name:string, stage:string}> $failedPrograms
  * @param list<array{target:string, name:string, reason:string}> $skippedPrograms
  * @param array<string, mixed> $options
@@ -1674,6 +2067,28 @@ function run_tasks_in_parallel(
                 continue;
             }
 
+            if (($options['all'] ?? false) !== true && can_reuse_compile_result($task, $options)) {
+                ++$targetStats[$task['target']]['compile_success'];
+
+                if (can_reuse_run_result($task)) {
+                    print_task_header($task);
+                    print_up_to_date_result($task);
+                    ++$targetStats[$task['target']]['run_success'];
+                    ++$targetStats[$task['target']]['up_to_date'];
+                    continue;
+                }
+
+                $started = start_run_process($task);
+                $running[] = [
+                    'task' => $task,
+                    'stage' => $started['stage'],
+                    'process' => $started['process'],
+                    'pipes' => $started['pipes'],
+                    'command_line' => $started['command_line'],
+                ];
+                continue;
+            }
+
             $started = start_compile_process($task, $options, $scriptDir);
 
             $running[] = [
@@ -1715,6 +2130,7 @@ function run_tasks_in_parallel(
                 }
                 write_text_file($task['compile_log'], $compileOutput);
                 $compileOk = ($result['exit_code'] === 0);
+                update_compile_cache($task, $options, build_compile_command($task, $options), $compileOk);
 
                 print_task_header($task);
                 print_compile_result($task, $compileOk);
@@ -1748,6 +2164,7 @@ function run_tasks_in_parallel(
             }
             write_text_file($task['run_log'], $runOutput);
             $runOk = ($result['exit_code'] === 0);
+            update_run_cache($task, $runOk);
 
             print_run_result($task, $runOk);
 
@@ -1789,8 +2206,24 @@ if (!function_exists('proc_open')) {
 }
 
 $parsed = parse_arguments($argv);
+$toolchains = load_test_toolchains($scriptDir);
+$selectedToolchain = (string) $parsed['toolchain'];
+
+if ($selectedToolchain === 'all') {
+    run_all_toolchains($argv, array_keys($toolchains));
+}
+
+if (!isset($toolchains[$selectedToolchain])) {
+    fail('Unknown toolchain: ' . $selectedToolchain);
+}
+
+$parsed = apply_toolchain_config($parsed, $toolchains[$selectedToolchain]);
+
 $buildId = $parsed['build_id'];
-$buildRoot = normalize_path($scriptDir . '/build/' . $buildId);
+$buildRoot = normalize_path($scriptDir . '/build/' . $buildId . '/' . $selectedToolchain);
+if ($parsed['clean_cache']) {
+    remove_tree($buildRoot);
+}
 ensure_directory($buildRoot);
 $options = [
     'cxx' => $parsed['cxx'],
@@ -1800,6 +2233,7 @@ $options = [
     'tcltk_libs' => $parsed['tcltk_libs'],
     'icu_cflags' => $parsed['icu_cflags'],
     'icu_libs' => $parsed['icu_libs'],
+    'all' => $parsed['all'],
 ];
 $jobs = $parsed['jobs'];
 $targets = $parsed['targets'];
@@ -1827,9 +2261,11 @@ $skippedPrograms = [];
 echo '############################################################' . PHP_EOL;
 echo 'Parallel test runner' . PHP_EOL;
 echo '############################################################' . PHP_EOL;
+echo 'Toolchain       : ' . $selectedToolchain . PHP_EOL;
 echo 'Compiler        : ' . $options['cxx'] . PHP_EOL;
 echo 'Build ID        : ' . $buildId . PHP_EOL;
 echo 'Build root      : ' . $buildRoot . PHP_EOL;
+echo 'Mode            : ' . ($options['all'] ? 'all' : 'incremental') . PHP_EOL;
 echo 'Targets         : ' . implode(', ', $targets) . PHP_EOL;
 if ($sourceSelectors !== []) {
     echo 'Source filters  : ' . implode(', ', $sourceSelectors) . PHP_EOL;
