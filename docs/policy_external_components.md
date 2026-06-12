@@ -88,8 +88,8 @@ Documentation for each external-component header should mention typical link opt
 
 Although xer does not manage the user's build system, xer's own PHP test runner should know how to build and run tests for supported environments.
 
-The primary supported and tested environments are Ubuntu and MSYS2 UCRT64.
-MSYS2 MSYS and MSYS2 MINGW64 are not supported targets and are not part of the current or planned test matrix.
+The primary supported and tested environments are Ubuntu with GCC, Ubuntu with Clang and libc++, and MSYS2 UCRT64 with GCC.
+MSYS2 MSYS, MSYS2 MINGW64, Windows Clang, and Visual C++ are not part of the current test matrix.
 
 For known supported environments, the test runner may add include paths and link options needed for external-component tests.
 

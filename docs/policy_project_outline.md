@@ -31,18 +31,26 @@ Where exact behavior is reasonably definable, xer should define it clearly and i
 
 ## 2. Supported Environment
 
-### 2.1 Supported Compiler
+### 2.1 Supported Compilers
 
 - The primary officially supported compiler is **GCC 13.3.0 or later**
-- Support for Visual C++ and Clang may be considered in the future
-- At present, only GCC is treated as an officially supported compiler
+- **Clang 18.0.0 or later** is supported on Ubuntu when used with libc++
+- Visual C++ is not an officially supported compiler yet
+- Windows Clang support is deferred; the current Clang target is Ubuntu with libc++
 
 ### 2.2 Supported and Tested Environments
 
 The primary supported and tested environments are:
 
-- **Ubuntu**
-- **MSYS2 UCRT64**
+- **Ubuntu with GCC**
+- **Ubuntu with Clang and libc++**
+- **MSYS2 UCRT64 with GCC**
+
+Ubuntu Clang testing requires libc++ and libc++abi. On Ubuntu 24.04 with Clang 18, install the following packages:
+
+```sh
+sudo apt install libc++-18-dev libc++abi-18-dev
+```
 
 ### 2.3 Platform Scope
 

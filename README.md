@@ -63,14 +63,16 @@ This project does **not** aim at full source-level compatibility with the C stan
 
 ## Supported environments
 
-Current official compiler target:
+Current official compiler targets:
 
 - GCC 13.3.0 or later
+- Clang 18.0.0 or later on Ubuntu with libc++
 
 Current supported and tested environments:
 
-- Ubuntu
-- MSYS2 UCRT64
+- Ubuntu with GCC
+- Ubuntu with Clang and libc++
+- MSYS2 UCRT64 with GCC
 
 Current platform scope:
 
@@ -88,7 +90,13 @@ Unsupported environments:
 
 MSYS2 MSYS and MSYS2 MINGW64 are not included in the current or planned test matrix. If a clear need appears in the future, support for those environments may be reconsidered at that time.
 
-Visual C++ and Clang may be considered later, but they are not official targets yet.
+On Ubuntu, Clang testing assumes libc++ and libc++abi. For Ubuntu 24.04 with Clang 18, install the following packages before running Clang-based tests:
+
+```sh
+sudo apt install libc++-18-dev libc++abi-18-dev
+```
+
+Visual C++ is not an official target yet. Windows Clang support is also deferred; the current Clang target is Ubuntu with libc++.
 
 ## Key characteristics
 

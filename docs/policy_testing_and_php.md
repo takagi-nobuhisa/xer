@@ -37,15 +37,56 @@ Its main uses are as follows:
 
 The primary supported and tested environments are:
 
-- Ubuntu
-- MSYS2 UCRT64
+- Ubuntu with GCC
+- Ubuntu with Clang and libc++
+- MSYS2 UCRT64 with GCC
 
 MSYS2 MSYS and MSYS2 MINGW64 are not supported targets.
 They are not included in the current or planned test matrix.
 If a clear need appears in the future, support for those environments may be reconsidered at that time.
 
+Windows Clang and Visual C++ are not part of the current test target.
+The current Clang target is Ubuntu with libc++.
+
+Ubuntu Clang testing requires libc++ and libc++abi.
+On Ubuntu 24.04 with Clang 18, install the following packages:
+
+```sh
+sudo apt install libc++-18-dev libc++abi-18-dev
+```
+
 Optional external-component tests, such as Tcl/Tk, ICU, and MeCab tests, may be skipped when the required component is not available in a supported test environment.
 A skipped optional-component test means that the component is unavailable in that environment; it does not mean that the corresponding public header provides a runtime fallback.
+
+---
+
+## Test Toolchains
+
+`php/run_tests.php` selects a test toolchain with `--tc=<name>` or the equivalent long form `--toolchain=<name>`.
+When no toolchain is specified, `gcc` is used.
+
+Typical examples:
+
+```sh
+php run_tests.php
+php run_tests.php --tc=gcc
+php run_tests.php --tc=clang
+php run_tests.php --tc=all
+```
+
+`--tc=all` runs the defined toolchains in sequence.
+`--all` keeps its existing meaning: it disables incremental filtering and runs all tests within the selected toolchain.
+For example, `php run_tests.php --tc=all --all` runs all tests for all defined toolchains.
+
+Toolchain-specific compiler and linker options are defined in `php/test_toolchains.php`.
+The build output is separated by platform and toolchain, for example:
+
+```text
+php/build/linux-ubuntu-x86_64/gcc/
+php/build/linux-ubuntu-x86_64/clang/
+```
+
+This prevents executable files, logs, and incremental state from being shared accidentally between different compilers.
 
 ---
 
@@ -122,12 +163,11 @@ However, it is assumed that each public header is included by itself in at least
 The incremental state is stored under the build-specific directory selected by `--build-id`.
 This prevents test state from being shared accidentally between environments such as MSYS2 UCRT64 and Ubuntu when the same source tree is used.
 
-The state records a content fingerprint for each public header.
-The fingerprint includes the file modification time, file size, and SHA-1 hash, but change detection is based on the SHA-1 hash rather than timestamp comparison.
-This avoids missing updates when files are edited, copied, extracted, or synchronized in a way that does not produce a reliable timestamp ordering.
+Change detection is based primarily on file modification times.
+The script checks the target public headers and also treats internal implementation headers under `xer/bits/` as dependencies, so that changes in shared internal headers can trigger recompilation of public-header pair tests.
 
-If a public header's content differs from the previous successful run, all ordered pairs that include that header are compiled again.
-If the public header set itself changes, the script falls back to testing all ordered pairs.
+If a public header is newer than the saved successful state, all ordered pairs that include that header are compiled again.
+If the public header set changes, or if an internal dependency under `xer/bits/` changes, the script falls back to testing all ordered pairs.
 
 The `--all` option disables incremental filtering and tests every ordered pair regardless of the saved state.
 
