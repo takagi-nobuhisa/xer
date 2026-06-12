@@ -24,19 +24,20 @@
  */
 #define XER_PRETTY_FUNCTION __PRETTY_FUNCTION__
 
-#if !defined(__GNUC__)
-static_assert(false, "xer requires GCC.");
-#endif
-
 #if defined(__clang__)
-static_assert(false, "xer currently does not support Clang.");
-#endif
-
+static_assert(
+    (__clang_major__ > 18) ||
+    (__clang_major__ == 18 && __clang_minor__ >= 0),
+    "xer requires Clang 18.0.0 or later.");
+#elif defined(__GNUC__)
 static_assert(
     (__GNUC__ > 13) ||
     (__GNUC__ == 13 && __GNUC_MINOR__ > 3) ||
     (__GNUC__ == 13 && __GNUC_MINOR__ == 3 && __GNUC_PATCHLEVEL__ >= 0),
     "xer requires GCC 13.3.0 or later.");
+#else
+#    error "xer requires GCC 13.3.0 or later, or Clang 18.0.0 or later."
+#endif
 
 static_assert(XER_STDCPP_VERSION >= 202100L, "xer requires C++23 or later.");
 

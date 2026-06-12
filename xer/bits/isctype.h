@@ -12,6 +12,10 @@
 #include <xer/bits/character_width.h>
 #include <xer/bits/unicode_common.h>
 
+#ifdef isascii
+#undef isascii
+#endif
+
 namespace xer {
 
 /**

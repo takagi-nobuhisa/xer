@@ -8,7 +8,9 @@
 #ifndef XER_BITS_JSON_DECODE_H_INCLUDED_
 #define XER_BITS_JSON_DECODE_H_INCLUDED_
 
+#include <cerrno>
 #include <charconv>
+#include <cstdlib>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -232,10 +234,21 @@ private:
         const char* first = reinterpret_cast<const char*>(text.data() + begin);
         const char* last = reinterpret_cast<const char*>(text.data() + pos);
         double value = 0.0;
+
+#if defined(_LIBCPP_VERSION)
+        const std::string number_text(first, static_cast<std::size_t>(last - first));
+        char* end = nullptr;
+        errno = 0;
+        value = std::strtod(number_text.c_str(), &end);
+        if (errno == ERANGE || end != number_text.c_str() + number_text.size()) {
+            return std::unexpected(make_parse_error(parse_error_reason::invalid_syntax));
+        }
+#else
         const auto convert_result = std::from_chars(first, last, value);
         if (convert_result.ec != std::errc() || convert_result.ptr != last) {
             return std::unexpected(make_parse_error(parse_error_reason::invalid_syntax));
         }
+#endif
 
         return json_value(value);
     }

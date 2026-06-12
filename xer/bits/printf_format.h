@@ -288,7 +288,7 @@ concept printf_generic_ostream_argument =
  * @return Converted argument.
  */
 template<printf_signed_integer T>
-[[nodiscard]] constexpr printf_argument make_printf_argument(T value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(T value) noexcept
 {
     return printf_argument{
         .kind = printf_arg_kind::signed_integer,
@@ -297,7 +297,7 @@ template<printf_signed_integer T>
 }
 
 template<printf_unsigned_integer T>
-[[nodiscard]] constexpr printf_argument make_printf_argument(T value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(T value) noexcept
 {
     return printf_argument{
         .kind = printf_arg_kind::unsigned_integer,
@@ -306,7 +306,7 @@ template<printf_unsigned_integer T>
 }
 
 template<printf_floating T>
-[[nodiscard]] constexpr printf_argument make_printf_argument(T value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(T value) noexcept
 {
     return printf_argument{
         .kind = printf_arg_kind::floating,
@@ -314,7 +314,7 @@ template<printf_floating T>
     };
 }
 
-[[nodiscard]] constexpr printf_argument make_printf_argument(char value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(char value) noexcept
 {
     return printf_argument{
         .kind = printf_arg_kind::character,
@@ -322,7 +322,7 @@ template<printf_floating T>
     };
 }
 
-[[nodiscard]] constexpr printf_argument make_printf_argument(char8_t value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(char8_t value) noexcept
 {
     return printf_argument{
         .kind = printf_arg_kind::character,
@@ -330,7 +330,7 @@ template<printf_floating T>
     };
 }
 
-[[nodiscard]] constexpr printf_argument make_printf_argument(char16_t value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(char16_t value) noexcept
 {
     return printf_argument{
         .kind = printf_arg_kind::character,
@@ -338,7 +338,7 @@ template<printf_floating T>
     };
 }
 
-[[nodiscard]] constexpr printf_argument make_printf_argument(wchar_t value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(wchar_t value) noexcept
 {
     return printf_argument{
         .kind = printf_arg_kind::character,
@@ -346,7 +346,7 @@ template<printf_floating T>
     };
 }
 
-[[nodiscard]] constexpr printf_argument make_printf_argument(char32_t value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(char32_t value) noexcept
 {
     return printf_argument{
         .kind = printf_arg_kind::character,
@@ -501,7 +501,7 @@ template<printf_floating T>
 }
 
 template<printf_pointer T>
-[[nodiscard]] constexpr printf_argument make_printf_argument(T value) noexcept
+[[nodiscard]] inline printf_argument make_printf_argument(T value) noexcept
 {
     return printf_argument{
         .kind = printf_arg_kind::pointer,
