@@ -8,6 +8,10 @@ declare(strict_types=1);
  * Usage:
  *   php test_public_header_pairs.php
  *   php test_public_header_pairs.php --all
+ *   php test_public_header_pairs.php --tc=gcc
+ *   php test_public_header_pairs.php --tc=clang
+ *   php test_public_header_pairs.php --tc=all
+ *   php test_public_header_pairs.php --toolchain=clang
  *   php test_public_header_pairs.php --compiler=g++
  *   php test_public_header_pairs.php --std=c++23
  *   php test_public_header_pairs.php --jobs=8
@@ -32,7 +36,12 @@ final class Config
     public string $buildRoot;
     public string $buildDir;
     public string $stateFile;
+    public string $toolchain = 'gcc';
     public string $compiler = 'g++';
+    /** @var array<int, string> */
+    public array $cxxFlags = [];
+    /** @var array<int, string> */
+    public array $ldFlags = [];
     public string $cppStd = 'c++23';
     public bool $keepGoing = true;
     public bool $verbose = true;
@@ -61,6 +70,10 @@ final class FeatureConfig
  */
 function main(array $argv): int
 {
+    if (requested_toolchain_is_all($argv)) {
+        return run_all_toolchains($argv);
+    }
+
     $config = build_config($argv);
     $runStartedAt = time();
 
@@ -132,8 +145,12 @@ function main(array $argv): int
     echo "Build root   : {$config->buildRoot}\n";
     echo "Build dir    : {$config->buildDir}\n";
     echo "State file   : {$config->stateFile}\n";
+    echo "Toolchain    : {$config->toolchain}\n";
     echo "Compiler     : {$config->compiler}\n";
     echo "C++ standard : {$config->cppStd}\n";
+    if (count($config->cxxFlags) > 0) {
+        echo "C++ flags    : " . implode(' ', $config->cxxFlags) . "\n";
+    }
     echo "Headers      : " . count($headers) . "\n";
     echo "Dependencies : " . count($dependencyHeaders) . "\n";
     echo "Mode         : " . ($config->incremental ? 'incremental' : 'all') . "\n";
@@ -341,13 +358,41 @@ function build_config(array $argv): Config
         throw new RuntimeException('failed to resolve project root');
     }
 
+    $toolchains = load_test_toolchains($phpDir);
+    $requestedToolchain = 'gcc';
+
+    foreach (array_slice($argv, 1) as $arg) {
+        if (str_starts_with($arg, '--tc=')) {
+            $requestedToolchain = substr($arg, strlen('--tc='));
+            continue;
+        }
+        if (str_starts_with($arg, '--toolchain=')) {
+            $requestedToolchain = substr($arg, strlen('--toolchain='));
+            continue;
+        }
+    }
+
+    if ($requestedToolchain === '') {
+        throw new InvalidArgumentException('toolchain name must not be empty');
+    }
+    if ($requestedToolchain === 'all') {
+        throw new InvalidArgumentException('--tc=all must be handled before build_config');
+    }
+    if (!isset($toolchains[$requestedToolchain])) {
+        throw new InvalidArgumentException("unknown toolchain: {$requestedToolchain}");
+    }
+
+    $toolchain = $toolchains[$requestedToolchain];
+
     $config->phpDir = $phpDir;
     $config->projectRoot = $projectRoot;
     $config->xerDir = $projectRoot . DIRECTORY_SEPARATOR . 'xer';
+    $config->toolchain = $requestedToolchain;
+    $config->compiler = $toolchain['compiler'];
+    $config->cxxFlags = $toolchain['cxxflags'];
+    $config->ldFlags = $toolchain['ldflags'];
     $config->buildId = detect_default_build_id();
-    $config->buildRoot = $phpDir . DIRECTORY_SEPARATOR . 'build' . DIRECTORY_SEPARATOR . $config->buildId;
-    $config->buildDir = $config->buildRoot . DIRECTORY_SEPARATOR . 'header_pair_compile';
-    $config->stateFile = $config->buildRoot . DIRECTORY_SEPARATOR . 'header_pair_compile_state.json';
+    apply_build_paths($config);
     $config->jobs = detect_default_jobs();
 
     foreach (array_slice($argv, 1) as $arg) {
@@ -366,9 +411,13 @@ function build_config(array $argv): Config
         }
         if (str_starts_with($arg, '--build-id=')) {
             $config->buildId = sanitize_build_id(substr($arg, strlen('--build-id=')));
-            $config->buildRoot = $config->phpDir . DIRECTORY_SEPARATOR . 'build' . DIRECTORY_SEPARATOR . $config->buildId;
-            $config->buildDir = $config->buildRoot . DIRECTORY_SEPARATOR . 'header_pair_compile';
-            $config->stateFile = $config->buildRoot . DIRECTORY_SEPARATOR . 'header_pair_compile_state.json';
+            apply_build_paths($config);
+            continue;
+        }
+        if (str_starts_with($arg, '--tc=')) {
+            continue;
+        }
+        if (str_starts_with($arg, '--toolchain=')) {
             continue;
         }
         if (str_starts_with($arg, '--compiler=')) {
@@ -377,6 +426,10 @@ function build_config(array $argv): Config
         }
         if (str_starts_with($arg, '--std=')) {
             $config->cppStd = substr($arg, strlen('--std='));
+            continue;
+        }
+        if (str_starts_with($arg, '--cxxflags=')) {
+            $config->cxxFlags = split_shell_words(substr($arg, strlen('--cxxflags=')));
             continue;
         }
         if (str_starts_with($arg, '--jobs=')) {
@@ -412,6 +465,149 @@ function build_config(array $argv): Config
     }
 
     return $config;
+}
+
+function apply_build_paths(Config $config): void
+{
+    $config->buildRoot = $config->phpDir
+        . DIRECTORY_SEPARATOR . 'build'
+        . DIRECTORY_SEPARATOR . $config->buildId
+        . DIRECTORY_SEPARATOR . sanitize_build_id($config->toolchain);
+    $config->buildDir = $config->buildRoot . DIRECTORY_SEPARATOR . 'header_pair_compile';
+    $config->stateFile = $config->buildRoot . DIRECTORY_SEPARATOR . 'header_pair_compile_state.json';
+}
+
+/**
+ * @return array<string, array{compiler:string, cxxflags:array<int, string>, ldflags:array<int, string>}>
+ */
+function load_test_toolchains(string $phpDir): array
+{
+    $path = $phpDir . DIRECTORY_SEPARATOR . 'test_toolchains.php';
+    if (!is_file($path)) {
+        throw new RuntimeException("test toolchain configuration file not found: {$path}");
+    }
+
+    $data = require $path;
+    if (!is_array($data)) {
+        throw new RuntimeException("test toolchain configuration must return an array: {$path}");
+    }
+
+    $toolchains = [];
+    foreach ($data as $name => $entry) {
+        if (!is_string($name) || $name === '') {
+            throw new RuntimeException('toolchain name must be a non-empty string');
+        }
+        if (!is_array($entry)) {
+            throw new RuntimeException("toolchain entry must be an array: {$name}");
+        }
+
+        $compiler = $entry['compiler'] ?? null;
+        $cxxFlags = $entry['cxxflags'] ?? [];
+        $ldFlags = $entry['ldflags'] ?? [];
+        if (!is_string($compiler) || trim($compiler) === '') {
+            throw new RuntimeException("toolchain compiler must be a non-empty string: {$name}");
+        }
+        if (!is_array($cxxFlags) || !array_is_list($cxxFlags)) {
+            throw new RuntimeException("toolchain cxxflags must be a list: {$name}");
+        }
+        if (!is_array($ldFlags) || !array_is_list($ldFlags)) {
+            throw new RuntimeException("toolchain ldflags must be a list: {$name}");
+        }
+
+        foreach ($cxxFlags as $flag) {
+            if (!is_string($flag)) {
+                throw new RuntimeException("toolchain cxxflags must contain only strings: {$name}");
+            }
+        }
+        foreach ($ldFlags as $flag) {
+            if (!is_string($flag)) {
+                throw new RuntimeException("toolchain ldflags must contain only strings: {$name}");
+            }
+        }
+
+        $toolchains[$name] = [
+            'compiler' => trim($compiler),
+            'cxxflags' => $cxxFlags,
+            'ldflags' => $ldFlags,
+        ];
+    }
+
+    return $toolchains;
+}
+
+function requested_toolchain_is_all(array $argv): bool
+{
+    foreach (array_slice($argv, 1) as $arg) {
+        if ($arg === '--tc=all' || $arg === '--toolchain=all') {
+            return true;
+        }
+    }
+    return false;
+}
+
+function run_all_toolchains(array $argv): int
+{
+    $phpDir = realpath(__DIR__);
+    if ($phpDir === false) {
+        throw new RuntimeException('failed to resolve __DIR__');
+    }
+
+    $toolchains = load_test_toolchains($phpDir);
+    $exitCode = 0;
+
+    foreach (array_keys($toolchains) as $toolchain) {
+        echo "\n=== Toolchain: {$toolchain} ===\n";
+        $nextArgv = replace_toolchain_argument($argv, $toolchain);
+        $result = main($nextArgv);
+        if ($result !== 0) {
+            $exitCode = $result;
+        }
+    }
+
+    return $exitCode;
+}
+
+/**
+ * @param array<int, string> $argv
+ * @return array<int, string>
+ */
+function replace_toolchain_argument(array $argv, string $toolchain): array
+{
+    $result = [];
+    $replaced = false;
+    foreach ($argv as $index => $arg) {
+        if ($index > 0 && (str_starts_with($arg, '--tc=') || str_starts_with($arg, '--toolchain='))) {
+            if (!$replaced) {
+                $result[] = '--tc=' . $toolchain;
+                $replaced = true;
+            }
+            continue;
+        }
+        $result[] = $arg;
+    }
+    if (!$replaced) {
+        $result[] = '--tc=' . $toolchain;
+    }
+    return $result;
+}
+
+/**
+ * @return array<int, string>
+ */
+function split_shell_words(string $value): array
+{
+    $value = trim($value);
+    if ($value === '') {
+        return [];
+    }
+    $words = str_getcsv($value, ' ', '"', '\\');
+    $result = [];
+    foreach ($words as $word) {
+        if (is_string($word) && $word !== '') {
+            $result[] = $word;
+        }
+    }
+    return $result;
 }
 
 
@@ -745,6 +941,9 @@ CPP;
         escapeshellarg($config->compiler),
         '-std=' . escapeshellarg($config->cppStd),
     ];
+    foreach ($config->cxxFlags as $flag) {
+        $parts[] = escapeshellarg($flag);
+    }
     if (trim($cflags) !== '') {
         $parts[] = trim($cflags);
     }
@@ -835,6 +1034,9 @@ CPP;
         escapeshellarg($config->compiler),
         '-std=' . escapeshellarg($config->cppStd),
     ];
+    foreach ($config->cxxFlags as $flag) {
+        $parts[] = escapeshellarg($flag);
+    }
     if (trim($cflags) !== '') {
         $parts[] = trim($cflags);
     }
@@ -885,6 +1087,9 @@ CPP;
         escapeshellarg($config->compiler),
         '-std=' . escapeshellarg($config->cppStd),
     ];
+    foreach ($config->cxxFlags as $flag) {
+        $parts[] = escapeshellarg($flag);
+    }
     if (trim($cflags) !== '') {
         $parts[] = trim($cflags);
     }
@@ -1375,6 +1580,7 @@ function start_compile_task(Config $config, FeatureConfig $features, array $meta
     $command = build_compile_command(
         compiler: $config->compiler,
         cppStd: $config->cppStd,
+        cxxFlags: $config->cxxFlags,
         projectRoot: $config->projectRoot,
         sourcePath: $sourcePath,
         objectPath: $objectPath,
@@ -1430,6 +1636,7 @@ function get_pair_extra_cflags(FeatureConfig $featureConfig, array $features): s
 function build_compile_command(
     string $compiler,
     string $cppStd,
+    array $cxxFlags,
     string $projectRoot,
     string $sourcePath,
     string $objectPath,
@@ -1438,9 +1645,12 @@ function build_compile_command(
     $commandParts = [
         escapeshellarg($compiler),
         '-std=' . escapeshellarg($cppStd),
-        '-I',
-        escapeshellarg($projectRoot),
     ];
+    foreach ($cxxFlags as $flag) {
+        $commandParts[] = escapeshellarg($flag);
+    }
+    $commandParts[] = '-I';
+    $commandParts[] = escapeshellarg($projectRoot);
 
     if (trim($extraCflags) !== '') {
         $commandParts[] = trim($extraCflags);
