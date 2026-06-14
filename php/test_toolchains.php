@@ -11,7 +11,19 @@ return [
 
     'clang' => [
         'compiler' => 'clang++',
-        'cxxflags' => ['-stdlib=libc++'],
-        'ldflags' => ['-stdlib=libc++'],
+        'cxxflags' => [
+            '-stdlib=libc++',
+        ],
+        'ldflags' => [
+            '-stdlib=libc++',
+        ],
+    ],
+
+    'clang64' => [
+        'compiler' => 'clang++',
+        'cxxflags' => [
+            '-D__USE_MINGW_ANSI_STDIO=1',
+        ],
+        'ldflags' => [],
     ],
 ];

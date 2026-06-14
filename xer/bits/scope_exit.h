@@ -8,6 +8,7 @@
 #ifndef XER_BITS_SCOPE_EXIT_H_INCLUDED_
 #define XER_BITS_SCOPE_EXIT_H_INCLUDED_
 
+#include <concepts>
 #include <exception>
 #include <type_traits>
 #include <utility>

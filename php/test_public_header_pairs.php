@@ -622,6 +622,7 @@ function detect_default_build_id(): string
 
     $msystem = getenv('MSYSTEM');
     if (is_string($msystem) && trim($msystem) !== '') {
+        $parts[] = 'windows';
         $parts[] = 'msys2';
         $parts[] = strtolower(trim($msystem));
     } else {

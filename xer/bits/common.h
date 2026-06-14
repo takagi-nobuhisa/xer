@@ -9,6 +9,159 @@
 #define XER_BITS_COMMON_H_INCLUDED_
 
 #include <climits>
+#include <cstddef>
+#include <string>
+
+
+#if defined(_LIBCPP_VERSION)
+namespace std {
+
+/**
+ * @brief Compatibility specialization for std::basic_string<unsigned char> on libc++.
+ *
+ * libc++ does not provide std::char_traits<unsigned char>, while libstdc++
+ * accepts it as an extension. xer supports unsigned char as a byte string
+ * character type, so this specialization keeps that API usable with libc++.
+ */
+template<>
+struct char_traits<unsigned char> {
+    using char_type = unsigned char;
+    using int_type = unsigned int;
+    using off_type = streamoff;
+    using pos_type = streampos;
+    using state_type = mbstate_t;
+    using comparison_category = strong_ordering;
+
+    static constexpr auto assign(char_type& r, const char_type a) noexcept -> void
+    {
+        r = a;
+    }
+
+    [[nodiscard]] static constexpr auto eq(const char_type a, const char_type b) noexcept -> bool
+    {
+        return a == b;
+    }
+
+    [[nodiscard]] static constexpr auto lt(const char_type a, const char_type b) noexcept -> bool
+    {
+        return a < b;
+    }
+
+    [[nodiscard]] static constexpr auto compare(
+        const char_type* s1,
+        const char_type* s2,
+        const size_t n) -> int
+    {
+        for (size_t i = 0; i < n; ++i) {
+            if (lt(s1[i], s2[i])) {
+                return -1;
+            }
+            if (lt(s2[i], s1[i])) {
+                return 1;
+            }
+        }
+
+        return 0;
+    }
+
+    [[nodiscard]] static constexpr auto length(const char_type* s) -> size_t
+    {
+        size_t n = 0;
+        while (!eq(s[n], char_type{})) {
+            ++n;
+        }
+
+        return n;
+    }
+
+    [[nodiscard]] static constexpr auto find(
+        const char_type* s,
+        const size_t n,
+        const char_type a) -> const char_type*
+    {
+        for (size_t i = 0; i < n; ++i) {
+            if (eq(s[i], a)) {
+                return s + i;
+            }
+        }
+
+        return nullptr;
+    }
+
+    static constexpr auto move(
+        char_type* dst,
+        const char_type* src,
+        const size_t n) -> char_type*
+    {
+        if (dst == src || n == 0) {
+            return dst;
+        }
+
+        if (dst < src) {
+            for (size_t i = 0; i < n; ++i) {
+                dst[i] = src[i];
+            }
+        } else {
+            for (size_t i = n; i > 0; --i) {
+                dst[i - 1] = src[i - 1];
+            }
+        }
+
+        return dst;
+    }
+
+    static constexpr auto copy(
+        char_type* dst,
+        const char_type* src,
+        const size_t n) -> char_type*
+    {
+        for (size_t i = 0; i < n; ++i) {
+            dst[i] = src[i];
+        }
+
+        return dst;
+    }
+
+    static constexpr auto assign(
+        char_type* dst,
+        const size_t n,
+        const char_type a) -> char_type*
+    {
+        for (size_t i = 0; i < n; ++i) {
+            dst[i] = a;
+        }
+
+        return dst;
+    }
+
+    [[nodiscard]] static constexpr auto not_eof(const int_type c) noexcept -> int_type
+    {
+        return eq_int_type(c, eof()) ? 0 : c;
+    }
+
+    [[nodiscard]] static constexpr auto to_char_type(const int_type c) noexcept -> char_type
+    {
+        return static_cast<char_type>(c);
+    }
+
+    [[nodiscard]] static constexpr auto to_int_type(const char_type c) noexcept -> int_type
+    {
+        return static_cast<int_type>(c);
+    }
+
+    [[nodiscard]] static constexpr auto eq_int_type(const int_type c1, const int_type c2) noexcept -> bool
+    {
+        return c1 == c2;
+    }
+
+    [[nodiscard]] static constexpr auto eof() noexcept -> int_type
+    {
+        return static_cast<int_type>(-1);
+    }
+};
+
+} // namespace std
+#endif
 
 #if !defined(__cplusplus)
 #    error "xer requires C++."

@@ -17,17 +17,12 @@ declare(strict_types=1);
  *
  *   php run_tests.php
  *   php run_tests.php tests
- *   php run_tests.php test
  *   php run_tests.php examples
- *   php run_tests.php example
  *   php run_tests.php tests examples
  *   php run_tests.php --jobs=8
  *   php run_tests.php --jobs=8 tests examples
  *   php run_tests.php --all
  *   php run_tests.php --clean-cache
- *   php run_tests.php --tc=gcc
- *   php run_tests.php --tc=clang
- *   php run_tests.php --tc=all
  *   php run_tests.php --compiler=clang++
  *   php run_tests.php --build-id=msys2-ucrt64
  *   php run_tests.php tests/test_string.cpp
@@ -171,12 +166,6 @@ function normalize_targets(array $targets): array
             continue;
         }
 
-        $value = match ($value) {
-            'test' => 'tests',
-            'example' => 'examples',
-            default => $value,
-        };
-
         $normalized[] = $value;
     }
 
@@ -317,6 +306,7 @@ function detect_default_build_id(): string
 
     $msystem = getenv('MSYSTEM');
     if (is_string($msystem) && trim($msystem) !== '') {
+        $parts[] = 'windows';
         $parts[] = 'msys2';
         $parts[] = strtolower(trim($msystem));
     } else {
@@ -484,6 +474,70 @@ function split_command_fragment(string $value): array
     return $result;
 }
 
+
+/**
+ * @return array<string, array<string, mixed>>
+ */
+function load_test_toolchains(string $scriptDir): array
+{
+    $path = normalize_path($scriptDir . '/test_toolchains.php');
+    if (!is_file($path)) {
+        return [];
+    }
+
+    $toolchains = require $path;
+    if (!is_array($toolchains)) {
+        fail('Invalid test_toolchains.php: it must return an array.');
+    }
+
+    $result = [];
+    foreach ($toolchains as $name => $entry) {
+        if (!is_string($name) || !is_array($entry)) {
+            fail('Invalid toolchain entry: ' . (string) $name);
+        }
+        $result[$name] = $entry;
+    }
+
+    return $result;
+}
+
+/**
+ * @param array<string, array<string, mixed>> $toolchains
+ * @return array{cxx:string,cxxflags:list<string>,ldflags:list<string>,build_id:string}
+ */
+function resolve_toolchain(string $name, array $toolchains): array
+{
+    if (!isset($toolchains[$name])) {
+        fail('Unknown toolchain: ' . $name);
+    }
+
+    $entry = $toolchains[$name];
+    $compiler = $entry['compiler'] ?? null;
+    if (!is_string($compiler) || trim($compiler) === '') {
+        fail('Invalid compiler for toolchain: ' . $name);
+    }
+
+    $cxxflags = $entry['cxxflags'] ?? [];
+    $ldflags = $entry['ldflags'] ?? [];
+    if (!is_array($cxxflags) || !is_array($ldflags)) {
+        fail('Invalid flags for toolchain: ' . $name);
+    }
+
+    $platform = $entry['platform'] ?? 'auto';
+    if (!is_string($platform) || trim($platform) === '' || $platform === 'auto') {
+        $platform = detect_default_build_id();
+    } else {
+        $platform = sanitize_build_id($platform);
+    }
+
+    return [
+        'cxx' => $compiler,
+        'cxxflags' => array_values(array_map('strval', $cxxflags)),
+        'ldflags' => array_values(array_map('strval', $ldflags)),
+        'build_id' => sanitize_build_id($platform . '/' . $name),
+    ];
+}
+
 /**
  * @param list<string> $argv
  * @return array{
@@ -494,10 +548,7 @@ function split_command_fragment(string $value): array
  *   ldflags:list<string>,
  *   jobs:int,
  *   build_id:string,
- *   toolchain:string,
- *   compiler_explicit:bool,
- *   cxxflags_explicit:bool,
- *   ldflags_explicit:bool,
+ *   toolchain:string|null,
  *   tcltk_cflags:list<string>,
  *   tcltk_libs:list<string>,
  *   icu_cflags:list<string>,
@@ -521,13 +572,7 @@ function parse_arguments(array $argv): array
     $icuLibs = split_command_fragment(getenv('XER_TEST_ICU_LIBS') ?: '');
     $jobs = detect_default_jobs();
     $buildId = detect_default_build_id();
-    $toolchain = getenv('XER_TEST_TOOLCHAIN');
-    if (!is_string($toolchain) || trim($toolchain) === '') {
-        $toolchain = 'gcc';
-    }
-    $compilerExplicit = false;
-    $cxxflagsExplicit = false;
-    $ldflagsExplicit = false;
+    $toolchain = null;
     $targets = [];
     $sourceSelectors = [];
     $all = false;
@@ -560,12 +605,19 @@ function parse_arguments(array $argv): array
             continue;
         }
 
+        if ($arg === '--diagnose' || $arg === '--verbose') {
+            continue;
+        }
+
+        if (str_starts_with($arg, '--timeout=')) {
+            continue;
+        }
+
         if (str_starts_with($arg, '--compiler=')) {
             $cxx = substr($arg, strlen('--compiler='));
             if (trim($cxx) === '') {
                 fail('Invalid --compiler value.');
             }
-            $compilerExplicit = true;
             continue;
         }
 
@@ -574,19 +626,16 @@ function parse_arguments(array $argv): array
             if (trim($cxx) === '') {
                 fail('Invalid --cxx value.');
             }
-            $compilerExplicit = true;
             continue;
         }
 
         if (str_starts_with($arg, '--cxxflags=')) {
             $cxxflags = split_command_fragment(substr($arg, strlen('--cxxflags=')));
-            $cxxflagsExplicit = true;
             continue;
         }
 
         if (str_starts_with($arg, '--ldflags=')) {
             $ldflags = split_command_fragment(substr($arg, strlen('--ldflags=')));
-            $ldflagsExplicit = true;
             continue;
         }
 
@@ -625,6 +674,10 @@ function parse_arguments(array $argv): array
             continue;
         }
 
+        if (str_starts_with($arg, '--')) {
+            fail('Unknown option: ' . $arg);
+        }
+
         $targets[] = $arg;
     }
 
@@ -637,9 +690,6 @@ function parse_arguments(array $argv): array
         'jobs' => $jobs,
         'build_id' => $buildId,
         'toolchain' => $toolchain,
-        'compiler_explicit' => $compilerExplicit,
-        'cxxflags_explicit' => $cxxflagsExplicit,
-        'ldflags_explicit' => $ldflagsExplicit,
         'tcltk_cflags' => $tcltkCflags,
         'tcltk_libs' => $tcltkLibs,
         'icu_cflags' => $icuCflags,
@@ -647,105 +697,6 @@ function parse_arguments(array $argv): array
         'targets' => normalize_targets($targets),
         'source_selectors' => normalize_source_selectors($sourceSelectors),
     ];
-}
-
-
-/**
- * @return array<string, array<string, mixed>>
- */
-function load_test_toolchains(string $scriptDir): array
-{
-    $path = normalize_path($scriptDir . '/test_toolchains.php');
-    if (!is_file($path)) {
-        return [
-            'gcc' => [
-                'compiler' => 'g++',
-                'cxxflags' => [],
-                'ldflags' => [],
-            ],
-        ];
-    }
-
-    $toolchains = require $path;
-    if (!is_array($toolchains)) {
-        fail('Invalid toolchain configuration: ' . $path);
-    }
-
-    foreach ($toolchains as $name => $config) {
-        if (!is_string($name) || trim($name) === '') {
-            fail('Invalid toolchain name in: ' . $path);
-        }
-        if (!is_array($config)) {
-            fail('Invalid toolchain entry: ' . $name);
-        }
-        if (!isset($config['compiler']) || !is_string($config['compiler']) || trim($config['compiler']) === '') {
-            fail('Toolchain compiler is missing: ' . $name);
-        }
-    }
-
-    return $toolchains;
-}
-
-/**
- * @param array<string, mixed> $parsed
- * @param array<string, mixed> $config
- * @return array<string, mixed>
- */
-function apply_toolchain_config(array $parsed, array $config): array
-{
-    if (($parsed['compiler_explicit'] ?? false) !== true) {
-        $parsed['cxx'] = (string) $config['compiler'];
-    }
-
-    if (($parsed['cxxflags_explicit'] ?? false) !== true) {
-        $parsed['cxxflags'] = array_values($config['cxxflags'] ?? []);
-    }
-
-    if (($parsed['ldflags_explicit'] ?? false) !== true) {
-        $parsed['ldflags'] = array_values($config['ldflags'] ?? []);
-    }
-
-    return $parsed;
-}
-
-/**
- * @param list<string> $argv
- * @param list<string> $toolchainNames
- * @return never
- */
-function run_all_toolchains(array $argv, array $toolchainNames): never
-{
-    $php = PHP_BINARY;
-    $script = $argv[0] ?? 'run_tests.php';
-    $baseArgs = [];
-
-    foreach (array_slice($argv, 1) as $arg) {
-        if ($arg === '--tc=all' || $arg === '--toolchain=all') {
-            continue;
-        }
-        if (str_starts_with($arg, '--tc=') || str_starts_with($arg, '--toolchain=')) {
-            continue;
-        }
-        $baseArgs[] = $arg;
-    }
-
-    $overallExitCode = EXIT_SUCCESS_CODE;
-
-    foreach ($toolchainNames as $toolchainName) {
-        echo PHP_EOL;
-        echo '############################################################' . PHP_EOL;
-        echo 'Toolchain: ' . $toolchainName . PHP_EOL;
-        echo '############################################################' . PHP_EOL;
-
-        $command = array_merge([$php, $script, '--tc=' . $toolchainName], $baseArgs);
-        passthru(format_command_line($command), $exitCode);
-
-        if ($exitCode !== EXIT_SUCCESS_CODE) {
-            $overallExitCode = EXIT_FAILURE_CODE;
-        }
-    }
-
-    exit($overallExitCode);
 }
 
 /**
@@ -1753,7 +1704,6 @@ function build_tasks(array $targets, string $buildRoot, string $projectRoot, arr
         }
 
         $buildDir = normalize_path($buildRoot . '/' . $target);
-        $relativeBuildRoot = normalize_path('build/' . basename(dirname($buildRoot)) . '/' . basename($buildRoot));
         $exeDir = normalize_path($buildDir . '/bin');
         $logDir = normalize_path($buildDir . '/log');
         $workBaseDir = normalize_path($buildDir . '/work');
@@ -1792,9 +1742,9 @@ function build_tasks(array $targets, string $buildRoot, string $projectRoot, arr
                 'work_dir' => $workDir,
                 'cache_file' => $cacheFile,
                 'dependency_mtime' => $dependencyMtime,
-                'relative_compile_log' => normalize_path('./' . $relativeBuildRoot . '/' . $target . '/log/' . $baseName . '.compile.log'),
-                'relative_run_log' => normalize_path('./' . $relativeBuildRoot . '/' . $target . '/log/' . $baseName . '.run.log'),
-                'relative_work_dir' => normalize_path('./' . $relativeBuildRoot . '/' . $target . '/work/' . $baseName),
+                'relative_compile_log' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/log/' . $baseName . '.compile.log'),
+                'relative_run_log' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/log/' . $baseName . '.run.log'),
+                'relative_work_dir' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/work/' . $baseName),
                 'features' => $features,
                 'feature_cflags' => collect_feature_cflags($features, $featureOptions),
                 'feature_libs' => collect_feature_libs($features, $featureOptions),
@@ -2207,20 +2157,43 @@ if (!function_exists('proc_open')) {
 
 $parsed = parse_arguments($argv);
 $toolchains = load_test_toolchains($scriptDir);
-$selectedToolchain = (string) $parsed['toolchain'];
+if ($parsed['toolchain'] !== null) {
+    if ($parsed['toolchain'] === 'all') {
+        $names = array_keys($toolchains);
+        if ($names === []) {
+            fail('No toolchains are defined.');
+        }
+        $baseArgs = [];
+        foreach (array_slice($argv, 1) as $arg) {
+            if (str_starts_with($arg, '--tc=') || str_starts_with($arg, '--toolchain=')) {
+                continue;
+            }
+            $baseArgs[] = $arg;
+        }
+        $overall = EXIT_SUCCESS_CODE;
+        foreach ($names as $name) {
+            echo '============================================================' . PHP_EOL;
+            echo '[TOOLCHAIN] ' . $name . PHP_EOL;
+            $command = array_merge([PHP_BINARY, __FILE__, '--tc=' . $name], $baseArgs);
+            $result = run_command($command, $scriptDir);
+            if ($result['output'] !== '') {
+                echo $result['output'] . PHP_EOL;
+            }
+            if ($result['exit_code'] !== 0) {
+                $overall = EXIT_FAILURE_CODE;
+            }
+        }
+        exit($overall);
+    }
 
-if ($selectedToolchain === 'all') {
-    run_all_toolchains($argv, array_keys($toolchains));
+    $resolved = resolve_toolchain($parsed['toolchain'], $toolchains);
+    $parsed['cxx'] = $resolved['cxx'];
+    $parsed['cxxflags'] = $resolved['cxxflags'];
+    $parsed['ldflags'] = $resolved['ldflags'];
+    $parsed['build_id'] = $resolved['build_id'];
 }
-
-if (!isset($toolchains[$selectedToolchain])) {
-    fail('Unknown toolchain: ' . $selectedToolchain);
-}
-
-$parsed = apply_toolchain_config($parsed, $toolchains[$selectedToolchain]);
-
 $buildId = $parsed['build_id'];
-$buildRoot = normalize_path($scriptDir . '/build/' . $buildId . '/' . $selectedToolchain);
+$buildRoot = normalize_path($scriptDir . '/build/' . $buildId);
 if ($parsed['clean_cache']) {
     remove_tree($buildRoot);
 }
@@ -2261,7 +2234,6 @@ $skippedPrograms = [];
 echo '############################################################' . PHP_EOL;
 echo 'Parallel test runner' . PHP_EOL;
 echo '############################################################' . PHP_EOL;
-echo 'Toolchain       : ' . $selectedToolchain . PHP_EOL;
 echo 'Compiler        : ' . $options['cxx'] . PHP_EOL;
 echo 'Build ID        : ' . $buildId . PHP_EOL;
 echo 'Build root      : ' . $buildRoot . PHP_EOL;
