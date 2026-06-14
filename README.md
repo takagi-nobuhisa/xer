@@ -73,11 +73,12 @@ Current supported and tested environments:
 - Ubuntu with GCC
 - Ubuntu with Clang and libc++
 - MSYS2 UCRT64 with GCC
+- MSYS2 CLANG64 with Clang
 
 Current platform scope:
 
 - Linux through Ubuntu
-- Windows through MSYS2 UCRT64
+- Windows through MSYS2 UCRT64 and CLANG64
 
 Current Windows version target:
 
@@ -96,7 +97,7 @@ On Ubuntu, Clang testing assumes libc++ and libc++abi. For Ubuntu 24.04 with Cla
 sudo apt install libc++-18-dev libc++abi-18-dev
 ```
 
-Visual C++ is not an official target yet. Windows Clang support is also deferred; the current Clang target is Ubuntu with libc++.
+Visual C++ is not an official target yet. Windows support now includes MSYS2 CLANG64. Native Visual C++ and clang-cl remain future work.
 
 ## Key characteristics
 

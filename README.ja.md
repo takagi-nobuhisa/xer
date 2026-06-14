@@ -76,11 +76,12 @@ xer は開発中のライブラリです。
 - GCC を用いる Ubuntu
 - Clang と libc++ を用いる Ubuntu
 - GCC を用いる MSYS2 UCRT64
+- Clang を用いる MSYS2 CLANG64
 
 対象プラットフォームの範囲は次のとおりです。
 
 - Ubuntu による Linux
-- MSYS2 UCRT64 による Windows
+- MSYS2 UCRT64 および CLANG64 による Windows
 
 Windows の対象バージョンは、現時点では **Windows 11 以降**です。
 
@@ -97,7 +98,7 @@ Ubuntu で Clang を用いたテストを行う場合は、libc++ と libc++abi 
 sudo apt install libc++-18-dev libc++abi-18-dev
 ```
 
-Visual C++ は現時点では正式対象ではありません。Windows 上の Clang 対応も今後の課題とし、現在の Clang 対象は Ubuntu と libc++ の組み合わせに限定します。
+Visual C++ は現時点では正式対象ではありません。Windows 上の Clang は MSYS2 CLANG64 に対応しています。Visual C++ および clang-cl 対応は今後の課題です。
 
 ## 特徴
 
