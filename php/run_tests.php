@@ -1837,6 +1837,7 @@ function probe_tcltk_candidate(array $options, array $candidate, string $scriptD
         options: $options,
         sourceFile: $sourceFile,
         executable: $executable,
+        objectFile: normalize_path($probeDir . '/tcltk_probe.obj'),
         extraCflags: $candidate['cflags'],
         extraLibs: $candidate['libs']
     );
@@ -1875,6 +1876,7 @@ function probe_icu_candidate(array $options, array $candidate, string $scriptDir
         options: $options,
         sourceFile: $sourceFile,
         executable: $executable,
+        objectFile: normalize_path($probeDir . '/icu_probe.obj'),
         extraCflags: $candidate['cflags'],
         extraLibs: $candidate['libs']
     );
@@ -1914,6 +1916,7 @@ function probe_zlib_candidate(array $options, array $candidate, string $scriptDi
         options: $options,
         sourceFile: $sourceFile,
         executable: $executable,
+        objectFile: normalize_path($probeDir . '/zlib_probe.obj'),
         extraCflags: $candidate['cflags'],
         extraLibs: $candidate['libs']
     );
@@ -2127,6 +2130,7 @@ function build_compile_command(array $task, array $options): array
         options: $options,
         sourceFile: $task['source_file'],
         executable: $task['executable'],
+        objectFile: $task['object_file'] ?? null,
         extraCflags: array_merge(['-I..'], $task['feature_cflags']),
         extraLibs: $task['feature_libs']
     );
@@ -2138,15 +2142,20 @@ function build_compile_command(array $task, array $options): array
  * @param list<string> $extraLibs
  * @return list<string>
  */
-function build_executable_command(array $options, string $sourceFile, string $executable, array $extraCflags = [], array $extraLibs = []): array
+function build_executable_command(array $options, string $sourceFile, string $executable, ?string $objectFile = null, array $extraCflags = [], array $extraLibs = []): array
 {
     if (is_msvc_like_style($options)) {
         $linkArgs = convert_link_args_for_msvc(array_merge($extraLibs, $options['ldflags']));
+        $outputArgs = [$sourceFile, '/Fe:' . $executable];
+        if ($objectFile !== null && $objectFile !== '') {
+            $outputArgs[] = '/Fo:' . $objectFile;
+        }
+
         $command = array_merge(
             [$options['cxx'], '/nologo', '/std:c++latest', '/Zc:__cplusplus', '/EHsc', '/utf-8'],
             $options['cxxflags'],
             convert_cflags_for_msvc($extraCflags),
-            [$sourceFile, '/Fe:' . $executable]
+            $outputArgs
         );
 
         if ($linkArgs !== []) {
@@ -2495,12 +2504,14 @@ function build_tasks(array $targets, string $buildRoot, string $projectRoot, arr
         $logDir = normalize_path($buildDir . '/log');
         $workBaseDir = normalize_path($buildDir . '/work');
         $cacheDir = normalize_path($buildDir . '/cache');
+        $objDir = normalize_path($buildDir . '/obj');
 
         ensure_directory($buildDir);
         ensure_directory($exeDir);
         ensure_directory($logDir);
         ensure_directory($workBaseDir);
         ensure_directory($cacheDir);
+        ensure_directory($objDir);
 
         $targetTotals[$target] = count($sourceFiles);
 
@@ -2511,6 +2522,7 @@ function build_tasks(array $targets, string $buildRoot, string $projectRoot, arr
             $runLog = normalize_path($logDir . '/' . $baseName . '.run.log');
             $workDir = normalize_path($workBaseDir . '/' . $baseName);
             $cacheFile = normalize_path($cacheDir . '/' . $baseName . '.json');
+            $objectFile = normalize_path($objDir . '/' . $baseName . '.obj');
             $features = detect_source_features($sourceFile);
             $dependencyMtime = max((int) (filemtime($sourceFile) ?: 0), $headerMtime);
 
@@ -2528,6 +2540,7 @@ function build_tasks(array $targets, string $buildRoot, string $projectRoot, arr
                 'run_log' => $runLog,
                 'work_dir' => $workDir,
                 'cache_file' => $cacheFile,
+                'object_file' => $objectFile,
                 'dependency_mtime' => $dependencyMtime,
                 'relative_compile_log' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/log/' . $baseName . '.compile.log'),
                 'relative_run_log' => normalize_path('./build/' . basename($buildRoot) . '/' . $target . '/log/' . $baseName . '.run.log'),
