@@ -1,6 +1,6 @@
 # リファレンスマニュアル対訳表
 
-対象バージョン: **v1.1.0a2**
+対象バージョン: **v1.1.0a3**
 
 この文書は、`docs/xer_reference_manual_en.md` と `docs/xer_reference_manual_ja.md` の表記ゆれを抑えるための対訳表です。
 
