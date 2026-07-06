@@ -32,9 +32,12 @@ inline constexpr bool is_canonical_integer_v =
     std::same_as<T, long> ||
     std::same_as<T, unsigned long> ||
     std::same_as<T, long long> ||
-    std::same_as<T, unsigned long long> ||
-    std::same_as<T, xer::int128_t> ||
-    std::same_as<T, xer::uint128_t>;
+    std::same_as<T, unsigned long long>
+#if defined(XER_HAS_INT128)
+    || std::same_as<T, xer::int128_t>
+    || std::same_as<T, xer::uint128_t>
+#endif
+    ;
 
 /**
  * @brief Integer types forwarded to canonical public overloads.
@@ -66,9 +69,15 @@ using forwarded_integer_t = std::conditional_t<
 /**
  * @brief Mathematical integer represented by sign and magnitude.
  */
+#if defined(XER_HAS_INT128)
+using integer_magnitude_t = xer::uint128_t;
+#else
+using integer_magnitude_t = xer::uint64_t;
+#endif
+
 struct integer_value {
     bool negative;
-    xer::uint128_t magnitude;
+    integer_magnitude_t magnitude;
 };
 
 /**
@@ -105,19 +114,19 @@ template<typename T>
     if constexpr (std::unsigned_integral<T>) {
         return integer_value{
             false,
-            static_cast<xer::uint128_t>(value),
+            static_cast<integer_magnitude_t>(value),
         };
     } else {
         if (value >= 0) {
             return integer_value{
                 false,
-                static_cast<xer::uint128_t>(value),
+                static_cast<integer_magnitude_t>(value),
             };
         }
 
         return integer_value{
             true,
-            static_cast<xer::uint128_t>(-(value + 1)) + 1,
+            static_cast<integer_magnitude_t>(-(value + 1)) + 1,
         };
     }
 }
@@ -150,8 +159,8 @@ template<typename T>
     integer_value rhs) noexcept -> result<integer_value>
 {
     if (lhs.negative == rhs.negative) {
-        const xer::uint128_t max_value =
-            std::numeric_limits<xer::uint128_t>::max();
+        const integer_magnitude_t max_value =
+            (std::numeric_limits<integer_magnitude_t>::max)();
 
         if (max_value - lhs.magnitude < rhs.magnitude) {
             return std::unexpected(make_arithmetic_overflow_error());
@@ -209,8 +218,8 @@ template<typename T>
         return integer_value{false, 0};
     }
 
-    const xer::uint128_t max_value =
-        std::numeric_limits<xer::uint128_t>::max();
+    const integer_magnitude_t max_value =
+        (std::numeric_limits<integer_magnitude_t>::max)();
 
     if (lhs.magnitude > max_value / rhs.magnitude) {
         return std::unexpected(make_arithmetic_overflow_error());
@@ -231,9 +240,9 @@ template<typename T>
 [[nodiscard]] constexpr result<xer::int64_t>
 to_signed_result(integer_value value) noexcept
 {
-    constexpr xer::uint128_t positive_limit =
-        static_cast<xer::uint128_t>(std::numeric_limits<xer::int64_t>::max());
-    constexpr xer::uint128_t negative_limit = positive_limit + 1;
+    constexpr integer_magnitude_t positive_limit =
+        static_cast<integer_magnitude_t>((std::numeric_limits<xer::int64_t>::max)());
+    constexpr integer_magnitude_t negative_limit = positive_limit + 1;
 
     if (!value.negative) {
         if (value.magnitude > positive_limit) {
@@ -267,8 +276,8 @@ to_unsigned_result(integer_value value) noexcept
         return std::unexpected(make_arithmetic_out_of_range_error());
     }
 
-    constexpr xer::uint128_t positive_limit =
-        static_cast<xer::uint128_t>(std::numeric_limits<xer::uint64_t>::max());
+    constexpr integer_magnitude_t positive_limit =
+        static_cast<integer_magnitude_t>((std::numeric_limits<xer::uint64_t>::max)());
 
     if (value.magnitude > positive_limit) {
         return std::unexpected(make_arithmetic_out_of_range_error());
@@ -391,6 +400,9 @@ template<typename A, typename B>
     const auto result =
         mul_integer_value(to_integer_value(lhs), to_integer_value(rhs));
     if (!result) {
+        if (result.error().code == error_t::overflow_error) {
+            return std::unexpected(make_arithmetic_out_of_range_error());
+        }
         return std::unexpected(result.error());
     }
 
@@ -415,6 +427,9 @@ template<typename A, typename B>
     const auto result =
         mul_integer_value(to_integer_value(lhs), to_integer_value(rhs));
     if (!result) {
+        if (result.error().code == error_t::overflow_error) {
+            return std::unexpected(make_arithmetic_out_of_range_error());
+        }
         return std::unexpected(result.error());
     }
 
@@ -474,8 +489,6 @@ XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(int, long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(int, unsigned long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(int, long long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(int, unsigned long long)
-XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(int, xer::int128_t)
-XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(int, xer::uint128_t)
 
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned int, int)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned int, unsigned int)
@@ -483,8 +496,6 @@ XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned int, long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned int, unsigned long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned int, long long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned int, unsigned long long)
-XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned int, xer::int128_t)
-XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned int, xer::uint128_t)
 
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long, int)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long, unsigned int)
@@ -492,8 +503,6 @@ XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long, long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long, unsigned long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long, long long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long, unsigned long long)
-XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long, xer::int128_t)
-XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long, xer::uint128_t)
 
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long, int)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long, unsigned int)
@@ -501,8 +510,6 @@ XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long, long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long, unsigned long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long, long long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long, unsigned long long)
-XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long, xer::int128_t)
-XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long, xer::uint128_t)
 
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long long, int)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long long, unsigned int)
@@ -510,8 +517,6 @@ XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long long, long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long long, unsigned long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long long, long long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long long, unsigned long long)
-XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long long, xer::int128_t)
-XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long long, xer::uint128_t)
 
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long long, int)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long long, unsigned int)
@@ -519,6 +524,23 @@ XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long long, long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long long, unsigned long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long long, long long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long long, unsigned long long)
+
+#if defined(XER_HAS_INT128)
+XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(int, xer::int128_t)
+XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(int, xer::uint128_t)
+
+XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned int, xer::int128_t)
+XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned int, xer::uint128_t)
+
+XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long, xer::int128_t)
+XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long, xer::uint128_t)
+
+XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long, xer::int128_t)
+XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long, xer::uint128_t)
+
+XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long long, xer::int128_t)
+XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(long long, xer::uint128_t)
+
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long long, xer::int128_t)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(unsigned long long, xer::uint128_t)
 
@@ -539,6 +561,9 @@ XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(xer::uint128_t, long long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(xer::uint128_t, unsigned long long)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(xer::uint128_t, xer::int128_t)
 XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR(xer::uint128_t, xer::uint128_t)
+
+#endif
+
 
 #undef XER_DETAIL_DECLARE_BASIC_ARITHMETIC_PAIR
 

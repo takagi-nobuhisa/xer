@@ -92,7 +92,7 @@ template<typename CharT>
     std::basic_string<CharT>& output,
     const char32_t value) -> result<void>
 {
-    if (value > static_cast<char32_t>(std::numeric_limits<unsigned char>::max())) {
+    if (value > static_cast<char32_t>((std::numeric_limits<unsigned char>::max)())) {
         return std::unexpected(make_error(error_t::encoding_error));
     }
 

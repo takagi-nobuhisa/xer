@@ -114,9 +114,9 @@ struct floating_parse_result {
     long double result = value;
 
     if (exponent > 0) {
-        while (exponent > static_cast<long long>(std::numeric_limits<int>::max())) {
-            result = std::ldexp(result, std::numeric_limits<int>::max());
-            exponent -= static_cast<long long>(std::numeric_limits<int>::max());
+        while (exponent > static_cast<long long>((std::numeric_limits<int>::max)())) {
+            result = std::ldexp(result, (std::numeric_limits<int>::max)());
+            exponent -= static_cast<long long>((std::numeric_limits<int>::max)());
         }
 
         result = std::ldexp(result, static_cast<int>(exponent));
@@ -235,7 +235,7 @@ template<strto_floating_point T, strto_character CharT>
     const int digit_base = hexadecimal ? 16 : 10;
     const long double digit_base_ld = static_cast<long double>(digit_base);
     const long double accumulation_limit =
-        std::numeric_limits<long double>::max() / digit_base_ld;
+        (std::numeric_limits<long double>::max)() / digit_base_ld;
 
     long double significand = 0.0L;
     long long exponent_adjust = 0;
@@ -319,7 +319,7 @@ template<strto_floating_point T, strto_character CharT>
             bool has_exponent_digits = false;
             long long exponent_value = 0;
             constexpr long long exponent_limit =
-                std::numeric_limits<long long>::max() / 10;
+                (std::numeric_limits<long long>::max)() / 10;
 
             while (pos < str.size() &&
                    str[pos] >= ascii_char<CharT>('0') &&
@@ -328,11 +328,11 @@ template<strto_floating_point T, strto_character CharT>
                 const int digit = static_cast<int>(str[pos] - ascii_char<CharT>('0'));
 
                 if (exponent_value > exponent_limit) {
-                    exponent_value = std::numeric_limits<long long>::max();
+                    exponent_value = (std::numeric_limits<long long>::max)();
                 } else {
                     exponent_value = exponent_value * 10 + static_cast<long long>(digit);
                     if (exponent_value < 0) {
-                        exponent_value = std::numeric_limits<long long>::max();
+                        exponent_value = (std::numeric_limits<long long>::max)();
                     }
                 }
 
@@ -351,16 +351,16 @@ template<strto_floating_point T, strto_character CharT>
     long long total_exponent = explicit_exponent;
 
     if (hexadecimal) {
-        if (exponent_adjust > std::numeric_limits<long long>::max() / 4) {
-            total_exponent = std::numeric_limits<long long>::max();
+        if (exponent_adjust > (std::numeric_limits<long long>::max)() / 4) {
+            total_exponent = (std::numeric_limits<long long>::max)();
         } else if (exponent_adjust < std::numeric_limits<long long>::min() / 4) {
             total_exponent = std::numeric_limits<long long>::min();
         } else {
             const long long binary_adjust = exponent_adjust * 4;
 
             if (binary_adjust > 0 &&
-                total_exponent > std::numeric_limits<long long>::max() - binary_adjust) {
-                total_exponent = std::numeric_limits<long long>::max();
+                total_exponent > (std::numeric_limits<long long>::max)() - binary_adjust) {
+                total_exponent = (std::numeric_limits<long long>::max)();
             } else if (binary_adjust < 0 &&
                        total_exponent < std::numeric_limits<long long>::min() - binary_adjust) {
                 total_exponent = std::numeric_limits<long long>::min();
@@ -370,8 +370,8 @@ template<strto_floating_point T, strto_character CharT>
         }
     } else {
         if (exponent_adjust > 0 &&
-            total_exponent > std::numeric_limits<long long>::max() - exponent_adjust) {
-            total_exponent = std::numeric_limits<long long>::max();
+            total_exponent > (std::numeric_limits<long long>::max)() - exponent_adjust) {
+            total_exponent = (std::numeric_limits<long long>::max)();
         } else if (exponent_adjust < 0 &&
                    total_exponent < std::numeric_limits<long long>::min() - exponent_adjust) {
             total_exponent = std::numeric_limits<long long>::min();
@@ -393,7 +393,7 @@ template<strto_floating_point T, strto_character CharT>
     using value_type = std::remove_cv_t<T>;
 
     if (abs_value != 0.0L &&
-        abs_value > static_cast<long double>(std::numeric_limits<value_type>::max())) {
+        abs_value > static_cast<long double>((std::numeric_limits<value_type>::max)())) {
         return std::unexpected(make_error(error_t::range));
     }
 

@@ -33,9 +33,9 @@ class interval {
     static_assert(Min == Min);
     static_assert(Max == Max);
     static_assert(Min >= std::numeric_limits<T>::lowest());
-    static_assert(Min <= std::numeric_limits<T>::max());
+    static_assert(Min <= (std::numeric_limits<T>::max)());
     static_assert(Max >= std::numeric_limits<T>::lowest());
-    static_assert(Max <= std::numeric_limits<T>::max());
+    static_assert(Max <= (std::numeric_limits<T>::max)());
     static_assert(Min < Max);
 
 public:
@@ -190,7 +190,7 @@ public:
     constexpr auto operator/=(interval value) -> interval&
     {
         if (value.value_ == static_cast<T>(0)) {
-            std::__throw_domain_error("xer::interval division by zero");
+            throw std::domain_error("xer::interval division by zero");
         }
         value_ = normalize(value_ / value.value_);
         return *this;
@@ -244,7 +244,7 @@ public:
     {
         const T divisor = validate(value);
         if (divisor == static_cast<T>(0)) {
-            std::__throw_domain_error("xer::interval division by zero");
+            throw std::domain_error("xer::interval division by zero");
         }
         value_ = normalize(value_ / divisor);
         return *this;
@@ -290,8 +290,8 @@ private:
     {
         if (!(value == value) ||
             value < std::numeric_limits<T>::lowest() ||
-            std::numeric_limits<T>::max() < value) {
-            std::__throw_domain_error(
+            (std::numeric_limits<T>::max)() < value) {
+            throw std::domain_error(
                 "xer::interval cannot store NaN or infinity");
         }
         return value;

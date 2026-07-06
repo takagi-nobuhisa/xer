@@ -70,7 +70,7 @@ struct signed_integer_of_size<8> {
     using type = xer::int64_t;
 };
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 template<>
 struct signed_integer_of_size<16> {
     using type = xer::int128_t;

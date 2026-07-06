@@ -456,7 +456,7 @@ struct kansuji_token {
     const std::uint16_t group,
     const std::uint64_t multiplier) -> result<void>
 {
-    const auto max = std::numeric_limits<std::uint64_t>::max();
+    const auto max = (std::numeric_limits<std::uint64_t>::max)();
     if (group > max / multiplier) {
         return std::unexpected(make_error(error_t::overflow_error));
     }
@@ -546,7 +546,7 @@ struct kansuji_token {
 
     std::uint64_t total = 0;
     std::size_t group_first = 0;
-    std::uint64_t previous_large_unit = std::numeric_limits<std::uint64_t>::max();
+    std::uint64_t previous_large_unit = (std::numeric_limits<std::uint64_t>::max)();
     bool has_large_unit = false;
 
     for (std::size_t index = 0; index < tokens.size(); ++index) {

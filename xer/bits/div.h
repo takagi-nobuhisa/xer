@@ -62,9 +62,12 @@ inline constexpr bool is_canonical_div_integer_v =
     std::same_as<T, long> ||
     std::same_as<T, unsigned long> ||
     std::same_as<T, long long> ||
-    std::same_as<T, unsigned long long> ||
-    std::same_as<T, xer::int128_t> ||
-    std::same_as<T, xer::uint128_t>;
+    std::same_as<T, unsigned long long>
+#if defined(XER_HAS_INT128)
+    || std::same_as<T, xer::int128_t>
+    || std::same_as<T, xer::uint128_t>
+#endif
+    ;
 
 /**
  * @brief Integer types forwarded to canonical public overloads.
@@ -100,6 +103,7 @@ using forwarded_div_integer_t = std::conditional_t<
  * @tparam B Right-hand side type.
  */
 template<typename A, typename B>
+#if defined(XER_HAS_INT128)
 using signed_div_result_t = std::conditional_t<
     std::same_as<A, xer::int128_t> || std::same_as<B, xer::int128_t> ||
         std::same_as<A, xer::uint128_t> || std::same_as<B, xer::uint128_t>,
@@ -113,6 +117,17 @@ using signed_div_result_t = std::conditional_t<
                 std::same_as<A, unsigned long> || std::same_as<B, unsigned long>,
             long,
             int>>>;
+#else
+using signed_div_result_t = std::conditional_t<
+    std::same_as<A, long long> || std::same_as<B, long long> ||
+        std::same_as<A, unsigned long long> || std::same_as<B, unsigned long long>,
+    long long,
+    std::conditional_t<
+        std::same_as<A, long> || std::same_as<B, long> ||
+            std::same_as<A, unsigned long> || std::same_as<B, unsigned long>,
+        long,
+        int>>;
+#endif
 
 /**
  * @brief Common unsigned integer type used for mixed unsigned arithmetic.
@@ -153,6 +168,12 @@ using unsigned_div_result_t = make_unsigned_ex_t<signed_div_result_t<A, B>>;
     return make_error(error_t::dom);
 }
 
+#if defined(XER_HAS_INT128)
+using div_magnitude_t = xer::uint128_t;
+#else
+using div_magnitude_t = xer::uint64_t;
+#endif
+
 /**
  * @brief Converts an integer value to sign and magnitude.
  *
@@ -162,17 +183,17 @@ using unsigned_div_result_t = make_unsigned_ex_t<signed_div_result_t<A, B>>;
  */
 template<typename T>
     requires(is_canonical_div_integer_v<T>)
-[[nodiscard]] constexpr auto to_sign_magnitude(T value) noexcept -> std::pair<bool, xer::uint128_t> {
+[[nodiscard]] constexpr auto to_sign_magnitude(T value) noexcept -> std::pair<bool, div_magnitude_t> {
     if constexpr (is_unsigned_integer_ex_v<T>) {
-        return {false, static_cast<xer::uint128_t>(value)};
+        return {false, static_cast<div_magnitude_t>(value)};
     } else {
         if (value >= 0) {
-            return {false, static_cast<xer::uint128_t>(value)};
+            return {false, static_cast<div_magnitude_t>(value)};
         }
 
         return {
             true,
-            static_cast<xer::uint128_t>(-(value + 1)) + 1,
+            static_cast<div_magnitude_t>(-(value + 1)) + 1,
         };
     }
 }
@@ -189,10 +210,10 @@ template<typename T>
     requires(is_signed_integer_ex_v<T>)
 [[nodiscard]] constexpr auto from_sign_magnitude_signed(
     bool negative,
-    xer::uint128_t magnitude) noexcept -> result<T> {
-    constexpr xer::uint128_t positive_limit =
-        static_cast<xer::uint128_t>(std::numeric_limits<T>::max());
-    constexpr xer::uint128_t negative_limit = positive_limit + 1;
+    div_magnitude_t magnitude) noexcept -> result<T> {
+    constexpr div_magnitude_t positive_limit =
+        static_cast<div_magnitude_t>((std::numeric_limits<T>::max)());
+    constexpr div_magnitude_t negative_limit = positive_limit + 1;
 
     if (!negative) {
         if (magnitude > positive_limit) {
@@ -223,9 +244,9 @@ template<typename T>
 template<typename T>
     requires(is_unsigned_integer_ex_v<T>)
 [[nodiscard]] constexpr auto from_magnitude_unsigned(
-    xer::uint128_t magnitude) noexcept -> result<T> {
-    constexpr xer::uint128_t positive_limit =
-        static_cast<xer::uint128_t>(std::numeric_limits<T>::max());
+    div_magnitude_t magnitude) noexcept -> result<T> {
+    constexpr div_magnitude_t positive_limit =
+        static_cast<div_magnitude_t>((std::numeric_limits<T>::max)());
 
     if (magnitude > positive_limit) {
         return std::unexpected(make_div_out_of_range_error());
@@ -242,8 +263,8 @@ template<typename T>
  * @return Quotient and remainder magnitudes.
  */
 [[nodiscard]] constexpr auto divide_magnitude(
-    xer::uint128_t lhs_mag,
-    xer::uint128_t rhs_mag) noexcept -> std::pair<xer::uint128_t, xer::uint128_t> {
+    div_magnitude_t lhs_mag,
+    div_magnitude_t rhs_mag) noexcept -> std::pair<div_magnitude_t, div_magnitude_t> {
     return {lhs_mag / rhs_mag, lhs_mag % rhs_mag};
 }
 
@@ -386,8 +407,6 @@ XER_DETAIL_DECLARE_DIV_PAIR(int, long)
 XER_DETAIL_DECLARE_DIV_PAIR(int, unsigned long)
 XER_DETAIL_DECLARE_DIV_PAIR(int, long long)
 XER_DETAIL_DECLARE_DIV_PAIR(int, unsigned long long)
-XER_DETAIL_DECLARE_DIV_PAIR(int, xer::int128_t)
-XER_DETAIL_DECLARE_DIV_PAIR(int, xer::uint128_t)
 
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned int, int)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned int, unsigned int)
@@ -395,8 +414,6 @@ XER_DETAIL_DECLARE_DIV_PAIR(unsigned int, long)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned int, unsigned long)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned int, long long)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned int, unsigned long long)
-XER_DETAIL_DECLARE_DIV_PAIR(unsigned int, xer::int128_t)
-XER_DETAIL_DECLARE_DIV_PAIR(unsigned int, xer::uint128_t)
 
 XER_DETAIL_DECLARE_DIV_PAIR(long, int)
 XER_DETAIL_DECLARE_DIV_PAIR(long, unsigned int)
@@ -404,8 +421,6 @@ XER_DETAIL_DECLARE_DIV_PAIR(long, long)
 XER_DETAIL_DECLARE_DIV_PAIR(long, unsigned long)
 XER_DETAIL_DECLARE_DIV_PAIR(long, long long)
 XER_DETAIL_DECLARE_DIV_PAIR(long, unsigned long long)
-XER_DETAIL_DECLARE_DIV_PAIR(long, xer::int128_t)
-XER_DETAIL_DECLARE_DIV_PAIR(long, xer::uint128_t)
 
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long, int)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long, unsigned int)
@@ -413,8 +428,6 @@ XER_DETAIL_DECLARE_DIV_PAIR(unsigned long, long)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long, unsigned long)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long, long long)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long, unsigned long long)
-XER_DETAIL_DECLARE_DIV_PAIR(unsigned long, xer::int128_t)
-XER_DETAIL_DECLARE_DIV_PAIR(unsigned long, xer::uint128_t)
 
 XER_DETAIL_DECLARE_DIV_PAIR(long long, int)
 XER_DETAIL_DECLARE_DIV_PAIR(long long, unsigned int)
@@ -422,8 +435,6 @@ XER_DETAIL_DECLARE_DIV_PAIR(long long, long)
 XER_DETAIL_DECLARE_DIV_PAIR(long long, unsigned long)
 XER_DETAIL_DECLARE_DIV_PAIR(long long, long long)
 XER_DETAIL_DECLARE_DIV_PAIR(long long, unsigned long long)
-XER_DETAIL_DECLARE_DIV_PAIR(long long, xer::int128_t)
-XER_DETAIL_DECLARE_DIV_PAIR(long long, xer::uint128_t)
 
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long long, int)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long long, unsigned int)
@@ -431,6 +442,23 @@ XER_DETAIL_DECLARE_DIV_PAIR(unsigned long long, long)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long long, unsigned long)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long long, long long)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long long, unsigned long long)
+
+#if defined(XER_HAS_INT128)
+XER_DETAIL_DECLARE_DIV_PAIR(int, xer::int128_t)
+XER_DETAIL_DECLARE_DIV_PAIR(int, xer::uint128_t)
+
+XER_DETAIL_DECLARE_DIV_PAIR(unsigned int, xer::int128_t)
+XER_DETAIL_DECLARE_DIV_PAIR(unsigned int, xer::uint128_t)
+
+XER_DETAIL_DECLARE_DIV_PAIR(long, xer::int128_t)
+XER_DETAIL_DECLARE_DIV_PAIR(long, xer::uint128_t)
+
+XER_DETAIL_DECLARE_DIV_PAIR(unsigned long, xer::int128_t)
+XER_DETAIL_DECLARE_DIV_PAIR(unsigned long, xer::uint128_t)
+
+XER_DETAIL_DECLARE_DIV_PAIR(long long, xer::int128_t)
+XER_DETAIL_DECLARE_DIV_PAIR(long long, xer::uint128_t)
+
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long long, xer::int128_t)
 XER_DETAIL_DECLARE_DIV_PAIR(unsigned long long, xer::uint128_t)
 
@@ -451,6 +479,9 @@ XER_DETAIL_DECLARE_DIV_PAIR(xer::uint128_t, long long)
 XER_DETAIL_DECLARE_DIV_PAIR(xer::uint128_t, unsigned long long)
 XER_DETAIL_DECLARE_DIV_PAIR(xer::uint128_t, xer::int128_t)
 XER_DETAIL_DECLARE_DIV_PAIR(xer::uint128_t, xer::uint128_t)
+
+#endif
+
 
 #undef XER_DETAIL_DECLARE_DIV_PAIR
 

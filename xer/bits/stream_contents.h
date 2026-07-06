@@ -65,7 +65,7 @@ namespace xer {
  */
 [[nodiscard]] inline auto stream_get_contents(
     binary_stream& stream,
-    std::uint64_t length = std::numeric_limits<std::uint64_t>::max())
+    std::uint64_t length = (std::numeric_limits<std::uint64_t>::max)())
     -> result<std::vector<std::byte>>
 {
     std::vector<std::byte> result;

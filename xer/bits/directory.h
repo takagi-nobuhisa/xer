@@ -9,10 +9,16 @@
 #define XER_BITS_DIRECTORY_H_INCLUDED_
 
 #include <cerrno>
-#include <dirent.h>
 #include <expected>
+#include <new>
 #include <string>
 #include <utility>
+
+#ifdef _WIN32
+#    include <xer/bits/windows.h>
+#else
+#    include <dirent.h>
+#endif
 
 #include <xer/error.h>
 #include <xer/path.h>
@@ -22,11 +28,28 @@ namespace xer {
 namespace detail {
 
 #ifdef _WIN32
-using native_dir_handle_t = _WDIR*;
-using native_dirent_t = _wdirent;
+
+struct native_dirent_t {
+    native_path_string d_name;
+};
+
+struct native_dir_handle {
+    native_path_string pattern;
+    HANDLE find_handle = INVALID_HANDLE_VALUE;
+    WIN32_FIND_DATAW find_data{};
+    native_dirent_t current_entry{};
+    int synthetic_index = 0;
+    bool find_started = false;
+    bool finished = false;
+};
+
+using native_dir_handle_t = native_dir_handle*;
+
 #else
+
 using native_dir_handle_t = DIR*;
 using native_dirent_t = dirent;
+
 #endif
 
 /**
@@ -38,6 +61,80 @@ using native_dirent_t = dirent;
 [[nodiscard]] inline auto dirent_errno_to_error_t(int value) noexcept -> error_t {
     return static_cast<error_t>(value);
 }
+
+#ifdef _WIN32
+
+/**
+ * @brief Converts a Win32 error code to errno.
+ *
+ * @param value Win32 error code.
+ * @return Converted errno value.
+ */
+[[nodiscard]] inline auto win32_error_to_errno(DWORD value) noexcept -> int {
+    switch (value) {
+    case ERROR_SUCCESS:
+        return 0;
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_PATH_NOT_FOUND:
+    case ERROR_INVALID_DRIVE:
+        return ENOENT;
+    case ERROR_ACCESS_DENIED:
+    case ERROR_SHARING_VIOLATION:
+    case ERROR_LOCK_VIOLATION:
+        return EACCES;
+    case ERROR_NOT_ENOUGH_MEMORY:
+    case ERROR_OUTOFMEMORY:
+        return ENOMEM;
+    case ERROR_INVALID_NAME:
+    case ERROR_BAD_PATHNAME:
+    case ERROR_DIRECTORY:
+        return ENOTDIR;
+    default:
+        return EIO;
+    }
+}
+
+/**
+ * @brief Stores the current Win32 last error in errno.
+ */
+inline auto set_errno_from_last_win32_error() noexcept -> void {
+    errno = win32_error_to_errno(::GetLastError());
+}
+
+/**
+ * @brief Returns whether a native path ends with a directory separator.
+ *
+ * @param path Target native path.
+ * @return true if path ends with a directory separator.
+ */
+[[nodiscard]] inline auto native_path_ends_with_separator(
+    const native_path_string& path) noexcept -> bool {
+    if (path.empty()) {
+        return false;
+    }
+
+    const wchar_t ch = path.back();
+    return ch == L'\\' || ch == L'/';
+}
+
+/**
+ * @brief Makes a native FindFirstFile pattern for a directory.
+ *
+ * @param dirname Native directory path.
+ * @return Search pattern.
+ */
+[[nodiscard]] inline auto make_native_dir_pattern(
+    const native_path_string& dirname) -> native_path_string {
+    native_path_string pattern = dirname;
+    if (!native_path_ends_with_separator(pattern)) {
+        pattern.push_back(L'\\');
+    }
+
+    pattern.push_back(L'*');
+    return pattern;
+}
+
+#endif
 
 /**
  * @brief Closes a native directory handle.
@@ -51,7 +148,16 @@ inline auto close_native_dir(native_dir_handle_t handle) noexcept -> int {
     }
 
 #ifdef _WIN32
-    return ::_wclosedir(handle);
+    int result = 0;
+    if (handle->find_handle != INVALID_HANDLE_VALUE) {
+        if (::FindClose(handle->find_handle) == 0) {
+            set_errno_from_last_win32_error();
+            result = -1;
+        }
+    }
+
+    delete handle;
+    return result;
 #else
     return ::closedir(handle);
 #endif
@@ -66,7 +172,31 @@ inline auto close_native_dir(native_dir_handle_t handle) noexcept -> int {
 [[nodiscard]] inline auto open_native_dir(
     const native_path_string& dirname) noexcept -> native_dir_handle_t {
 #ifdef _WIN32
-    return ::_wopendir(dirname.c_str());
+    const DWORD attributes = ::GetFileAttributesW(dirname.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        set_errno_from_last_win32_error();
+        return nullptr;
+    }
+    if ((attributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+        errno = ENOTDIR;
+        return nullptr;
+    }
+
+    native_dir_handle_t handle = new (std::nothrow) native_dir_handle;
+    if (handle == nullptr) {
+        errno = ENOMEM;
+        return nullptr;
+    }
+
+    try {
+        handle->pattern = make_native_dir_pattern(dirname);
+    } catch (...) {
+        delete handle;
+        errno = ENOMEM;
+        return nullptr;
+    }
+
+    return handle;
 #else
     return ::opendir(dirname.c_str());
 #endif
@@ -81,7 +211,66 @@ inline auto close_native_dir(native_dir_handle_t handle) noexcept -> int {
 [[nodiscard]] inline auto read_native_dir(
     native_dir_handle_t handle) noexcept -> native_dirent_t* {
 #ifdef _WIN32
-    return ::_wreaddir(handle);
+    if (handle == nullptr || handle->finished) {
+        errno = 0;
+        return nullptr;
+    }
+
+    if (handle->synthetic_index == 0) {
+        handle->current_entry.d_name = L".";
+        handle->synthetic_index = 1;
+        errno = 0;
+        return &handle->current_entry;
+    }
+
+    if (handle->synthetic_index == 1) {
+        handle->current_entry.d_name = L"..";
+        handle->synthetic_index = 2;
+        errno = 0;
+        return &handle->current_entry;
+    }
+
+    if (!handle->find_started) {
+        handle->find_started = true;
+        handle->find_handle = ::FindFirstFileExW(
+            handle->pattern.c_str(),
+            FindExInfoBasic,
+            &handle->find_data,
+            FindExSearchNameMatch,
+            nullptr,
+            0);
+        if (handle->find_handle == INVALID_HANDLE_VALUE) {
+            const DWORD error = ::GetLastError();
+            handle->finished = true;
+            if (error == ERROR_FILE_NOT_FOUND || error == ERROR_NO_MORE_FILES) {
+                errno = 0;
+            } else {
+                errno = win32_error_to_errno(error);
+            }
+            return nullptr;
+        }
+    } else {
+        if (::FindNextFileW(handle->find_handle, &handle->find_data) == 0) {
+            const DWORD error = ::GetLastError();
+            handle->finished = true;
+            if (error == ERROR_NO_MORE_FILES) {
+                errno = 0;
+            } else {
+                errno = win32_error_to_errno(error);
+            }
+            return nullptr;
+        }
+    }
+
+    try {
+        handle->current_entry.d_name = handle->find_data.cFileName;
+    } catch (...) {
+        errno = ENOMEM;
+        return nullptr;
+    }
+
+    errno = 0;
+    return &handle->current_entry;
 #else
     return ::readdir(handle);
 #endif
@@ -94,7 +283,20 @@ inline auto close_native_dir(native_dir_handle_t handle) noexcept -> int {
  */
 inline auto rewind_native_dir(native_dir_handle_t handle) noexcept -> void {
 #ifdef _WIN32
-    ::_wrewinddir(handle);
+    if (handle == nullptr) {
+        return;
+    }
+
+    if (handle->find_handle != INVALID_HANDLE_VALUE) {
+        (void)::FindClose(handle->find_handle);
+        handle->find_handle = INVALID_HANDLE_VALUE;
+    }
+
+    handle->find_data = WIN32_FIND_DATAW{};
+    handle->current_entry.d_name.clear();
+    handle->synthetic_index = 0;
+    handle->find_started = false;
+    handle->finished = false;
 #else
     ::rewinddir(handle);
 #endif
@@ -339,4 +541,4 @@ private:
 
 } // namespace xer
 
-#endif /* XER_BITS_DIRECTORY_H_INCLUDED_ */
+#endif // XER_BITS_DIRECTORY_H_INCLUDED_

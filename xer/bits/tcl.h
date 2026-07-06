@@ -212,7 +212,7 @@ namespace detail {
 [[nodiscard]] inline auto string_length_to_tcl_int(std::size_t size)
     -> result<int, error_detail>
 {
-    if (size > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+    if (size > static_cast<std::size_t>((std::numeric_limits<int>::max)())) {
         return make_unexpected(error_t::out_of_range);
     }
 
@@ -394,7 +394,7 @@ template<class T>
         }
 
         if (value < static_cast<Tcl_WideInt>(std::numeric_limits<U>::min()) ||
-            value > static_cast<Tcl_WideInt>(std::numeric_limits<U>::max())) {
+            value > static_cast<Tcl_WideInt>((std::numeric_limits<U>::max)())) {
             return make_unexpected(error_t::out_of_range);
         }
 
@@ -407,7 +407,7 @@ template<class T>
 
         if (value < 0 ||
             static_cast<unsigned long long>(value) >
-                static_cast<unsigned long long>(std::numeric_limits<U>::max())) {
+                static_cast<unsigned long long>((std::numeric_limits<U>::max)())) {
             return make_unexpected(error_t::out_of_range);
         }
 
@@ -449,7 +449,7 @@ template<class T>
         set_raw_result(interp, Tcl_NewWideIntObj(static_cast<Tcl_WideInt>(value)));
         return {};
     } else if constexpr (std::integral<U> && std::unsigned_integral<U>) {
-        if (value > static_cast<U>(std::numeric_limits<Tcl_WideInt>::max())) {
+        if (value > static_cast<U>((std::numeric_limits<Tcl_WideInt>::max)())) {
             return make_unexpected(error_t::out_of_range);
         }
 
@@ -1089,7 +1089,7 @@ namespace detail {
 [[nodiscard]] inline auto set_argc(interpreter& interp, std::size_t argc)
     -> result<void, error_detail>
 {
-    if (argc > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+    if (argc > static_cast<std::size_t>((std::numeric_limits<int>::max)())) {
         return std::unexpected(detail::make_error(error_t::out_of_range));
     }
 

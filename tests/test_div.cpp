@@ -265,7 +265,7 @@ void test_expected_propagation()
     }
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 /**
  * @brief Tests 128-bit integer operands.
  */
@@ -354,7 +354,7 @@ int main()
     test_umod_basic();
     test_narrow_integer_forwarding();
     test_expected_propagation();
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     test_int128_operands();
 #endif
     test_type_aliases();

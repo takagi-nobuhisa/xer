@@ -22,7 +22,7 @@ namespace xer {
  * @brief Checks whether an arithmetic value is within the numeric range of T.
  *
  * This function checks only whether @p value lies between
- * `std::numeric_limits<T>::lowest()` and `std::numeric_limits<T>::max()`.
+ * `std::numeric_limits<T>::lowest()` and `(std::numeric_limits<T>::max)()`.
  *
  * If @p value is NaN, this function returns false.
  *
@@ -44,7 +44,7 @@ template<typename T, typename U>
     }
 
     const auto lowest = std::numeric_limits<T>::lowest();
-    const auto highest = std::numeric_limits<T>::max();
+    const auto highest = (std::numeric_limits<T>::max)();
 
     if (lt(value, lowest)) {
         return false;

@@ -74,11 +74,13 @@ Current supported and tested environments:
 - Ubuntu with Clang and libc++
 - MSYS2 UCRT64 with GCC
 - MSYS2 CLANG64 with Clang
+- Visual Studio 2026 with clang-cl
 
 Current platform scope:
 
 - Linux through Ubuntu
 - Windows through MSYS2 UCRT64 and CLANG64
+- Windows through Visual Studio 2026 with clang-cl
 
 Current Windows version target:
 
@@ -97,7 +99,17 @@ On Ubuntu, Clang testing assumes libc++ and libc++abi. For Ubuntu 24.04 with Cla
 sudo apt install libc++-18-dev libc++abi-18-dev
 ```
 
-Visual C++ is not an official target yet. Windows support now includes MSYS2 CLANG64. Native Visual C++ and clang-cl remain future work.
+For Visual Studio 2026 with clang-cl, optional zlib and ICU test dependencies can be installed through vcpkg manifest mode. Place a `vcpkg.json` with `zlib` and `icu` dependencies at the project root, add a `builtin-baseline`, and run the following command from the project root:
+
+```bat
+vcpkg install --triplet x64-windows
+```
+
+The test scripts automatically check `vcpkg_installed\x64-windows` under the project root. `run_tests.php` also prepends `vcpkg_installed\x64-windows\bin` to the child process `PATH` when it exists, so ICU and zlib DLLs can be found while running tests and examples. `vcpkg_installed/` is a generated dependency directory and should not be committed.
+
+Tcl/Tk tests require a Windows Tcl/Tk distribution such as Magicsplat Tcl, ActiveTcl, IronTcl, or another distribution referenced from the Tcl/Tk project site. The test scripts automatically check common installation roots, preferring Tcl/Tk 9.0 over 8.6 when both are available. Typical checked roots include `%LOCALAPPDATA%\Apps\Tcl90`, `%LOCALAPPDATA%\Apps\Tcl86`, `C:\local\Tcl90`, `C:\local\Tcl86`, `C:\local\IronTcl`, `C:\Tcl`, and `C:\Program Files\Tcl`. A custom root can be specified with `XER_TEST_TCLTK_ROOT`. If it is still not detected automatically, pass explicit include and library options to the test scripts.
+
+Visual Studio 2026 with clang-cl is supported for tests that do not require unavailable optional dependencies. MSVC cl.exe is not currently supported.
 
 ## Key characteristics
 

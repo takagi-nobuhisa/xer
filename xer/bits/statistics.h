@@ -60,7 +60,7 @@ struct statistics_harmonic_summary {
     -> result<double>
 {
     if (!statistics_is_finite(value) ||
-        value > static_cast<long double>(std::numeric_limits<double>::max()) ||
+        value > static_cast<long double>((std::numeric_limits<double>::max)()) ||
         value < static_cast<long double>(std::numeric_limits<double>::lowest())) {
         return std::unexpected(make_error(error_t::range_error));
     }
@@ -442,7 +442,7 @@ template<statistics_range Range>
 
     std::size_t max_count = 0;
     for (const auto& group : groups) {
-        max_count = std::max(max_count, group.count);
+        max_count = (std::max)(max_count, group.count);
     }
 
     std::vector<double> modes;

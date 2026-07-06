@@ -143,7 +143,7 @@ enum class byte_order {
         static_cast<std::uint64_t>(low);
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 
 /**
  * @brief Extracts the high 64 bits of a 128-bit unsigned integer.
@@ -250,7 +250,7 @@ template<typename T>
     return detail::reverse_bits_unsigned(value);
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 
 /**
  * @brief Reverses the bit order of a 128-bit unsigned integer.

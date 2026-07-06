@@ -26,7 +26,7 @@ namespace xer::detail {
  */
 [[nodiscard]] inline auto binary_stream_io_size_to_int(
     std::size_t size) noexcept -> result<int> {
-    if (size > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+    if (size > static_cast<std::size_t>((std::numeric_limits<int>::max)())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
 

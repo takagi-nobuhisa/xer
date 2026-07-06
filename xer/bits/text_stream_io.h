@@ -216,8 +216,8 @@ namespace detail {
     while (offset < decoded->size()) {
         const std::size_t remaining = decoded->size() - offset;
         const std::size_t chunk_size =
-            remaining > static_cast<std::size_t>(std::numeric_limits<int>::max())
-                ? static_cast<std::size_t>(std::numeric_limits<int>::max())
+            remaining > static_cast<std::size_t>((std::numeric_limits<int>::max)())
+                ? static_cast<std::size_t>((std::numeric_limits<int>::max)())
                 : remaining;
 
         const int written = stream.write_fn()(

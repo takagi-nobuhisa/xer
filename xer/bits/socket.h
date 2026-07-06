@@ -25,8 +25,27 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+
+#if defined(_WINSOCKAPI_) && !defined(_WINSOCK2API_) && !defined(XER_BITS_WINDOWS_SUPPRESSED_WINSOCKAPI)
+#error "winsock.h has already been included. Include xer/socket.h before windows.h, define WIN32_LEAN_AND_MEAN before including windows.h, or avoid including legacy winsock.h."
+#endif
+
+#if defined(XER_BITS_WINDOWS_SUPPRESSED_WINSOCKAPI) && !defined(_WINSOCK2API_)
+#undef _WINSOCKAPI_
+#undef XER_BITS_WINDOWS_SUPPRESSED_WINSOCKAPI
+#endif
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
+
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
 #else
 #include <netdb.h>
 #include <sys/socket.h>

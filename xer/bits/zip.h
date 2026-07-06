@@ -83,7 +83,7 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
 
 [[nodiscard]] inline auto zip_u64_to_u32(std::uint64_t value) noexcept -> result<std::uint32_t>
 {
-    if (value > static_cast<std::uint64_t>(std::numeric_limits<std::uint32_t>::max())) {
+    if (value > static_cast<std::uint64_t>((std::numeric_limits<std::uint32_t>::max)())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
 
@@ -92,7 +92,7 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
 
 [[nodiscard]] inline auto zip_size_to_u16(std::size_t value) noexcept -> result<std::uint16_t>
 {
-    if (value > static_cast<std::size_t>(std::numeric_limits<std::uint16_t>::max())) {
+    if (value > static_cast<std::size_t>((std::numeric_limits<std::uint16_t>::max)())) {
         return std::unexpected(make_error(error_t::length_error));
     }
 
@@ -101,7 +101,7 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
 
 [[nodiscard]] inline auto zip_uint64_to_int64(std::uint64_t value) noexcept -> result<std::int64_t>
 {
-    if (value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+    if (value > static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
 
@@ -110,7 +110,7 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
 
 [[nodiscard]] inline auto zip_uint64_to_size(std::uint64_t value) noexcept -> result<std::size_t>
 {
-    if (value > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
+    if (value > static_cast<std::uint64_t>((std::numeric_limits<std::size_t>::max)())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
 
@@ -321,11 +321,11 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
     stream.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(compressed.data()));
     stream.avail_in = static_cast<uInt>(std::min<std::size_t>(
         compressed.size(),
-        static_cast<std::size_t>(std::numeric_limits<uInt>::max())));
+        static_cast<std::size_t>((std::numeric_limits<uInt>::max)())));
     stream.next_out = reinterpret_cast<Bytef*>(output.data());
     stream.avail_out = static_cast<uInt>(std::min<std::size_t>(
         output.size(),
-        static_cast<std::size_t>(std::numeric_limits<uInt>::max())));
+        static_cast<std::size_t>((std::numeric_limits<uInt>::max)())));
 
     std::size_t input_offset = stream.avail_in;
     std::size_t output_offset = stream.avail_out;
@@ -334,7 +334,7 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
         if (stream.avail_in == 0 && input_offset < compressed.size()) {
             const std::size_t chunk = std::min<std::size_t>(
                 compressed.size() - input_offset,
-                static_cast<std::size_t>(std::numeric_limits<uInt>::max()));
+                static_cast<std::size_t>((std::numeric_limits<uInt>::max)()));
             stream.next_in = const_cast<Bytef*>(
                 reinterpret_cast<const Bytef*>(compressed.data() + input_offset));
             stream.avail_in = static_cast<uInt>(chunk);
@@ -344,7 +344,7 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
         if (stream.avail_out == 0 && output_offset < output.size()) {
             const std::size_t chunk = std::min<std::size_t>(
                 output.size() - output_offset,
-                static_cast<std::size_t>(std::numeric_limits<uInt>::max()));
+                static_cast<std::size_t>((std::numeric_limits<uInt>::max)()));
             stream.next_out = reinterpret_cast<Bytef*>(output.data() + output_offset);
             stream.avail_out = static_cast<uInt>(chunk);
             output_offset += chunk;
@@ -384,7 +384,7 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
     -> result<std::vector<std::byte>>
 {
     const uLong bound = ::compressBound(static_cast<uLong>(data.size()));
-    if (bound > static_cast<uLong>(std::numeric_limits<std::size_t>::max())) {
+    if (bound > static_cast<uLong>((std::numeric_limits<std::size_t>::max)())) {
         return std::unexpected(make_error(error_t::length_error));
     }
 
@@ -405,11 +405,11 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
     stream.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(data.data()));
     stream.avail_in = static_cast<uInt>(std::min<std::size_t>(
         data.size(),
-        static_cast<std::size_t>(std::numeric_limits<uInt>::max())));
+        static_cast<std::size_t>((std::numeric_limits<uInt>::max)())));
     stream.next_out = reinterpret_cast<Bytef*>(output.data());
     stream.avail_out = static_cast<uInt>(std::min<std::size_t>(
         output.size(),
-        static_cast<std::size_t>(std::numeric_limits<uInt>::max())));
+        static_cast<std::size_t>((std::numeric_limits<uInt>::max)())));
 
     std::size_t input_offset = stream.avail_in;
     std::size_t output_offset = stream.avail_out;
@@ -418,7 +418,7 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
         if (stream.avail_in == 0 && input_offset < data.size()) {
             const std::size_t chunk = std::min<std::size_t>(
                 data.size() - input_offset,
-                static_cast<std::size_t>(std::numeric_limits<uInt>::max()));
+                static_cast<std::size_t>((std::numeric_limits<uInt>::max)()));
             stream.next_in = const_cast<Bytef*>(
                 reinterpret_cast<const Bytef*>(data.data() + input_offset));
             stream.avail_in = static_cast<uInt>(chunk);
@@ -428,7 +428,7 @@ inline auto zip_append_u32(std::vector<std::byte>& out, std::uint32_t value) -> 
         if (stream.avail_out == 0 && output_offset < output.size()) {
             const std::size_t chunk = std::min<std::size_t>(
                 output.size() - output_offset,
-                static_cast<std::size_t>(std::numeric_limits<uInt>::max()));
+                static_cast<std::size_t>((std::numeric_limits<uInt>::max)()));
             stream.next_out = reinterpret_cast<Bytef*>(output.data() + output_offset);
             stream.avail_out = static_cast<uInt>(chunk);
             output_offset += chunk;
@@ -1116,7 +1116,7 @@ namespace detail {
         return std::unexpected(uncompressed_size32.error());
     }
 
-    if (archive.central_records().size() >= static_cast<std::size_t>(std::numeric_limits<std::uint16_t>::max())) {
+    if (archive.central_records().size() >= static_cast<std::size_t>((std::numeric_limits<std::uint16_t>::max)())) {
         return std::unexpected(make_error(error_t::length_error));
     }
 
@@ -1145,16 +1145,16 @@ namespace detail {
         reinterpret_cast<const Bytef*>(data.data()),
         static_cast<uInt>(std::min<std::size_t>(
             data.size(),
-            static_cast<std::size_t>(std::numeric_limits<uInt>::max())))));
+            static_cast<std::size_t>((std::numeric_limits<uInt>::max)())))));
 
     std::uint32_t full_crc = crc;
-    if (data.size() > static_cast<std::size_t>(std::numeric_limits<uInt>::max())) {
+    if (data.size() > static_cast<std::size_t>((std::numeric_limits<uInt>::max)())) {
         uLong running_crc = 0;
         std::size_t offset = 0;
         while (offset < data.size()) {
             const std::size_t chunk = std::min<std::size_t>(
                 data.size() - offset,
-                static_cast<std::size_t>(std::numeric_limits<uInt>::max()));
+                static_cast<std::size_t>((std::numeric_limits<uInt>::max)()));
             running_crc = ::crc32(
                 running_crc,
                 reinterpret_cast<const Bytef*>(data.data() + offset),

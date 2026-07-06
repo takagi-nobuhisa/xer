@@ -26,7 +26,7 @@
 
 #ifdef _WIN32
 #    include <io.h>
-#    include <windows.h>
+#    include <xer/bits/windows.h>
 #else
 #    include <cstdio>
 #    include <fcntl.h>
@@ -114,7 +114,7 @@ inline auto close_handle_if_valid(HANDLE handle) noexcept -> void
     constexpr long double windows_to_unix_epoch_100ns = 116444736000000000.0L;
     constexpr long double ticks_per_second = 10000000.0L;
     constexpr long double max_ticks =
-        static_cast<long double>(std::numeric_limits<std::uint64_t>::max());
+        static_cast<long double>((std::numeric_limits<std::uint64_t>::max)());
 
     if (!std::isfinite(value) || value < 0) {
         return std::unexpected(make_error(error_t::invalid_argument));
@@ -207,7 +207,7 @@ inline auto close_fd_if_valid(int fd) noexcept -> void
     const long double whole = std::floor(static_cast<long double>(value));
     const long double fraction = static_cast<long double>(value) - whole;
 
-    if (whole > static_cast<long double>(std::numeric_limits<::time_t>::max())) {
+    if (whole > static_cast<long double>((std::numeric_limits<::time_t>::max)())) {
         return std::unexpected(make_error(error_t::range));
     }
 

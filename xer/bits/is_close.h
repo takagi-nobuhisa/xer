@@ -28,7 +28,7 @@ template<typename T>
 [[nodiscard]] constexpr auto is_close_finite(long double value) noexcept -> bool
 {
     return value == value &&
-           value <= std::numeric_limits<long double>::max() &&
+           value <= (std::numeric_limits<long double>::max)() &&
            value >= std::numeric_limits<long double>::lowest();
 }
 

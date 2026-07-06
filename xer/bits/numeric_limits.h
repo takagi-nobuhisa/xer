@@ -29,7 +29,7 @@ inline constexpr T min_of = std::numeric_limits<T>::lowest();
  * @tparam T Numeric type.
  */
 template<typename T>
-inline constexpr T max_of = std::numeric_limits<T>::max();
+inline constexpr T max_of = (std::numeric_limits<T>::max)();
 
 } // namespace xer
 

@@ -15,7 +15,10 @@
 #include <typeinfo>
 #include <type_traits>
 
+#if defined(__GNUG__) && !defined(_MSC_VER)
 #include <cxxabi.h>
+#define XER_HAS_CXXABI_DEMANGLE 1
+#endif
 
 #include <xer/bits/common.h>
 #include <xer/error.h>
@@ -54,16 +57,20 @@ namespace xer::detail {
         return {};
     }
 
+#if defined(XER_HAS_CXXABI_DEMANGLE)
     int status = 0;
     char* const demangled = abi::__cxa_demangle(raw_name, nullptr, nullptr, &status);
 
-    if (status != 0 || demangled == nullptr) {
-        return type_name_bytes_to_u8string(raw_name);
+    if (status == 0 && demangled != nullptr) {
+        std::u8string result = type_name_bytes_to_u8string(demangled);
+        std::free(demangled);
+        return result;
     }
 
-    std::u8string result = type_name_bytes_to_u8string(demangled);
     std::free(demangled);
-    return result;
+#endif
+
+    return type_name_bytes_to_u8string(raw_name);
 }
 
 } // namespace xer::detail

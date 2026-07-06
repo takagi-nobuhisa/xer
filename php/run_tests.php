@@ -212,6 +212,14 @@ function is_windows(): bool
 }
 
 /**
+ * @return string
+ */
+function stderr_to_null_redirect(): string
+{
+    return is_windows() ? ' 2>NUL' : ' 2>/dev/null';
+}
+
+/**
  * @return bool
  */
 function is_windows_target(): bool
@@ -244,6 +252,151 @@ function detect_msys2_prefix(): ?string
     };
 }
 
+
+/**
+ * @return list<string>
+ */
+function detect_vcpkg_triplets(): array
+{
+    $triplets = [];
+
+    $envTriplet = getenv('VCPKG_DEFAULT_TRIPLET');
+    if (is_string($envTriplet) && trim($envTriplet) !== '') {
+        $triplets[] = trim($envTriplet);
+    }
+
+    if (is_windows()) {
+        $triplets[] = 'x64-windows';
+    }
+
+    $triplets[] = 'x64-windows';
+
+    return array_values(array_unique($triplets, SORT_STRING));
+}
+
+/**
+ * @return list<array{include:string, lib:string, bin:string|null, source:string}>
+ */
+function detect_vcpkg_installed_candidates(string $projectRoot): array
+{
+    $roots = [];
+
+    $manifestRoot = normalize_path($projectRoot . '/vcpkg_installed');
+    if (is_dir($manifestRoot)) {
+        $roots[] = ['root' => $manifestRoot, 'source' => 'vcpkg manifest install under project root'];
+    }
+
+    $vcpkgRoot = getenv('VCPKG_ROOT');
+    if (is_string($vcpkgRoot) && trim($vcpkgRoot) !== '') {
+        $classicRoot = normalize_path(rtrim(trim($vcpkgRoot), '/\\') . '/installed');
+        if (is_dir($classicRoot)) {
+            $roots[] = ['root' => $classicRoot, 'source' => 'VCPKG_ROOT'];
+        }
+    }
+
+    $result = [];
+    $seen = [];
+    foreach ($roots as $root) {
+        foreach (detect_vcpkg_triplets() as $triplet) {
+            $includeDir = normalize_path($root['root'] . '/' . $triplet . '/include');
+            $libDir = normalize_path($root['root'] . '/' . $triplet . '/lib');
+            $binDir = normalize_path($root['root'] . '/' . $triplet . '/bin');
+            if (!is_dir($includeDir) || !is_dir($libDir)) {
+                continue;
+            }
+            $key = $includeDir . "\0" . $libDir;
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $result[] = [
+                'include' => $includeDir,
+                'lib' => $libDir,
+                'bin' => is_dir($binDir) ? $binDir : null,
+                'source' => $root['source'] . ' (' . $triplet . ')',
+            ];
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * @return list<string>
+ */
+function detect_vcpkg_runtime_path_dirs(string $projectRoot): array
+{
+    $dirs = [];
+    $seen = [];
+
+    foreach (detect_vcpkg_installed_candidates($projectRoot) as $candidate) {
+        $binDir = $candidate['bin'] ?? null;
+        if (!is_string($binDir) || $binDir === '' || !is_dir($binDir)) {
+            continue;
+        }
+        $key = normalize_path($binDir);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $dirs[] = $key;
+    }
+
+    return $dirs;
+}
+
+/**
+ * @param list<string> $prependPathDirs
+ * @return array<string, string>|null
+ */
+function build_process_environment(array $prependPathDirs): ?array
+{
+    $dirs = [];
+    $seen = [];
+    foreach ($prependPathDirs as $dir) {
+        if (!is_string($dir) || $dir === '' || !is_dir($dir)) {
+            continue;
+        }
+        $key = is_windows() ? strtolower(normalize_path($dir)) : normalize_path($dir);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $dirs[] = normalize_path($dir);
+    }
+
+    if ($dirs === []) {
+        return null;
+    }
+
+    $env = getenv();
+    if (!is_array($env)) {
+        $env = $_ENV;
+    }
+
+    $pathKey = 'PATH';
+    foreach (array_keys($env) as $key) {
+        if (strtolower((string) $key) === 'path') {
+            $pathKey = (string) $key;
+            break;
+        }
+    }
+
+    $separator = is_windows() ? ';' : ':';
+    $currentPath = $env[$pathKey] ?? getenv('PATH');
+    if (!is_string($currentPath)) {
+        $currentPath = '';
+    }
+
+    $env[$pathKey] = implode($separator, $dirs) . ($currentPath !== '' ? $separator . $currentPath : '');
+
+    if (is_windows() && $pathKey !== 'PATH') {
+        $env['PATH'] = $env[$pathKey];
+    }
+
+    return $env;
+}
+
 /**
  * @return int
  */
@@ -268,9 +421,9 @@ function detect_cpu_count(): int
     }
 
     $commands = [
-        'getconf _NPROCESSORS_ONLN 2>/dev/null',
-        'nproc 2>/dev/null',
-        'sysctl -n hw.ncpu 2>/dev/null',
+        'getconf _NPROCESSORS_ONLN' . stderr_to_null_redirect(),
+        'nproc' . stderr_to_null_redirect(),
+        'sysctl -n hw.ncpu' . stderr_to_null_redirect(),
     ];
 
     foreach ($commands as $command) {
@@ -503,7 +656,7 @@ function load_test_toolchains(string $scriptDir): array
 
 /**
  * @param array<string, array<string, mixed>> $toolchains
- * @return array{cxx:string,cxxflags:list<string>,ldflags:list<string>,build_id:string}
+ * @return array{cxx:string,cxxflags:list<string>,ldflags:list<string>,build_id:string,compiler_style:string}
  */
 function resolve_toolchain(string $name, array $toolchains): array
 {
@@ -523,6 +676,12 @@ function resolve_toolchain(string $name, array $toolchains): array
         fail('Invalid flags for toolchain: ' . $name);
     }
 
+    $compilerStyle = $entry['style'] ?? infer_compiler_style($compiler);
+    if (!is_string($compilerStyle) || trim($compilerStyle) === '') {
+        fail('Invalid compiler style for toolchain: ' . $name);
+    }
+    $compilerStyle = normalize_compiler_style($compilerStyle);
+
     $platform = $entry['platform'] ?? 'auto';
     if (!is_string($platform) || trim($platform) === '' || $platform === 'auto') {
         $platform = detect_default_build_id();
@@ -535,18 +694,46 @@ function resolve_toolchain(string $name, array $toolchains): array
         'cxxflags' => array_values(array_map('strval', $cxxflags)),
         'ldflags' => array_values(array_map('strval', $ldflags)),
         'build_id' => sanitize_build_id($platform . '/' . $name),
+        'compiler_style' => $compilerStyle,
     ];
+}
+
+/**
+ * @return string
+ */
+function normalize_compiler_style(string $style): string
+{
+    $style = strtolower(trim($style));
+    return match ($style) {
+        'gcc', 'gnu', 'clang', 'clang++' => 'gcc',
+        'clang-cl', 'msvc', 'cl' => 'clang-cl',
+        default => fail('Unknown compiler style: ' . $style),
+    };
+}
+
+/**
+ * @return string
+ */
+function infer_compiler_style(string $compiler): string
+{
+    $name = strtolower(basename(str_replace('\\', '/', $compiler)));
+    if ($name === 'clang-cl' || $name === 'clang-cl.exe') {
+        return 'clang-cl';
+    }
+    return 'gcc';
 }
 
 /**
  * @param list<string> $argv
  * @return array{
  *   cxx:string,
+ *   compiler_style:string,
  *   all:bool,
  *   clean_cache:bool,
  *   cxxflags:list<string>,
  *   ldflags:list<string>,
  *   jobs:int,
+ *   timeout:int,
  *   build_id:string,
  *   toolchain:string|null,
  *   tcltk_cflags:list<string>,
@@ -570,7 +757,10 @@ function parse_arguments(array $argv): array
     $tcltkLibs = split_command_fragment(getenv('XER_TEST_TCLTK_LIBS') ?: '');
     $icuCflags = split_command_fragment(getenv('XER_TEST_ICU_CFLAGS') ?: '');
     $icuLibs = split_command_fragment(getenv('XER_TEST_ICU_LIBS') ?: '');
+    $zlibCflags = split_command_fragment(getenv('XER_TEST_ZLIB_CFLAGS') ?: '');
+    $zlibLibs = split_command_fragment(getenv('XER_TEST_ZLIB_LIBS') ?: '');
     $jobs = detect_default_jobs();
+    $timeout = 0;
     $buildId = detect_default_build_id();
     $toolchain = null;
     $targets = [];
@@ -610,6 +800,11 @@ function parse_arguments(array $argv): array
         }
 
         if (str_starts_with($arg, '--timeout=')) {
+            $timeoutValue = substr($arg, strlen('--timeout='));
+            if (!ctype_digit($timeoutValue)) {
+                fail('Invalid --timeout value: ' . $timeoutValue);
+            }
+            $timeout = (int) $timeoutValue;
             continue;
         }
 
@@ -669,6 +864,16 @@ function parse_arguments(array $argv): array
             continue;
         }
 
+        if (str_starts_with($arg, '--zlib-cflags=')) {
+            $zlibCflags = split_command_fragment(substr($arg, strlen('--zlib-cflags=')));
+            continue;
+        }
+
+        if (str_starts_with($arg, '--zlib-libs=')) {
+            $zlibLibs = split_command_fragment(substr($arg, strlen('--zlib-libs=')));
+            continue;
+        }
+
         if (looks_like_cpp_source_selector($arg)) {
             $sourceSelectors[] = $arg;
             continue;
@@ -683,17 +888,21 @@ function parse_arguments(array $argv): array
 
     return [
         'cxx' => $cxx,
+        'compiler_style' => infer_compiler_style($cxx),
         'all' => $all,
         'clean_cache' => $cleanCache,
         'cxxflags' => $cxxflags,
         'ldflags' => $ldflags,
         'jobs' => $jobs,
+        'timeout' => $timeout,
         'build_id' => $buildId,
         'toolchain' => $toolchain,
         'tcltk_cflags' => $tcltkCflags,
         'tcltk_libs' => $tcltkLibs,
         'icu_cflags' => $icuCflags,
         'icu_libs' => $icuLibs,
+        'zlib_cflags' => $zlibCflags,
+        'zlib_libs' => $zlibLibs,
         'targets' => normalize_targets($targets),
         'source_selectors' => normalize_source_selectors($sourceSelectors),
     ];
@@ -734,18 +943,11 @@ function format_command_line(array $command): string
  * @param list<string> $command
  * @return array{output:string, exit_code:int, command_line:string}
  */
-function run_command(array $command, string $cwd): array
+function run_command(array $command, string $cwd, ?array $env = null): array
 {
-    $commandLine = format_command_line($command);
-    $descriptorSpec = [
-        0 => ['pipe', 'r'],
-        1 => ['pipe', 'w'],
-        2 => ['pipe', 'w'],
-    ];
-
-    $pipes = [];
-    $process = proc_open($commandLine, $descriptorSpec, $pipes, $cwd);
-    if (!is_resource($process)) {
+    $started = try_start_process($command, $cwd, $env);
+    if ($started === null) {
+        $commandLine = format_command_line($command);
         return [
             'output' => 'Failed to start process: ' . $commandLine,
             'exit_code' => 1,
@@ -753,51 +955,158 @@ function run_command(array $command, string $cwd): array
         ];
     }
 
-    fclose($pipes[0]);
-    $stdout = stream_get_contents($pipes[1]);
-    $stderr = stream_get_contents($pipes[2]);
-    fclose($pipes[1]);
-    fclose($pipes[2]);
-    $exitCode = proc_close($process);
-
-    $parts = [];
-    if ($stdout !== false && $stdout !== '') {
-        $parts[] = rtrim($stdout, "\r\n");
+    $entry = $started;
+    while (true) {
+        drain_process_output($entry);
+        $status = proc_get_status($entry['process']);
+        if ($status === false || !$status['running']) {
+            $knownExitCode = ($status !== false && isset($status['exitcode'])) ? (int) $status['exitcode'] : null;
+            $result = finalize_process_entry($entry, $knownExitCode);
+            return [
+                'output' => $result['output'],
+                'exit_code' => $status === false ? 1 : $result['exit_code'],
+                'command_line' => $entry['command_line'],
+            ];
+        }
+        usleep(10000);
     }
-    if ($stderr !== false && $stderr !== '') {
-        $parts[] = rtrim($stderr, "\r\n");
+}
+
+/**
+ * @param list<string> $command
+ * @return array{process:resource, pipes:array<int, resource>, command_line:string, stdout:string, stderr:string, started_at:float}|null
+ */
+function try_start_process(array $command, string $cwd, ?array $env = null): ?array
+{
+    $commandLine = format_command_line($command);
+
+    $stdoutFile = null;
+    $stderrFile = null;
+
+    if (is_windows()) {
+        $stdoutFile = tempnam(sys_get_temp_dir(), 'xer-stdout-');
+        $stderrFile = tempnam(sys_get_temp_dir(), 'xer-stderr-');
+
+        if ($stdoutFile === false || $stderrFile === false) {
+            if (is_string($stdoutFile) && $stdoutFile !== '') {
+                @unlink($stdoutFile);
+            }
+            if (is_string($stderrFile) && $stderrFile !== '') {
+                @unlink($stderrFile);
+            }
+            return null;
+        }
+
+        $descriptorSpec = [
+            0 => ['pipe', 'r'],
+            1 => ['file', $stdoutFile, 'w'],
+            2 => ['file', $stderrFile, 'w'],
+        ];
+    } else {
+        $descriptorSpec = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+    }
+
+    $pipes = [];
+    $process = proc_open($command, $descriptorSpec, $pipes, $cwd, $env);
+
+    if (!is_resource($process)) {
+        if (is_string($stdoutFile)) {
+            @unlink($stdoutFile);
+        }
+        if (is_string($stderrFile)) {
+            @unlink($stderrFile);
+        }
+        return null;
+    }
+
+    if (isset($pipes[0]) && is_resource($pipes[0])) {
+        fclose($pipes[0]);
+    }
+
+    if (!is_windows()) {
+        stream_set_blocking($pipes[1], false);
+        stream_set_blocking($pipes[2], false);
     }
 
     return [
-        'output' => implode(PHP_EOL, array_filter($parts, static fn(string $value): bool => $value !== '')),
-        'exit_code' => $exitCode,
+        'process' => $process,
+        'pipes' => $pipes,
         'command_line' => $commandLine,
+        'stdout' => '',
+        'stderr' => '',
+        'stdout_file' => $stdoutFile,
+        'stderr_file' => $stderrFile,
+        'started_at' => microtime(true),
     ];
 }
 
 /**
- * @param resource $process
- * @param array<int, resource> $pipes
+ * @param array{process:resource, pipes:array<int, resource>, command_line:string, stdout:string, stderr:string} $entry
+ * @return void
+ */
+function drain_process_output(array &$entry): void
+{
+    if (is_string($entry['stdout_file'] ?? null) || is_string($entry['stderr_file'] ?? null)) {
+        return;
+    }
+
+    $stdout = stream_get_contents($entry['pipes'][1]);
+    if ($stdout !== false && $stdout !== '') {
+        $entry['stdout'] .= $stdout;
+    }
+
+    $stderr = stream_get_contents($entry['pipes'][2]);
+    if ($stderr !== false && $stderr !== '') {
+        $entry['stderr'] .= $stderr;
+    }
+}
+
+/**
+ * @param array{process:resource, pipes:array<int, resource>, command_line:string, stdout:string, stderr:string} $entry
  * @return array{output:string, exit_code:int}
  */
-function finalize_process($process, array $pipes): array
+function finalize_process_entry(array &$entry, ?int $knownExitCode = null): array
 {
-    $stdout = stream_get_contents($pipes[1]);
-    $stderr = stream_get_contents($pipes[2]);
+    drain_process_output($entry);
 
-    fclose($pipes[1]);
-    fclose($pipes[2]);
+    if (isset($entry['pipes'][1]) && is_resource($entry['pipes'][1])) {
+        fclose($entry['pipes'][1]);
+    }
+    if (isset($entry['pipes'][2]) && is_resource($entry['pipes'][2])) {
+        fclose($entry['pipes'][2]);
+    }
 
-    $exitCode = proc_close($process);
+    $closedExitCode = proc_close($entry['process']);
+
+    if (is_string($entry['stdout_file'] ?? null)) {
+        $stdout = file_get_contents($entry['stdout_file']);
+        if ($stdout !== false) {
+            $entry['stdout'] .= $stdout;
+        }
+        @unlink($entry['stdout_file']);
+    }
+    if (is_string($entry['stderr_file'] ?? null)) {
+        $stderr = file_get_contents($entry['stderr_file']);
+        if ($stderr !== false) {
+            $entry['stderr'] .= $stderr;
+        }
+        @unlink($entry['stderr_file']);
+    }
+
+    $exitCode = ($knownExitCode !== null && $knownExitCode >= 0) ? $knownExitCode : $closedExitCode;
 
     $parts = [];
 
-    if ($stdout !== false && $stdout !== '') {
-        $parts[] = rtrim($stdout, "\r\n");
+    if ($entry['stdout'] !== '') {
+        $parts[] = rtrim($entry['stdout'], "\r\n");
     }
 
-    if ($stderr !== false && $stderr !== '') {
-        $parts[] = rtrim($stderr, "\r\n");
+    if ($entry['stderr'] !== '') {
+        $parts[] = rtrim($entry['stderr'], "\r\n");
     }
 
     $output = implode(PHP_EOL, array_filter($parts, static fn(string $value): bool => $value !== ''));
@@ -810,34 +1119,17 @@ function finalize_process($process, array $pipes): array
 
 /**
  * @param list<string> $command
- * @return array{process:resource, pipes:array<int, resource>, command_line:string}
+ * @return array{process:resource, pipes:array<int, resource>, command_line:string, stdout:string, stderr:string}
  */
-function start_process(array $command, string $cwd): array
+function start_process(array $command, string $cwd, ?array $env = null): array
 {
-    $commandLine = format_command_line($command);
+    $started = try_start_process($command, $cwd, $env);
 
-    $descriptorSpec = [
-        0 => ['pipe', 'r'],
-        1 => ['pipe', 'w'],
-        2 => ['pipe', 'w'],
-    ];
-
-    $pipes = [];
-    $process = proc_open($commandLine, $descriptorSpec, $pipes, $cwd);
-
-    if (!is_resource($process)) {
-        fail('Failed to start process: ' . $commandLine);
+    if ($started === null) {
+        fail('Failed to start process: ' . format_command_line($command));
     }
 
-    fclose($pipes[0]);
-    stream_set_blocking($pipes[1], false);
-    stream_set_blocking($pipes[2], false);
-
-    return [
-        'process' => $process,
-        'pipes' => $pipes,
-        'command_line' => $commandLine,
-    ];
+    return $started;
 }
 
 /**
@@ -915,6 +1207,263 @@ function format_features(array $features): string
 
 /**
  * @param array<string, mixed> $options
+ * @return bool
+ */
+function is_clang_cl_style(array $options): bool
+{
+    return ($options['compiler_style'] ?? 'gcc') === 'clang-cl';
+}
+
+/**
+ * @return list<array{root:string, include:string, lib:string, bin:?string, source:string}>
+ */
+function detect_tcltk_install_candidates(): array
+{
+    $roots = [];
+    $seenRoots = [];
+
+    $addRoot = static function (string $root, string $source) use (&$roots, &$seenRoots): void {
+        $root = normalize_path($root);
+        if ($root === '' || !is_dir($root)) {
+            return;
+        }
+
+        $key = is_windows() ? strtolower($root) : $root;
+        if (isset($seenRoots[$key])) {
+            return;
+        }
+
+        $seenRoots[$key] = true;
+        $roots[] = [
+            'root' => $root,
+            'source' => $source,
+        ];
+    };
+
+    $envRoot = getenv('XER_TEST_TCLTK_ROOT');
+    if (is_string($envRoot) && $envRoot !== '') {
+        $addRoot($envRoot, 'XER_TEST_TCLTK_ROOT');
+    }
+
+    if (is_windows_target()) {
+        $localAppData = getenv('LOCALAPPDATA');
+        $appData = getenv('APPDATA');
+        $userProfile = getenv('USERPROFILE');
+
+        $candidateRoots = [];
+        $addCandidateRoot = static function (?string $root) use (&$candidateRoots): void {
+            if (!is_string($root) || $root === '') {
+                return;
+            }
+            $candidateRoots[] = $root;
+        };
+
+        if (is_string($localAppData) && $localAppData !== '') {
+            $addCandidateRoot($localAppData . '/Apps/Tcl90');
+            $addCandidateRoot($localAppData . '/Apps/Tcl86');
+            $addCandidateRoot($localAppData . '/Programs/Tcl90');
+            $addCandidateRoot($localAppData . '/Programs/Tcl86');
+            $addCandidateRoot($localAppData . '/Programs/Tcl');
+            $addCandidateRoot($localAppData . '/Programs/MagicsplatTcl');
+            $addCandidateRoot($localAppData . '/MagicsplatTcl');
+        }
+        if (is_string($appData) && $appData !== '') {
+            $addCandidateRoot($appData . '/Tcl90');
+            $addCandidateRoot($appData . '/Tcl86');
+            $addCandidateRoot($appData . '/MagicsplatTcl');
+        }
+        if (is_string($userProfile) && $userProfile !== '') {
+            $addCandidateRoot($userProfile . '/AppData/Local/Apps/Tcl90');
+            $addCandidateRoot($userProfile . '/AppData/Local/Apps/Tcl86');
+        }
+
+        foreach ([
+            'C:/local/Tcl90',
+            'C:/local/Tcl86',
+            'C:/local/IronTcl',
+            'C:/Tcl90',
+            'C:/Tcl86',
+            'C:/Tcl',
+            'C:/Program Files/Tcl90',
+            'C:/Program Files/Tcl86',
+            'C:/Program Files/Tcl',
+            'C:/Program Files (x86)/Tcl90',
+            'C:/Program Files (x86)/Tcl86',
+            'C:/Program Files (x86)/Tcl',
+            'C:/Program Files/MagicsplatTcl',
+            'C:/Program Files (x86)/MagicsplatTcl',
+            'C:/Program Files/ActiveTcl',
+            'C:/Program Files (x86)/ActiveTcl',
+        ] as $root) {
+            $addCandidateRoot($root);
+        }
+
+        foreach ($candidateRoots as $root) {
+            $addRoot($root, 'default Tcl/Tk installation candidate');
+        }
+    }
+
+    $result = [];
+    $seen = [];
+    foreach ($roots as $rootEntry) {
+        $root = $rootEntry['root'];
+        $includeCandidates = [
+            normalize_path($root . '/include'),
+            normalize_path($root . '/include/tcl'),
+            normalize_path($root . '/include/tk'),
+        ];
+        $libCandidates = [
+            normalize_path($root . '/lib'),
+            normalize_path($root . '/lib64'),
+        ];
+        $binCandidates = [
+            normalize_path($root . '/bin'),
+        ];
+
+        foreach ($includeCandidates as $includeDir) {
+            if (!is_dir($includeDir) || !is_file(normalize_path($includeDir . '/tcl.h'))) {
+                continue;
+            }
+
+            foreach ($libCandidates as $libDir) {
+                if (!is_dir($libDir)) {
+                    continue;
+                }
+
+                $binDir = null;
+                foreach ($binCandidates as $candidateBinDir) {
+                    if (is_dir($candidateBinDir)) {
+                        $binDir = $candidateBinDir;
+                        break;
+                    }
+                }
+
+                $key = strtolower($includeDir . "\0" . $libDir);
+                if (isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = true;
+
+                $result[] = [
+                    'root' => $root,
+                    'include' => $includeDir,
+                    'lib' => $libDir,
+                    'bin' => $binDir,
+                    'source' => $rootEntry['source'] . ' under ' . $root,
+                ];
+            }
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * @return list<array{tk:string, tcl:string, note:string}>
+ */
+function find_tcltk_library_pairs(string $libDir): array
+{
+    $preferred = [
+        ['tk90t.lib', 'tcl90t.lib'],
+        ['tk90.lib', 'tcl90.lib'],
+        ['tk87t.lib', 'tcl87t.lib'],
+        ['tk87.lib', 'tcl87.lib'],
+        ['tk86t.lib', 'tcl86t.lib'],
+        ['tk86.lib', 'tcl86.lib'],
+        ['tk85t.lib', 'tcl85t.lib'],
+        ['tk85.lib', 'tcl85.lib'],
+    ];
+
+    $pairs = [];
+    $seen = [];
+    foreach ($preferred as [$tkName, $tclName]) {
+        $tkPath = normalize_path($libDir . '/' . $tkName);
+        $tclPath = normalize_path($libDir . '/' . $tclName);
+        if (!is_file($tkPath) || !is_file($tclPath)) {
+            continue;
+        }
+        $key = strtolower($tkPath . "\0" . $tclPath);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $pairs[] = [
+            'tk' => $tkPath,
+            'tcl' => $tclPath,
+            'note' => basename($tkPath) . ' + ' . basename($tclPath),
+        ];
+    }
+
+    $tkLibs = [];
+    foreach (glob(normalize_path($libDir . '/tk*.lib')) ?: [] as $path) {
+        $base = strtolower(basename($path));
+        if (str_contains($base, 'stub')) {
+            continue;
+        }
+        $tkLibs[] = normalize_path($path);
+    }
+    $tclLibs = [];
+    foreach (glob(normalize_path($libDir . '/tcl*.lib')) ?: [] as $path) {
+        $base = strtolower(basename($path));
+        if (str_contains($base, 'stub')) {
+            continue;
+        }
+        $tclLibs[] = normalize_path($path);
+    }
+    sort($tkLibs, SORT_NATURAL | SORT_FLAG_CASE);
+    sort($tclLibs, SORT_NATURAL | SORT_FLAG_CASE);
+
+    foreach ($tkLibs as $tkPath) {
+        if (!preg_match('/tk([0-9]+)/i', basename($tkPath), $tkMatch)) {
+            continue;
+        }
+        foreach ($tclLibs as $tclPath) {
+            if (!preg_match('/tcl([0-9]+)/i', basename($tclPath), $tclMatch)) {
+                continue;
+            }
+            if ($tkMatch[1] !== $tclMatch[1]) {
+                continue;
+            }
+            $key = strtolower($tkPath . "\0" . $tclPath);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $pairs[] = [
+                'tk' => $tkPath,
+                'tcl' => $tclPath,
+                'note' => basename($tkPath) . ' + ' . basename($tclPath),
+            ];
+        }
+    }
+
+    return $pairs;
+}
+
+/**
+ * @return list<string>
+ */
+function detect_tcltk_runtime_path_dirs(): array
+{
+    $dirs = [];
+    $seen = [];
+    foreach (detect_tcltk_install_candidates() as $candidate) {
+        $binDir = $candidate['bin'];
+        if (!is_string($binDir) || $binDir === '' || !is_dir($binDir)) {
+            continue;
+        }
+        $key = is_windows() ? strtolower(normalize_path($binDir)) : normalize_path($binDir);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $dirs[] = normalize_path($binDir);
+    }
+    return $dirs;
+}
+
+/**
+ * @param array<string, mixed> $options
  * @return list<array{cflags:list<string>, libs:list<string>, source:string}>
  */
 function tcltk_option_candidates(array $options): array
@@ -929,11 +1478,23 @@ function tcltk_option_candidates(array $options): array
         ];
     }
 
+    if (is_clang_cl_style($options)) {
+        foreach (detect_tcltk_install_candidates() as $installCandidate) {
+            foreach (find_tcltk_library_pairs($installCandidate['lib']) as $libraryPair) {
+                $candidates[] = [
+                    'cflags' => ['-I' . $installCandidate['include']],
+                    'libs' => [$libraryPair['tk'], $libraryPair['tcl']],
+                    'source' => $installCandidate['source'] . ' Tcl/Tk (' . $libraryPair['note'] . ')',
+                ];
+            }
+        }
+    }
+
     if (find_executable('pkg-config') !== null) {
         foreach (['tk', 'tk8.6', 'tk86'] as $package) {
             $output = [];
             $exitCode = 0;
-            exec('pkg-config --cflags --libs ' . escapeshellarg($package) . ' 2>/dev/null', $output, $exitCode);
+            exec('pkg-config --cflags --libs ' . escapeshellarg($package) . stderr_to_null_redirect(), $output, $exitCode);
             if ($exitCode === 0 && $output !== []) {
                 $tokens = split_command_fragment(implode(' ', $output));
                 $cflags = [];
@@ -1008,11 +1569,19 @@ function icu_option_candidates(array $options): array
         ];
     }
 
+    foreach (detect_vcpkg_installed_candidates($options['project_root'] ?? normalize_path(dirname(__DIR__))) as $candidate) {
+        $candidates[] = [
+            'cflags' => ['-I' . $candidate['include']],
+            'libs' => ['-L' . $candidate['lib'], '-licuuc', '-licuin', '-licudt'],
+            'source' => $candidate['source'] . ' ICU',
+        ];
+    }
+
     if (find_executable('pkg-config') !== null) {
         foreach (['icu-uc'] as $package) {
             $output = [];
             $exitCode = 0;
-            exec('pkg-config --cflags --libs ' . escapeshellarg($package) . ' 2>/dev/null', $output, $exitCode);
+            exec('pkg-config --cflags --libs ' . escapeshellarg($package) . stderr_to_null_redirect(), $output, $exitCode);
             if ($exitCode === 0 && $output !== []) {
                 $tokens = split_command_fragment(implode(' ', $output));
                 $cflags = [];
@@ -1080,14 +1649,92 @@ function icu_option_candidates(array $options): array
  * @param array<string, mixed> $options
  * @return list<array{cflags:list<string>, libs:list<string>, source:string}>
  */
+/**
+ * @return list<string>
+ */
+function find_zlib_libraries(string $libDir): array
+{
+    $preferred = [
+        'zlib.lib',
+        'zlibstatic.lib',
+        'zdll.lib',
+        'zlib1.lib',
+        'z.lib',
+    ];
+
+    $result = [];
+    $seen = [];
+
+    foreach ($preferred as $name) {
+        $path = normalize_path($libDir . '/' . $name);
+        if (!is_file($path)) {
+            continue;
+        }
+        $key = strtolower($path);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $result[] = $path;
+    }
+
+    foreach (glob(normalize_path($libDir . '/z*.lib')) ?: [] as $path) {
+        $path = normalize_path($path);
+        $base = strtolower(basename($path));
+        if (!str_contains($base, 'zlib') && $base !== 'z.lib' && $base !== 'zdll.lib') {
+            continue;
+        }
+        $key = strtolower($path);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $result[] = $path;
+    }
+
+    return $result;
+}
+
+/**
+ * @param array<string, mixed> $options
+ * @return list<array{cflags:list<string>, libs:list<string>, source:string}>
+ */
 function zlib_option_candidates(array $options): array
 {
     $candidates = [];
 
+    if (($options['zlib_cflags'] ?? []) !== [] || ($options['zlib_libs'] ?? []) !== []) {
+        $candidates[] = [
+            'cflags' => $options['zlib_cflags'] ?? [],
+            'libs' => $options['zlib_libs'] ?? [],
+            'source' => 'command line or environment',
+        ];
+    }
+
+    foreach (detect_vcpkg_installed_candidates($options['project_root'] ?? normalize_path(dirname(__DIR__))) as $candidate) {
+        $libraries = find_zlib_libraries($candidate['lib']);
+
+        foreach ($libraries as $libraryPath) {
+            $candidates[] = [
+                'cflags' => ['-I' . $candidate['include']],
+                'libs' => [$libraryPath],
+                'source' => $candidate['source'] . ' zlib (' . basename($libraryPath) . ')',
+            ];
+        }
+
+        foreach (['zlib', 'zlibstatic', 'zdll', 'zlib1', 'z'] as $libraryName) {
+            $candidates[] = [
+                'cflags' => ['-I' . $candidate['include']],
+                'libs' => ['-L' . $candidate['lib'], '-l' . $libraryName],
+                'source' => $candidate['source'] . ' zlib (' . $libraryName . ')',
+            ];
+        }
+    }
+
     if (find_executable('pkg-config') !== null) {
         $output = [];
         $exitCode = 0;
-        exec('pkg-config --cflags --libs zlib 2>/dev/null', $output, $exitCode);
+        exec('pkg-config --cflags --libs zlib' . stderr_to_null_redirect(), $output, $exitCode);
         if ($exitCode === 0 && $output !== []) {
             $tokens = split_command_fragment(implode(' ', $output));
             $cflags = [];
@@ -1157,13 +1804,12 @@ function probe_tcltk_candidate(array $options, array $candidate, string $scriptD
         "#include <tcl.h>\n#include <tk.h>\nauto main() -> int { return 0; }\n"
     );
 
-    $command = array_merge(
-        [$options['cxx'], '-std=gnu++23'],
-        $options['cxxflags'],
-        $candidate['cflags'],
-        [$sourceFile, '-o', $executable],
-        $candidate['libs'],
-        $options['ldflags']
+    $command = build_executable_command(
+        options: $options,
+        sourceFile: $sourceFile,
+        executable: $executable,
+        extraCflags: $candidate['cflags'],
+        extraLibs: $candidate['libs']
     );
 
     $result = run_command($command, $scriptDir);
@@ -1196,13 +1842,12 @@ function probe_icu_candidate(array $options, array $candidate, string $scriptDir
         "#include <unicode/utypes.h>\n#include <unicode/ustring.h>\n#include <unicode/unorm2.h>\nauto main() -> int { UErrorCode status = U_ZERO_ERROR; return unorm2_getNFCInstance(&status) == nullptr; }\n"
     );
 
-    $command = array_merge(
-        [$options['cxx'], '-std=gnu++23'],
-        $options['cxxflags'],
-        $candidate['cflags'],
-        [$sourceFile, '-o', $executable],
-        $candidate['libs'],
-        $options['ldflags']
+    $command = build_executable_command(
+        options: $options,
+        sourceFile: $sourceFile,
+        executable: $executable,
+        extraCflags: $candidate['cflags'],
+        extraLibs: $candidate['libs']
     );
 
     $result = run_command($command, $scriptDir);
@@ -1236,16 +1881,25 @@ function probe_zlib_candidate(array $options, array $candidate, string $scriptDi
         "#include <zlib.h>\nauto main() -> int { return zlibVersion() == nullptr; }\n"
     );
 
-    $command = array_merge(
-        [$options['cxx'], '-std=gnu++23'],
-        $options['cxxflags'],
-        $candidate['cflags'],
-        [$sourceFile, '-o', $executable],
-        $candidate['libs'],
-        $options['ldflags']
+    $command = build_executable_command(
+        options: $options,
+        sourceFile: $sourceFile,
+        executable: $executable,
+        extraCflags: $candidate['cflags'],
+        extraLibs: $candidate['libs']
     );
 
     $result = run_command($command, $scriptDir);
+
+    write_text_file(
+        normalize_path($probeDir . '/zlib_probe.log'),
+        'Command: ' . $result['command_line'] . PHP_EOL
+        . 'Exit code: ' . (string)$result['exit_code'] . PHP_EOL
+        . 'Source: ' . $candidate['source'] . PHP_EOL
+        . 'Output:' . PHP_EOL
+        . ($result['output'] === '' ? '(no output)' : $result['output'])
+        . PHP_EOL
+    );
 
     return [
         'available' => $result['exit_code'] === 0,
@@ -1313,11 +1967,14 @@ function detect_feature_options(array $options, string $scriptDir, string $build
     }
 
     if (!$features['tcltk']['available'] && ($lastCommandLine !== '' || $lastOutput !== '')) {
-        $features['tcltk']['reason'] = "Tcl/Tk probe failed.\n" . $lastCommandLine;
+        $features['tcltk']['reason'] = "Tcl/Tk probe failed.
+" . $lastCommandLine;
         if ($lastOutput !== '') {
-            $features['tcltk']['reason'] .= "\n" . $lastOutput;
+            $features['tcltk']['reason'] .= "
+" . $lastOutput;
         }
     }
+
 
     $lastOutput = '';
     $lastCommandLine = '';
@@ -1346,7 +2003,6 @@ function detect_feature_options(array $options, string $scriptDir, string $build
             $features['icu']['reason'] .= "\n" . $lastOutput;
         }
     }
-
 
     $lastOutput = '';
     $lastCommandLine = '';
@@ -1438,15 +2094,106 @@ function collect_feature_libs(array $features, array $featureOptions): array
  */
 function build_compile_command(array $task, array $options): array
 {
+    return build_executable_command(
+        options: $options,
+        sourceFile: $task['source_file'],
+        executable: $task['executable'],
+        extraCflags: array_merge(['-I..'], $task['feature_cflags']),
+        extraLibs: $task['feature_libs']
+    );
+}
+
+/**
+ * @param array<string, mixed> $options
+ * @param list<string> $extraCflags
+ * @param list<string> $extraLibs
+ * @return list<string>
+ */
+function build_executable_command(array $options, string $sourceFile, string $executable, array $extraCflags = [], array $extraLibs = []): array
+{
+    if (($options['compiler_style'] ?? 'gcc') === 'clang-cl') {
+        $linkArgs = convert_link_args_for_clang_cl(array_merge($extraLibs, $options['ldflags']));
+        $command = array_merge(
+            [$options['cxx'], '/std:c++latest', '/EHsc', '/utf-8'],
+            $options['cxxflags'],
+            convert_cflags_for_clang_cl($extraCflags),
+            [$sourceFile, '/Fe:' . $executable]
+        );
+
+        if ($linkArgs !== []) {
+            $command[] = '/link';
+            array_push($command, ...$linkArgs);
+        }
+
+        return $command;
+    }
+
     return array_merge(
         [$options['cxx'], '-std=gnu++23'],
         $options['cxxflags'],
-        ['-I..'],
-        $task['feature_cflags'],
-        [$task['source_file'], '-o', $task['executable']],
-        $task['feature_libs'],
+        $extraCflags,
+        [$sourceFile, '-o', $executable],
+        $extraLibs,
         $options['ldflags']
     );
+}
+
+/**
+ * @param list<string> $cflags
+ * @return list<string>
+ */
+function convert_cflags_for_clang_cl(array $cflags): array
+{
+    $result = [];
+    for ($i = 0; $i < count($cflags); ++$i) {
+        $flag = $cflags[$i];
+        if ($flag === '-I' && isset($cflags[$i + 1])) {
+            $result[] = '/I' . $cflags[++$i];
+            continue;
+        }
+        if (str_starts_with($flag, '-I')) {
+            $result[] = '/I' . substr($flag, 2);
+            continue;
+        }
+        $result[] = $flag;
+    }
+    return $result;
+}
+
+/**
+ * @param list<string> $args
+ * @return list<string>
+ */
+function convert_link_args_for_clang_cl(array $args): array
+{
+    $result = [];
+    for ($i = 0; $i < count($args); ++$i) {
+        $arg = $args[$i];
+
+        if ($arg === '-L' && isset($args[$i + 1])) {
+            $result[] = '/libpath:' . $args[++$i];
+            continue;
+        }
+
+        if (str_starts_with($arg, '-L')) {
+            $result[] = '/libpath:' . substr($arg, 2);
+            continue;
+        }
+
+        if ($arg === '-l' && isset($args[$i + 1])) {
+            $result[] = $args[++$i] . '.lib';
+            continue;
+        }
+
+        if (str_starts_with($arg, '-l')) {
+            $result[] = substr($arg, 2) . '.lib';
+            continue;
+        }
+
+        $result[] = $arg;
+    }
+
+    return $result;
 }
 
 
@@ -1652,7 +2399,13 @@ function update_run_cache(array $task, bool $success): void
  */
 function start_compile_process(array $task, array $options, string $scriptDir): array
 {
-    $started = start_process(build_compile_command($task, $options), $scriptDir);
+    $command = build_compile_command($task, $options);
+    print_task_header($task);
+    echo '[COMP  ] start' . PHP_EOL;
+    echo '[CMD   ] ' . format_command_line($command) . PHP_EOL;
+    flush();
+
+    $started = start_process($command, $scriptDir);
     $started['stage'] = 'compile';
     return $started;
 }
@@ -1661,13 +2414,18 @@ function start_compile_process(array $task, array $options, string $scriptDir): 
  * @param array<string, mixed> $task
  * @return array{process:resource, pipes:array<int, resource>, command_line:string, stage:string}
  */
-function start_run_process(array $task): array
+function start_run_process(array $task, array $options): array
 {
     recreate_directory($task['work_dir']);
 
     $command = [$task['executable']];
 
-    $started = start_process($command, $task['work_dir']);
+    echo '[RUN   ] start' . PHP_EOL;
+    echo '[CMD   ] ' . format_command_line($command) . PHP_EOL;
+    flush();
+
+    $env = build_process_environment($options['runtime_path_dirs'] ?? []);
+    $started = start_process($command, $task['work_dir'], $env);
     $started['stage'] = 'run';
     return $started;
 }
@@ -2028,26 +2786,16 @@ function run_tasks_in_parallel(
                     continue;
                 }
 
-                $started = start_run_process($task);
-                $running[] = [
-                    'task' => $task,
-                    'stage' => $started['stage'],
-                    'process' => $started['process'],
-                    'pipes' => $started['pipes'],
-                    'command_line' => $started['command_line'],
-                ];
+                $started = start_run_process($task, $options);
+                $started['task'] = $task;
+                $running[] = $started;
                 continue;
             }
 
             $started = start_compile_process($task, $options, $scriptDir);
 
-            $running[] = [
-                'task' => $task,
-                'stage' => $started['stage'],
-                'process' => $started['process'],
-                'pipes' => $started['pipes'],
-                'command_line' => $started['command_line'],
-            ];
+            $started['task'] = $task;
+            $running[] = $started;
         }
 
         if ($running === []) {
@@ -2058,15 +2806,50 @@ function run_tasks_in_parallel(
         $hadCompletion = false;
 
         foreach ($running as $entry) {
+            drain_process_output($entry);
+            if (($options['timeout'] ?? 0) > 0 && (microtime(true) - (float) $entry['started_at']) > (int) $options['timeout']) {
+                proc_terminate($entry['process']);
+                $result = finalize_process_entry($entry, 124);
+                $timeoutMessage = 'Process timed out after ' . (string) $options['timeout'] . ' seconds.';
+                $result['output'] = $result['output'] === ''
+                    ? $timeoutMessage
+                    : ($result['output'] . PHP_EOL . $timeoutMessage);
+                $result['exit_code'] = 124;
+                $hadCompletion = true;
+                $task = $entry['task'];
+
+                if ($entry['stage'] === 'compile') {
+                    $compileOutput = 'Command: ' . $entry['command_line'];
+                    $compileOutput .= PHP_EOL . 'Working directory: ' . $scriptDir;
+                    $compileOutput .= PHP_EOL . 'Exit code: ' . (string) $result['exit_code'];
+                    $compileOutput .= PHP_EOL . $result['output'];
+                    write_text_file($task['compile_log'], $compileOutput);
+                    update_compile_cache($task, $options, build_compile_command($task, $options), false);
+                    print_compile_result($task, false);
+                    $failedPrograms[] = ['target' => $task['target'], 'name' => $task['name'], 'stage' => 'compile'];
+                    continue;
+                }
+
+                $runOutput = 'Command: ' . $entry['command_line'];
+                $runOutput .= PHP_EOL . 'Working directory: ' . $task['work_dir'];
+                $runOutput .= PHP_EOL . 'Exit code: ' . (string) $result['exit_code'];
+                $runOutput .= PHP_EOL . $result['output'];
+                write_text_file($task['run_log'], $runOutput);
+                update_run_cache($task, false);
+                print_run_result($task, false);
+                $failedPrograms[] = ['target' => $task['target'], 'name' => $task['name'], 'stage' => 'run'];
+                continue;
+            }
             $status = proc_get_status($entry['process']);
             if ($status === false) {
-                $result = finalize_process($entry['process'], $entry['pipes']);
+                $result = finalize_process_entry($entry, 1);
                 $result['exit_code'] = 1;
             } elseif ($status['running']) {
                 $remaining[] = $entry;
                 continue;
             } else {
-                $result = finalize_process($entry['process'], $entry['pipes']);
+                $knownExitCode = isset($status['exitcode']) ? (int) $status['exitcode'] : null;
+                $result = finalize_process_entry($entry, $knownExitCode);
             }
 
             $hadCompletion = true;
@@ -2075,6 +2858,7 @@ function run_tasks_in_parallel(
             if ($entry['stage'] === 'compile') {
                 $compileOutput = 'Command: ' . $entry['command_line'];
                 $compileOutput .= PHP_EOL . 'Working directory: ' . $scriptDir;
+                $compileOutput .= PHP_EOL . 'Exit code: ' . (string) $result['exit_code'];
                 if ($result['output'] !== '') {
                     $compileOutput .= PHP_EOL . $result['output'];
                 }
@@ -2082,7 +2866,6 @@ function run_tasks_in_parallel(
                 $compileOk = ($result['exit_code'] === 0);
                 update_compile_cache($task, $options, build_compile_command($task, $options), $compileOk);
 
-                print_task_header($task);
                 print_compile_result($task, $compileOk);
 
                 if (!$compileOk) {
@@ -2096,19 +2879,15 @@ function run_tasks_in_parallel(
 
                 ++$targetStats[$task['target']]['compile_success'];
 
-                $started = start_run_process($task);
-                $remaining[] = [
-                    'task' => $task,
-                    'stage' => $started['stage'],
-                    'process' => $started['process'],
-                    'pipes' => $started['pipes'],
-                    'command_line' => $started['command_line'],
-                ];
+                $started = start_run_process($task, $options);
+                $started['task'] = $task;
+                $remaining[] = $started;
                 continue;
             }
 
             $runOutput = 'Command: ' . $entry['command_line'];
             $runOutput .= PHP_EOL . 'Working directory: ' . $task['work_dir'];
+            $runOutput .= PHP_EOL . 'Exit code: ' . (string) $result['exit_code'];
             if ($result['output'] !== '') {
                 $runOutput .= PHP_EOL . $result['output'];
             }
@@ -2191,6 +2970,7 @@ if ($parsed['toolchain'] !== null) {
     $parsed['cxxflags'] = $resolved['cxxflags'];
     $parsed['ldflags'] = $resolved['ldflags'];
     $parsed['build_id'] = $resolved['build_id'];
+    $parsed['compiler_style'] = $resolved['compiler_style'];
 }
 $buildId = $parsed['build_id'];
 $buildRoot = normalize_path($scriptDir . '/build/' . $buildId);
@@ -2200,13 +2980,22 @@ if ($parsed['clean_cache']) {
 ensure_directory($buildRoot);
 $options = [
     'cxx' => $parsed['cxx'],
+    'compiler_style' => $parsed['compiler_style'],
     'cxxflags' => $parsed['cxxflags'],
     'ldflags' => $parsed['ldflags'],
     'tcltk_cflags' => $parsed['tcltk_cflags'],
     'tcltk_libs' => $parsed['tcltk_libs'],
     'icu_cflags' => $parsed['icu_cflags'],
     'icu_libs' => $parsed['icu_libs'],
+    'zlib_cflags' => $parsed['zlib_cflags'],
+    'zlib_libs' => $parsed['zlib_libs'],
+    'project_root' => $projectRoot,
+    'runtime_path_dirs' => array_values(array_unique(array_merge(
+        detect_vcpkg_runtime_path_dirs($projectRoot),
+        detect_tcltk_runtime_path_dirs()
+    ), SORT_STRING)),
     'all' => $parsed['all'],
+    'timeout' => $parsed['timeout'],
 ];
 $jobs = $parsed['jobs'];
 $targets = $parsed['targets'];
@@ -2243,6 +3032,12 @@ if ($sourceSelectors !== []) {
     echo 'Source filters  : ' . implode(', ', $sourceSelectors) . PHP_EOL;
 }
 echo 'Jobs            : ' . $jobs . PHP_EOL;
+if (($options['runtime_path_dirs'] ?? []) !== []) {
+    echo 'Runtime PATH    : ' . implode((is_windows() ? ';' : ':'), $options['runtime_path_dirs']) . PHP_EOL;
+}
+if ($options['timeout'] > 0) {
+    echo 'Timeout         : ' . $options['timeout'] . ' sec' . PHP_EOL;
+}
 echo 'Total programs  : ' . count($tasks) . PHP_EOL;
 echo PHP_EOL;
 

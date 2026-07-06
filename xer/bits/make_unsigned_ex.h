@@ -29,7 +29,7 @@ struct make_unsigned_ex {
     using type = std::make_unsigned_t<T>;
 };
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 template<>
 struct make_unsigned_ex<xer::int128_t> {
     using type = xer::uint128_t;
@@ -64,7 +64,7 @@ inline constexpr bool is_signed_integer_ex_v =
     std::same_as<std::remove_cv_t<T>, int> ||
     std::same_as<std::remove_cv_t<T>, long> ||
     std::same_as<std::remove_cv_t<T>, long long>
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     || std::same_as<std::remove_cv_t<T>, xer::int128_t>
 #endif
     ;
@@ -84,7 +84,7 @@ inline constexpr bool is_unsigned_integer_ex_v =
     std::same_as<std::remove_cv_t<T>, unsigned int> ||
     std::same_as<std::remove_cv_t<T>, unsigned long> ||
     std::same_as<std::remove_cv_t<T>, unsigned long long>
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     || std::same_as<std::remove_cv_t<T>, xer::uint128_t>
 #endif
     ;

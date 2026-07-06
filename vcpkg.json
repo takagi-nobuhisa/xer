@@ -1,0 +1,9 @@
+{
+  "name": "xer",
+  "version-string": "1.1.0",
+  "dependencies": [
+    "zlib",
+    "icu"
+  ],
+  "builtin-baseline": "a7bd30319eeac16afbe18d64a855303a0a425e84"
+}

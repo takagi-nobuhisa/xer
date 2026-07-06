@@ -181,7 +181,7 @@ void test_nan_handling()
     xer_assert_not(xer::ge(nan, nan));
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 /**
  * @brief Tests 128-bit integer operands.
  */
@@ -302,7 +302,7 @@ int main()
     test_mixed_integer_and_floating();
     test_floating_point_comparisons();
     test_nan_handling();
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     test_int128_operands();
 #endif
     test_expected_propagation();

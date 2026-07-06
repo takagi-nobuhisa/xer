@@ -42,6 +42,7 @@
 
 # Test script output
 php/build/*
+/vcpkg_installed/
 php/*.tmp
 tests/error_log.txt
 tests/a.exe

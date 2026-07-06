@@ -116,12 +116,12 @@ template<strto_integer T, strto_character CharT>
     unsigned_type limit = 0;
 
     if constexpr (std::is_unsigned_v<value_type>) {
-        limit = std::numeric_limits<value_type>::max();
+        limit = (std::numeric_limits<value_type>::max)();
     } else if (negative) {
-        limit = static_cast<unsigned_type>(std::numeric_limits<value_type>::max()) +
+        limit = static_cast<unsigned_type>((std::numeric_limits<value_type>::max)()) +
                 static_cast<unsigned_type>(1);
     } else {
-        limit = static_cast<unsigned_type>(std::numeric_limits<value_type>::max());
+        limit = static_cast<unsigned_type>((std::numeric_limits<value_type>::max)());
     }
 
     unsigned_type value = 0;

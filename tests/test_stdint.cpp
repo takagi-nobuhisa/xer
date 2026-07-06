@@ -50,7 +50,7 @@ void test_integer_type_aliases()
     static_assert(std::same_as<xer::intptr_t, std::intptr_t>);
     static_assert(std::same_as<xer::uintptr_t, std::uintptr_t>);
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     static_assert(sizeof(xer::int128_t) == 16);
     static_assert(sizeof(xer::uint128_t) == 16);
     static_assert(std::signed_integral<xer::int128_t>);
@@ -85,7 +85,7 @@ void test_numeric_limit_helpers()
     static_assert(xer::bit_width_of<xer::int64_t> == 64);
     static_assert(xer::bit_width_of<xer::uint64_t> == 64);
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     static_assert(xer::bit_width_of<xer::int128_t> == 128);
     static_assert(xer::bit_width_of<xer::uint128_t> == 128);
 #endif
@@ -128,7 +128,7 @@ void test_signed_integer_literals()
     static_assert(12'345_i32 == static_cast<xer::int32_t>(12345));
     static_assert(0b1010'0101_u8 == static_cast<xer::uint8_t>(0xa5));
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     static_assert(std::same_as<decltype(0_i128), xer::int128_t>);
     static_assert(0_i128 == static_cast<xer::int128_t>(0));
     static_assert(
@@ -169,7 +169,7 @@ void test_unsigned_integer_literals()
         0xffff'ffff'ffff'ffff_u64 ==
         static_cast<xer::uint64_t>(18446744073709551615ULL));
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     static_assert(std::same_as<decltype(0_u128), xer::uint128_t>);
     static_assert(0_u128 == static_cast<xer::uint128_t>(0));
     static_assert(
@@ -196,7 +196,7 @@ void test_unary_minus_behavior()
     static_assert(-1_i32 == static_cast<xer::int32_t>(-1));
     static_assert(-1_i64 == static_cast<xer::int64_t>(-1));
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     static_assert(std::same_as<decltype(-1_i128), xer::int128_t>);
     static_assert(-1_i128 == static_cast<xer::int128_t>(-1));
 #endif

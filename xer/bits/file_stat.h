@@ -24,7 +24,7 @@
 
 #ifdef _WIN32
 #    include <io.h>
-#    include <windows.h>
+#    include <xer/bits/windows.h>
 #else
 #    include <cerrno>
 #    include <sys/stat.h>

@@ -565,12 +565,12 @@ namespace detail {
 
 [[nodiscard]] constexpr auto kana_combined_braille(
     char32_t base,
-    char32_t small) -> result<std::u8string_view>
+    char32_t small_kana) -> result<std::u8string_view>
 {
     switch (base) {
     case U'き':
     case U'キ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠈⠡";
@@ -590,7 +590,7 @@ namespace detail {
 
     case U'し':
     case U'シ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠈⠱";
@@ -610,7 +610,7 @@ namespace detail {
 
     case U'す':
     case U'ス':
-        switch (small) {
+        switch (small_kana) {
         case U'ぃ':
         case U'ィ':
             return u8"⠈⠳";
@@ -621,7 +621,7 @@ namespace detail {
 
     case U'ち':
     case U'チ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠈⠕";
@@ -641,7 +641,7 @@ namespace detail {
 
     case U'に':
     case U'ニ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠈⠅";
@@ -661,7 +661,7 @@ namespace detail {
 
     case U'ひ':
     case U'ヒ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠈⠥";
@@ -681,7 +681,7 @@ namespace detail {
 
     case U'み':
     case U'ミ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠈⠵";
@@ -698,7 +698,7 @@ namespace detail {
 
     case U'り':
     case U'リ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠈⠑";
@@ -715,7 +715,7 @@ namespace detail {
 
     case U'ぎ':
     case U'ギ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠘⠡";
@@ -732,7 +732,7 @@ namespace detail {
 
     case U'じ':
     case U'ジ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠘⠱";
@@ -752,7 +752,7 @@ namespace detail {
 
     case U'ず':
     case U'ズ':
-        switch (small) {
+        switch (small_kana) {
         case U'ぃ':
         case U'ィ':
             return u8"⠘⠳";
@@ -763,7 +763,7 @@ namespace detail {
 
     case U'ぢ':
     case U'ヂ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠘⠕";
@@ -780,7 +780,7 @@ namespace detail {
 
     case U'び':
     case U'ビ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠘⠥";
@@ -797,7 +797,7 @@ namespace detail {
 
     case U'ぴ':
     case U'ピ':
-        switch (small) {
+        switch (small_kana) {
         case U'ゃ':
         case U'ャ':
             return u8"⠨⠥";
@@ -814,7 +814,7 @@ namespace detail {
 
     case U'い':
     case U'イ':
-        switch (small) {
+        switch (small_kana) {
         case U'ぇ':
         case U'ェ':
             return u8"⠈⠋";
@@ -825,7 +825,7 @@ namespace detail {
 
     case U'う':
     case U'ウ':
-        switch (small) {
+        switch (small_kana) {
         case U'ぃ':
         case U'ィ':
             return u8"⠢⠃";
@@ -842,7 +842,7 @@ namespace detail {
 
     case U'く':
     case U'ク':
-        switch (small) {
+        switch (small_kana) {
         case U'ぁ':
         case U'ァ':
             return u8"⠢⠡";
@@ -862,7 +862,7 @@ namespace detail {
 
     case U'ぐ':
     case U'グ':
-        switch (small) {
+        switch (small_kana) {
         case U'ぁ':
         case U'ァ':
             return u8"⠲⠡";
@@ -882,7 +882,7 @@ namespace detail {
 
     case U'つ':
     case U'ツ':
-        switch (small) {
+        switch (small_kana) {
         case U'ぁ':
         case U'ァ':
             return u8"⠢⠕";
@@ -902,7 +902,7 @@ namespace detail {
 
     case U'て':
     case U'テ':
-        switch (small) {
+        switch (small_kana) {
         case U'ぃ':
         case U'ィ':
             return u8"⠈⠗";
@@ -916,7 +916,7 @@ namespace detail {
 
     case U'で':
     case U'デ':
-        switch (small) {
+        switch (small_kana) {
         case U'ぃ':
         case U'ィ':
             return u8"⠘⠗";
@@ -930,7 +930,7 @@ namespace detail {
 
     case U'と':
     case U'ト':
-        switch (small) {
+        switch (small_kana) {
         case U'ぅ':
         case U'ゥ':
             return u8"⠢⠝";
@@ -941,7 +941,7 @@ namespace detail {
 
     case U'ど':
     case U'ド':
-        switch (small) {
+        switch (small_kana) {
         case U'ぅ':
         case U'ゥ':
             return u8"⠲⠝";
@@ -952,7 +952,7 @@ namespace detail {
 
     case U'ふ':
     case U'フ':
-        switch (small) {
+        switch (small_kana) {
         case U'ぁ':
         case U'ァ':
             return u8"⠢⠥";
@@ -978,7 +978,7 @@ namespace detail {
 
     case U'ヴ':
     case U'ゔ':
-        switch (small) {
+        switch (small_kana) {
         case U'ぁ':
         case U'ァ':
             return u8"⠲⠥";

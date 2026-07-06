@@ -50,7 +50,7 @@ using std::uint_fast64_t;
 using std::intptr_t;
 using std::uintptr_t;
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 __extension__ using int128_t = __int128;
 __extension__ using uint128_t = unsigned __int128;
 using intmax_t = int128_t;
@@ -336,7 +336,7 @@ template<char... Chars>
     return detail::parse_unsigned_integer_literal<uint_least64_t, Chars...>();
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 template<char... Chars>
 [[nodiscard]] consteval int128_t operator""_i128()
 {

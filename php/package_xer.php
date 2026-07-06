@@ -14,6 +14,7 @@ declare(strict_types=1);
  *
  * - xer/.git/
  * - xer/php/build/
+ * - xer/vcpkg_installed/
  */
 
 const EXIT_SUCCESS_CODE = 0;
@@ -110,7 +111,9 @@ function should_exclude(string $relativePath): bool
     return $path === '.git'
         || str_starts_with($path, '.git/')
         || $path === 'php/build'
-        || str_starts_with($path, 'php/build/');
+        || str_starts_with($path, 'php/build/')
+        || $path === 'vcpkg_installed'
+        || str_starts_with($path, 'vcpkg_installed/');
 }
 
 /**
@@ -261,7 +264,8 @@ function create_zip_with_command(string $projectRoot, string $output): void
         . ' -rq ' . escapeshellarg($output)
         . ' ' . escapeshellarg($baseName)
         . ' -x ' . escapeshellarg($baseName . '/.git/*')
-        . ' -x ' . escapeshellarg($baseName . '/php/build/*');
+        . ' -x ' . escapeshellarg($baseName . '/php/build/*')
+        . ' -x ' . escapeshellarg($baseName . '/vcpkg_installed/*');
 
     $lines = [];
     $exitCode = 0;

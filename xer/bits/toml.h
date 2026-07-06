@@ -1401,7 +1401,7 @@ template <class Pred>
     }
 
     constexpr auto max_value =
-        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
+        static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)());
     constexpr auto min_magnitude = max_value + UINT64_C(1);
     const std::uint64_t limit = negative ? min_magnitude : max_value;
 

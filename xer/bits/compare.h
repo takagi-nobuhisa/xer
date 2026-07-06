@@ -33,9 +33,15 @@ concept compare_integral =
 /**
  * @brief Mathematical integer represented by sign and magnitude.
  */
+#if defined(XER_HAS_INT128)
+using compare_integer_magnitude_t = xer::uint128_t;
+#else
+using compare_integer_magnitude_t = xer::uint64_t;
+#endif
+
 struct compare_integer_value {
     bool negative;
-    xer::uint128_t magnitude;
+    compare_integer_magnitude_t magnitude;
 };
 
 /**
@@ -55,19 +61,19 @@ template<typename T>
     if constexpr (std::unsigned_integral<raw_t>) {
         return compare_integer_value{
             false,
-            static_cast<xer::uint128_t>(value),
+            static_cast<compare_integer_magnitude_t>(value),
         };
     } else {
         if (value >= 0) {
             return compare_integer_value{
                 false,
-                static_cast<xer::uint128_t>(value),
+                static_cast<compare_integer_magnitude_t>(value),
             };
         }
 
         return compare_integer_value{
             true,
-            static_cast<xer::uint128_t>(-(value + 1)) + 1,
+            static_cast<compare_integer_magnitude_t>(-(value + 1)) + 1,
         };
     }
 }

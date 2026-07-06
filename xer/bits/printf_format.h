@@ -600,7 +600,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
     while (index < format.size() && format[index] >= u8'0' && format[index] <= u8'9') {
         const int digit = static_cast<int>(format[index] - u8'0');
 
-        if (value > (std::numeric_limits<int>::max() - digit) / 10) {
+        if (value > ((std::numeric_limits<int>::max)() - digit) / 10) {
             return std::nullopt;
         }
 
@@ -878,7 +878,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
 
     if (arg.kind == printf_arg_kind::unsigned_integer) {
         const auto value = std::get<std::uintmax_t>(arg.value);
-        if (value > static_cast<std::uintmax_t>(std::numeric_limits<int>::max())) {
+        if (value > static_cast<std::uintmax_t>((std::numeric_limits<int>::max)())) {
             return std::unexpected(make_error(error_t::out_of_range));
         }
         return static_cast<int>(value);
@@ -903,7 +903,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
         return field;
     }
 
-    const std::size_t width = static_cast<std::size_t>(std::max(0, *spec.width));
+    const std::size_t width = static_cast<std::size_t>((std::max)(0, *spec.width));
     if (field.size() >= width) {
         return field;
     }
@@ -919,7 +919,7 @@ inline auto append_repeated_ascii(std::u8string& out, char8_t ch, std::size_t co
         std::u8string result;
         result.reserve(width);
 
-        const std::size_t actual_prefix_size = std::min(prefix_size, field.size());
+        const std::size_t actual_prefix_size = (std::min)(prefix_size, field.size());
         result.append(field, 0, actual_prefix_size);
         append_repeated_ascii(result, u8'0', pad_count);
         result.append(field, actual_prefix_size, std::u8string::npos);

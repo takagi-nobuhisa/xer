@@ -186,7 +186,7 @@ inline auto serialize_read_float(
 [[nodiscard]] constexpr auto serialize_u64_to_size(std::uint64_t value)
     -> result<std::size_t>
 {
-    if (value > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
+    if (value > static_cast<std::uint64_t>((std::numeric_limits<std::size_t>::max)())) {
         return std::unexpected(make_error(error_t::length_error));
     }
 

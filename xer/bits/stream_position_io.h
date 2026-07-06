@@ -42,7 +42,7 @@ namespace xer::detail {
  */
 [[nodiscard]] inline auto fpos_to_signed_pos(
     fpos_t value) noexcept -> result<std::int64_t> {
-    if (value > static_cast<fpos_t>(std::numeric_limits<std::int64_t>::max())) {
+    if (value > static_cast<fpos_t>((std::numeric_limits<std::int64_t>::max)())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
 
@@ -214,7 +214,7 @@ namespace xer {
 [[nodiscard]] inline auto fsetpos(
     text_stream& stream,
     fpos_t position) noexcept -> result<void> {
-    if (position > static_cast<fpos_t>(std::numeric_limits<text_stream_pos_t>::max())) {
+    if (position > static_cast<fpos_t>((std::numeric_limits<text_stream_pos_t>::max)())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
 

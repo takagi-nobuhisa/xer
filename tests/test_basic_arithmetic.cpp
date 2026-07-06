@@ -187,7 +187,7 @@ void test_expected_propagation()
     xer_assert_not(r5.has_value());
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 /**
  * @brief Tests 128-bit integer operands.
  */
@@ -236,7 +236,7 @@ int main()
     test_umul();
     test_expected_propagation();
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     test_int128_operands();
 #endif
 

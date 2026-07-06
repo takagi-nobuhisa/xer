@@ -26,7 +26,7 @@ namespace detail {
 template<std::floating_point T>
 [[nodiscard]] auto equation_tolerance(T lhs, T rhs) noexcept -> T
 {
-    const T scale = std::max({T{1}, std::abs(lhs), std::abs(rhs)});
+    const T scale = (std::max)({T{1}, std::abs(lhs), std::abs(rhs)});
     return scale * std::numeric_limits<T>::epsilon() * static_cast<T>(64);
 }
 

@@ -8,9 +8,26 @@
 #ifndef XER_BITS_COMMON_H_INCLUDED_
 #define XER_BITS_COMMON_H_INCLUDED_
 
+#if defined(_WIN32)
+#    if !defined(NOMINMAX)
+#        define NOMINMAX
+#    endif
+#    ifdef min
+#        undef min
+#    endif
+#    ifdef max
+#        undef max
+#    endif
+#endif
+
 #include <climits>
 #include <cstddef>
 #include <string>
+
+
+#if defined(__SIZEOF_INT128__) && !defined(_MSC_VER)
+#define XER_HAS_INT128 1
+#endif
 
 
 #if defined(_LIBCPP_VERSION)

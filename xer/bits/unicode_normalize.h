@@ -42,7 +42,7 @@ namespace detail {
 [[nodiscard]] inline auto size_to_icu_length(std::size_t size) noexcept
     -> result<std::int32_t>
 {
-    if (size > static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max())) {
+    if (size > static_cast<std::size_t>((std::numeric_limits<std::int32_t>::max)())) {
         return std::unexpected(make_error(error_t::length_error));
     }
 

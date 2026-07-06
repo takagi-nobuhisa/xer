@@ -88,7 +88,7 @@ void test_abs_long_long()
     }
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 void test_abs_int128()
 {
     {
@@ -181,7 +181,7 @@ void test_uabs_long_long()
     }
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 void test_uabs_int128()
 {
     {
@@ -261,14 +261,14 @@ int main()
     test_abs_int();
     test_abs_long();
     test_abs_long_long();
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     test_abs_int128();
 #endif
 
     test_uabs_int();
     test_uabs_long();
     test_uabs_long_long();
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
     test_uabs_int128();
 #endif
 

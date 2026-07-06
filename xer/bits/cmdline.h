@@ -23,7 +23,7 @@
 #include <xer/error.h>
 
 #ifdef _WIN32
-#    include <windows.h>
+#    include <xer/bits/windows.h>
 #endif
 
 namespace xer {

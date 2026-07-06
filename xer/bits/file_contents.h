@@ -34,7 +34,7 @@ namespace xer::detail {
 [[nodiscard]] inline auto file_contents_offset_to_int64(
     std::uint64_t value) noexcept -> result<std::int64_t>
 {
-    if (value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+    if (value > static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)())) {
         return std::unexpected(make_error(error_t::out_of_range));
     }
 
@@ -66,7 +66,7 @@ namespace xer {
 [[nodiscard]] inline auto file_get_contents(
     const path& filename,
     std::uint64_t offset = 0,
-    std::uint64_t length = std::numeric_limits<std::uint64_t>::max())
+    std::uint64_t length = (std::numeric_limits<std::uint64_t>::max)())
     -> result<std::vector<std::byte>>
 {
     auto stream = fopen(filename, "r");

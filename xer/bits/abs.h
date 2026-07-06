@@ -182,7 +182,7 @@ template<class T, class U, class E>
     return detail::signed_abs(value);
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 /**
  * @brief Returns the absolute value of a signed __int128.
  *
@@ -233,7 +233,7 @@ template<class E>
     return detail::abs_expected(value);
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 /**
  * @brief Returns the absolute value of an expected signed __int128.
  *
@@ -312,7 +312,7 @@ template<class E>
     return value;
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 /**
  * @brief Returns the unsigned absolute value of a signed __int128.
  *
@@ -414,7 +414,7 @@ template<class E>
     return detail::uabs_expected<unsigned long long, unsigned long long>(value);
 }
 
-#if defined(__SIZEOF_INT128__)
+#if defined(XER_HAS_INT128)
 /**
  * @brief Returns the unsigned absolute value of an expected signed __int128.
  *

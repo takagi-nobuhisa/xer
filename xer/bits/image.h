@@ -536,8 +536,8 @@ inline constexpr std::uint16_t xbf_format_version = 1;
     std::uint64_t value) noexcept -> std::size_t
 {
     if (value > static_cast<std::uint64_t>(
-                    std::numeric_limits<std::size_t>::max())) {
-        return std::numeric_limits<std::size_t>::max();
+                    (std::numeric_limits<std::size_t>::max)())) {
+        return (std::numeric_limits<std::size_t>::max)();
     }
 
     return static_cast<std::size_t>(value);
@@ -564,8 +564,8 @@ inline constexpr std::uint16_t xbf_format_version = 1;
     long long value,
     long long delta) noexcept -> long long
 {
-    if (delta > 0 && value > std::numeric_limits<long long>::max() - delta) {
-        return std::numeric_limits<long long>::max();
+    if (delta > 0 && value > (std::numeric_limits<long long>::max)() - delta) {
+        return (std::numeric_limits<long long>::max)();
     }
     if (delta < 0 && value < std::numeric_limits<long long>::min() - delta) {
         return std::numeric_limits<long long>::min();
@@ -854,7 +854,7 @@ inline constexpr bool valid_image_extent =
         static_cast<std::uint64_t>(range_count) *
         static_cast<std::uint64_t>(detail::xbf_range_entry_size);
     if (range_table_offset >
-        std::numeric_limits<std::uint64_t>::max() - range_table_size) {
+        (std::numeric_limits<std::uint64_t>::max)() - range_table_size) {
         return std::unexpected(detail::bitmap_font_parse_error(
             xer::parse_error_reason::truncated_input,
             detail::xbf_size_to_offset(range_table_offset)));
@@ -949,7 +949,7 @@ inline constexpr bool valid_image_extent =
 
         if (bytes_per_glyph != 0 &&
             glyph_count >
-                std::numeric_limits<std::uint64_t>::max() / bytes_per_glyph) {
+                (std::numeric_limits<std::uint64_t>::max)() / bytes_per_glyph) {
             return std::unexpected(detail::bitmap_font_parse_error(
                 xer::parse_error_reason::truncated_input,
                 detail::xbf_size_to_offset(bitmap_data_offset + bitmap_offset)));
@@ -1326,11 +1326,11 @@ template<std::size_t Width, std::size_t Height, class Policy>
 
     const auto max_canvas_x = img.width() - 1;
     const auto max_canvas_y = img.height() - 1;
-    const auto canvas_last_x = max_canvas_x > static_cast<std::size_t>(std::numeric_limits<int>::max())
-        ? std::numeric_limits<int>::max()
+    const auto canvas_last_x = max_canvas_x > static_cast<std::size_t>((std::numeric_limits<int>::max)())
+        ? (std::numeric_limits<int>::max)()
         : static_cast<int>(max_canvas_x);
-    const auto canvas_last_y = max_canvas_y > static_cast<std::size_t>(std::numeric_limits<int>::max())
-        ? std::numeric_limits<int>::max()
+    const auto canvas_last_y = max_canvas_y > static_cast<std::size_t>((std::numeric_limits<int>::max)())
+        ? (std::numeric_limits<int>::max)()
         : static_cast<int>(max_canvas_y);
 
     if (max_x < 0.0f || max_y < 0.0f ||
@@ -1339,10 +1339,10 @@ template<std::size_t Width, std::size_t Height, class Policy>
         return false;
     }
 
-    const auto clipped_min_x = std::max(min_x, 0.0f);
-    const auto clipped_min_y = std::max(min_y, 0.0f);
-    const auto clipped_max_x = std::min(max_x, static_cast<float>(canvas_last_x));
-    const auto clipped_max_y = std::min(max_y, static_cast<float>(canvas_last_y));
+    const auto clipped_min_x = (std::max)(min_x, 0.0f);
+    const auto clipped_min_y = (std::max)(min_y, 0.0f);
+    const auto clipped_max_x = (std::min)(max_x, static_cast<float>(canvas_last_x));
+    const auto clipped_max_y = (std::min)(max_y, static_cast<float>(canvas_last_y));
 
     first_x = static_cast<int>(std::floor(clipped_min_x));
     first_y = static_cast<int>(std::floor(clipped_min_y));
@@ -1390,8 +1390,8 @@ auto fill_span_clipped(
         return;
     }
 
-    x0 = std::max(x0, 0LL);
-    x1 = std::min(x1, static_cast<long long>(img.width()) - 1LL);
+    x0 = (std::max)(x0, 0LL);
+    x1 = (std::min)(x1, static_cast<long long>(img.width()) - 1LL);
     if (x0 > x1) {
         return;
     }
@@ -1467,7 +1467,7 @@ auto draw_aa_disc(
         gradient_x * gradient_x + gradient_y * gradient_y);
 
     if (!(gradient_length > 0.0f)) {
-        return std::min(radius_x, radius_y);
+        return (std::min)(radius_x, radius_y);
     }
     return std::abs(f) / gradient_length;
 }
@@ -1489,7 +1489,7 @@ auto draw_aa_disc(
         gradient_x * gradient_x + gradient_y * gradient_y);
 
     if (!(gradient_length > 0.0f)) {
-        return -std::min(radius_x, radius_y);
+        return -(std::min)(radius_x, radius_y);
     }
     return f / gradient_length;
 }
@@ -1534,8 +1534,8 @@ auto draw_hline(
         return;
     }
 
-    x0 = std::max(x0, 0LL);
-    x1 = std::min(x1, static_cast<long long>(img.width()));
+    x0 = (std::max)(x0, 0LL);
+    x1 = (std::min)(x1, static_cast<long long>(img.width()));
 
     const auto encoded = Policy::encode(color);
     auto* first = detail::image_access::ptr(
@@ -1590,8 +1590,8 @@ auto draw_vline(
         return;
     }
 
-    y0 = std::max(y0, 0LL);
-    y1 = std::min(y1, static_cast<long long>(img.height()));
+    y0 = (std::max)(y0, 0LL);
+    y1 = (std::min)(y1, static_cast<long long>(img.height()));
 
     const auto encoded = Policy::encode(color);
     auto* p = detail::image_access::ptr(
@@ -1715,10 +1715,10 @@ auto draw_line_aa(
     int max_y = -1;
     if (!detail::make_pixel_bounds(
             img,
-            std::min(x0, x1) - aa_extent,
-            std::min(y0, y1) - aa_extent,
-            std::max(x0, x1) + aa_extent,
-            std::max(y0, y1) + aa_extent,
+            (std::min)(x0, x1) - aa_extent,
+            (std::min)(y0, y1) - aa_extent,
+            (std::max)(x0, x1) + aa_extent,
+            (std::max)(y0, y1) + aa_extent,
             min_x,
             min_y,
             max_x,
@@ -1879,10 +1879,10 @@ auto fill_rect(
         return;
     }
 
-    x0 = std::max(x0, 0LL);
-    y0 = std::max(y0, 0LL);
-    x1 = std::min(x1, static_cast<long long>(img.width()));
-    y1 = std::min(y1, static_cast<long long>(img.height()));
+    x0 = (std::max)(x0, 0LL);
+    y0 = (std::max)(y0, 0LL);
+    x1 = (std::min)(x1, static_cast<long long>(img.width()));
+    y1 = (std::min)(y1, static_cast<long long>(img.height()));
 
     const auto encoded = Policy::encode(color);
     const auto count = x1 - x0;
@@ -2051,8 +2051,8 @@ auto fill_circle(
             return;
         }
 
-        x0 = std::max(x0, 0LL);
-        x1 = std::min(x1, canvas_width - 1LL);
+        x0 = (std::max)(x0, 0LL);
+        x1 = (std::min)(x1, canvas_width - 1LL);
         if (x0 > x1) {
             return;
         }
@@ -2711,7 +2711,7 @@ auto draw_arc(
     }
 
     const auto estimated_steps = std::ceil(
-        std::abs(sweep_ld) * static_cast<long double>(detail::image_tau) * std::max(radius_ld, 1.0L) * 2.0L);
+        std::abs(sweep_ld) * static_cast<long double>(detail::image_tau) * (std::max)(radius_ld, 1.0L) * 2.0L);
     const auto steps = estimated_steps < 1.0L
         ? std::size_t{1}
         : static_cast<std::size_t>(estimated_steps);
@@ -2825,7 +2825,7 @@ auto draw_arc_aa(
                 std::sqrt(first_dx * first_dx + first_dy * first_dy);
             const auto last_cap = half_width + 0.5f -
                 std::sqrt(last_dx * last_dx + last_dy * last_dy);
-            coverage = std::max(coverage, std::max(first_cap, last_cap));
+            coverage = (std::max)(coverage, (std::max)(first_cap, last_cap));
 
             if (coverage > 0.0f) {
                 img.set_pixel_unchecked(
@@ -2938,9 +2938,9 @@ auto draw_ellipse_arc(
         return {};
     }
 
-    const auto max_radius = std::max(rx_ld, ry_ld);
+    const auto max_radius = (std::max)(rx_ld, ry_ld);
     const auto estimated_steps = std::ceil(
-        std::abs(sweep_ld) * static_cast<long double>(detail::image_tau) * std::max(max_radius, 1.0L) * 2.0L);
+        std::abs(sweep_ld) * static_cast<long double>(detail::image_tau) * (std::max)(max_radius, 1.0L) * 2.0L);
     const auto steps = estimated_steps < 1.0L
         ? std::size_t{1}
         : static_cast<std::size_t>(estimated_steps);
@@ -3021,9 +3021,9 @@ auto draw_ellipse_arc_aa(
     const auto last = endpoint(start_angle + sweep_angle);
 
     if (radius_x == 0.0f || radius_y == 0.0f) {
-        const auto max_radius = std::max(radius_x, radius_y);
+        const auto max_radius = (std::max)(radius_x, radius_y);
         const auto estimated_steps = std::ceil(
-            std::abs(sweep_angle) * detail::image_tau * std::max(max_radius, 1.0f) * 2.0f);
+            std::abs(sweep_angle) * detail::image_tau * (std::max)(max_radius, 1.0f) * 2.0f);
         const auto steps = estimated_steps < 1.0f
             ? std::size_t{1}
             : static_cast<std::size_t>(estimated_steps);
@@ -3093,7 +3093,7 @@ auto draw_ellipse_arc_aa(
                 std::sqrt(first_dx * first_dx + first_dy * first_dy);
             const auto last_cap = half_width + 0.5f -
                 std::sqrt(last_dx * last_dx + last_dy * last_dy);
-            coverage = std::max(coverage, std::max(first_cap, last_cap));
+            coverage = (std::max)(coverage, (std::max)(first_cap, last_cap));
 
             if (coverage > 0.0f) {
                 img.set_pixel_unchecked(
@@ -3262,13 +3262,13 @@ template<std::size_t Width, std::size_t Height, class Policy>
             static_cast<std::uint64_t>(code_point - range->first_code_point);
 
         if (bytes_per_glyph != 0 &&
-            glyph_index > std::numeric_limits<std::uint64_t>::max() / bytes_per_glyph) {
+            glyph_index > (std::numeric_limits<std::uint64_t>::max)() / bytes_per_glyph) {
             return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
         }
 
         const auto glyph_offset_in_range = glyph_index * bytes_per_glyph;
         if (range->bitmap_offset >
-            std::numeric_limits<std::uint64_t>::max() - glyph_offset_in_range) {
+            (std::numeric_limits<std::uint64_t>::max)() - glyph_offset_in_range) {
             return std::unexpected(xer::make_error(xer::error_t::invalid_argument));
         }
 
@@ -3388,14 +3388,14 @@ template<std::size_t Width, std::size_t Height, class Policy>
             pending.emplace_back(current.x - 1, current.y);
         }
         if (static_cast<std::size_t>(current.x) + 1 < img.width() &&
-            current.x < std::numeric_limits<int>::max()) {
+            current.x < (std::numeric_limits<int>::max)()) {
             pending.emplace_back(current.x + 1, current.y);
         }
         if (current.y > 0) {
             pending.emplace_back(current.x, current.y - 1);
         }
         if (static_cast<std::size_t>(current.y) + 1 < img.height() &&
-            current.y < std::numeric_limits<int>::max()) {
+            current.y < (std::numeric_limits<int>::max)()) {
             pending.emplace_back(current.x, current.y + 1);
         }
     }
@@ -3449,18 +3449,18 @@ template<std::size_t Width, std::size_t Height, class Policy>
         return {};
     }
 
-    x0 = std::max(x0, 0LL);
-    y0 = std::max(y0, 0LL);
-    x1 = std::min(x1, static_cast<long long>(img.width()));
-    y1 = std::min(y1, static_cast<long long>(img.height()));
+    x0 = (std::max)(x0, 0LL);
+    y0 = (std::max)(y0, 0LL);
+    x1 = (std::min)(x1, static_cast<long long>(img.width()));
+    y1 = (std::min)(y1, static_cast<long long>(img.height()));
 
     const auto step_x = static_cast<long long>(block_size.width);
     const auto step_y = static_cast<long long>(block_size.height);
 
     for (auto by = y0; by < y1; by += step_y) {
-        const auto ey = std::min(by + step_y, y1);
+        const auto ey = (std::min)(by + step_y, y1);
         for (auto bx = x0; bx < x1; bx += step_x) {
-            const auto ex = std::min(bx + step_x, x1);
+            const auto ex = (std::min)(bx + step_x, x1);
 
             std::uint64_t alpha = 0;
             std::uint64_t red = 0;
@@ -3544,10 +3544,10 @@ template<std::size_t Width, std::size_t Height, class Policy>
         return {};
     }
 
-    x0 = std::max(x0, 0LL);
-    y0 = std::max(y0, 0LL);
-    x1 = std::min(x1, static_cast<long long>(img.width()));
-    y1 = std::min(y1, static_cast<long long>(img.height()));
+    x0 = (std::max)(x0, 0LL);
+    y0 = (std::max)(y0, 0LL);
+    x1 = (std::min)(x1, static_cast<long long>(img.width()));
+    y1 = (std::min)(y1, static_cast<long long>(img.height()));
 
     const auto clipped_width = static_cast<std::size_t>(x1 - x0);
     const auto clipped_height = static_cast<std::size_t>(y1 - y0);
@@ -3572,10 +3572,10 @@ template<std::size_t Width, std::size_t Height, class Policy>
         for (std::size_t xx = 0; xx < clipped_width; ++xx) {
             const auto center_x = static_cast<long long>(xx);
             const auto center_y = static_cast<long long>(yy);
-            const auto sx0 = std::max(center_x - left, 0LL);
-            const auto sx1 = std::min(center_x + right, max_source_x);
-            const auto sy0 = std::max(center_y - top, 0LL);
-            const auto sy1 = std::min(center_y + bottom, max_source_y);
+            const auto sx0 = (std::max)(center_x - left, 0LL);
+            const auto sx1 = (std::min)(center_x + right, max_source_x);
+            const auto sy0 = (std::max)(center_y - top, 0LL);
+            const auto sy1 = (std::min)(center_y + bottom, max_source_y);
 
             std::uint64_t alpha = 0;
             std::uint64_t red = 0;
@@ -3648,10 +3648,10 @@ template<std::size_t Width, std::size_t Height, class Policy, class F>
         return {};
     }
 
-    x0 = std::max(x0, 0LL);
-    y0 = std::max(y0, 0LL);
-    x1 = std::min(x1, static_cast<long long>(img.width()));
-    y1 = std::min(y1, static_cast<long long>(img.height()));
+    x0 = (std::max)(x0, 0LL);
+    y0 = (std::max)(y0, 0LL);
+    x1 = (std::min)(x1, static_cast<long long>(img.width()));
+    y1 = (std::min)(y1, static_cast<long long>(img.height()));
 
     filter_pixels_error_detail error_detail{};
     bool has_error = false;
