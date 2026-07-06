@@ -187,12 +187,20 @@ struct char_traits<unsigned char> {
 /**
  * @brief Common name for the active C++ language version.
  */
-#define XER_STDCPP_VERSION __cplusplus
+#if defined(_MSC_VER) && !defined(__clang__) && defined(_MSVC_LANG)
+#    define XER_STDCPP_VERSION _MSVC_LANG
+#else
+#    define XER_STDCPP_VERSION __cplusplus
+#endif
 
 /**
  * @brief Common name for the current function signature string.
  */
-#define XER_PRETTY_FUNCTION __PRETTY_FUNCTION__
+#if defined(_MSC_VER) && !defined(__clang__)
+#    define XER_PRETTY_FUNCTION __FUNCSIG__
+#else
+#    define XER_PRETTY_FUNCTION __PRETTY_FUNCTION__
+#endif
 
 #if defined(__clang__)
 static_assert(
@@ -205,8 +213,10 @@ static_assert(
     (__GNUC__ == 13 && __GNUC_MINOR__ > 3) ||
     (__GNUC__ == 13 && __GNUC_MINOR__ == 3 && __GNUC_PATCHLEVEL__ >= 0),
     "xer requires GCC 13.3.0 or later.");
+#elif defined(_MSC_VER)
+static_assert(_MSC_VER >= 1950, "xer requires MSVC 19.50 or later.");
 #else
-#    error "xer requires GCC 13.3.0 or later, or Clang 18.0.0 or later."
+#    error "xer requires GCC 13.3.0 or later, Clang 18.0.0 or later, or MSVC 19.50 or later."
 #endif
 
 static_assert(XER_STDCPP_VERSION >= 202100L, "xer requires C++23 or later.");

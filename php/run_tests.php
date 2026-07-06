@@ -689,11 +689,18 @@ function resolve_toolchain(string $name, array $toolchains): array
         $platform = sanitize_build_id($platform);
     }
 
+    $buildId = $entry['build_id'] ?? null;
+    if (is_string($buildId) && trim($buildId) !== '') {
+        $buildId = sanitize_build_id($buildId);
+    } else {
+        $buildId = sanitize_build_id($platform . '/' . $name);
+    }
+
     return [
         'cxx' => $compiler,
         'cxxflags' => array_values(array_map('strval', $cxxflags)),
         'ldflags' => array_values(array_map('strval', $ldflags)),
-        'build_id' => sanitize_build_id($platform . '/' . $name),
+        'build_id' => $buildId,
         'compiler_style' => $compilerStyle,
     ];
 }
@@ -706,7 +713,8 @@ function normalize_compiler_style(string $style): string
     $style = strtolower(trim($style));
     return match ($style) {
         'gcc', 'gnu', 'clang', 'clang++' => 'gcc',
-        'clang-cl', 'msvc', 'cl' => 'clang-cl',
+        'clang-cl' => 'clang-cl',
+        'msvc', 'cl', 'cl.exe' => 'msvc',
         default => fail('Unknown compiler style: ' . $style),
     };
 }
@@ -719,6 +727,9 @@ function infer_compiler_style(string $compiler): string
     $name = strtolower(basename(str_replace('\\', '/', $compiler)));
     if ($name === 'clang-cl' || $name === 'clang-cl.exe') {
         return 'clang-cl';
+    }
+    if ($name === 'cl' || $name === 'cl.exe') {
+        return 'msvc';
     }
     return 'gcc';
 }
@@ -1215,6 +1226,24 @@ function is_clang_cl_style(array $options): bool
 }
 
 /**
+ * @param array<string, mixed> $options
+ * @return bool
+ */
+function is_msvc_style(array $options): bool
+{
+    return ($options['compiler_style'] ?? 'gcc') === 'msvc';
+}
+
+/**
+ * @param array<string, mixed> $options
+ * @return bool
+ */
+function is_msvc_like_style(array $options): bool
+{
+    return is_clang_cl_style($options) || is_msvc_style($options);
+}
+
+/**
  * @return list<array{root:string, include:string, lib:string, bin:?string, source:string}>
  */
 function detect_tcltk_install_candidates(): array
@@ -1478,7 +1507,7 @@ function tcltk_option_candidates(array $options): array
         ];
     }
 
-    if (is_clang_cl_style($options)) {
+    if (is_msvc_like_style($options)) {
         foreach (detect_tcltk_install_candidates() as $installCandidate) {
             foreach (find_tcltk_library_pairs($installCandidate['lib']) as $libraryPair) {
                 $candidates[] = [
@@ -2111,12 +2140,12 @@ function build_compile_command(array $task, array $options): array
  */
 function build_executable_command(array $options, string $sourceFile, string $executable, array $extraCflags = [], array $extraLibs = []): array
 {
-    if (($options['compiler_style'] ?? 'gcc') === 'clang-cl') {
-        $linkArgs = convert_link_args_for_clang_cl(array_merge($extraLibs, $options['ldflags']));
+    if (is_msvc_like_style($options)) {
+        $linkArgs = convert_link_args_for_msvc(array_merge($extraLibs, $options['ldflags']));
         $command = array_merge(
-            [$options['cxx'], '/std:c++latest', '/EHsc', '/utf-8'],
+            [$options['cxx'], '/nologo', '/std:c++latest', '/Zc:__cplusplus', '/EHsc', '/utf-8'],
             $options['cxxflags'],
-            convert_cflags_for_clang_cl($extraCflags),
+            convert_cflags_for_msvc($extraCflags),
             [$sourceFile, '/Fe:' . $executable]
         );
 
@@ -2142,7 +2171,7 @@ function build_executable_command(array $options, string $sourceFile, string $ex
  * @param list<string> $cflags
  * @return list<string>
  */
-function convert_cflags_for_clang_cl(array $cflags): array
+function convert_cflags_for_msvc(array $cflags): array
 {
     $result = [];
     for ($i = 0; $i < count($cflags); ++$i) {
@@ -2164,7 +2193,7 @@ function convert_cflags_for_clang_cl(array $cflags): array
  * @param list<string> $args
  * @return list<string>
  */
-function convert_link_args_for_clang_cl(array $args): array
+function convert_link_args_for_msvc(array $args): array
 {
     $result = [];
     for ($i = 0; $i < count($args); ++$i) {

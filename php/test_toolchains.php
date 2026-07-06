@@ -37,4 +37,13 @@ return [
         'ldflags' => [],
         'platform' => 'windows-msvc',
     ],
+
+    'msvc' => [
+        'compiler' => 'cl',
+        'style' => 'msvc',
+        'cxxflags' => [],
+        'ldflags' => [],
+        'platform' => 'windows-msvc',
+        'build_id' => 'windows-msvc-cl',
+    ],
 ];

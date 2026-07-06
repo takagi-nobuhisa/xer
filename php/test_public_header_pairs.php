@@ -557,7 +557,13 @@ function load_test_toolchains(string $phpDir): array
             'ldflags' => $ldFlags,
             'platform' => trim($platform),
         ];
-        $normalizedEntry['build_id'] = make_toolchain_build_id($name, $normalizedEntry);
+
+        $buildId = $entry['build_id'] ?? null;
+        if (is_string($buildId) && trim($buildId) !== '') {
+            $normalizedEntry['build_id'] = sanitize_build_id($buildId);
+        } else {
+            $normalizedEntry['build_id'] = make_toolchain_build_id($name, $normalizedEntry);
+        }
         $toolchains[$name] = $normalizedEntry;
     }
 
@@ -582,7 +588,8 @@ function normalize_compiler_style(string $style): string
     $style = strtolower(trim($style));
     return match ($style) {
         'gcc', 'gnu', 'clang', 'clang++' => 'gcc',
-        'clang-cl', 'msvc', 'cl' => 'clang-cl',
+        'clang-cl' => 'clang-cl',
+        'msvc', 'cl', 'cl.exe' => 'msvc',
         default => throw new InvalidArgumentException("unknown compiler style: {$style}"),
     };
 }
@@ -593,7 +600,15 @@ function infer_compiler_style(string $compiler): string
     if ($name === 'clang-cl' || $name === 'clang-cl.exe') {
         return 'clang-cl';
     }
+    if ($name === 'cl' || $name === 'cl.exe') {
+        return 'msvc';
+    }
     return 'gcc';
+}
+
+function is_msvc_like_style(string $compilerStyle): bool
+{
+    return $compilerStyle === 'clang-cl' || $compilerStyle === 'msvc';
 }
 
 function requested_toolchain_is_all(array $argv): bool
@@ -1788,7 +1803,7 @@ function start_compile_task(Config $config, FeatureConfig $features, array $meta
 
     $testName = make_test_name($header1, $header2);
     $sourcePath = $config->buildDir . DIRECTORY_SEPARATOR . $testName . '.cpp';
-    $objectSuffix = $config->compilerStyle === 'clang-cl' ? '.obj' : '.o';
+    $objectSuffix = is_msvc_like_style($config->compilerStyle) ? '.obj' : '.o';
     $objectPath = $config->buildDir . DIRECTORY_SEPARATOR . $testName . $objectSuffix;
     $logPath = $config->buildDir . DIRECTORY_SEPARATOR . $testName . '.log';
     $stdoutPath = $config->buildDir . DIRECTORY_SEPARATOR . $testName . '.stdout.tmp';
@@ -1869,11 +1884,12 @@ function build_compile_command(
     string $objectPath,
     string $extraCflags = ''
 ): string {
-    if ($compilerStyle === 'clang-cl') {
+    if (is_msvc_like_style($compilerStyle)) {
         $clCppStd = $cppStd === 'c++23' ? 'c++latest' : $cppStd;
         $commandParts = [
             escapeshellarg($compiler),
             '/std:' . $clCppStd,
+            '/Zc:__cplusplus',
             '/EHsc',
             '/utf-8',
         ];

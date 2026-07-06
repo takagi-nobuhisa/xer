@@ -207,19 +207,21 @@ inline auto append_utf8(std::u8string& out, char32_t code_point) -> void
  */
 [[nodiscard]] inline auto wide_to_utf8(std::wstring_view value) -> std::u8string
 {
-#if __SIZEOF_WCHAR_T__ == 2
-    return utf16_to_utf8(
-        std::u16string_view(
-            reinterpret_cast<const char16_t*>(value.data()),
-            value.size()));
-#elif __SIZEOF_WCHAR_T__ == 4
-    return utf32_to_utf8(
-        std::u32string_view(
-            reinterpret_cast<const char32_t*>(value.data()),
-            value.size()));
-#else
-# error unsupported wchar_t size
-#endif
+    if constexpr (sizeof(wchar_t) == sizeof(char16_t)) {
+        return utf16_to_utf8(
+            std::u16string_view(
+                reinterpret_cast<const char16_t*>(value.data()),
+                value.size()));
+    } else if constexpr (sizeof(wchar_t) == sizeof(char32_t)) {
+        return utf32_to_utf8(
+            std::u32string_view(
+                reinterpret_cast<const char32_t*>(value.data()),
+                value.size()));
+    } else {
+        static_assert(sizeof(wchar_t) == sizeof(char16_t) || sizeof(wchar_t) == sizeof(char32_t),
+            "unsupported wchar_t size");
+        return {};
+    }
 }
 
 /**

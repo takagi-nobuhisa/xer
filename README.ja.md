@@ -78,12 +78,13 @@ xer は開発中のライブラリです。
 - GCC を用いる MSYS2 UCRT64
 - Clang を用いる MSYS2 CLANG64
 - clang-cl を用いる Visual Studio 2026
+- MSVC cl.exe を用いる Visual Studio 2026（実験的対応）
 
 対象プラットフォームの範囲は次のとおりです。
 
 - Ubuntu による Linux
 - MSYS2 UCRT64 および CLANG64 による Windows
-- Visual Studio 2026 の clang-cl による Windows
+- Visual Studio 2026 の clang-cl および MSVC cl.exe による Windows
 
 Windows の対象バージョンは、現時点では **Windows 11 以降**です。
 
@@ -100,7 +101,7 @@ Ubuntu で Clang を用いたテストを行う場合は、libc++ と libc++abi 
 sudo apt install libc++-18-dev libc++abi-18-dev
 ```
 
-Visual Studio 2026 の clang-cl で zlib および ICU を利用するテストを行う場合は、vcpkg の manifest mode を使用します。プロジェクトルートに `zlib` と `icu` を依存関係として含む `vcpkg.json` を配置し、`builtin-baseline` を追加したうえで、プロジェクトルートから次を実行します。
+Visual Studio 2026 の clang-cl または MSVC cl.exe で zlib および ICU を利用するテストを行う場合は、vcpkg の manifest mode を使用します。プロジェクトルートに `zlib` と `icu` を依存関係として含む `vcpkg.json` を配置し、`builtin-baseline` を追加したうえで、プロジェクトルートから次を実行します。
 
 ```bat
 vcpkg install --triplet x64-windows
@@ -110,7 +111,7 @@ vcpkg install --triplet x64-windows
 
 Tcl/Tk のテストには、Magicsplat Tcl、ActiveTcl、IronTcl など、Tcl/Tk プロジェクトサイトから参照できる Windows 向け Tcl/Tk 配布物が必要です。テストスクリプトは、Tcl/Tk 9.0 と 8.6 の両方が見つかった場合は 9.0 を優先しつつ、`%LOCALAPPDATA%\Apps\Tcl90`、`%LOCALAPPDATA%\Apps\Tcl86`、`C:\local\Tcl90`、`C:\local\Tcl86`、`C:\local\IronTcl`、`C:\Tcl`、`C:\Program Files\Tcl` などの代表的なインストール先を自動検出します。任意のインストール先を使う場合は `XER_TEST_TCLTK_ROOT` で指定できます。それでも自動検出できない場合は、テストスクリプトに明示的なインクルードパスとライブラリパスを指定してください。
 
-Visual Studio 2026 の clang-cl は、利用できない任意依存機能を除くテスト対象です。MSVC cl.exe は現時点では対応対象外です。
+Visual Studio 2026 の clang-cl はテスト対象です。MSVC cl.exe は v1.1.0 α版での実験的対応として扱い、clang-cl と同じ vcpkg ベースの任意依存機能設定を使用します。
 
 ## 特徴
 

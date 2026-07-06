@@ -75,12 +75,13 @@ Current supported and tested environments:
 - MSYS2 UCRT64 with GCC
 - MSYS2 CLANG64 with Clang
 - Visual Studio 2026 with clang-cl
+- Visual Studio 2026 with MSVC cl.exe (experimental)
 
 Current platform scope:
 
 - Linux through Ubuntu
 - Windows through MSYS2 UCRT64 and CLANG64
-- Windows through Visual Studio 2026 with clang-cl
+- Windows through Visual Studio 2026 with clang-cl and MSVC cl.exe
 
 Current Windows version target:
 
@@ -99,7 +100,7 @@ On Ubuntu, Clang testing assumes libc++ and libc++abi. For Ubuntu 24.04 with Cla
 sudo apt install libc++-18-dev libc++abi-18-dev
 ```
 
-For Visual Studio 2026 with clang-cl, optional zlib and ICU test dependencies can be installed through vcpkg manifest mode. Place a `vcpkg.json` with `zlib` and `icu` dependencies at the project root, add a `builtin-baseline`, and run the following command from the project root:
+For Visual Studio 2026 with clang-cl or MSVC cl.exe, optional zlib and ICU test dependencies can be installed through vcpkg manifest mode. Place a `vcpkg.json` with `zlib` and `icu` dependencies at the project root, add a `builtin-baseline`, and run the following command from the project root:
 
 ```bat
 vcpkg install --triplet x64-windows
@@ -109,7 +110,7 @@ The test scripts automatically check `vcpkg_installed\x64-windows` under the pro
 
 Tcl/Tk tests require a Windows Tcl/Tk distribution such as Magicsplat Tcl, ActiveTcl, IronTcl, or another distribution referenced from the Tcl/Tk project site. The test scripts automatically check common installation roots, preferring Tcl/Tk 9.0 over 8.6 when both are available. Typical checked roots include `%LOCALAPPDATA%\Apps\Tcl90`, `%LOCALAPPDATA%\Apps\Tcl86`, `C:\local\Tcl90`, `C:\local\Tcl86`, `C:\local\IronTcl`, `C:\Tcl`, and `C:\Program Files\Tcl`. A custom root can be specified with `XER_TEST_TCLTK_ROOT`. If it is still not detected automatically, pass explicit include and library options to the test scripts.
 
-Visual Studio 2026 with clang-cl is supported for tests that do not require unavailable optional dependencies. MSVC cl.exe is not currently supported.
+Visual Studio 2026 with clang-cl is supported. MSVC cl.exe support is experimental in the v1.1.0 alpha series and uses the same vcpkg-based optional dependency setup.
 
 ## Key characteristics
 
