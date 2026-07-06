@@ -13,44 +13,44 @@ auto test_sq_base_units() -> void
 {
     using namespace xer::units;
 
-    static_assert(std::same_as<plain_t<decltype(sq(m))>, plain_t<decltype(m²)>>);
-    static_assert(std::same_as<plain_t<decltype(sq(sec))>, plain_t<decltype(sec²)>>);
+    static_assert(std::same_as<plain_t<decltype(sq(m))>, plain_t<decltype(m2)>>);
+    static_assert(std::same_as<plain_t<decltype(sq(sec))>, plain_t<decltype(sec2)>>);
 
     const auto area = 10.0 * sq(m);
-    xer_assert_eq(area.value(m²), 10.0);
+    xer_assert_eq(area.value(m2), 10.0);
 
     const auto duration_squared = 4.0 * sq(sec);
-    xer_assert_eq(duration_squared.value(sec²), 4.0);
+    xer_assert_eq(duration_squared.value(sec2), 4.0);
 }
 
 auto test_cb_base_units() -> void
 {
     using namespace xer::units;
 
-    static_assert(std::same_as<plain_t<decltype(cb(m))>, plain_t<decltype(m³)>>);
-    static_assert(std::same_as<plain_t<decltype(cb(sec))>, plain_t<decltype(sec³)>>);
+    static_assert(std::same_as<plain_t<decltype(cb(m))>, plain_t<decltype(m3)>>);
+    static_assert(std::same_as<plain_t<decltype(cb(sec))>, plain_t<decltype(sec3)>>);
 
     const auto volume = 2.0 * cb(m);
-    xer_assert_eq(volume.value(m³), 2.0);
+    xer_assert_eq(volume.value(m3), 2.0);
 
     const auto duration_cubed = 8.0 * cb(sec);
-    xer_assert_eq(duration_cubed.value(sec³), 8.0);
+    xer_assert_eq(duration_cubed.value(sec3), 8.0);
 }
 
 auto test_symbolic_unit_constants() -> void
 {
     using namespace xer::units;
 
-    const auto area = 25.0 * m²;
+    const auto area = 25.0 * m2;
     xer_assert_eq(area.value(sq(m)), 25.0);
 
-    const auto volume = 125.0 * m³;
+    const auto volume = 125.0 * m3;
     xer_assert_eq(volume.value(cb(m)), 125.0);
 
-    const auto time2 = 9.0 * sec²;
+    const auto time2 = 9.0 * sec2;
     xer_assert_eq(time2.value(sq(sec)), 9.0);
 
-    const auto time3 = 27.0 * sec³;
+    const auto time3 = 27.0 * sec3;
     xer_assert_eq(time3.value(cb(sec)), 27.0);
 }
 
@@ -60,7 +60,7 @@ auto test_acceleration_notation() -> void
 
     const auto acceleration1 = 9.8 * m / (sec * sec);
     const auto acceleration2 = 9.8 * m / sq(sec);
-    const auto acceleration3 = 9.8 * m / sec²;
+    const auto acceleration3 = 9.8 * m / sec2;
 
     xer_assert_eq(acceleration1.value(), acceleration2.value());
     xer_assert_eq(acceleration1.value(), acceleration3.value());
@@ -78,7 +78,7 @@ auto test_force_and_pressure_notation() -> void
     xer_assert_eq(force1.value(), force3.value());
 
     const auto pressure1 = force3 / sq(m);
-    const auto pressure2 = force3 / m²;
+    const auto pressure2 = force3 / m2;
     const auto pressure3 = 2.0 * Pa;
 
     xer_assert_eq(pressure1.value(), pressure2.value());
@@ -92,12 +92,12 @@ auto test_sq_quantity() -> void
     const auto length = 3.0 * m;
     const auto area = xer::sq(length);
 
-    xer_assert_eq(area.value(m²), 9.0);
+    xer_assert_eq(area.value(m2), 9.0);
 
     const auto time = 2.0 * sec;
     const auto time2 = xer::sq(time);
 
-    xer_assert_eq(time2.value(sec²), 4.0);
+    xer_assert_eq(time2.value(sec2), 4.0);
 }
 
 auto test_cb_quantity() -> void
@@ -107,12 +107,12 @@ auto test_cb_quantity() -> void
     const auto length = 3.0 * m;
     const auto volume = xer::cb(length);
 
-    xer_assert_eq(volume.value(m³), 27.0);
+    xer_assert_eq(volume.value(m3), 27.0);
 
     const auto time = 2.0 * sec;
     const auto time3 = xer::cb(time);
 
-    xer_assert_eq(time3.value(sec³), 8.0);
+    xer_assert_eq(time3.value(sec3), 8.0);
 }
 
 auto test_prefixed_units() -> void
@@ -122,13 +122,13 @@ auto test_prefixed_units() -> void
     const auto square_centimeter = sq(cm);
     const auto area = 4.0 * square_centimeter;
 
-    xer_assert_eq(area.value(m²), 0.0004);
+    xer_assert_eq(area.value(m2), 0.0004);
     xer_assert_eq(area.value(square_centimeter), 4.0);
 
     const auto cubic_centimeter = cb(cm);
     const auto volume = 8.0 * cubic_centimeter;
 
-    xer_assert_eq(volume.value(m³), 0.000008);
+    xer_assert_eq(volume.value(m3), 0.000008);
     xer_assert_eq(volume.value(cubic_centimeter), 8.0);
 }
 

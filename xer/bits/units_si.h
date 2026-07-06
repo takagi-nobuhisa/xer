@@ -23,14 +23,22 @@ using time_dim = dimension<0, 0, 1, 0>;
 using current_dim = dimension<0, 0, 0, 1>;
 
 inline constexpr unit<length_dim> m{};
-inline constexpr auto m² = sq(m);
-inline constexpr auto m³ = cb(m);
+inline constexpr auto m2 = sq(m);
+inline constexpr auto m3 = cb(m);
+#if !defined(_MSC_VER) || defined(__clang__)
+inline constexpr auto m² = m2;
+inline constexpr auto m³ = m3;
+#endif
 
 inline constexpr unit<mass_dim> kg{};
 
 inline constexpr unit<time_dim> sec{};
-inline constexpr auto sec² = sq(sec);
-inline constexpr auto sec³ = cb(sec);
+inline constexpr auto sec2 = sq(sec);
+inline constexpr auto sec3 = cb(sec);
+#if !defined(_MSC_VER) || defined(__clang__)
+inline constexpr auto sec² = sec2;
+inline constexpr auto sec³ = sec3;
+#endif
 
 inline constexpr unit<current_dim> A{};
 
@@ -55,11 +63,11 @@ inline constexpr auto Hz = unit<dimension<0, 0, -1, 0>>{};
 inline constexpr auto kHz = unit<dimension<0, 0, -1, 0>, std::kilo>{};
 inline constexpr auto GHz = unit<dimension<0, 0, -1, 0>, std::giga>{};
 
-inline constexpr auto N = kg * m / sec²;
+inline constexpr auto N = kg * m / sec2;
 inline constexpr auto J = N * m;
 inline constexpr auto W = J / sec;
 inline constexpr auto V = W / A;
-inline constexpr auto Pa = N / m²;
+inline constexpr auto Pa = N / m2;
 inline constexpr auto hPa = unit<dimension<-1, 1, -2, 0>, std::hecto>{};
 
 inline constexpr auto ha = unit<dimension<2, 0, 0, 0>, std::ratio<10000>>{};

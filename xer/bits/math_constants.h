@@ -165,8 +165,10 @@ inline constexpr std::complex<T> ω = omega_v<T>;
  *
  * @tparam T Floating-point type.
  */
+#if !defined(_MSC_VER) || defined(__clang__)
 template<std::floating_point T>
 inline constexpr std::complex<T> ω² = omega2_v<T>;
+#endif
 
 } // namespace xer
 

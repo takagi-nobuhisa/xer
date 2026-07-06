@@ -10,24 +10,24 @@ auto main() -> int
     // This example shows square and cube unit helpers.
     //
     // Expected output:
-    // area = 12.5 m²
-    // volume = 3 m³
-    // acceleration = 9.8 m/sec²
+    // area = 12.5 m2
+    // volume = 3 m3
+    // acceleration = 9.8 m/sec2
 
-    const auto area = 12.5 * m²;
-    const auto volume = 3.0 * m³;
-    const auto acceleration = 9.8 * m / sec²;
+    const auto area = 12.5 * m2;
+    const auto volume = 3.0 * m3;
+    const auto acceleration = 9.8 * m / sec2;
 
-    if (!xer::printf(u8"area = %g m²\n", area.value(m²)).has_value()) {
+    if (!xer::printf(u8"area = %g m2\n", area.value(m2)).has_value()) {
         return 1;
     }
 
-    if (!xer::printf(u8"volume = %g m³\n", volume.value(m³)).has_value()) {
+    if (!xer::printf(u8"volume = %g m3\n", volume.value(m3)).has_value()) {
         return 1;
     }
 
     if (!xer::printf(
-            u8"acceleration = %g m/sec²\n",
+            u8"acceleration = %g m/sec2\n",
             acceleration.value(m / sq(sec)))
              .has_value()) {
         return 1;
