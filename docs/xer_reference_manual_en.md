@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v1.1.0**
+Target version: **v1.2.0a1**
 
 ---
 
@@ -730,11 +730,11 @@ auto main() -> int
 
 ---
 
-# `<xer/diag.h>`
+# `<xer/diagnostics.h>`
 
 ## Purpose
 
-`<xer/diag.h>` provides lightweight diagnostic facilities for xer.
+`<xer/diagnostics.h>` provides lightweight diagnostic facilities for xer.
 
 It groups tracing and logging support under one public diagnostic header while keeping the shared category and level vocabulary common to both facilities.
 
@@ -742,7 +742,7 @@ It groups tracing and logging support under one public diagnostic header while k
 
 ## Main Entities
 
-At minimum, `<xer/diag.h>` provides the following entities:
+At minimum, `<xer/diagnostics.h>` provides the following entities:
 
 ```cpp
 using xer::diag_level_t = int;
@@ -841,7 +841,7 @@ When `NDEBUG` is defined, `xer_trace` expands to a no-op expression and does not
 
 `xer_log(category, level, format, ...)` writes one formatted log record. The message body uses xer printf formatting rules, including `%@`.
 
-Unlike `xer_trace`, logging is not disabled merely because `NDEBUG` is defined. It can be disabled at compile time by defining `XER_ENABLE_LOG` to `0` before including `<xer/diag.h>`.
+Unlike `xer_trace`, logging is not disabled merely because `NDEBUG` is defined. It can be disabled at compile time by defining `XER_ENABLE_LOG` to `0` before including `<xer/diagnostics.h>`.
 
 ## Log Record Format
 
@@ -19192,7 +19192,25 @@ For quantities, `sq` and `cb` multiply the stored value and combine the dimensio
 
 ### Symbolic Unit Aliases
 
-For common base units, symbolic aliases are also provided under `xer::units`:
+The portable squared and cubed unit aliases are named with ASCII identifiers:
+
+```cpp
+m2
+m3
+sec2
+sec3
+```
+
+These are aliases for the corresponding square or cube unit expressions:
+
+```cpp
+m2   // sq(m)
+m3   // cb(m)
+sec2 // sq(sec)
+sec3 // cb(sec)
+```
+
+Non-standard Unicode aliases containing superscript digits are available only when `XER_ENABLE_NON_STANDARD_IDENTIFIERS` is defined before including the header:
 
 ```cpp
 m²
@@ -19201,17 +19219,7 @@ sec²
 sec³
 ```
 
-These are aliases for the corresponding square or cube unit expressions:
-
-```cpp
-m²   // sq(m)
-m³   // cb(m)
-sec² // sq(sec)
-sec³ // cb(sec)
-```
-
-They are intended as readable symbolic notation.
-The ASCII forms `sq(m)`, `cb(m)`, `sq(sec)`, and `cb(sec)` remain available as the portable spelling.
+Superscript digits are not standard C++ identifier characters. If these aliases are enabled, some compilers or options such as `-pedantic` may warn or fail. In portable code, use `m2`, `m3`, `sec2`, `sec3`, `sq`, and `cb`.
 ---
 
 ## `xer::units`
@@ -19264,10 +19272,12 @@ At minimum:
 
 At minimum:
 
-* `m²`
-* `m³`
-* `sec²`
-* `sec³`
+* `m2`
+* `m3`
+* `sec2`
+* `sec3`
+
+The non-standard Unicode aliases `m²`, `m³`, `sec²`, and `sec³` are provided only when `XER_ENABLE_NON_STANDARD_IDENTIFIERS` is defined.
 
 ### Selected Prefixed Units
 
@@ -19469,7 +19479,7 @@ The following kinds of examples are especially suitable for this header:
 * constructing a quantity from a scalar and a unit
 * converting a quantity to base units and to another unit
 * dividing distance by time to obtain velocity
-* using `sq`, `cb`, `m²`, `m³`, and `sec²` in unit expressions
+* using `sq`, `cb`, `m2`, `m3`, and `sec2` in unit expressions
 * using predefined units from `xer::units`
 * handling angle quantities with `taurad` or `rad`
 

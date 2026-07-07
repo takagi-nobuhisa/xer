@@ -1,6 +1,6 @@
 # xer C++ Utility Library リファレンスマニュアル
 
-対象バージョン: **v1.1.0**
+対象バージョン: **v1.2.0a1**
 
 ---
 
@@ -731,19 +731,25 @@ auto main() -> int
 
 ---
 
-# `<xer/diag.h>`
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/diagnostics.h`
+> Reason: Japanese fragment was translated from a different English source hash.
 
-## 目的
+# `<xer/diagnostics.h>`
 
-`<xer/diag.h>` は、xer の軽量な診断機能を提供します。
+## Purpose
 
-このヘッダーは、トレースとログ出力のサポートを1つの公開診断ヘッダーにまとめつつ、両機能で共有するカテゴリとレベルの語彙を共通化します。
+`<xer/diagnostics.h>` provides lightweight diagnostic facilities for xer.
+
+It groups tracing and logging support under one public diagnostic header while keeping the shared category and level vocabulary common to both facilities.
 
 ---
 
-## 主な要素
+## Main Entities
 
-少なくとも、`<xer/diag.h>` は次の要素を提供します。
+At minimum, `<xer/diagnostics.h>` provides the following entities:
 
 ```cpp
 using xer::diag_level_t = int;
@@ -763,138 +769,138 @@ xer_log(category, level, message)
 xer_log(category, level, format, ...)
 ```
 
-また、トレース出力ストリームとログ出力ストリーム、およびそれぞれのレベルを設定する関数も提供します。
+It also provides functions for setting trace and log output streams and levels.
 
 ---
 
-## 設計上の役割
+## Design Role
 
-このヘッダーは、診断、開発時のトレース、単純な実行時ログ出力のためのものです。
+This header is intended for diagnostics, development-time tracing, and simple runtime logging.
 
-単純な表示、トレース、ログ出力は同じ公開診断ヘッダーを共有します。トレースとログ出力は、次のものを共有します。
+Simple printing, tracing, and logging share the same public diagnostic header. Tracing and logging share:
 
 * `diag_category`
 * `diag_level_t`
-* 名前付きレベル定数
+* the named level constants
 
-それぞれの出力先と現在のレベルは個別に設定されます。
+Their output destinations and current levels are configured independently.
 
 ---
 
 
-## 単純表示
+## Simple Print
 
-`xer_print(expression)` は、単純診断表示ストリームへ1行を書き込みます。
-式は1回だけ評価され、ソース式のテキストがラベルとして使われます。
+`xer_print(expression)` writes one line to the simple diagnostic print stream.
+The expression is evaluated once, and the source expression text is used as the label:
 
 ```cpp
 int value = 42;
 xer_print(value);
 ```
 
-概念的な出力は次のとおりです。
+Conceptual output:
 
 ```text
 value = 42
 ```
 
-`xer_print(label, expression)` は、明示的な UTF-8 ラベル付きで1行を書き込みます。
+`xer_print(label, expression)` writes one line with an explicit UTF-8 label:
 
 ```cpp
 xer_print(u8"answer", value);
 ```
 
-概念的な出力は次のとおりです。
+Conceptual output:
 
 ```text
 answer: 42
 ```
 
-値は xer の `%@` printf変換を通じて整形されます。`result<T>` の場合、成功した結果は格納値を表示し、失敗した結果は `error(name)` を表示します。`result<void>` の成功結果は `ok` を表示します。
+The value is formatted through xer's `%@` printf conversion. For `result<T>`, a successful result prints the contained value, and a failed result prints `error(name)`. For `result<void>`, a successful result prints `ok`.
 
-`xer_print` は、コード例、簡単な確認、軽量な診断を目的としています。`NDEBUG` によって無効化されません。
+`xer_print` is intended for examples, quick checks, and lightweight diagnostics. It is not disabled by `NDEBUG`.
 
 ---
 
-## トレース
+## Trace
 
-`xer_trace(category, level, object)` は、次の内容を含む診断行を1行出力します。
+`xer_trace(category, level, object)` prints one diagnostic line containing:
 
-* 診断カテゴリ
-* 診断レベル
-* ソース式のテキスト
-* 静的に導出された型名
-* xer の `%@` printf変換を通じて整形された値
+* the diagnostic category
+* the diagnostic level
+* the source expression text
+* the statically derived type name
+* the value formatted through xer's `%@` printf conversion
 
-出力形式の概念は次のとおりです。
+The output form is conceptually:
 
 ```text
 [category][level] expression (type) = value
 ```
 
-`NDEBUG` が定義されている場合、`xer_trace` は何もしない式に展開され、引数を評価しません。
+When `NDEBUG` is defined, `xer_trace` expands to a no-op expression and does not evaluate its arguments.
 
 ---
 
-## ログ
+## Log
 
-`xer_log(category, level, message)` は、単純なログレコードを1件書き込みます。
+`xer_log(category, level, message)` writes one simple log record.
 
-`xer_log(category, level, format, ...)` は、書式付きログレコードを1件書き込みます。メッセージ本体では、`%@` を含む xer のprintf書式規則を使います。
+`xer_log(category, level, format, ...)` writes one formatted log record. The message body uses xer printf formatting rules, including `%@`.
 
-`xer_trace` とは異なり、ログ出力は `NDEBUG` が定義されているだけでは無効になりません。`<xer/diag.h>` をインクルードする前に `XER_ENABLE_LOG` を `0` と定義することで、コンパイル時に無効化できます。
+Unlike `xer_trace`, logging is not disabled merely because `NDEBUG` is defined. It can be disabled at compile time by defining `XER_ENABLE_LOG` to `0` before including `<xer/diagnostics.h>`.
 
-## ログレコード形式
+## Log Record Format
 
-各ログ呼び出しは、CSVデータレコードを1行書き込みます。
+Each log call writes one CSV data record.
 
-列は次のように固定されています。
+The columns are fixed as follows:
 
 ```text
 timestamp,category,level,message
 ```
 
-ヘッダー行は自動では書き込まれません。
+No header row is written automatically.
 
-タイムスタンプはローカル時刻を使い、ミリ秒精度です。
+The timestamp uses local time and has millisecond precision:
 
 ```text
 YYYY-MM-DD HH:MM:SS.mmm
 ```
 
-典型的なログレコードは次のようになります。
+A typical log record is:
 
 ```csv
 2026-04-26 18:42:15.123,io,30,"opened sample.txt"
 ```
 
-先頭3つのフィールドは xer が生成し、CSVクォートなしで書き込まれます。
-メッセージフィールドは常にクォートされたCSVフィールドとして書き込まれます。メッセージ中の二重引用符は、二重にすることでエスケープされます。
+The first three fields are generated by xer and are written without CSV quoting.
+The message field is always written as a quoted CSV field. Double quote characters in the message are escaped by doubling them.
 
-## ログのコスト方針
+## Log Cost Policy
 
-ログ出力は、合理的に軽量であり続けるように設計されています。
+Logging is designed to remain reasonably lightweight.
 
-* 無効なログメッセージは、書式引数が評価される前にフィルタされる
-* 単純なメッセージログ出力では `sprintf` を使わない
-* 書式付きメッセージログ出力では、レベル確認が成功した後にだけ `sprintf` を使う
-* 秒単位までのタイムスタンプ接頭辞はスレッドごとにキャッシュする
-* レベルフィールドは `printf` を使わずに整形する
-* メッセージフィールドは、別のクォート済み文字列を構築せず、ストリームへ直接クォート出力する
-
----
-
-## 出力ストリーム
-
-単純表示の出力先は、既定では標準出力のテキストストリームです。トレース出力とログ出力は、既定では標準エラーのテキストストリームに出力されます。
-対応するストリーム設定関数を使うことで、それぞれを個別に変更できます。
+* disabled log messages are filtered before formatting arguments are evaluated
+* simple message logging does not use `sprintf`
+* formatted message logging uses `sprintf` only after the level check succeeds
+* the timestamp prefix up to whole seconds is cached per thread
+* the level field is formatted without `printf`
+* the message field is quoted directly to the stream without constructing a separate quoted string
 
 ---
 
-## 注意
+## Output Streams
 
-これらの機能は意図的に小さく保たれています。
-完全なログフレームワークではありませんが、xer 自身と、xer を使う小さなプログラムにとって有用な診断基盤を提供します。
+Print output defaults to the standard output text stream. Trace and log output default to the standard error text stream.
+They can be changed independently through the corresponding stream-setting functions.
+
+---
+
+## Notes
+
+These facilities are intentionally small.
+They are not a full logging framework, but they provide a useful diagnostic foundation for xer itself and for small programs using xer.
 
 ---
 
@@ -17378,35 +17384,41 @@ auto main() -> int
 
 ---
 
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/quantity.h`
+> Reason: Japanese fragment was translated from a different English source hash.
+
 # `<xer/quantity.h>`
 
-## 目的
+## Purpose
 
-`<xer/quantity.h>` は、xer の物理量および単位のための機能を提供します。
+`<xer/quantity.h>` provides physical quantity and unit facilities in xer.
 
-このヘッダーの目的は、次元を持つ量を型安全かつ実用的に扱えるようにすることです。
-これには、次のような内容が含まれます。
+Its purpose is to allow quantities with dimensions to be handled in a type-safe and practical way.
+This includes:
 
-- 異なる次元同士の意味のない算術を防ぐ
-- 単位変換を明示的にする
-- 単位オブジェクトを使った自然な記法を可能にする
-- 設計を軽量で理解しやすく保つ
+- preventing meaningless arithmetic between different dimensions
+- making unit conversion explicit
+- allowing natural notation with unit objects
+- keeping the design lightweight and easy to understand
 
-このヘッダーは、既存の quantity ライブラリをそのまま再現することを意図していません。
-かわりに、xer 独自の設計上の優先事項に従います。
+This header is not intended to reproduce an existing quantity library as it is.
+Instead, it follows xer's own design priorities.
 
 ---
 
-## 主な役割
+## Main Role
 
-`<xer/quantity.h>` の主な役割は、次のもののためのコンパクトな枠組みを提供することです。
+The main role of `<xer/quantity.h>` is to provide a compact framework for:
 
-- 次元
-- 単位
-- 量
-- `xer::units` 配下の実用的な定義済み単位
+- dimensions
+- units
+- quantities
+- practical predefined units under `xer::units`
 
-これにより、次のようなコードを書けます。
+This makes it possible to write code such as:
 
 ```cpp
 using namespace xer::units;
@@ -17416,13 +17428,13 @@ auto t = 2.0 * sec;
 auto v = x / t;
 ```
 
-同時に、次元安全性と明示的な変換規則が保たれます。
+while preserving dimension safety and explicit conversion rules.
 
 ---
 
-## 主なエンティティ
+## Main Entities
 
-少なくとも、`<xer/quantity.h>` は次のエンティティを提供します。
+At minimum, `<xer/quantity.h>` provides the following entities:
 
 ```cpp
 template <int L, int M, int T, int I>
@@ -17440,79 +17452,79 @@ sq
 cb
 ```
 
-これに加えて、公開ヘッダー `<xer/quantity.h>` は `xer::units` 名前空間の下に定義済み単位オブジェクトを提供します。内部的には、将来の単位ファミリを中核実装ヘッダーに膨らませずに追加できるように、quantity の中核枠組みと定義済み単位ファミリを分離しています。
+In addition, the public `<xer/quantity.h>` header provides predefined unit objects under the `xer::units` namespace. Internally, the core quantity framework and the predefined unit families are split so that future unit families can be added without expanding the core implementation header.
 
 ---
 
-## ヘッダー構成
+## Header Organization
 
-公開ヘッダーは、従来どおりのインクルードモデルを維持します。
+The public header keeps the traditional include model:
 
 ```cpp
 #include <xer/quantity.h>
 ```
 
-これにより、quantity の中核枠組み、定義済みの SI/慣用単位、ヤード・ポンド法単位がインクルードされます。
+This includes the core quantity framework, the predefined SI/common units, and yard-pound units.
 
-内部的な実装は次のように構成されています。
+Internally, the implementation is organized as follows:
 
 ```text
 xer/bits/quantity.h
-  中核となる次元、単位、量、算術、単位合成のサポート。
+  Core dimension, unit, quantity, arithmetic, and unit-composition support.
 
 xer/bits/units_si.h
-  xer::units 配下の SI 基本単位、選択された接頭語付き単位、派生単位、
-  慣用的なメートル法単位、角度単位。
+  SI base units, selected prefixed units, derived units, conventional metric units,
+  and angular units under xer::units.
 
 xer/bits/units_imperial.h
-  xer::units 配下の国際ヤード・ポンド法の長さ単位と質量単位。
+  International yard-pound length and mass units under xer::units.
 ```
 
-利用者は通常、`<xer/quantity.h>` だけをインクルードします。この分割は実装および保守上の詳細ですが、単位定義を quantity の中核機構から分離しておくためのものです。
+Users normally include only `<xer/quantity.h>`. The split is an implementation and maintenance detail, but it keeps the unit definitions separable from the core quantity machinery.
 
 ---
 
 ## `dimension`
 
-`dimension` は、物理量の次元を表します。
+`dimension` represents the dimension of a physical quantity.
 
-### 基本形
+### Basic Shape
 
 ```cpp
 template <int L, int M, int T, int I>
 struct dimension;
 ```
 
-### パラメータの意味
+### Meaning of the Parameters
 
-テンプレート引数は、基底次元の指数を表します。
+The template arguments represent exponents of the base dimensions:
 
-* `L`: 長さ
-* `M`: 質量
-* `T`: 時間
-* `I`: 電流
+* `L`: length
+* `M`: mass
+* `T`: time
+* `I`: electric current
 
-### 例
+### Examples
 
-典型的な例は次のとおりです。
+Typical examples include:
 
 ```cpp
-dimension<1, 0, 0, 0>   // 長さ
-dimension<0, 1, 0, 0>   // 質量
-dimension<0, 0, 1, 0>   // 時間
-dimension<0, 0, 0, 1>   // 電流
-dimension<1, 0, -1, 0>  // 速度
-dimension<1, 1, -2, 0>  // 力
+dimension<1, 0, 0, 0>   // length
+dimension<0, 1, 0, 0>   // mass
+dimension<0, 0, 1, 0>   // time
+dimension<0, 0, 0, 1>   // electric current
+dimension<1, 0, -1, 0>  // velocity
+dimension<1, 1, -2, 0>  // force
 ```
 
-### 役割
+### Role
 
-`dimension` は、次元の正しさを型システムの一部にするために存在します。
+`dimension` exists to make dimensional correctness part of the type system.
 
-これにより、次のような不正な組み合わせを防げます。
+This prevents invalid combinations such as:
 
-* 長さと時間を加算する
-* 質量と電流を直接比較する
+* adding length and time
+* comparing mass and electric current directly
 
 ---
 
@@ -17522,185 +17534,185 @@ dimension<1, 1, -2, 0>  // 力
 using dimensionless = dimension<0, 0, 0, 0>;
 ```
 
-### 役割
+### Role
 
-`dimensionless` は、物理次元を持たない量を表します。
+`dimensionless` represents a quantity with no physical dimension.
 
-これは次のような値に有用です。
+This is useful for values such as:
 
-* 純粋な比
-* 正規化された係数
-* 無次元として扱う場合の角度単位関連のスケール値
+* pure ratios
+* normalized coefficients
+* angular-unit-related scale values when treated dimensionlessly
 
-### 注意
+### Notes
 
-無次元量であっても、型システム上は量のままです。
-生のスカラー値と自動的に同じものになるわけではありません。
+Even dimensionless quantities remain quantities in the type system.
+They are not automatically the same thing as raw scalar values.
 
 ---
 
 ## `quantity<T, Dim>`
 
-`quantity<T, Dim>` は、このヘッダーの中心的な値型です。
+`quantity<T, Dim>` is the central value type of the header.
 
-数値と次元を組み合わせて表します。
+It represents a numeric value together with a dimension.
 
-### 基本形
+### Basic Shape
 
 ```cpp
 template <std::floating_point T, typename Dim>
 class quantity;
 ```
 
-### 役割
+### Role
 
-`quantity<T, Dim>` は次のものを保持します。
+A `quantity<T, Dim>` stores:
 
-* 数値
-* 物理次元
+* a numeric value
+* a physical dimension
 
-これにより、算術演算で次元の正しさを保てます。
+This allows arithmetic to preserve dimensional correctness.
 
-### 格納値の型
+### Stored Value Type
 
-少なくとも現在の設計方針では、`T` は次のような浮動小数点型に制限されます。
+At least in the current design direction, `T` is restricted to floating-point types such as:
 
 * `float`
 * `double`
 * `long double`
 
-整数による格納は、主なモデルではありません。
+Integer storage is not the primary model.
 
-### 浮動小数点格納を採用する理由
+### Why Floating-Point Storage
 
-理由は次のとおりです。
+This is because:
 
-* 単位変換では自然に小数値が発生する
-* 一部の単位スケールは有理数ではない
-* 基底単位への内部正規化は一般には整数にならない
-* 最初からあらゆる数値形式に対応するより、設計を単純に保つことを重視する
-
----
-
-## quantity の内部表現
-
-`quantity<T, Dim>` は、基底単位系に正規化した値を格納します。
-
-### 基底単位系
-
-少なくとも、基底次元は次の単位に基づきます。
-
-* メートル
-* キログラム
-* 秒
-* アンペア
-
-つまり、内部体系は実質的に MKSA です。
-
-### 例
-
-概念的には次のようになります。
-
-* `1 km` は `1000 m` として格納される
-* `1 g` は `0.001 kg` として格納される
-* `1 msec` は `0.001 sec` として格納される
-
-### これが重要な理由
-
-格納値を基底単位に正規化すると、次の処理が単純になります。
-
-* 算術
-* 比較
-* 単位間の変換
-* 同じ次元を持つ混在単位についての推論
+* unit conversion naturally produces fractional values
+* some unit scales are non-rational
+* internal normalization to base units is not generally integral
+* keeping the design simple is more important than supporting every numeric form initially
 
 ---
 
-## 構築と値の取得
+## Internal Quantity Representation
 
-想定される使用モデルには、少なくとも次の考え方が含まれます。
+A `quantity<T, Dim>` stores its value normalized to the base unit system.
 
-* 基底単位値から直接構築する
-* スカラーと単位オブジェクトの乗算から構築する
-* 正規化された基底単位値を取得する
-* 指定した単位に変換した値を取得する
+### Base Unit System
 
-典型的な形は次のとおりです。
+At minimum, the base dimensions are:
+
+* meter
+* kilogram
+* second
+* ampere
+
+This means the internal system is effectively MKSA.
+
+### Examples
+
+Conceptually:
+
+* `1 km` is stored as `1000 m`
+* `1 g` is stored as `0.001 kg`
+* `1 msec` is stored as `0.001 sec`
+
+### Why This Matters
+
+Normalizing stored values to base units simplifies:
+
+* arithmetic
+* comparison
+* conversion between units
+* reasoning about mixed units of the same dimension
+
+---
+
+## Construction and Value Retrieval
+
+The intended usage model includes at least the following ideas:
+
+* constructing directly from a base-unit value
+* constructing from a scalar multiplied by a unit object
+* retrieving the normalized base-unit value
+* retrieving the value converted to a specified unit
+
+Typical forms include:
 
 ```cpp
 auto value() const noexcept -> T;
 auto value(unit_type u) const noexcept -> T;
 ```
 
-正確なシグネチャは変わる可能性がありますが、これが意図している公開 API の方向性です。
+The exact signatures may vary, but this is the intended public direction.
 
-### 例
+### Example
 
 ```cpp
 using namespace xer::units;
 
 auto x = 1.5 * km;
-auto a = x.value();    // 基底単位値
-auto b = x.value(km);  // km で表した値
+auto a = x.value();    // base-unit value
+auto b = x.value(km);  // value expressed in km
 ```
 
 ---
 
-## 無次元量の生値アクセス
+## Raw Value Access for Dimensionless Quantities
 
-無次元量は、生のスカラー値へ戻す必要がある場合があります。
+Dimensionless quantities sometimes need to be converted back to raw scalars.
 
-### 設計方針
+### Design Direction
 
-それは可能であるべきですが、明示的であるべきです。
+This should be possible, but it should remain explicit.
 
-### 明示的であるべき理由
+### Why Explicit
 
-無次元量から生のスカラーへの暗黙変換は、型システムを弱め、コードの明確さを下げます。
+Implicit conversion from a dimensionless quantity to a raw scalar weakens the type system and makes code less clear.
 
-そのため、明示的な変換、または明示的な値取得を優先します。
+For that reason, explicit conversion or explicit value retrieval is preferred.
 
 ---
 
 ## `unit<Dim, Scale>`
 
-`unit<Dim, Scale>` は単位を表します。
+`unit<Dim, Scale>` represents a unit.
 
-### 基本形
+### Basic Shape
 
 ```cpp
 template <typename Dim, typename Scale = std::ratio<1>>
 class unit;
 ```
 
-### 役割
+### Role
 
-単位は次のものを表します。
+A unit represents:
 
-* 次元
-* その次元の基底単位に対するスケール
+* a dimension
+* a scale relative to the base unit of that dimension
 
-### `unit` の性質
+### Nature of `unit`
 
-意図している設計では、`unit` は主に型レベルの情報であるべきです。
+The intended design is that `unit` should be primarily type-level information.
 
-つまり、次のことを意味します。
+That means:
 
-* 単位情報は理想的にはテンプレート引数で保持する
-* 単位オブジェクトは軽量に保つ
-* 不要な実行時データメンバーは避ける
+* unit information should ideally be carried by template arguments
+* unit objects should remain lightweight
+* unnecessary runtime data members should be avoided
 
-実際には、定義済み単位オブジェクトは空、またはほぼ空のコンパイル時オブジェクトのように振る舞うべきです。
+In practice, predefined unit objects should behave like empty or near-empty compile-time objects.
 
 ---
 
-## スケール表現
+## Scale Representation
 
-重要な設計点のひとつは、単位スケールが有理数値に**限定されない**ことです。
+One important design point is that unit scales are **not** limited to rational values.
 
-### 有理数スケールの例
+### Rational-Scale Examples
 
-多くの単位は、有理数スケールで自然に表せます。
+Many units can be represented naturally with rational scales:
 
 * `mm`
 * `cm`
@@ -17711,34 +17723,34 @@ class unit;
 * `kHz`
 * `hPa`
 
-### 非有理数スケールの例
+### Non-Rational-Scale Example
 
-`taurad` に対する `rad` のように、純粋な有理数スケールでは自然に表せない単位もあります。
+Some units, such as `rad` relative to `taurad`, are not naturally representable by a purely rational scale.
 
-### 設計方針
+### Design Direction
 
-したがって、次の方針を取ります。
+Therefore:
 
-* `std::ratio` 風の有理数スケールをデフォルトとする
-* 一部の単位では、浮動小数点ベースのスケール表現も必要になる可能性がある
-* テンプレートのデフォルトを、設計全体の恒久的な制限と解釈してはならない
+* `std::ratio`-like rational scales are the default
+* floating-point-based scale representation may also be necessary for some units
+* the template default should not be interpreted as a permanent restriction of the entire design
 
-この点は、`unit<Dim, Scale>` を正しく理解するうえで特に重要です。
+This point is especially important for understanding `unit<Dim, Scale>` correctly.
 
 ---
 
-## 単位の算術
+## Unit Arithmetic
 
-単位は乗算および除算できます。
+Units may be multiplied and divided.
 
-### 意味
+### Meaning
 
-単位を乗算または除算すると、次のものが結合されます。
+When units are multiplied or divided:
 
-* 次元
-* スケール
+* dimensions are combined
+* scales are combined
 
-これにより、次のような派生量を自然に構築できます。
+This allows natural construction of derived quantities such as:
 
 ```cpp
 using namespace xer::units;
@@ -17748,15 +17760,15 @@ auto a = 9.8 * m / sq(sec);
 auto f = 2.0 * kg * m / sq(sec);
 ```
 
-### これが重要な理由
+### Why This Matters
 
-すべての合成単位を個別の固定名として定義する必要がなくなります。
+This avoids the need to define every composite unit as a separate fixed name.
 
 ---
 
-## 単位と量の平方・立方ヘルパー
+## Square and Cube Helpers for Units and Quantities
 
-`<xer/quantity.h>` は、単位と量のために `sq` と `cb` を提供します。
+`<xer/quantity.h>` provides `sq` and `cb` for units and quantities.
 
 ```cpp
 sq(unit)
@@ -17765,10 +17777,10 @@ sq(quantity)
 cb(quantity)
 ```
 
-### 役割
+### Role
 
-これらのヘルパーは、単位式での繰り返し乗算を読みやすくします。
-たとえば次のように書けます。
+These helpers make repeated multiplication easier to read in unit expressions.
+For example:
 
 ```cpp
 using namespace xer::units;
@@ -17776,17 +17788,35 @@ using namespace xer::units;
 auto acceleration = 9.8 * m / sq(sec);
 ```
 
-これは意味としては次と同等です。
+This is equivalent in meaning to:
 
 ```cpp
 auto acceleration = 9.8 * m / (sec * sec);
 ```
 
-量に対しては、`sq` と `cb` は格納値を乗算し、次元指数も対応して結合します。
+For quantities, `sq` and `cb` multiply the stored value and combine the dimension exponents accordingly.
 
-### 記号付き単位エイリアス
+### Symbolic Unit Aliases
 
-一般的な基底単位については、`xer::units` 配下に記号付きエイリアスも提供されます。
+The portable squared and cubed unit aliases are named with ASCII identifiers:
+
+```cpp
+m2
+m3
+sec2
+sec3
+```
+
+These are aliases for the corresponding square or cube unit expressions:
+
+```cpp
+m2   // sq(m)
+m3   // cb(m)
+sec2 // sq(sec)
+sec3 // cb(sec)
+```
+
+Non-standard Unicode aliases containing superscript digits are available only when `XER_ENABLE_NON_STANDARD_IDENTIFIERS` is defined before including the header:
 
 ```cpp
 m²
@@ -17795,43 +17825,32 @@ sec²
 sec³
 ```
 
-これらは、対応する平方または立方の単位式のエイリアスです。
-
-```cpp
-m²   // sq(m)
-m³   // cb(m)
-sec² // sq(sec)
-sec³ // cb(sec)
-```
-
-読みやすい記号表記として用意されています。
-移植性の高い綴りとして、ASCII 形式の `sq(m)`, `cb(m)`, `sq(sec)`, `cb(sec)` も引き続き利用できます。
-
+Superscript digits are not standard C++ identifier characters. If these aliases are enabled, some compilers or options such as `-pedantic` may warn or fail. In portable code, use `m2`, `m3`, `sec2`, `sec3`, `sq`, and `cb`.
 ---
 
 ## `xer::units`
 
-定義済み単位オブジェクトは、`xer::units` 名前空間の下で提供されます。
+Predefined unit objects are provided under the `xer::units` namespace.
 
-### 役割
+### Role
 
-この名前空間は、よく使う単位名を予測しやすい場所にまとめます。
+This namespace groups common unit names in one predictable place.
 
-### 基本方針
+### Basic Direction
 
-単位は意図的に `xer` 直下には置きません。
+Units are intentionally **not** placed directly under `xer`.
 
-これにより、必要な場所でだけ次のように書けます。
+This makes it possible to write:
 
 ```cpp
 using namespace xer::units;
 ```
 
-メインの名前空間を汚染せずに済みます。
+only where needed, without polluting the main namespace.
 
-### 基底単位の例
+### Examples of Base Units
 
-少なくとも、次の基底単位が提供されます。
+At minimum, the following base units are provided:
 
 ```cpp
 xer::units::m
@@ -17842,31 +17861,33 @@ xer::units::A
 
 ---
 
-## 定義済み単位
+## Predefined Units
 
-このヘッダーは、実用的な共通単位の集合を提供することが期待されます。
+The header is expected to provide a practical set of common units.
 
-### 基底単位
+### Base Units
 
-少なくとも次のものがあります。
+At minimum:
 
 * `m`
 * `kg`
 * `sec`
 * `A`
 
-### 平方・立方の基底単位
+### Squared and Cubed Base Units
 
-少なくとも次のものがあります。
+At minimum:
 
-* `m²`
-* `m³`
-* `sec²`
-* `sec³`
+* `m2`
+* `m3`
+* `sec2`
+* `sec3`
 
-### 選択された接頭辞付き単位
+The non-standard Unicode aliases `m²`, `m³`, `sec²`, and `sec³` are provided only when `XER_ENABLE_NON_STANDARD_IDENTIFIERS` is defined.
 
-例は次のとおりです。
+### Selected Prefixed Units
+
+Examples include:
 
 * `mm`
 * `cm`
@@ -17883,9 +17904,9 @@ xer::units::A
 * `GHz`
 * `hPa`
 
-### 選択された派生単位
+### Selected Derived Units
 
-例は次のとおりです。
+Examples include:
 
 * `Hz`
 * `N`
@@ -17894,9 +17915,9 @@ xer::units::A
 * `V`
 * `Pa`
 
-### 慣用単位
+### Conventional Units
 
-例は次のとおりです。
+Examples include:
 
 * `ha`
 * `mL`
@@ -17906,25 +17927,26 @@ xer::units::A
 * `cal`
 * `kcal`
 
-### ヤード・ポンド法単位
 
-このヘッダーは、国際ヤード・ポンド法単位の小さな集合も提供します。
+### Yard-Pound Units
 
-長さ単位:
+The header also provides a small set of international yard-pound units.
+
+Length units:
 
 * `inch`
 * `ft`
 * `yd`
 * `mile`
 
-質量単位:
+Mass units:
 
 * `oz`
 * `lb`
 
-これらの名前は、通常の単数形の単位名（`inch`, `mile`）または一般的な単位記号（`ft`, `yd`, `oz`, `lb`）を意図的に使っています。`feet` や `pounds` のような複数形名は提供しません。
+These names intentionally use either the ordinary singular unit name (`inch`, `mile`) or the common unit symbol (`ft`, `yd`, `oz`, `lb`). Plural names such as `feet` and `pounds` are not provided.
 
-換算係数は、正確な国際定義です。
+The conversion factors are exact international definitions:
 
 * `1 inch = 0.0254 m`
 * `1 ft = 0.3048 m`
@@ -17933,144 +17955,145 @@ xer::units::A
 * `1 lb = 0.45359237 kg`
 * `1 oz = 1/16 lb`
 
-### エイリアス
+### Aliases
 
-例には次のものが含まれる場合があります。
+Examples may include:
 
 * `μm`
 * `μsec`
 * `cc`
 
-正確な集合は詳細な単位リファレンスに属しますが、これらが主な意図カテゴリです。
+The exact set belongs to the detailed unit reference, but these are the main intended categories.
 
 ---
 
-## 角度単位
+## Angular Units
 
-`<xer/quantity.h>` は、より広い xer の設計と連携して、角度関連の単位も扱います。
+`<xer/quantity.h>` also covers angle-related units in coordination with the broader xer design.
 
-### 重要な単位
+### Important Units
 
-少なくとも次のものがあります。
+At minimum:
 
 * `taurad`
 * `τrad`
 * `rad`
 
-### 設計上の意味
+### Design Meaning
 
-* `taurad` は角度の基底単位です
-* `τrad` は `taurad` のエイリアスです
-* `rad` は角度のための無次元単位として扱われます
+* `taurad` is the base unit for angle
+* `τrad` is an alias of `taurad`
+* `rad` is treated as a dimensionless unit for angle
 
-### これが重要な理由
+### Why This Matters
 
-これにより、1回転が `cyclic` モデルと自然に対応するという xer の設計と、角度量を整合させられます。
-
----
-
-## `cyclic` との関係
-
-重要な設計点は、角度量と循環値が**同一概念ではない**ことです。
-
-### quantity 側
-
-`quantity` は、通常の角度量を扱います。
-これには次のような値が含まれます。
-
-* 複数回転
-* 負の回転
-* 通常の算術で使われる値
-
-### `cyclic` 側
-
-`cyclic` は、次のような明示的な循環意味論を扱います。
-
-* 時計回りの距離
-* 反時計回りの距離
-* 円上の最短差分
-
-### 設計上の境界
-
-したがって、設計方針は次のようになります。
-
-* 通常の角度は量として格納する
-* 循環的な振る舞いが実際に必要なときに `cyclic` へ変換する
-
-これにより、両方の抽象化の焦点を保てます。
+This keeps angle quantities compatible with xer's design where one full turn corresponds naturally to the `cyclic` model.
 
 ---
 
-## ユーザー定義リテラル
+## Relationship to `cyclic`
 
-ここでは、ユーザー定義リテラルを主要な記法モデルにはしません。
+A key design point is that angle quantities and circular values are **not identical concepts**.
 
-### 推奨スタイル
+### Quantity Side
 
-意図しているスタイルは、単位接尾辞リテラルではなく、次のような形です。
+`quantity` handles ordinary angle quantities, including values such as:
+
+* multiple turns
+* negative turns
+* values used in ordinary arithmetic
+
+### `cyclic` Side
+
+`cyclic` handles explicitly circular semantics such as:
+
+* clockwise distance
+* counterclockwise distance
+* shortest difference on a circle
+
+### Design Boundary
+
+So the design direction is:
+
+* store ordinary angles as quantities
+* convert to `cyclic` when circular behavior is actually needed
+
+This keeps both abstractions focused.
+
+---
+
+## User-Defined Literals
+
+User-defined literals are not the primary notation model here.
+
+### Preferred Style
+
+The intended style is:
 
 ```cpp
 1.23f * msec
 ```
 
-### 理由
+rather than unit suffix literals.
 
-この記法は次の性質を保ちます。
+### Why
 
-* 明示的
-* 読みやすい
-* xer の他の部分と一貫している
-* 多数の特別なリテラル形式を作らずに拡張しやすい
+This keeps the notation:
+
+* explicit
+* easy to read
+* consistent with the rest of xer
+* easier to extend without creating many special literal forms
 
 ---
 
-## 他のヘッダーとの関係
+## Relationship to Other Headers
 
-`<xer/quantity.h>` は、次のものとあわせて理解する必要があります。
+`<xer/quantity.h>` should be understood together with:
 
 * `policy_project_outline.md`
 * `policy_quantity.md`
 * `header_cyclic.md`
 * `header_arithmetic.md`
 
-おおまかな境界は次のとおりです。
+The rough boundary is:
 
-* `<xer/quantity.h>` は、単位、次元、量を扱う
-* `<xer/cyclic.h>` は、明示的に循環する値を扱う
-* `<xer/arithmetic.h>` は、物理次元に固有ではない一般的な算術・比較ヘルパーを扱う
-
----
-
-## ドキュメント上の注意
-
-このヘッダーを生成ドキュメントで扱う場合、通常は次の点を説明すれば十分です。
-
-* 次元、単位、量を提供すること
-* 量は内部で基底単位に正規化されること
-* 単位オブジェクトは `xer::units` に置かれること
-* スケールは概念上、有理数表現だけに制限されないこと
-* 通常の角度量と `cyclic` 値は別概念であること
-
-詳細な単位カタログや演算子ごとの規則は、詳細リファレンスまたは生成 API セクションに属します。
+* `<xer/quantity.h>` handles units, dimensions, and quantities
+* `<xer/cyclic.h>` handles explicitly circular values
+* `<xer/arithmetic.h>` handles general arithmetic/comparison helpers not specific to physical dimensions
 
 ---
 
-## 例として示す価値がある話題
+## Documentation Notes
 
-このヘッダーには、次のような例が特に適しています。
+When this header is used in generated documentation, it is usually enough to explain:
 
-* スカラーと単位から量を構築する
-* 量を基底単位および別の単位へ変換する
-* 距離を時間で割って速度を得る
-* 単位式で `sq`, `cb`, `m²`, `m³`, `sec²` を使う
-* `xer::units` の定義済み単位を使う
-* `taurad` または `rad` で角度量を扱う
+* that it provides dimensions, units, and quantities
+* that quantities are normalized internally to base units
+* that unit objects live under `xer::units`
+* that scale is not conceptually restricted to rational representation only
+* that ordinary angular quantities and `cyclic` values are distinct concepts
 
-これらは `examples/` 配下の実行可能な例のよい候補です。
+Detailed unit catalogs and per-operator rules belong in the detailed reference or generated API sections.
 
 ---
 
-## 例
+## Example Topics Commonly Worth Showing
+
+The following kinds of examples are especially suitable for this header:
+
+* constructing a quantity from a scalar and a unit
+* converting a quantity to base units and to another unit
+* dividing distance by time to obtain velocity
+* using `sq`, `cb`, `m2`, `m3`, and `sec2` in unit expressions
+* using predefined units from `xer::units`
+* handling angle quantities with `taurad` or `rad`
+
+These are good candidates for executable examples in `examples/`.
+
+---
+
+## Example
 
 ```cpp
 #include <xer/quantity.h>
@@ -18098,16 +18121,16 @@ auto main() -> int
 }
 ```
 
-この例は、通常の xer スタイルを示しています。
+This example shows the normal xer style:
 
-* `xer::units` の単位オブジェクトを使う
-* スカラー × 単位で量を構築する
-* 値を明示的に取得する
-* 次元上の意味を型システムに保持する
+* use unit objects from `xer::units`
+* construct quantities with scalar × unit
+* retrieve values explicitly
+* keep dimensional meaning in the type system
 
 ---
 
-## 関連項目
+## See Also
 
 * `policy_project_outline.md`
 * `policy_quantity.md`

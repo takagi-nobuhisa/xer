@@ -10,8 +10,8 @@ declare(strict_types=1);
 return [
     'version' => [
         'major' => 1,
-        'minor' => 1,
+        'minor' => 2,
         'patch' => 0,
-        'suffix' => '',
+        'suffix' => 'a1',
     ],
 ];
