@@ -23,6 +23,8 @@ declare(strict_types=1);
  *   php run_tests.php --jobs=8 tests examples
  *   php run_tests.php --all
  *   php run_tests.php --clean-cache
+ *   php run_tests.php --tc=gcc
+ *   php run_tests.php --tc=clang
  *   php run_tests.php --compiler=clang++
  *   php run_tests.php --build-id=msys2-ucrt64
  *   php run_tests.php tests/test_string.cpp
@@ -631,6 +633,50 @@ function split_command_fragment(string $value): array
 /**
  * @return array<string, array<string, mixed>>
  */
+function is_visual_studio_command_prompt(): bool
+{
+    foreach (['VSCMD_VER', 'VSINSTALLDIR', 'VCINSTALLDIR', 'VisualStudioVersion'] as $name) {
+        $value = getenv($name);
+        if (is_string($value) && trim($value) !== '') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * @param array<string, array<string, mixed>> $toolchains
+ */
+function detect_default_toolchain(array $toolchains): string
+{
+    if (is_visual_studio_command_prompt() && isset($toolchains['msvc'])) {
+        return 'msvc';
+    }
+
+    if (isset($toolchains['gcc'])) {
+        return 'gcc';
+    }
+
+    $names = array_keys($toolchains);
+    if ($names === []) {
+        fail('No toolchains are defined.');
+    }
+
+    return (string) $names[0];
+}
+
+function validate_toolchain_environment(string $name): void
+{
+    if ($name === 'clang' && (PHP_OS_FAMILY !== 'Linux' || getenv('MSYSTEM') !== false)) {
+        fail('Toolchain clang is supported only on Linux. Use --tc=clang64 on MSYS2 CLANG64, or --tc=clang-cl on Windows.');
+    }
+
+    if ($name === 'gcc' && is_visual_studio_command_prompt()) {
+        fail('Toolchain gcc is not supported in a Visual Studio command prompt. Use --tc=msvc or --tc=clang-cl.');
+    }
+}
+
 function load_test_toolchains(string $scriptDir): array
 {
     $path = normalize_path($scriptDir . '/test_toolchains.php');
@@ -660,6 +706,8 @@ function load_test_toolchains(string $scriptDir): array
  */
 function resolve_toolchain(string $name, array $toolchains): array
 {
+    validate_toolchain_environment($name);
+
     if (!isset($toolchains[$name])) {
         fail('Unknown toolchain: ' . $name);
     }
@@ -3000,6 +3048,9 @@ if (!function_exists('proc_open')) {
 
 $parsed = parse_arguments($argv);
 $toolchains = load_test_toolchains($scriptDir);
+if ($parsed['toolchain'] === null) {
+    $parsed['toolchain'] = detect_default_toolchain($toolchains);
+}
 if ($parsed['toolchain'] !== null) {
     if ($parsed['toolchain'] === 'all') {
         $names = array_keys($toolchains);
