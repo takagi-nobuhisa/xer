@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v1.1.0a3**
+Target version: **v1.1.0b1**
 
 ---
 
@@ -1028,7 +1028,7 @@ xer provides its own `scope_exit`.
 This is not a wrapper around a standard C++ `<scope>` header.
 Standard C++ does not currently provide such a header as part of the ordinary standard library.
 
-Some similar facilities exist in experimental or library-extension contexts, but xer keeps this utility small and self-contained so that it fits the library's header-only and GCC-oriented portability policy.
+Some similar facilities exist in experimental or library-extension contexts, but xer keeps this utility small and self-contained so that it fits the library's header-only and supported-toolchain portability policy.
 
 ---
 
@@ -5569,7 +5569,7 @@ On MSYS2 environments, the ICU data library may be named `icudt` rather than `ic
 g++ -std=c++23 -I. example.cpp -licuuc -licudt
 ```
 
-The xer test runner handles known environments separately.
+The xer test runner handles known environments separately. On Visual Studio 2026 with clang-cl or MSVC cl.exe, xer's tests and examples use ICU installed by vcpkg manifest mode under `vcpkg_installed\x64-windows`.
 
 ---
 
@@ -7693,7 +7693,7 @@ The initial API is intentionally small. It supports sequential reading, name loo
 
 The public header checks for `<zlib.h>` with `__has_include` when available and emits a compile-time diagnostic if the header is missing. Programs using this header must also link with zlib, for example `-lz` on typical Unix-like environments.
 
-The project test runner detects `xer/zip.h` as the `zip` feature and links matching tests and examples with zlib when it is available.
+The project test runner detects `xer/zip.h` as the `zip` feature and links matching tests and examples with zlib when it is available. On Visual Studio 2026 with clang-cl or MSVC cl.exe, xer's tests and examples use zlib installed by vcpkg manifest mode under `vcpkg_installed\x64-windows`.
 
 ---
 
