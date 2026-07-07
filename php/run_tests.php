@@ -2123,9 +2123,7 @@ function collect_feature_libs(array $features, array $featureOptions): array
  */
 function build_compile_command(array $task, array $options): array
 {
-    $extraCflags = array_merge(
-        ['-I..', '-DXER_TEST_ENABLE_TERMINATE_HANDLER=1'],
-        $task['feature_cflags']);
+    $extraCflags = array_merge(['-I..', '-DXER_TEST_ENABLE_TERMINATE_HANDLER=1'], $task['feature_cflags']);
 
     if (is_msvc_like_style($options)) {
         $extraCflags[] = '/Fo:' . normalize_path($task['obj_dir'] . '/' . $task['name'] . '.obj');

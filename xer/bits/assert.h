@@ -43,69 +43,54 @@ public:
     }
 };
 
-} // namespace xer
-
-#if defined(XER_TEST_ENABLE_TERMINATE_HANDLER)
-
-namespace xer::detail {
+#if defined(XER_TEST_ENABLE_TERMINATE_HANDLER) && XER_TEST_ENABLE_TERMINATE_HANDLER
+namespace detail {
 
 /**
- * @brief Prints the currently unhandled exception to stderr for test executables.
+ * @brief Writes information about an uncaught exception before termination.
+ *
+ * This handler is intended for test executables only. It makes run logs useful
+ * when a test exits through an uncaught exception on runtimes that do not print
+ * exception details by default.
  */
-inline auto print_current_exception_for_test() noexcept -> void
+[[noreturn]] inline auto test_terminate_handler() noexcept -> void
 {
-    try {
-        const std::exception_ptr exception = std::current_exception();
-        if (exception == nullptr) {
-            std::fputs("Unhandled exception: <none>\n", stderr);
-            return;
-        }
+    const std::exception_ptr exception = std::current_exception();
 
-        std::rethrow_exception(exception);
-    } catch (const ::xer::assertion_error& e) {
-        std::fputs("Unhandled xer::assertion_error:\n", stderr);
-        std::fputs(e.what(), stderr);
-        std::fputc('\n', stderr);
-    } catch (const std::exception& e) {
-        std::fputs("Unhandled std::exception:\n", stderr);
-        std::fputs(e.what(), stderr);
-        std::fputc('\n', stderr);
-    } catch (...) {
-        std::fputs("Unhandled non-standard exception.\n", stderr);
+    if (exception) {
+        try {
+            std::rethrow_exception(exception);
+        } catch (const assertion_error& error) {
+            static_cast<void>(std::fprintf(
+                stderr,
+                "Unhandled xer::assertion_error:\n%s\n",
+                error.what()));
+        } catch (const std::exception& error) {
+            static_cast<void>(std::fprintf(
+                stderr,
+                "Unhandled std::exception:\n%s\n",
+                error.what()));
+        } catch (...) {
+            static_cast<void>(std::fprintf(
+                stderr,
+                "Unhandled non-standard exception.\n"));
+        }
+    } else {
+        static_cast<void>(std::fprintf(stderr, "std::terminate called without an active exception.\n"));
     }
 
-    std::fflush(stderr);
-}
-
-/**
- * @brief Terminates a test executable after printing exception information.
- */
-[[noreturn]] inline auto terminate_after_printing_current_exception_for_test() noexcept -> void
-{
-    print_current_exception_for_test();
     std::abort();
 }
 
-/**
- * @brief Installs a terminate handler for test executables.
- */
-class test_terminate_handler_installer {
-public:
-    test_terminate_handler_installer() noexcept
-    {
-        static const bool installed = [] {
-            std::set_terminate(terminate_after_printing_current_exception_for_test);
-            return true;
-        }();
-        static_cast<void>(installed);
-    }
-};
+inline const int test_terminate_handler_registration = []() -> int {
+    std::set_terminate(test_terminate_handler);
+    return 0;
+}();
 
-inline const test_terminate_handler_installer test_terminate_handler_instance;
-
-} // namespace xer::detail
-
+} // namespace detail
 #endif
+
+} // namespace xer
 
 namespace xer::detail {
 
