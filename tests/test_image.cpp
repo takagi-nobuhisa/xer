@@ -1,4 +1,5 @@
-﻿#include <limits>
+﻿#include <cassert>
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 
@@ -247,7 +248,7 @@ auto test_draw_line_aa_thin() -> bool
     xer::image::canvas<5, 5> img;
     img.clear();
 
-    xer::image::draw_line_aa(img, 1.0f, 1.0f, 3.0f, 3.0f, xer::image::pixel(0u, 0u, 0xffu));
+    assert(xer::image::draw_line_aa(img, 1.0f, 1.0f, 3.0f, 3.0f, xer::image::pixel(0u, 0u, 0xffu)));
 
     const auto center = img.get_pixel(2, 2);
     const auto edge = img.get_pixel(1, 2);
@@ -266,7 +267,7 @@ auto test_draw_line_aa_width() -> bool
     xer::image::canvas<5, 4> img;
     img.clear();
 
-    xer::image::draw_line_aa(img, 1.0f, 1.0f, 3.0f, 1.0f, 2.0f, xer::image::pixel(0xffu, 0u, 0u));
+    assert(xer::image::draw_line_aa(img, 1.0f, 1.0f, 3.0f, 1.0f, 2.0f, xer::image::pixel(0xffu, 0u, 0u)));
 
     return img.get_pixel(1, 1).argb == 0xffff0000u &&
            img.get_pixel(2, 1).argb == 0xffff0000u &&
@@ -710,11 +711,11 @@ auto test_draw_geometry_overloads() -> bool
     xer::image::draw_line(img, xer::image::point{2, 2}, xer::image::point{4, 4}, blue);
     xer::image::draw_rect(img, xer::image::point{1, 1}, xer::image::size{3, 3}, yellow);
     xer::image::fill_rect(img, xer::image::rect{4, 0, 2, 2}, magenta);
-    xer::image::draw_line_aa(
+    assert(xer::image::draw_line_aa(
         img,
         xer::image::pointf{0.0f, 5.0f},
         xer::image::pointf{2.0f, 5.0f},
-        cyan);
+        cyan));
 
     if (img.get_pixel(1, 0).argb != 0xffff0000u) {
         return false;
