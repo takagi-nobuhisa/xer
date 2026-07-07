@@ -163,18 +163,20 @@ Files under subdirectories are not included in that target set.
 
 ---
 
-## Compilation Tests for Combinations of Public Headers
+## Compilation Tests for Public Header Include Order
 
-For public headers, ordered combination tests of two different public headers are performed as successful compilation tests, in order to prevent compilation errors that depend on include order.
+For public headers, include-order tests are performed as successful compilation tests, in order to prevent compilation errors that depend on include order.
 
-If there are `n` public headers, the number of ordered two-header combinations is `nP2`.
-Test source files for all of these combinations are generated automatically by PHP and then compiled.
+The default strategy generates one test source file per public header.
+Each generated source includes that public header first, followed by all other public headers.
+This checks both the self-contained use of each public header and the effect of including it before the rest of the public interface, while avoiding the cost of compiling every ordered two-header pair.
 
-As for whether each public header can be included by itself, ordinary execution tests are treated as covering that requirement as well, and dedicated single-header include tests are not provided as a rule.
+If there are `n` public headers, the default strategy compiles `n` generated source files.
+The legacy full ordered-pair strategy can still be requested explicitly with `--full` or `--all-pairs`; that strategy compiles `nP2` generated source files.
 
-However, it is assumed that each public header is included by itself in at least one ordinary test.
+Headers that require optional external components may be omitted from the default include-order set when `--skip-unavailable-features=1` is in effect and those components are not available.
 
-### Incremental Public Header Pair Tests
+### Incremental Public Header Include-Order Tests
 
 `php/test_public_header_pairs.php` supports incremental execution by default.
 
@@ -182,12 +184,13 @@ The incremental state is stored under the build-specific directory selected by `
 This prevents test state from being shared accidentally between environments such as MSYS2 UCRT64 and Ubuntu when the same source tree is used.
 
 Change detection is based primarily on file modification times.
-The script checks the target public headers and also treats internal implementation headers under `xer/bits/` as dependencies, so that changes in shared internal headers can trigger recompilation of public-header pair tests.
+The script checks the target public headers and also treats internal implementation headers under `xer/bits/` as dependencies, so that changes in shared internal headers can trigger recompilation of public-header include-order tests.
 
-If a public header is newer than the saved successful state, all ordered pairs that include that header are compiled again.
-If the public header set changes, or if an internal dependency under `xer/bits/` changes, the script falls back to testing all ordered pairs.
+With the default include-order strategy, any changed tracked header triggers the affected generated sources.
+Because each generated source includes all public headers available in that environment, changing a public header normally causes the full `n`-source default include-order set to be compiled.
 
-The `--all` option disables incremental filtering and tests every ordered pair regardless of the saved state.
+The `--all` option disables incremental filtering and runs the selected include-order test set regardless of the saved state.
+The `--full` and `--all-pairs` options select the legacy full ordered-pair test set.
 
 ---
 

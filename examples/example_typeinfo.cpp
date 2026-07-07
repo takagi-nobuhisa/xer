@@ -15,7 +15,7 @@
 
 #include <utility>
 
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 #include <xer/typeinfo.h>
 
 namespace {

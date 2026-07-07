@@ -14,7 +14,7 @@
 #include <string_view>
 
 #include <xer/ctype.h>
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 #include <xer/string.h>
 
 

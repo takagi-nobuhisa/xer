@@ -1,6 +1,6 @@
 ﻿/**
  * @file tests/test_diag.cpp
- * @brief Tests for xer/diag.h.
+ * @brief Tests for xer/diagnostics.h.
  */
 
 #include <cstddef>
@@ -8,7 +8,7 @@
 #include <string_view>
 
 #include <xer/assert.h>
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 #include <xer/stdio.h>
 #include <xer/string.h>
 #include <xer/typeinfo.h>

@@ -11,7 +11,7 @@
 #include <xer/ini.h>
 #include <xer/json.h>
 #include <xer/path.h>
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 #include <xer/toml.h>
 
 

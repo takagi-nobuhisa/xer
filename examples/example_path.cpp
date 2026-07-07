@@ -12,7 +12,7 @@
 // absolute: true
 
 #include <xer/path.h>
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 
 
 auto main() -> int

@@ -21,7 +21,7 @@
 #include <iostream>
 #include <vector>
 
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 #include <xer/statistics.h>
 
 namespace {

@@ -16,7 +16,7 @@
 // toctrans('ä', latin1_upper): Ä
 
 #include <xer/ctype.h>
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 
 
 auto main() -> int

@@ -1,8 +1,8 @@
-# `<xer/diag.h>`
+# `<xer/diagnostics.h>`
 
 ## Purpose
 
-`<xer/diag.h>` provides lightweight diagnostic facilities for xer.
+`<xer/diagnostics.h>` provides lightweight diagnostic facilities for xer.
 
 It groups tracing and logging support under one public diagnostic header while keeping the shared category and level vocabulary common to both facilities.
 
@@ -10,7 +10,7 @@ It groups tracing and logging support under one public diagnostic header while k
 
 ## Main Entities
 
-At minimum, `<xer/diag.h>` provides the following entities:
+At minimum, `<xer/diagnostics.h>` provides the following entities:
 
 ```cpp
 using xer::diag_level_t = int;
@@ -109,7 +109,7 @@ When `NDEBUG` is defined, `xer_trace` expands to a no-op expression and does not
 
 `xer_log(category, level, format, ...)` writes one formatted log record. The message body uses xer printf formatting rules, including `%@`.
 
-Unlike `xer_trace`, logging is not disabled merely because `NDEBUG` is defined. It can be disabled at compile time by defining `XER_ENABLE_LOG` to `0` before including `<xer/diag.h>`.
+Unlike `xer_trace`, logging is not disabled merely because `NDEBUG` is defined. It can be disabled at compile time by defining `XER_ENABLE_LOG` to `0` before including `<xer/diagnostics.h>`.
 
 ## Log Record Format
 

@@ -7,7 +7,7 @@
 // The program prints the number of environment variables.
 // If PATH exists, it also prints PATH.
 
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 #include <xer/stdlib.h>
 
 #include <cstddef>

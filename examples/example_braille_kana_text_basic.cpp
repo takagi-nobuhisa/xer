@@ -12,7 +12,7 @@
 #include <string>
 
 #include <xer/braille.h>
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 
 auto main() -> int
 {

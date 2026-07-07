@@ -7,7 +7,7 @@
 // MeCab must be installed and available from PATH.
 
 #include <xer/mecab.h>
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 
 
 auto main() -> int

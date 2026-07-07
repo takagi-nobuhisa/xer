@@ -1,10 +1,10 @@
 <!-- xer-reference-source-sha256: 474b00b92e9a9030ffb1fced47189593837f0bd89e9594995a6344f7e60d6935 -->
 
-# `<xer/diag.h>`
+# `<xer/diagnostics.h>`
 
 ## 目的
 
-`<xer/diag.h>` は、xer の軽量な診断機能を提供します。
+`<xer/diagnostics.h>` は、xer の軽量な診断機能を提供します。
 
 このヘッダーは、トレースとログ出力のサポートを1つの公開診断ヘッダーにまとめつつ、両機能で共有するカテゴリとレベルの語彙を共通化します。
 
@@ -12,7 +12,7 @@
 
 ## 主な要素
 
-少なくとも、`<xer/diag.h>` は次の要素を提供します。
+少なくとも、`<xer/diagnostics.h>` は次の要素を提供します。
 
 ```cpp
 using xer::diag_level_t = int;
@@ -111,7 +111,7 @@ answer: 42
 
 `xer_log(category, level, format, ...)` は、書式付きログレコードを1件書き込みます。メッセージ本体では、`%@` を含む xer のprintf書式規則を使います。
 
-`xer_trace` とは異なり、ログ出力は `NDEBUG` が定義されているだけでは無効になりません。`<xer/diag.h>` をインクルードする前に `XER_ENABLE_LOG` を `0` と定義することで、コンパイル時に無効化できます。
+`xer_trace` とは異なり、ログ出力は `NDEBUG` が定義されているだけでは無効になりません。`<xer/diagnostics.h>` をインクルードする前に `XER_ENABLE_LOG` を `0` と定義することで、コンパイル時に無効化できます。
 
 ## ログレコード形式
 

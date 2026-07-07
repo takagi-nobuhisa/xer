@@ -17,7 +17,7 @@
 // The log line starts with the current local timestamp and then uses CSV fields:
 // YYYY-MM-DD HH:MM:SS.mmm,io,30,"opened sample.txt"
 
-#include <xer/diag.h>
+#include <xer/diagnostics.h>
 
 namespace {
 

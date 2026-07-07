@@ -193,7 +193,7 @@ Current public headers:
 - `xer/error.h`
 - `xer/assert.h`
 - `xer/typeinfo.h`
-- `xer/diag.h`
+- `xer/diagnostics.h`
 - `xer/scope.h`
 - `xer/convert.h`
 - `xer/string.h`
