@@ -25,19 +25,15 @@ using current_dim = dimension<0, 0, 0, 1>;
 inline constexpr unit<length_dim> m{};
 inline constexpr auto m2 = sq(m);
 inline constexpr auto m3 = cb(m);
-#if !defined(_MSC_VER) || defined(__clang__)
-inline constexpr auto m² = m2;
-inline constexpr auto m³ = m3;
-#endif
 
 inline constexpr unit<mass_dim> kg{};
 
 inline constexpr unit<time_dim> sec{};
 inline constexpr auto sec2 = sq(sec);
 inline constexpr auto sec3 = cb(sec);
-#if !defined(_MSC_VER) || defined(__clang__)
-inline constexpr auto sec² = sec2;
-inline constexpr auto sec³ = sec3;
+
+#if defined(XER_ENABLE_NON_STANDARD_IDENTIFIERS)
+#    include <xer/bits/units_si_non_standard_identifiers.h>
 #endif
 
 inline constexpr unit<current_dim> A{};

@@ -115,10 +115,11 @@ Examples:
 𝜋
 τ
 ω
-ω²
 ```
 
 The ASCII descriptive name remains the primary identifier, while the Greek symbol is a symbolic alias.
+
+Aliases that require non-standard C++ identifier characters, such as superscript digits, must be opt-in only. For example, `ω²` may be provided only when `XER_ENABLE_NON_STANDARD_IDENTIFIERS` is defined. Portable code should use `omega2_v`.
 
 ---
 

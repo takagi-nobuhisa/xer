@@ -283,17 +283,18 @@ m / (sec * sec)
 
 ### Symbolic Aliases
 
-For common base units, symbolic aliases may be provided:
+Portable aliases for common squared and cubed base units should use ASCII identifiers:
 
 ```cpp
-m²
-m³
-sec²
-sec³
+m2
+m3
+sec2
+sec3
 ```
 
-These aliases are intended for readability, especially in contexts where the mathematical notation is familiar.
-The ASCII forms such as `sq(m)` and `sq(sec)` remain the portable spelling.
+Aliases that contain superscript digits, such as `m²`, `m³`, `sec²`, and `sec³`, are non-standard C++ identifiers. They may be provided only as opt-in aliases guarded by `XER_ENABLE_NON_STANDARD_IDENTIFIERS`.
+
+When the opt-in macro is not defined, only the portable ASCII names are provided. If the opt-in aliases are enabled, warnings or errors caused by compiler options such as `-pedantic` are the user's responsibility.
 ---
 
 ## Unit Objects
