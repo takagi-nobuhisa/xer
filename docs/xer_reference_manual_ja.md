@@ -1,6 +1,6 @@
 # xer C++ Utility Library リファレンスマニュアル
 
-対象バージョン: **v1.1.0b1**
+対象バージョン: **v1.1.0**
 
 ---
 
@@ -898,34 +898,28 @@ YYYY-MM-DD HH:MM:SS.mmm
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/scope.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/scope.h>`
 
-## Purpose
+## 目的
 
-`<xer/scope.h>` provides small scope-based utility facilities for xer.
+`<xer/scope.h>` は、xer の小さなスコープベースのユーティリティ機能を提供します。
 
-At present, this header provides `xer::scope_exit`, a lightweight scope guard that invokes a registered callable when the guard object is destroyed.
+現時点では、このヘッダーは `xer::scope_exit` を提供します。`xer::scope_exit` は、ガードオブジェクトの破棄時に登録された呼び出し可能オブジェクトを呼び出す軽量なスコープガードです。
 
-This is useful for cleanup actions that should be performed automatically when leaving a block.
+これは、ブロックを抜けるときに自動的に実行すべきクリーンアップ処理に役立ちます。
 
 ---
 
-## Main Entity
+## 主なエンティティ
 
-At minimum, `<xer/scope.h>` provides the following entity:
+少なくとも、`<xer/scope.h>` は次のエンティティを提供します。
 
 ```cpp
 template <class F>
 class scope_exit;
 ```
 
-It also provides a deduction guide so that ordinary lambdas and function objects can be passed naturally:
+また、通常のラムダ式や関数オブジェクトを自然に渡せるように、推論ガイドも提供します。
 
 ```cpp
 template <class F>
@@ -936,9 +930,9 @@ scope_exit(F&&) -> scope_exit<std::decay_t<F>>;
 
 ## `scope_exit`
 
-`scope_exit` is a move-only RAII helper.
+`scope_exit` はムーブ専用の RAII ヘルパーです。
 
-It stores a callable object and invokes it from the destructor while the guard is active.
+呼び出し可能オブジェクトを保持し、ガードが有効な間はデストラクタからそのオブジェクトを呼び出します。
 
 ```cpp
 auto guard = xer::scope_exit([&] noexcept {
@@ -946,124 +940,124 @@ auto guard = xer::scope_exit([&] noexcept {
 });
 ```
 
-### Basic Behavior
+### 基本動作
 
-A `scope_exit` object is active immediately after construction.
+`scope_exit` オブジェクトは、構築直後から有効です。
 
-When the object is destroyed:
+オブジェクトが破棄されるときの動作は次のとおりです。
 
-* if it is active, the registered callable is invoked
-* if it has been released, nothing is invoked
+* 有効な場合、登録された呼び出し可能オブジェクトを呼び出す
+* 解放済みの場合、何もしない
 
-This makes it suitable for registering cleanup logic close to the resource or state change that needs cleanup.
-
----
-
-## Typical Use Cases
-
-`scope_exit` is useful for actions such as:
-
-* restoring the current working directory after `chdir`
-* removing a temporary file or temporary directory
-* unlocking a resource
-* restoring a global or process-wide setting
-* rolling back a local state change
-* closing or releasing a non-RAII resource when no better wrapper exists
-
-It is especially useful when cleanup must happen along multiple return paths.
+このため、クリーンアップが必要なリソースや状態変更の近くでクリーンアップ処理を登録する用途に適しています。
 
 ---
 
-## Move-Only Semantics
+## 典型的な用途
 
-`scope_exit` is copy-disabled and move-constructible.
+`scope_exit` は、次のような処理に役立ちます。
 
-Copying is not allowed because copying a guard would make it unclear which object owns the cleanup action.
+* `chdir` 後にカレントディレクトリを元に戻す
+* 一時ファイルや一時ディレクトリを削除する
+* リソースのロックを解除する
+* グローバル設定またはプロセス全体の設定を元に戻す
+* ローカルな状態変更をロールバックする
+* よりよいラッパーがない非 RAII リソースを閉じる、または解放する
 
-Move construction transfers the cleanup responsibility to the new object.
-The moved-from guard is released so that the registered callable is not invoked twice.
-
-Move assignment is not provided.
+複数の return 経路に沿ってクリーンアップを行う必要がある場合に、とくに有用です。
 
 ---
 
-## Releasing a Guard
+## ムーブ専用セマンティクス
 
-A guard can be released explicitly:
+`scope_exit` はコピー不可であり、ムーブ構築可能です。
+
+コピーを許可すると、どちらのオブジェクトがクリーンアップ処理を所有するのか不明確になるため、コピーは許可されません。
+
+ムーブ構築は、クリーンアップ責任を新しいオブジェクトへ移します。
+ムーブ元のガードは解放されるため、登録された呼び出し可能オブジェクトが二重に呼び出されることはありません。
+
+ムーブ代入は提供されません。
+
+---
+
+## ガードの解放
+
+ガードは明示的に解放できます。
 
 ```cpp
 guard.release();
 ```
 
-After `release()` is called, the registered callable will not be invoked when the guard is destroyed.
+`release()` を呼び出した後は、ガードの破棄時に登録された呼び出し可能オブジェクトは呼び出されません。
 
-This is useful when the cleanup action is only needed if a later operation does not complete successfully.
+これは、後続の処理が正常に完了しなかった場合だけクリーンアップが必要になるような場面で役立ちます。
 
 ---
 
-## Checking Whether a Guard Is Active
+## ガードが有効かどうかの確認
 
-The current active state can be checked:
+現在の有効状態は次の関数で確認できます。
 
 ```cpp
 auto active() const noexcept -> bool;
 ```
 
-This returns `true` if the callable will be invoked on destruction.
+破棄時に呼び出し可能オブジェクトが呼び出される状態であれば `true` を返します。
 
 ---
 
-## Exception Policy
+## 例外方針
 
-The destructor of `scope_exit` is `noexcept`.
+`scope_exit` のデストラクタは `noexcept` です。
 
-The registered callable is expected not to throw.
+登録される呼び出し可能オブジェクトは、例外を投げないことが期待されます。
 
-If the callable throws while the `scope_exit` destructor is running, `std::terminate` is called.
+`scope_exit` のデストラクタ実行中に呼び出し可能オブジェクトが例外を投げた場合、`std::terminate` が呼び出されます。
 
-This policy follows the usual expectation for cleanup code executed from destructors.
-A scope guard is not a good place to report ordinary recoverable failure, because destructors cannot return `xer::result`.
+この方針は、デストラクタから実行されるクリーンアップコードに対する通常の期待に従っています。
+スコープガードは、通常の回復可能な失敗を報告する場所としては適していません。デストラクタは `xer::result` を返せないためです。
 
-If the cleanup action can fail in a meaningful way, callers should normally handle that failure explicitly before leaving the scope, or intentionally ignore it when failure is not actionable.
-
----
-
-## Relationship to Standard and Experimental Facilities
-
-xer provides its own `scope_exit`.
-
-This is not a wrapper around a standard C++ `<scope>` header.
-Standard C++ does not currently provide such a header as part of the ordinary standard library.
-
-Some similar facilities exist in experimental or library-extension contexts, but xer keeps this utility small and self-contained so that it fits the library's header-only and supported-toolchain portability policy.
+クリーンアップ処理の失敗に意味がある場合、呼び出し側は通常、スコープを抜ける前にその失敗を明示的に処理するか、失敗に対処できない場合は意図して無視するべきです。
 
 ---
 
-## Design Role
+## 標準および実験的機能との関係
 
-`scope_exit` is intentionally small.
+xer は独自の `scope_exit` を提供します。
 
-It does not attempt to provide a complete scope-guard framework.
+これは、標準 C++ の `<scope>` ヘッダーのラッパーではありません。
+標準 C++ は現在、通常の標準ライブラリの一部としてこのようなヘッダーを提供していません。
 
-In particular, this header does not currently provide:
+類似機能は実験的な機能やライブラリ拡張として存在する場合がありますが、xer ではヘッダーオンリーかつ 対応 toolchain を前提とした移植性方針に合うように、このユーティリティを小さく自己完結したものにしています。
+
+---
+
+## 設計上の役割
+
+`scope_exit` は意図的に小さく保たれています。
+
+完全なスコープガードフレームワークを提供しようとはしていません。
+
+とくに、このヘッダーは現時点で次のものを提供しません。
 
 * `scope_success`
 * `scope_fail`
 * `unique_resource`
 
-The initial purpose is only to support the common “run this cleanup action when leaving the current scope” pattern.
+初期の目的は、「現在のスコープを抜けるときにこのクリーンアップ処理を実行する」という一般的なパターンを支援することだけです。
 
 ---
 
-## Relationship to xer's Error Model
+## xer のエラーモデルとの関係
 
-xer generally represents ordinary fallible operations through `xer::result`.
+xer では通常、失敗する可能性がある通常の処理を `xer::result` で表します。
 
-However, `scope_exit` itself does not return a result from its destructor.
+ただし、`scope_exit` 自体はデストラクタから結果を返しません。
 
-For that reason, cleanup actions registered with `scope_exit` should normally be actions whose failure can be safely ignored or actions that are known not to fail in the intended context.
+そのため、`scope_exit` に登録するクリーンアップ処理は、通常、失敗を安全に無視できる処理か、想定される文脈では失敗しないことが分かっている処理にするべきです。
 
-A common pattern is to explicitly discard the result of a cleanup operation:
+よくあるパターンは、クリーンアップ処理の結果を明示的に破棄することです。
 
 ```cpp
 auto guard = xer::scope_exit([&] noexcept {
@@ -1071,11 +1065,11 @@ auto guard = xer::scope_exit([&] noexcept {
 });
 ```
 
-This makes the decision to ignore cleanup failure visible.
+これにより、クリーンアップ失敗を無視する判断が見える形になります。
 
 ---
 
-## Example
+## 例
 
 ```cpp
 #include <xer/scope.h>
@@ -1097,50 +1091,50 @@ auto main() -> int
             return 1;
         }
 
-        // Work inside another current directory.
+        // 別のカレントディレクトリ内で作業する。
     }
 
     return 0;
 }
 ```
 
-This example shows the typical xer style:
+この例は、典型的な xer のスタイルを示しています。
 
-* acquire or record state explicitly
-* register cleanup with `scope_exit`
-* use `noexcept` for the cleanup lambda when practical
-* explicitly discard cleanup results when failure is not actionable
-
----
-
-## Documentation Notes
-
-When this header is used in generated documentation, it is usually enough to explain:
-
-* that `scope_exit` is a move-only scope guard
-* that it calls the registered callable from its destructor
-* that `release()` disables the cleanup action
-* that the registered callable should not throw
-* that `scope_success` and `scope_fail` are intentionally not provided at this stage
-
-Detailed examples should focus on practical cleanup patterns rather than abstract RAII theory.
+* 状態を明示的に取得または記録する
+* `scope_exit` でクリーンアップを登録する
+* 実用的な場合はクリーンアップラムダに `noexcept` を付ける
+* 失敗に対処できない場合は、クリーンアップ結果を明示的に破棄する
 
 ---
 
-## Example Topics Commonly Worth Showing
+## ドキュメント上の注意
 
-The following kinds of examples are especially suitable for this header:
+このヘッダーを生成ドキュメントで扱う場合、通常は次の点を説明すれば十分です。
 
-* restoring the current working directory after `chdir`
-* deleting a temporary file on scope exit
-* releasing a guard after successful completion
-* moving a guard to transfer cleanup responsibility
+* `scope_exit` はムーブ専用のスコープガードである
+* デストラクタから登録済みの呼び出し可能オブジェクトを呼び出す
+* `release()` はクリーンアップ処理を無効化する
+* 登録される呼び出し可能オブジェクトは例外を投げるべきではない
+* `scope_success` と `scope_fail` はこの段階では意図的に提供していない
 
-These are good candidates for executable examples under `examples/`.
+詳細な例は、抽象的な RAII 理論よりも実用的なクリーンアップパターンに焦点を当てるべきです。
 
 ---
 
-## See Also
+## 例として示す価値が高い題材
+
+このヘッダーには、次のような例がとくに適しています。
+
+* `chdir` 後にカレントディレクトリを元に戻す
+* スコープ終了時に一時ファイルを削除する
+* 正常完了後にガードを解放する
+* ガードをムーブしてクリーンアップ責任を移す
+
+これらは `examples/` 以下の実行可能な例として適した候補です。
+
+---
+
+## 関連項目
 
 * `policy_project_outline.md`
 * `policy_result_arguments.md`
@@ -5476,42 +5470,36 @@ const auto text2 = xer::ja::normalize_kana(u8"がハ゜");
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/unicode.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/unicode.h>`
 
-## Purpose
+## 目的
 
-`<xer/unicode.h>` provides practical Unicode utilities.
+`<xer/unicode.h>` は、実用的な Unicode ユーティリティを提供します。
 
-The current scope includes:
+現在の対象範囲は次のとおりです。
 
-- code point traversal for `std::u8string_view`
-- code point traversal for `std::u16string_view`
-- code point traversal for `std::wstring_view`
-- extended grapheme cluster traversal for `std::u8string_view`
-- extended grapheme cluster traversal for `std::u16string_view`
-- extended grapheme cluster traversal for `std::wstring_view`
-- grapheme-cluster-based string operations for `std::u8string_view`
-- grapheme-cluster-based string operations for `std::u16string_view`
-- grapheme-cluster-based string operations for `std::wstring_view`
-- practical emoji detection for code points and single grapheme clusters
-- NFC normalization for UTF-8 text
-- NFC status checking for UTF-8 text
+- `std::u8string_view` のコードポイント走査
+- `std::u16string_view` のコードポイント走査
+- `std::wstring_view` のコードポイント走査
+- `std::u8string_view` の拡張書記素クラスタ走査
+- `std::u16string_view` の拡張書記素クラスタ走査
+- `std::wstring_view` の拡張書記素クラスタ走査
+- `std::u8string_view` の書記素クラスタ単位の文字列操作
+- `std::u16string_view` の書記素クラスタ単位の文字列操作
+- `std::wstring_view` の書記素クラスタ単位の文字列操作
+- コードポイントおよび単一書記素クラスタに対する実用的な絵文字判定
+- UTF-8 テキストの NFC 正規化
+- UTF-8 テキストの NFC 状態確認
 
-Code point traversal, grapheme cluster traversal, grapheme-cluster-based string operations, and emoji detection themselves do not use ICU. NFC normalization uses the ICU C API.
+コードポイント走査、書記素クラスタ走査、書記素クラスタ単位の文字列操作、および絵文字判定そのものは ICU を使用しません。NFC 正規化は ICU C API を使用します。
 
-At present, `<xer/unicode.h>` includes the ICU-based normalization implementation, so including this public header requires the ICU development headers to be available.
+現時点では、`<xer/unicode.h>` は ICU ベースの正規化実装を含むため、この公開ヘッダーをインクルードするには ICU 開発用ヘッダーが利用可能である必要があります。
 
 ---
 
-## External Dependency
+## 外部依存
 
-`<xer/unicode.h>` requires the ICU C API headers because it exposes NFC normalization utilities:
+`<xer/unicode.h>` は NFC 正規化ユーティリティを公開するため、ICU C API ヘッダーを必要とします。
 
 ```cpp
 #include <unicode/utypes.h>
@@ -5519,35 +5507,35 @@ At present, `<xer/unicode.h>` includes the ICU-based normalization implementatio
 #include <unicode/unorm2.h>
 ```
 
-The normalization implementation uses ICU C API functions such as `u_strFromUTF8`, `u_strToUTF8`, `unorm2_getNFCInstance`, `unorm2_normalize`, and `unorm2_isNormalized`.
+正規化実装では、`u_strFromUTF8`、`u_strToUTF8`、`unorm2_getNFCInstance`、`unorm2_normalize`、`unorm2_isNormalized` などの ICU C API 関数を使用します。
 
-xer does not manage application build-system settings. Users must provide suitable include paths and link options for their environment.
+xer はアプリケーションのビルドシステム設定を管理しません。ユーザーは、自分の環境に適したインクルードパスとリンクオプションを指定する必要があります。
 
-For example, on many Unix-like environments, the required link options are obtained through `pkg-config`:
+たとえば、多くの Unix 系環境では、必要なリンクオプションを `pkg-config` で取得できます。
 
 ```bash
 pkg-config --cflags --libs icu-uc
 ```
 
-A direct compile command may look like this:
+直接コンパイルするコマンドは、たとえば次のようになります。
 
 ```bash
 g++ -std=c++23 -I. example.cpp -licuuc -licudata
 ```
 
-On MSYS2 environments, the ICU data library may be named `icudt` rather than `icudata`, so a typical command may look like this:
+MSYS2 環境では、ICU データライブラリ名が `icudata` ではなく `icudt` の場合があるため、典型的なコマンドは次のようになります。
 
 ```bash
 g++ -std=c++23 -I. example.cpp -licuuc -licudt
 ```
 
-The xer test runner handles known environments separately. On Visual Studio 2026 with clang-cl or MSVC cl.exe, xer's tests and examples use ICU installed by vcpkg manifest mode under `vcpkg_installed\x64-windows`.
+xer のテストランナーは、既知の環境を個別に処理します。Visual Studio 2026 の clang-cl または MSVC cl.exe では、xer のテストとコード例は vcpkg manifest mode により `vcpkg_installed\x64-windows` にインストールされた ICU を使用します。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-`<xer/unicode.h>` provides the following code point traversal type:
+`<xer/unicode.h>` は、次のコードポイント走査型を提供します。
 
 ```cpp
 struct code_point {
@@ -5557,15 +5545,15 @@ struct code_point {
 };
 ```
 
-The `offset` and `size` fields are expressed in source code units:
+`offset` および `size` フィールドは、元のコード単位で表されます。
 
-- for `std::u8string_view`, UTF-8 code units, effectively bytes
-- for `std::u16string_view`, UTF-16 code units
-- for `std::wstring_view`, wide code units
+- `std::u8string_view` では UTF-8 コード単位、実質的にはバイト
+- `std::u16string_view` では UTF-16 コード単位
+- `std::wstring_view` ではワイドコード単位
 
-The decoded `value` is a Unicode scalar value represented as `char32_t`.
+デコードされた `value` は、`char32_t` で表される Unicode スカラー値です。
 
-The header provides these decoding functions:
+このヘッダーは、次のデコード関数を提供します。
 
 ```cpp
 auto next_code_point(std::u8string_view text, std::size_t offset = 0)
@@ -5587,7 +5575,7 @@ auto prev_code_point(std::wstring_view text, std::size_t offset)
     -> xer::result<xer::code_point>;
 ```
 
-It also provides range helpers:
+また、範囲ヘルパーも提供します。
 
 ```cpp
 auto code_points(std::u8string_view text)
@@ -5600,15 +5588,15 @@ auto code_points(std::wstring_view text)
     -> xer::code_point_range<wchar_t>;
 ```
 
-The dereferenced range element is:
+範囲要素を参照解除した値は次の型です。
 
 ```cpp
 xer::result<xer::code_point>
 ```
 
-This keeps malformed input explicit during traversal.
+これにより、走査中の不正な入力が明示的になります。
 
-`<xer/unicode.h>` provides the following grapheme cluster traversal type:
+`<xer/unicode.h>` は、次の書記素クラスタ走査型を提供します。
 
 ```cpp
 struct grapheme_cluster {
@@ -5617,9 +5605,9 @@ struct grapheme_cluster {
 };
 ```
 
-The `offset` and `size` fields are expressed in source code units. A grapheme cluster may contain multiple code points, so `grapheme_cluster` intentionally does not contain a `char32_t` value.
+`offset` および `size` フィールドは、元のコード単位で表されます。書記素クラスタは複数のコードポイントを含むことがあるため、`grapheme_cluster` は意図的に `char32_t` 値を持ちません。
 
-The header provides these grapheme cluster functions:
+このヘッダーは、次の書記素クラスタ関数を提供します。
 
 ```cpp
 auto next_grapheme_cluster(std::u8string_view text, std::size_t offset = 0)
@@ -5641,7 +5629,7 @@ auto prev_grapheme_cluster(std::wstring_view text, std::size_t offset)
     -> xer::result<xer::grapheme_cluster>;
 ```
 
-It also provides range helpers:
+また、範囲ヘルパーも提供します。
 
 ```cpp
 auto grapheme_clusters(std::u8string_view text)
@@ -5654,15 +5642,15 @@ auto grapheme_clusters(std::wstring_view text)
     -> xer::grapheme_cluster_range<wchar_t>;
 ```
 
-The dereferenced range element is:
+範囲要素を参照解除した値は次の型です。
 
 ```cpp
 xer::result<xer::grapheme_cluster>
 ```
 
-This keeps malformed input explicit during traversal.
+これにより、走査中の不正な入力が明示的になります。
 
-The header also provides grapheme-cluster-based string operations:
+このヘッダーは、書記素クラスタ単位の文字列操作も提供します。
 
 ```cpp
 auto grapheme_length(std::u8string_view text)
@@ -5681,9 +5669,9 @@ auto grapheme_right(std::u8string_view text, std::size_t count)
     -> xer::result<std::u8string_view>;
 ```
 
-`std::u16string_view` and `std::wstring_view` overloads are also provided. The returned substring values are views into the original text.
+`std::u16string_view` および `std::wstring_view` のオーバーロードも提供されます。返される部分文字列値は元のテキストへのビューです。
 
-The header also provides practical emoji detection:
+このヘッダーは、実用的な絵文字判定も提供します。
 
 ```cpp
 auto is_emoji(char32_t value) noexcept -> bool;
@@ -5698,9 +5686,9 @@ auto is_emoji(std::wstring_view text)
     -> xer::result<bool>;
 ```
 
-The string-view overloads return `true` only when the whole input is one practical emoji grapheme cluster. Empty input returns `false`. Malformed UTF-8, UTF-16, or wide text is reported as an error.
+文字列ビュー版は、入力全体が 1 個の実用的な絵文字書記素クラスタである場合にだけ `true` を返します。空入力は `false` を返します。不正な UTF-8、UTF-16、またはワイドテキストはエラーとして報告されます。
 
-The header also provides NFC utilities:
+このヘッダーは NFC ユーティリティも提供します。
 
 ```cpp
 auto normalize_nfc(std::u8string_view text)
@@ -5722,25 +5710,25 @@ struct code_point {
 };
 ```
 
-### Purpose
+### 目的
 
-`code_point` describes one decoded Unicode scalar value and the corresponding source span.
+`code_point` は、1 個のデコード済み Unicode スカラー値と、それに対応する元の範囲を表します。
 
-It does not own the original string. It only records where the decoded code point was found and how many source code units it occupied.
+元の文字列は所有しません。デコードされたコードポイントがどこで見つかり、元のコード単位をいくつ占めていたかだけを記録します。
 
-### Offset and Size
+### オフセットとサイズ
 
-`offset` is the index where the code point begins.
+`offset` はコードポイントが始まるインデックスです。
 
-`size` is the number of source code units occupied by the code point.
+`size` は、そのコードポイントが占める元のコード単位数です。
 
-For example, in UTF-8 text:
+たとえば、UTF-8 テキストでは次のようになります。
 
 ```cpp
 std::u8string_view text = u8"Aあ😀";
 ```
 
-The code points are:
+コードポイントは次のとおりです。
 
 ```text
 offset=0 size=1 value=U+0041
@@ -5748,9 +5736,9 @@ offset=1 size=3 value=U+3042
 offset=4 size=4 value=U+1F600
 ```
 
-For UTF-16 text, a supplementary-plane character such as U+1F600 occupies two code units because it is represented as a surrogate pair.
+UTF-16 テキストでは、U+1F600 のような補助平面文字はサロゲートペアで表されるため、2 個のコード単位を占めます。
 
-For `std::wstring_view`, the unit depends on the platform's `wchar_t` representation. On platforms where `wchar_t` is 16 bits, supplementary-plane characters occupy two wide code units. On platforms where `wchar_t` is 32 bits, they occupy one wide code unit.
+`std::wstring_view` では、単位はプラットフォームの `wchar_t` 表現に依存します。`wchar_t` が 16 ビットのプラットフォームでは、補助平面文字は 2 個のワイドコード単位を占めます。`wchar_t` が 32 ビットのプラットフォームでは、1 個のワイドコード単位を占めます。
 
 ---
 
@@ -5767,40 +5755,40 @@ auto next_code_point(std::wstring_view text, std::size_t offset = 0)
     -> xer::result<xer::code_point>;
 ```
 
-### Purpose
+### 目的
 
-`next_code_point` decodes the code point beginning at `offset`.
+`next_code_point` は、`offset` から始まるコードポイントをデコードします。
 
-### Input Model
+### 入力モデル
 
-The `offset` argument is expressed in the source string view's code units.
+`offset` 引数は、元の文字列ビューのコード単位で表されます。
 
-The input must be well-formed for the corresponding encoding:
+入力は、対応するエンコーディングとして well-formed である必要があります。
 
-- `std::u8string_view` must contain well-formed UTF-8
-- `std::u16string_view` must contain well-formed UTF-16
-- `std::wstring_view` must contain well-formed wide text according to the platform's `wchar_t` width
+- `std::u8string_view` は well-formed な UTF-8 を含んでいる必要があります
+- `std::u16string_view` は well-formed な UTF-16 を含んでいる必要があります
+- `std::wstring_view` はプラットフォームの `wchar_t` 幅に応じた well-formed なワイドテキストを含んでいる必要があります
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<xer::code_point>
 ```
 
-The function can fail if:
+この関数は、次の場合に失敗する可能性があります。
 
-- `offset` is outside the string view
-- `offset` is equal to the end of the string view
-- the input contains malformed UTF-8
-- the input contains malformed UTF-16 surrogate pairs
-- the decoded value is not a Unicode scalar value
+- `offset` が文字列ビューの範囲外である
+- `offset` が文字列ビューの末尾と等しい
+- 入力に不正な UTF-8 が含まれている
+- 入力に不正な UTF-16 サロゲートペアが含まれている
+- デコードされた値が Unicode スカラー値ではない
 
-Out-of-range offsets are reported as `xer::error_t::out_of_range`.
-Malformed encoded text is reported as `xer::error_t::encoding_error`.
+範囲外のオフセットは `xer::error_t::out_of_range` として報告されます。
+不正な符号化テキストは `xer::error_t::encoding_error` として報告されます。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"Aあ";
@@ -5824,27 +5812,27 @@ auto prev_code_point(std::wstring_view text, std::size_t offset)
     -> xer::result<xer::code_point>;
 ```
 
-### Purpose
+### 目的
 
-`prev_code_point` decodes the code point immediately before `offset`.
+`prev_code_point` は、`offset` の直前にあるコードポイントをデコードします。
 
-The `offset` argument is a one-past position. Passing `text.size()` decodes the final code point.
+`offset` 引数は one-past 位置です。`text.size()` を渡すと、最後のコードポイントをデコードします。
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<xer::code_point>
 ```
 
-The function can fail if:
+この関数は、次の場合に失敗する可能性があります。
 
-- `offset` is outside the string view
-- `offset` is `0`
-- the bytes or code units immediately before `offset` do not form exactly one well-formed code point
+- `offset` が文字列ビューの範囲外である
+- `offset` が `0` である
+- `offset` の直前のバイト列またはコード単位列が、ちょうど 1 個の well-formed なコードポイントを形成していない
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"Aあ";
@@ -5867,23 +5855,23 @@ auto code_points(std::wstring_view text)
     -> xer::code_point_range<wchar_t>;
 ```
 
-### Purpose
+### 目的
 
-`code_points` creates a lightweight input range that walks through the source text by Unicode code point.
+`code_points` は、元のテキストを Unicode コードポイント単位で走査する軽量入力範囲を作成します。
 
-### Element Type
+### 要素型
 
-The dereferenced iterator value is:
+イテレーターを参照解除した値は次の型です。
 
 ```cpp
 const xer::result<xer::code_point>&
 ```
 
-This means each element must be checked before use.
+つまり、各要素は使用前に確認する必要があります。
 
-A malformed sequence appears as an error element. Incrementing the iterator after an error moves it to the end.
+不正なシーケンスはエラー要素として現れます。エラー後にイテレーターを進めると終端へ移動します。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"Aあ😀";
@@ -5901,20 +5889,20 @@ for (const auto& item : xer::code_points(text)) {
 
 ---
 
-## Relationship to Grapheme Clusters
+## 書記素クラスタとの関係
 
-Code point traversal is not the same as grapheme cluster traversal.
+コードポイント走査は、書記素クラスタ走査とは同じではありません。
 
-For example, the following may be two code points but one user-perceived character:
+たとえば、次の組み合わせは 2 個のコードポイントですが、ユーザーから見た 1 文字になることがあります。
 
 ```text
 U+304B HIRAGANA LETTER KA
 U+3099 COMBINING KATAKANA-HIRAGANA VOICED SOUND MARK
 ```
 
-Code point APIs intentionally expose this as two code points.
+コードポイント API は、これを意図的に 2 個のコードポイントとして公開します。
 
-Grapheme cluster APIs are built on top of this layer and return source string spans rather than a single `char32_t`, because one grapheme cluster may contain multiple code points.
+書記素クラスタ API はこの層の上に構築され、単一の `char32_t` ではなく元の文字列範囲を返します。これは、1 個の書記素クラスタが複数のコードポイントを含むことがあるためです。
 
 ---
 
@@ -5928,13 +5916,13 @@ struct grapheme_cluster {
 };
 ```
 
-### Purpose
+### 目的
 
-`grapheme_cluster` describes one extended grapheme cluster and the corresponding source span.
+`grapheme_cluster` は、1 個の拡張書記素クラスタと、それに対応する元の範囲を表します。
 
-It does not own the original string. It only records where the cluster begins and how many source code units it occupies.
+元の文字列は所有しません。クラスタがどこで始まり、元のコード単位をいくつ占めているかだけを記録します。
 
-Unlike `code_point`, it does not contain a `char32_t` value. A single user-visible character can consist of multiple Unicode code points, such as a base character followed by a combining mark, an emoji with a variation selector, or an emoji ZWJ sequence.
+`code_point` と異なり、`char32_t` 値は持ちません。ユーザーから見える 1 文字は、基底文字と結合記号、異体字セレクター付きの絵文字、または絵文字 ZWJ シーケンスのように、複数の Unicode コードポイントから構成されることがあります。
 
 ---
 
@@ -5951,31 +5939,31 @@ auto next_grapheme_cluster(std::wstring_view text, std::size_t offset = 0)
     -> xer::result<xer::grapheme_cluster>;
 ```
 
-### Purpose
+### 目的
 
-`next_grapheme_cluster` decodes the extended grapheme cluster beginning at `offset`.
+`next_grapheme_cluster` は、`offset` から始まる拡張書記素クラスタをデコードします。
 
-The implementation is based on the code point traversal layer and groups practical extended grapheme cluster sequences, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences.
+実装はコードポイント走査層を基盤とし、結合記号、異体字セレクター、絵文字修飾子、絵文字 ZWJ シーケンス、地域指示記号ペア、CRLF、およびハングル音節シーケンスなど、実用的な拡張書記素クラスタ列をグループ化します。
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<xer::grapheme_cluster>
 ```
 
-The function can fail if:
+この関数は、次の場合に失敗する可能性があります。
 
-- `offset` is outside the string view
-- `offset` is equal to the end of the string view
-- the input contains malformed UTF-8
-- the input contains malformed UTF-16 surrogate pairs
-- the decoded value is not a Unicode scalar value
+- `offset` が文字列ビューの範囲外である
+- `offset` が文字列ビューの末尾と等しい
+- 入力に不正な UTF-8 が含まれている
+- 入力に不正な UTF-16 サロゲートペアが含まれている
+- デコードされた値が Unicode スカラー値ではない
 
-Out-of-range offsets are reported as `xer::error_t::out_of_range`. Malformed encoded text is reported as `xer::error_t::encoding_error`.
+範囲外のオフセットは `xer::error_t::out_of_range` として報告されます。不正な符号化テキストは `xer::error_t::encoding_error` として報告されます。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"A\u0301B";
@@ -6000,11 +5988,11 @@ auto prev_grapheme_cluster(std::wstring_view text, std::size_t offset)
     -> xer::result<xer::grapheme_cluster>;
 ```
 
-### Purpose
+### 目的
 
-`prev_grapheme_cluster` decodes the extended grapheme cluster immediately before `offset`.
+`prev_grapheme_cluster` は、`offset` の直前にある拡張書記素クラスタをデコードします。
 
-The `offset` argument is a one-past cluster boundary. Passing `text.size()` decodes the final grapheme cluster. Passing an offset inside a cluster is reported as `xer::error_t::encoding_error`.
+`offset` 引数は、クラスタ境界の one-past 位置です。`text.size()` を渡すと最後の書記素クラスタをデコードします。クラスタ内部のオフセットを渡した場合は `xer::error_t::encoding_error` として報告されます。
 
 ---
 
@@ -6021,17 +6009,17 @@ auto grapheme_clusters(std::wstring_view text)
     -> xer::grapheme_cluster_range<wchar_t>;
 ```
 
-### Purpose
+### 目的
 
-`grapheme_clusters` creates a lightweight input range that walks through the source text by extended grapheme cluster.
+`grapheme_clusters` は、元のテキストを拡張書記素クラスタ単位で走査する軽量入力範囲を作成します。
 
-The dereferenced element type is:
+参照解除された要素型は次のとおりです。
 
 ```cpp
 xer::result<xer::grapheme_cluster>
 ```
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"A\u0301B👩‍💻";
@@ -6062,23 +6050,23 @@ auto grapheme_length(std::wstring_view text)
     -> xer::result<std::size_t>;
 ```
 
-### Purpose
+### 目的
 
-`grapheme_length` counts extended grapheme clusters in the source string view.
+`grapheme_length` は、元の文字列ビューに含まれる拡張書記素クラスタ数を数えます。
 
-This is different from `text.size()`, which counts source code units. For UTF-8 Japanese text, `text.size()` is a byte count. `grapheme_length` is intended for user-visible character counts based on xer's practical grapheme cluster rules.
+これは、元のコード単位数を数える `text.size()` とは異なります。UTF-8 の日本語テキストでは、`text.size()` はバイト数です。`grapheme_length` は、xer の実用的な書記素クラスタ規則にもとづく、ユーザーから見える文字数を得るためのものです。
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<std::size_t>
 ```
 
-Malformed UTF-8 or UTF-16 input is reported as `xer::error_t::encoding_error`.
+不正な UTF-8 または UTF-16 入力は `xer::error_t::encoding_error` として報告されます。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"A\u0301B👩‍💻";
@@ -6110,15 +6098,15 @@ auto grapheme_substr(
     -> xer::result<std::wstring_view>;
 ```
 
-### Purpose
+### 目的
 
-`grapheme_substr` returns a substring view selected by grapheme cluster index.
+`grapheme_substr` は、書記素クラスタのインデックスで選択した部分文字列ビューを返します。
 
-The `offset` and `count` parameters are grapheme cluster counts, not byte counts and not UTF-16 code-unit counts. The returned value is a view into the original string.
+`offset` および `count` パラメーターは、書記素クラスタ数です。バイト数でも UTF-16 コード単位数でもありません。返される値は元の文字列へのビューです。
 
-If `offset` is equal to the grapheme cluster length, the result is an empty view at the end of the input. If `offset` is greater than the grapheme cluster length, the function returns `xer::error_t::out_of_range`.
+`offset` が書記素クラスタ長と等しい場合、結果は入力末尾の空ビューになります。`offset` が書記素クラスタ長より大きい場合、この関数は `xer::error_t::out_of_range` を返します。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"A\u0301B👩‍💻C";
@@ -6141,9 +6129,9 @@ auto grapheme_left(std::wstring_view text, std::size_t count)
     -> xer::result<std::wstring_view>;
 ```
 
-### Purpose
+### 目的
 
-`grapheme_left` returns the first `count` grapheme clusters as a view into the original string. If `count` is greater than the grapheme cluster length, the whole input view is returned.
+`grapheme_left` は、先頭から `count` 個の書記素クラスタを、元の文字列へのビューとして返します。`count` が書記素クラスタ長より大きい場合は、入力全体のビューを返します。
 
 ---
 
@@ -6160,13 +6148,13 @@ auto grapheme_right(std::wstring_view text, std::size_t count)
     -> xer::result<std::wstring_view>;
 ```
 
-### Purpose
+### 目的
 
-`grapheme_right` returns the last `count` grapheme clusters as a view into the original string. If `count` is greater than the grapheme cluster length, the whole input view is returned.
+`grapheme_right` は、末尾から `count` 個の書記素クラスタを、元の文字列へのビューとして返します。`count` が書記素クラスタ長より大きい場合は、入力全体のビューを返します。
 
-`grapheme_right` first determines the grapheme cluster length, so malformed input anywhere in the source view is reported.
+`grapheme_right` は最初に書記素クラスタ長を求めるため、元のビュー内のどこかに不正な入力があれば報告されます。
 
-### Example
+### 例
 
 ```cpp
 constexpr std::u8string_view text = u8"A\u0301B👩‍💻C";
@@ -6191,35 +6179,35 @@ auto is_emoji(std::wstring_view text)
     -> xer::result<bool>;
 ```
 
-### Purpose
+### 目的
 
-`is_emoji` provides practical emoji detection for English/Japanese user-facing text.
+`is_emoji` は、英語・日本語のユーザー向けテキストで実用的に使える絵文字判定を提供します。
 
-The `char32_t` overload checks whether a Unicode scalar value is treated as an emoji base by xer. It is intended for quick code point classification.
+`char32_t` オーバーロードは、Unicode スカラー値が xer で絵文字基底として扱われるかどうかを調べます。これはコードポイント分類をすばやく行うためのものです。
 
-The string-view overloads check whether the whole input is one emoji grapheme cluster. This is the overload to use for sequences such as flags, keycap emoji, emoji with variation selectors, skin-tone modifiers, and ZWJ emoji sequences.
+文字列ビュー版は、入力全体が 1 個の絵文字書記素クラスタであるかどうかを調べます。旗、キーキャップ絵文字、異体字セレクター付き絵文字、肌色修飾子、ZWJ 絵文字シーケンスなどには、このオーバーロードを使用します。
 
-### Input Model
+### 入力モデル
 
-The string-view overloads accept UTF-8, UTF-16, or wide text. The input must contain exactly one grapheme cluster to return `true`. Empty input returns `false`.
+文字列ビュー版は UTF-8、UTF-16、またはワイドテキストを受け取ります。`true` を返すには、入力がちょうど 1 個の書記素クラスタを含んでいる必要があります。空入力は `false` を返します。
 
-### Return Model
+### 戻り値モデル
 
-The `char32_t` overload returns `bool` and never reports an error.
+`char32_t` オーバーロードは `bool` を返し、エラーを報告しません。
 
-The string-view overloads return:
+文字列ビュー版は次を返します。
 
 ```cpp
 xer::result<bool>
 ```
 
-They can fail when the input contains malformed UTF-8, UTF-16, or wide text.
+入力に不正な UTF-8、UTF-16、またはワイドテキストが含まれている場合、失敗する可能性があります。
 
-### Scope
+### 対象範囲
 
-This is a compact practical detector, not a complete generated implementation of every Unicode emoji property. It reuses xer's existing grapheme cluster handling and covers common emoji used in English/Japanese text, including pictographic emoji, flags, keycap emoji, variation-selector forms, emoji modifiers, and ZWJ sequences.
+これは小さく実用的な判定器であり、すべての Unicode 絵文字プロパティを生成テーブルで完全実装したものではありません。xer の既存の書記素クラスタ処理を再利用し、英語・日本語テキストでよく使われる絵文字を対象にします。対象には、絵文字ピクトグラフ、旗、キーキャップ絵文字、異体字セレクター形式、絵文字修飾子、ZWJ シーケンスが含まれます。
 
-### Example
+### 例
 
 ```cpp
 const auto face = xer::is_emoji(std::u8string_view{u8"😀"});
@@ -6227,7 +6215,7 @@ const auto worker = xer::is_emoji(std::u8string_view{u8"👩‍💻"});
 const auto letter = xer::is_emoji(std::u8string_view{u8"A"});
 ```
 
-In this example, `face` and `worker` are expected to contain `true`, while `letter` is expected to contain `false`.
+この例では、`face` と `worker` は `true` を含み、`letter` は `false` を含むことが期待されます。
 
 ---
 
@@ -6238,75 +6226,75 @@ auto normalize_nfc(std::u8string_view text)
     -> xer::result<std::u8string>;
 ```
 
-### Purpose
+### 目的
 
-`normalize_nfc` converts valid UTF-8 text to Unicode Normalization Form C.
+`normalize_nfc` は、有効な UTF-8 テキストを Unicode 正規化形式 C に変換します。
 
-NFC is the normalization form that first applies canonical decomposition and then canonical composition. It is useful for making canonically equivalent text use a consistent byte representation where composed characters are available.
+NFC は、まず正準分解を適用し、その後に正準合成を行う正規化形式です。正準等価なテキストについて、合成済み文字が利用可能な場合に一貫したバイト表現へそろえるために有用です。
 
-For example, the sequence:
+たとえば、次のシーケンスは、
 
 ```text
 U+304B HIRAGANA LETTER KA
 U+3099 COMBINING KATAKANA-HIRAGANA VOICED SOUND MARK
 ```
 
-can be normalized to:
+次のように正規化できます。
 
 ```text
 U+304C HIRAGANA LETTER GA
 ```
 
-Similarly, the sequence:
+同様に、次のシーケンスは、
 
 ```text
 U+0041 LATIN CAPITAL LETTER A
 U+030A COMBINING RING ABOVE
 ```
 
-can be normalized to:
+次のように正規化できます。
 
 ```text
 U+00C5 LATIN CAPITAL LETTER A WITH RING ABOVE
 ```
 
-### Input Model
+### 入力モデル
 
-The input is provided as:
+入力は次の型で与えます。
 
 ```cpp
 std::u8string_view
 ```
 
-The input must be valid UTF-8. Invalid UTF-8 is reported as an error.
+入力は有効な UTF-8 である必要があります。無効な UTF-8 はエラーとして報告されます。
 
-### Output Model
+### 出力モデル
 
-On success, the function returns:
+成功時、この関数は次を返します。
 
 ```cpp
 std::u8string
 ```
 
-The returned string is valid UTF-8 normalized to NFC.
+返される文字列は、NFC に正規化された有効な UTF-8 です。
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<std::u8string>
 ```
 
-The function can fail if:
+この関数は、次の場合に失敗する可能性があります。
 
-- the input is not valid UTF-8
-- the input or output size exceeds the range accepted by ICU C API length parameters
-- ICU reports an internal failure
+- 入力が有効な UTF-8 ではない
+- 入力または出力サイズが ICU C API の長さパラメーターで受け付けられる範囲を超えている
+- ICU が内部エラーを報告した
 
-Typical invalid UTF-8 input is reported as `xer::error_t::encoding_error`.
+典型的な無効 UTF-8 入力は `xer::error_t::encoding_error` として報告されます。
 
-### Example
+### 例
 
 ```cpp
 const auto result = xer::normalize_nfc(u8"か\u3099");
@@ -6324,72 +6312,72 @@ auto is_normalized_nfc(std::u8string_view text)
     -> xer::result<bool>;
 ```
 
-### Purpose
+### 目的
 
-`is_normalized_nfc` checks whether valid UTF-8 text is already normalized to Unicode NFC.
+`is_normalized_nfc` は、有効な UTF-8 テキストがすでに Unicode NFC に正規化されているかどうかを確認します。
 
-This is useful when a program wants to avoid rewriting text that is already in the desired normalization form.
+これは、すでに目的の正規化形式になっているテキストを書き換えずに済ませたい場合に有用です。
 
-### Input Model
+### 入力モデル
 
-The input is provided as:
+入力は次の型で与えます。
 
 ```cpp
 std::u8string_view
 ```
 
-The input must be valid UTF-8. Invalid UTF-8 is reported as an error.
+入力は有効な UTF-8 である必要があります。無効な UTF-8 はエラーとして報告されます。
 
-### Output Model
+### 出力モデル
 
-On success, the function returns:
+成功時、この関数は次を返します。
 
 ```cpp
 bool
 ```
 
-The value is `true` if the input is already NFC, and `false` otherwise.
+値は、入力がすでに NFC であれば `true`、そうでなければ `false` です。
 
-### Return Model
+### 戻り値モデル
 
-The return type is:
+戻り値の型は次のとおりです。
 
 ```cpp
 xer::result<bool>
 ```
 
-The function can fail if:
+この関数は、次の場合に失敗する可能性があります。
 
-- the input is not valid UTF-8
-- the input size exceeds the range accepted by ICU C API length parameters
-- ICU reports a failure
+- 入力が有効な UTF-8 ではない
+- 入力サイズが ICU C API の長さパラメーターで受け付けられる範囲を超えている
+- ICU が失敗を報告した
 
-Typical invalid UTF-8 input is reported as `xer::error_t::encoding_error`.
+典型的な無効 UTF-8 入力は `xer::error_t::encoding_error` として報告されます。
 
-### Example
+### 例
 
 ```cpp
 const auto before = xer::is_normalized_nfc(u8"か\u3099");
 const auto after = xer::is_normalized_nfc(u8"が");
 ```
 
-In this example, `before` is expected to contain `false`, while `after` is expected to contain `true`.
+この例では、`before` は `false` を含み、`after` は `true` を含むことが期待されます。
 
 ---
 
-## Design Notes
+## 設計メモ
 
-`<xer/unicode.h>` is intentionally independent from ordinary string-processing headers such as `<xer/string.h>`.
+`<xer/unicode.h>` は、`<xer/string.h>` のような通常の文字列処理ヘッダーから意図的に独立しています。
 
-The code point traversal layer is small and table-free. It validates UTF-8 and UTF-16 structure, reports malformed input through `xer::result`, and records source spans in code units.
+コードポイント走査層は小さく、テーブルを使いません。UTF-8 および UTF-16 構造を検証し、不正な入力を `xer::result` で報告し、元の範囲をコード単位で記録します。
 
-The grapheme cluster traversal layer is built on top of the code point layer. It is intended for practical user-visible character traversal while still returning source spans instead of copying text. The grapheme-cluster-based string operations provide convenient length and substring helpers while returning views into the original text. Emoji detection is also built on the same code point and grapheme cluster layers so that multi-code-point emoji sequences can be checked as one user-visible unit.
+書記素クラスタ走査層は、コードポイント層の上に構築されています。これは、実用的なユーザー可視文字の走査を目的としつつ、テキストをコピーせずに元の範囲を返します。書記素クラスタ単位の文字列操作は、長さおよび部分文字列の便利なヘルパーを提供しつつ、元のテキストへのビューを返します。絵文字判定も同じコードポイント層と書記素クラスタ層の上に構築されるため、複数コードポイントからなる絵文字シーケンスを 1 個のユーザー可視単位として確認できます。
 
-The default language scope of this layer is English and Japanese text. It handles common sequences needed for practical English/Japanese user-facing text, including combining marks, variation selectors, emoji modifiers, emoji ZWJ sequences, regional indicator pairs, CRLF, and Hangul syllable sequences. It is not a full Unicode text-boundary engine for every script and does not provide language-specific tailoring. Users who need broader script coverage can extend xer's public source code or use a dedicated Unicode boundary service.
+この層の既定の言語対象は英語および日本語テキストです。結合記号、異体字セレクター、絵文字修飾子、絵文字 ZWJ シーケンス、地域指示記号ペア、CRLF、ハングル音節シーケンスなど、実用的な英語・日本語のユーザー向けテキストに必要な一般的シーケンスを扱います。あらゆる文字体系に対応する完全な Unicode テキスト境界エンジンではなく、言語固有の tailoring も提供しません。より広い文字体系への対応が必要なユーザーは、xer の公開ソースコードを拡張するか、専用の Unicode 境界サービスを使用できます。
 
-Unicode normalization is heavier than simple UTF-8 string utilities because it requires Unicode normalization data. xer delegates this responsibility to ICU instead of embedding a large generated Unicode table in the header-only library.
+Unicode 正規化は Unicode 正規化データを必要とするため、単純な UTF-8 文字列ユーティリティより重い処理です。xer はヘッダーオンリーライブラリ内に大きな生成済み Unicode テーブルを埋め込むのではなく、この責務を ICU に委譲します。
 
-The initial normalization API exposes only NFC because NFC is the most practical normalization form for many file-name, search-key, dictionary, and text-cleanup use cases. Other normalization forms can be added later without changing the basic API shape.
+初期の正規化 API は NFC のみを公開します。NFC は、ファイル名、検索キー、辞書、テキスト整形など、多くの実用的な用途で最も使いやすい正規化形式だからです。その他の正規化形式は、基本的な API 形状を変更せずに後から追加できます。
 
 ---
 
@@ -7627,62 +7615,56 @@ int main()
 
 ---
 
-> **未訳:** この節の日本語版はまだ最新ではありません。
-> そのため、暫定的に英語版の内容を掲載しています。
-> 
-> Header: `xer/zip.h`
-> Reason: Japanese fragment was translated from a different English source hash.
-
 # `<xer/zip.h>`
 
-## Purpose
+## 目的
 
-`<xer/zip.h>` provides ZIP archive reading and writing facilities in xer.
+`<xer/zip.h>` は xer の ZIP アーカイブ読み書き機能を提供します。
 
-ZIP is technically an archive format, but in practical use it is also a familiar compression and expansion format. xer treats the initial ZIP API as a small compression-and-archive utility that can later support serialized data packages, bundled resources, and ordinary file exchange.
+ZIP は技術的にはアーカイブ形式ですが、実用上は馴染みのある圧縮・展開形式でもあります。xer では、初期 ZIP API を、将来シリアライズ済みデータパッケージ、同梱リソース、通常のファイル交換を支えられる小さな圧縮・アーカイブユーティリティとして扱います。
 
-The initial API is intentionally small. It supports sequential reading, name lookup, simple archive creation, whole-entry reads, and simple extraction helpers. Comments and ZIP64 support are deferred.
-
----
-
-## External Dependency
-
-`<xer/zip.h>` requires zlib development headers and the zlib library.
-
-The public header checks for `<zlib.h>` with `__has_include` when available and emits a compile-time diagnostic if the header is missing. Programs using this header must also link with zlib, for example `-lz` on typical Unix-like environments.
-
-The project test runner detects `xer/zip.h` as the `zip` feature and links matching tests and examples with zlib when it is available. On Visual Studio 2026 with clang-cl or MSVC cl.exe, xer's tests and examples use zlib installed by vcpkg manifest mode under `vcpkg_installed\x64-windows`.
+初期 API は意図的に小さくしています。逐次読み取り、名前検索、単純なアーカイブ作成、エントリ全体の読み取り、単純な展開ヘルパーをサポートします。コメントと ZIP64 対応は後回しです。
 
 ---
 
-## Main Role
+## 外部依存
 
-The main role of `<xer/zip.h>` is to make it possible to:
+`<xer/zip.h>` は zlib の開発用ヘッダーと zlib ライブラリを必要とします。
 
-- open a ZIP archive
-- read entry metadata sequentially
-- locate entries by exact name
-- obtain entry names, sizes, and compression method names
-- read and expand entry data
-- extract one entry or all entries to the file system
-- create a ZIP archive
-- add in-memory bytes or a source file as deflated entries
-- explicitly commit the writer so finalization errors can be reported
-- report archive end through xer's ordinary error model
+公開ヘッダーは、利用可能な場合に `__has_include` で `<zlib.h>` を確認し、ヘッダーが見つからなければコンパイル時診断を出します。このヘッダーを使うプログラムは、典型的な Unix 系環境での `-lz` のように、zlib とリンクする必要もあります。
 
-This design avoids returning `std::optional` for archive end. Reaching the end of the entry sequence is reported as:
+プロジェクトのテストランナーは `xer/zip.h` を `zip` feature として検出し、zlib が利用可能な場合には対応するテストとコード例を zlib とリンクします。Visual Studio 2026 の clang-cl または MSVC cl.exe では、xer のテストとコード例は vcpkg manifest mode により `vcpkg_installed\x64-windows` にインストールされた zlib を使用します。
+
+---
+
+## 主な役割
+
+`<xer/zip.h>` の主な役割は、次のことを可能にすることです。
+
+- ZIP アーカイブを開く
+- エントリのメタデータを逐次読む
+- 正確な名前でエントリを検索する
+- エントリ名、サイズ、圧縮方式名を取得する
+- エントリデータを読んで展開する
+- 1つのエントリまたはすべてのエントリをファイルシステムへ展開する
+- ZIP アーカイブを作成する
+- メモリ上のバイト列または元ファイルを deflate エントリとして追加する
+- 書き込み側を明示的に確定し、最終化エラーを報告できるようにする
+- アーカイブ終端を xer の通常のエラーモデルで報告する
+
+この設計では、アーカイブ終端に `std::optional` を返すことを避けています。エントリ列の末尾に到達したことは、次のように報告されます。
 
 ```cpp
 error_t::end_of_file
 ```
 
-This keeps `zip_read` consistent with other sequential input operations in xer.
+これにより、`zip_read` は xer のほかの逐次入力操作と整合します。
 
 ---
 
-## Main Entities
+## 主なエンティティ
 
-At minimum, `<xer/zip.h>` provides the following types and functions:
+少なくとも、`<xer/zip.h>` は次の型と関数を提供します。
 
 ```cpp
 class zip_archive;
@@ -7741,7 +7723,7 @@ auto zip_add_file(
 auto zip_commit(zip_archive& archive) -> xer::result<void>;
 ```
 
-All public operations return `xer::result`, including metadata accessors that are not expected to fail in ordinary cases. This preserves API symmetry and leaves room for future validation, conversion, or backend changes.
+通常のケースでは失敗が想定されないメタデータアクセサーを含め、すべての公開操作は `xer::result` を返します。これにより API の対称性を保ち、将来の検証、変換、バックエンド変更の余地を残します。
 
 ---
 
@@ -7751,13 +7733,13 @@ All public operations return `xer::result`, including metadata accessors that ar
 class zip_archive;
 ```
 
-`zip_archive` is a move-only archive handle.
+`zip_archive` はムーブ専用のアーカイブハンドルです。
 
-For reading, it owns the underlying binary stream and the central-directory read position. For writing, it owns the output stream and the pending central-directory records. Destruction closes the underlying stream automatically. Copying is disabled.
+読み取り時には、基盤となるバイナリストリームと中央ディレクトリの読み取り位置を所有します。書き込み時には、出力ストリームと保留中の中央ディレクトリレコードを所有します。破棄時には基盤ストリームを自動的に閉じます。コピーは無効です。
 
-Callers normally obtain this object through `zip_open` for reading or `zip_create` for writing.
+呼び出し側は通常、読み取りには `zip_open`、書き込みには `zip_create` を使ってこのオブジェクトを取得します。
 
-When using a writer, callers should explicitly call `zip_commit`. Destruction can close the stream, but it cannot report finalization errors through `xer::result`.
+書き込み側を使う場合、呼び出し側は明示的に `zip_commit` を呼び出すべきです。破棄時にストリームを閉じることはできますが、最終化エラーを `xer::result` として報告することはできません。
 
 ---
 
@@ -7767,18 +7749,18 @@ When using a writer, callers should explicitly call `zip_commit`. Destruction ca
 class zip_entry;
 ```
 
-`zip_entry` stores metadata for one archive entry read from the central directory.
+`zip_entry` は、中央ディレクトリから読まれた1つのアーカイブエントリのメタデータを格納します。
 
-It is a lightweight value object containing at least:
+これは少なくとも次の情報を含む軽量な値オブジェクトです。
 
-- entry name
-- uncompressed size
-- compressed size
-- compression method identifier
-- flags
-- local header offset
+- エントリ名
+- 非圧縮サイズ
+- 圧縮サイズ
+- 圧縮方式識別子
+- フラグ
+- ローカルヘッダーオフセット
 
-Callers should use the public `zip_entry_*` functions rather than depending on internal representation details.
+呼び出し側は内部表現の詳細に依存せず、公開されている `zip_entry_*` 関数を使うべきです。
 
 ---
 
@@ -7788,31 +7770,31 @@ Callers should use the public `zip_entry_*` functions rather than depending on i
 auto zip_open(std::u8string_view filename) -> xer::result<zip_archive>;
 ```
 
-### Purpose
+### 目的
 
-`zip_open` opens a ZIP archive for reading.
+`zip_open` は ZIP アーカイブを読み取り用に開きます。
 
-### Input Model
+### 入力モデル
 
-The filename is a UTF-8 path string. Internally, it is converted through xer's path handling before the file is opened.
+ファイル名は UTF-8 パス文字列です。内部では、ファイルを開く前に xer のパス処理を通して変換されます。
 
-### Supported Archives
+### 対応するアーカイブ
 
-The initial implementation supports ordinary non-ZIP64 archives with a single-disk central directory.
+初期実装は、単一ディスク中央ディレクトリを持つ通常の非 ZIP64 アーカイブに対応します。
 
-The following are rejected as `error_t::invalid_argument`:
+次のものは `error_t::invalid_argument` として拒否されます。
 
-- invalid ZIP files
-- missing end-of-central-directory record
-- multi-disk archives
-- ZIP64 archives
-- inconsistent central-directory ranges
+- 不正な ZIP ファイル
+- end-of-central-directory レコードの欠落
+- マルチディスクアーカイブ
+- ZIP64 アーカイブ
+- 整合しない中央ディレクトリ範囲
 
-### Return Model
+### 戻り値モデル
 
-On success, the function returns an open `zip_archive`.
+成功すると、開かれた `zip_archive` を返します。
 
-On failure, it returns `xer::result` error information. File-opening failures are reported using the ordinary file error model. Format-level failures are generally reported as `error_t::invalid_argument`.
+失敗すると、`xer::result` のエラー情報を返します。ファイルを開く際の失敗は通常のファイルエラーモデルで報告されます。形式レベルの失敗は、一般に `error_t::invalid_argument` として報告されます。
 
 ---
 
@@ -7822,15 +7804,15 @@ On failure, it returns `xer::result` error information. File-opening failures ar
 auto zip_create(std::u8string_view filename) -> xer::result<zip_archive>;
 ```
 
-### Purpose
+### 目的
 
-`zip_create` opens a ZIP archive for writing.
+`zip_create` は ZIP アーカイブを書き込み用に開きます。
 
-The returned archive is a writer. It is not a complete ZIP file until `zip_commit` writes the central directory and closes the stream.
+返されたアーカイブは書き込み側です。`zip_commit` が中央ディレクトリを書き込んでストリームを閉じるまで、完全な ZIP ファイルではありません。
 
-### Output Model
+### 出力モデル
 
-The initial writer creates ordinary non-ZIP64 single-disk archives. Entry names are stored as UTF-8 names with the ZIP UTF-8 flag set.
+初期の書き込み側は、通常の非 ZIP64 単一ディスクアーカイブを作成します。エントリ名は ZIP の UTF-8 フラグを設定した UTF-8 名として格納されます。
 
 ---
 
@@ -7840,29 +7822,29 @@ The initial writer creates ordinary non-ZIP64 single-disk archives. Entry names 
 auto zip_read(zip_archive& archive) -> xer::result<zip_entry>;
 ```
 
-### Purpose
+### 目的
 
-`zip_read` reads the next entry metadata from the archive's central directory.
+`zip_read` は、アーカイブの中央ディレクトリから次のエントリメタデータを読みます。
 
-### Sequential Model
+### 逐次モデル
 
-The archive stores a current central-directory position. Each successful call advances that position to the next entry.
+アーカイブは現在の中央ディレクトリ位置を保持します。各成功呼び出しは、その位置を次のエントリへ進めます。
 
-This avoids building a full entry list in memory. That is important for large archives with many entries.
+これにより、エントリ一覧全体をメモリ上に構築せずに済みます。これは多数のエントリを持つ大きなアーカイブで重要です。
 
-### End of Archive
+### アーカイブ終端
 
-When there are no more entries, the function returns:
+それ以上エントリがない場合、この関数は次を返します。
 
 ```cpp
 error_t::end_of_file
 ```
 
-This is an error result, not an empty optional value.
+これは空の optional 値ではなく、エラー結果です。
 
-### Unsupported Entry Metadata
+### 未対応のエントリメタデータ
 
-The initial implementation rejects encrypted entries, multi-disk entry references, and ZIP64-sized entries as `error_t::invalid_argument`.
+初期実装は、暗号化エントリ、マルチディスクエントリ参照、ZIP64 サイズのエントリを `error_t::invalid_argument` として拒否します。
 
 ---
 
@@ -7872,11 +7854,11 @@ The initial implementation rejects encrypted entries, multi-disk entry reference
 auto zip_entry_name(const zip_entry& entry) -> xer::result<std::u8string>;
 ```
 
-`zip_entry_name` returns the entry name as a UTF-8 string.
+`zip_entry_name` はエントリ名を UTF-8 文字列として返します。
 
-The initial implementation accepts entry names that are valid UTF-8. When the ZIP UTF-8 name flag is set and the stored name is not valid UTF-8, the operation fails with `error_t::encoding_error` during `zip_read`.
+初期実装は、有効な UTF-8 であるエントリ名を受け入れます。ZIP の UTF-8 名フラグが設定されていて、格納された名前が有効な UTF-8 でない場合、その操作は `zip_read` の実行中に `error_t::encoding_error` で失敗します。
 
-CP437 name conversion is not implemented yet. Non-UTF-8 names are therefore rejected rather than guessed.
+CP437 名変換はまだ実装されていません。そのため、非 UTF-8 名は推測されずに拒否されます。
 
 ---
 
@@ -7886,9 +7868,9 @@ CP437 name conversion is not implemented yet. Non-UTF-8 names are therefore reje
 auto zip_entry_filesize(const zip_entry& entry) -> xer::result<std::uint64_t>;
 ```
 
-`zip_entry_filesize` returns the uncompressed entry size in bytes.
+`zip_entry_filesize` は、エントリの非圧縮サイズをバイト単位で返します。
 
-The name follows PHP's `zip_entry_filesize` vocabulary while still returning a C++ integer type through `xer::result`.
+この名前は PHP の `zip_entry_filesize` の語彙に従いつつ、C++ 整数型を `xer::result` 経由で返します。
 
 ---
 
@@ -7899,9 +7881,9 @@ auto zip_entry_compressed_size(const zip_entry& entry)
     -> xer::result<std::uint64_t>;
 ```
 
-`zip_entry_compressed_size` returns the compressed entry size in bytes.
+`zip_entry_compressed_size` は、エントリの圧縮サイズをバイト単位で返します。
 
-The function name uses snake_case rather than PHP's `zip_entry_compressedsize` spelling because this is a C++ API and readability is preferred where compatibility is not exact.
+この関数名は PHP の `zip_entry_compressedsize` という綴りではなく snake_case を使います。これは C++ API であり、正確な互換性が必要ない箇所では読みやすさを優先するためです。
 
 ---
 
@@ -7912,29 +7894,27 @@ auto zip_entry_compression_method(const zip_entry& entry)
     -> xer::result<std::u8string>;
 ```
 
-`zip_entry_compression_method` returns a textual compression method name.
+`zip_entry_compression_method` は、圧縮方式名の文字列を返します。
 
-The initial implementation returns:
+初期実装は、stored エントリに対して次を返します。
 
 ```text
 store
 ```
 
-for stored entries and:
+また、deflated エントリに対して次を返します。
 
 ```text
 deflate
 ```
 
-for deflated entries.
-
-Other method identifiers are returned as:
+その他の方式識別子に対しては次を返します。
 
 ```text
 unknown
 ```
 
-Reading data for an unsupported method fails with `error_t::invalid_argument`.
+未対応方式のデータ読み取りは `error_t::invalid_argument` で失敗します。
 
 ---
 
@@ -7945,26 +7925,26 @@ auto zip_entry_read(zip_archive& archive, const zip_entry& entry)
     -> xer::result<std::vector<std::byte>>;
 ```
 
-### Purpose
+### 目的
 
-`zip_entry_read` reads and expands one entry body.
+`zip_entry_read` は1つのエントリ本体を読んで展開します。
 
-The entry must have been obtained from the same archive. The initial API does not attempt to validate cross-archive use.
+そのエントリは、同じアーカイブから取得されたものでなければなりません。初期 API は、別アーカイブ由来の使用を検証しようとはしません。
 
-### Supported Compression Methods
+### 対応する圧縮方式
 
-The initial implementation supports:
+初期実装は次に対応します。
 
-- stored entries
-- deflated entries
+- stored エントリ
+- deflated エントリ
 
-Stored entries are returned as-is. Deflated entries are expanded with raw deflate through zlib.
+stored エントリはそのまま返されます。deflated エントリは zlib による raw deflate で展開されます。
 
-### Output Model
+### 出力モデル
 
-On success, the function returns a `std::vector<std::byte>` containing the uncompressed entry bytes.
+成功すると、この関数は展開済みのエントリバイト列を含む `std::vector<std::byte>` を返します。
 
-This is intentionally an owning byte vector. Streaming entry reads can be added later if large-entry use cases require them.
+これは意図的に所有権を持つバイトベクターです。大きなエントリを扱う用途が必要になれば、ストリーミング形式のエントリ読み取りを後で追加できます。
 
 ---
 
@@ -7975,21 +7955,21 @@ auto zip_locate_name(zip_archive& archive, std::u8string_view entry_name)
     -> xer::result<zip_entry>;
 ```
 
-### Purpose
+### 目的
 
-`zip_locate_name` searches the archive central directory for an entry whose name exactly matches `entry_name`.
+`zip_locate_name` は、名前が `entry_name` と正確に一致するエントリをアーカイブ中央ディレクトリから検索します。
 
-The function scans the central directory and returns the first matching entry. It does not change the sequential position used by `zip_read`, so callers may mix direct lookup with later sequential reads.
+この関数は中央ディレクトリを走査し、最初に一致したエントリを返します。`zip_read` が使う逐次位置は変更しないため、呼び出し側は直接検索と後続の逐次読み取りを混在できます。
 
-### Failure Model
+### 失敗モデル
 
-If no entry has the requested name, the function returns:
+要求された名前を持つエントリが存在しない場合、この関数は次を返します。
 
 ```cpp
 error_t::not_found
 ```
 
-Malformed central-directory data is reported as `error_t::invalid_argument`, matching `zip_read`.
+不正な中央ディレクトリデータは、`zip_read` と同様に `error_t::invalid_argument` として報告されます。
 
 ---
 
@@ -8001,18 +7981,18 @@ auto zip_entry_read_by_name(
     std::u8string_view entry_name) -> xer::result<std::vector<std::byte>>;
 ```
 
-### Purpose
+### 目的
 
-`zip_entry_read_by_name` locates an entry by name and reads its expanded body.
+`zip_entry_read_by_name` は、名前でエントリを見つけ、展開済みの本体を読みます。
 
-It is a convenience wrapper around:
+これは次の処理を行う便利関数です。
 
 ```cpp
 auto entry = zip_locate_name(archive, entry_name);
 auto body = zip_entry_read(archive, *entry);
 ```
 
-Missing entries are reported as `error_t::not_found`. Unsupported compression methods and malformed entry data are reported the same way as `zip_entry_read`.
+見つからないエントリは `error_t::not_found` として報告されます。未対応の圧縮方式や不正なエントリデータは、`zip_entry_read` と同じ方法で報告されます。
 
 ---
 
@@ -8025,13 +8005,13 @@ auto zip_entry_extract(
     std::u8string_view target_filename) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_entry_extract` reads one entry body and writes it to the specified file-system path.
+`zip_entry_extract` は1つのエントリ本体を読み、指定されたファイルシステムパスへ書き込みます。
 
-Parent directories of `target_filename` are created as needed. If the entry name ends with `/`, the target path is created as a directory instead of a file.
+`target_filename` の親ディレクトリは必要に応じて作成されます。エントリ名が `/` で終わる場合、対象パスはファイルではなくディレクトリとして作成されます。
 
-This function does not interpret the entry name as a destination path. It is suitable when the caller has already chosen an exact output filename.
+この関数は、エントリ名を展開先パスとして解釈しません。呼び出し側が正確な出力ファイル名をすでに選んでいる場合に適しています。
 
 ---
 
@@ -8044,15 +8024,15 @@ auto zip_entry_extract_to(
     std::u8string_view destination_dir) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_entry_extract_to` extracts one entry below a destination directory using the entry name as a relative path.
+`zip_entry_extract_to` は、エントリ名を相対パスとして使い、1つのエントリを展開先ディレクトリ配下へ展開します。
 
-### Path Safety
+### パス安全性
 
-The entry name is rejected as `error_t::invalid_argument` if it is empty, absolute, drive-relative, contains a NUL code unit, contains an empty interior component, or contains `.` or `..` components. This prevents ordinary path-traversal cases such as `../outside.txt` and `/tmp/outside.txt`.
+エントリ名が空、絶対パス、ドライブ相対、NUL コード単位を含む、中間に空の要素を含む、または `.` / `..` 要素を含む場合、そのエントリ名は `error_t::invalid_argument` として拒否されます。これにより、`../outside.txt` や `/tmp/outside.txt` のような通常のパストラバーサルを防ぎます。
 
-Directory entries whose names end with `/` create directories. File entries create missing parent directories and then write the expanded bytes.
+名前が `/` で終わるディレクトリエントリはディレクトリを作成します。ファイルエントリは不足している親ディレクトリを作成し、その後に展開済みバイト列を書き込みます。
 
 ---
 
@@ -8064,13 +8044,13 @@ auto zip_extract_to(
     std::u8string_view destination_dir) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_extract_to` extracts all entries below a destination directory.
+`zip_extract_to` は、すべてのエントリを展開先ディレクトリ配下へ展開します。
 
-It scans the central directory directly and does not change the sequential position used by `zip_read`. This lets callers extract the archive and still perform a later sequential scan from the same position.
+この関数は中央ディレクトリを直接走査し、`zip_read` が使う逐次位置を変更しません。これにより、呼び出し側はアーカイブを展開した後でも、同じ位置から後続の逐次走査を行えます。
 
-The same path-safety rules as `zip_entry_extract_to` are applied to every entry name. If any entry is unsafe or cannot be extracted, the function returns an error. Entries already written before that error are not rolled back.
+すべてのエントリ名には、`zip_entry_extract_to` と同じパス安全性規則が適用されます。いずれかのエントリが安全でない、または展開できない場合、この関数はエラーを返します。そのエラーより前に書き込まれたエントリはロールバックされません。
 
 ---
 
@@ -8083,17 +8063,17 @@ auto zip_add_from_bytes(
     std::span<const std::byte> data) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_add_from_bytes` adds one in-memory byte sequence to a ZIP archive writer.
+`zip_add_from_bytes` は、メモリ上の1つのバイト列を ZIP アーカイブ書き込み側へ追加します。
 
-The entry is compressed with raw deflate and written with a local file header. The central-directory record is retained in memory until `zip_commit` is called.
+エントリは raw deflate で圧縮され、ローカルファイルヘッダーとともに書き込まれます。中央ディレクトリレコードは `zip_commit` が呼ばれるまでメモリ上に保持されます。
 
-### Limits
+### 制限
 
-The initial writer does not support ZIP64. Therefore the entry name, compressed size, uncompressed size, local header offset, and entry count must fit ordinary ZIP fields.
+初期の書き込み側は ZIP64 に対応しません。そのため、エントリ名、圧縮サイズ、非圧縮サイズ、ローカルヘッダーオフセット、エントリ数は、通常の ZIP フィールドに収まらなければなりません。
 
-Entry names must be non-empty valid UTF-8 strings. Non-UTF-8 names fail with `error_t::encoding_error`.
+エントリ名は空でない有効な UTF-8 文字列でなければなりません。非 UTF-8 名は `error_t::encoding_error` で失敗します。
 
 ---
 
@@ -8106,11 +8086,11 @@ auto zip_add_file(
     std::u8string_view entry_name) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_add_file` reads a source file and adds its contents as one ZIP entry.
+`zip_add_file` は元ファイルを読み、その内容を1つの ZIP エントリとして追加します。
 
-This is a convenience wrapper around `file_get_contents` and `zip_add_from_bytes`. The initial implementation reads the whole source file into memory before compression. Streaming file-to-ZIP output can be added later if large-file use cases require it.
+これは `file_get_contents` と `zip_add_from_bytes` の便利ラッパーです。初期実装は、圧縮前に元ファイル全体をメモリへ読み込みます。大きなファイルを扱う用途が必要になれば、ストリーミング形式の file-to-ZIP 出力を後で追加できます。
 
 ---
 
@@ -8120,48 +8100,48 @@ This is a convenience wrapper around `file_get_contents` and `zip_add_from_bytes
 auto zip_commit(zip_archive& archive) -> xer::result<void>;
 ```
 
-### Purpose
+### 目的
 
-`zip_commit` finalizes a ZIP archive writer.
+`zip_commit` は ZIP アーカイブ書き込み側を最終化します。
 
-It writes the central directory and the end-of-central-directory record, flushes the stream, and closes it. Because errors can occur at finalization time, callers should treat this as a required step for writer archives.
+中央ディレクトリと end-of-central-directory レコードを書き込み、ストリームを flush して閉じます。最終化時にエラーが発生する可能性があるため、呼び出し側は書き込み側アーカイブではこれを必須手順として扱うべきです。
 
-Calling write operations after `zip_commit` fails with `error_t::invalid_argument`.
-
----
-
-## Error Handling
-
-`<xer/zip.h>` follows xer's ordinary failure model.
-
-That means:
-
-- normal failure is reported through `xer::result`
-- archive end is reported as `error_t::end_of_file`
-- malformed archives and invalid operation order are reported as `error_t::invalid_argument`
-- invalid entry-name encoding is reported as `error_t::encoding_error`
-- stream failures are reported through ordinary file or I/O errors
-
-The initial implementation does not provide detailed ZIP parse positions. If position-aware diagnostics become useful later, an error-detail type can be added separately.
+`zip_commit` 後に書き込み操作を呼び出すと、`error_t::invalid_argument` で失敗します。
 
 ---
 
-## Deferred Items and Limitations
+## エラー処理
 
-The following items are intentionally deferred:
+`<xer/zip.h>` は xer の通常の失敗モデルに従います。
 
-- entry comments and archive comments
+つまり、次のようになります。
+
+- 通常の失敗は `xer::result` で報告される
+- アーカイブ終端は `error_t::end_of_file` として報告される
+- 不正なアーカイブと不正な操作順序は `error_t::invalid_argument` として報告される
+- 不正なエントリ名エンコーディングは `error_t::encoding_error` として報告される
+- ストリーム失敗は通常のファイルエラーまたは I/O エラーを通じて報告される
+
+初期実装は、詳細な ZIP 解析位置を提供しません。位置付き診断が後で有用になれば、エラー詳細型を別途追加できます。
+
+---
+
+## 後回しにしている項目と制限事項
+
+次の項目は意図的に後回しにしています。
+
+- エントリコメントとアーカイブコメント
 - ZIP64
-- multi-disk archives
-- encrypted entries
-- CP437 filename conversion
-- streaming entry-body reads
-- stored-entry write option
-- data-descriptor-oriented write support
-- CRC verification as a public option
-- streaming file-to-ZIP writes
+- マルチディスクアーカイブ
+- 暗号化エントリ
+- CP437 ファイル名変換
+- ストリーミング形式のエントリ本体読み取り
+- stored エントリ書き込みオプション
+- データ記述子指向の書き込み対応
+- 公開オプションとしての CRC 検証
+- ストリーミング形式の file-to-ZIP 書き込み
 
-The first goal is a small, predictable, PHP-inspired ZIP reader and writer that fits xer's `xer::result` and sequential EOF model.
+最初の目標は、xer の `xer::result` と逐次 EOF モデルに合う、小さく予測しやすい PHP 風の ZIP リーダー・ライターです。
 
 ---
 
