@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 3f73f57514b69a6bdf048c404b1e3b448b0bcb69452d80cde831351a8989f1dd -->
+<!-- xer-reference-source-sha256: e2069a27116bf949ceac1a79a350761d1dbbcc46fce6d6996b130be6f00bc3e6 -->
 # `<xer/zip.h>`
 
 ## 目的
