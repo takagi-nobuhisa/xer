@@ -3,11 +3,12 @@ declare(strict_types=1);
 
 /**
  * @file php/test_public_header_pairs.php
- * @brief Compiles ordered pairs of public headers under xer/.
+ * @brief Compiles public headers under xer/ in multiple include orders.
  *
  * Usage:
  *   php test_public_header_pairs.php
  *   php test_public_header_pairs.php --all
+ *   php test_public_header_pairs.php --full
  *   php test_public_header_pairs.php --tc=gcc
  *   php test_public_header_pairs.php --tc=clang
  *   php test_public_header_pairs.php --tc=all
@@ -21,10 +22,11 @@ declare(strict_types=1);
  *   php test_public_header_pairs.php --tcltk-cflags="-I/usr/include/tcl -I/usr/include/tk"
  *   php test_public_header_pairs.php --skip-unavailable-features=0
  *
- * By default, this script runs only pairs that include public headers whose
- * modification time differs from the last successful run. If any internal
- * xer/bits header changes, every ordered pair is run. Use --all to run every
- * ordered pair.
+ * By default, this script compiles one source per public header. Each source
+ * includes that header first, followed by all other public headers. Incremental
+ * execution skips the whole order test set when no tracked header changed. Use
+ * --all to disable incremental filtering. Use --full to run the legacy full
+ * ordered-pair test set.
  */
 
 final class Config
@@ -47,6 +49,7 @@ final class Config
     public bool $keepGoing = true;
     public bool $verbose = true;
     public bool $incremental = true;
+    public bool $fullPairs = false;
     public int $jobs = 1;
     public int $timeout = 0;
     public ?string $tcltkCflags = null;
@@ -134,12 +137,14 @@ function main(array $argv): int
         }
     }
 
-    $allPairs = build_ordered_pairs($headers);
-    $pairs = $config->incremental
-        ? filter_pairs_by_headers($allPairs, $changedHeaders)
-        : $allPairs;
+    $allTests = $config->fullPairs
+        ? build_ordered_pair_tests($headers)
+        : build_header_order_tests($config, $features, $headers);
+    $tests = $config->incremental
+        ? filter_tests_by_headers($allTests, $changedHeaders)
+        : $allTests;
 
-    $total = count($pairs);
+    $total = count($tests);
 
     echo "Project root : {$config->projectRoot}\n";
     echo "Header dir   : {$config->xerDir}\n";
@@ -157,6 +162,7 @@ function main(array $argv): int
     echo "Headers      : " . count($headers) . "\n";
     echo "Dependencies : " . count($dependencyHeaders) . "\n";
     echo "Mode         : " . ($config->incremental ? 'incremental' : 'all') . "\n";
+    echo "Test set     : " . ($config->fullPairs ? 'full ordered pairs' : 'public header order') . "\n";
     echo "Tcl/Tk       : " . ($features->tcltkAvailable ? 'available' : 'unavailable') . "\n";
     if ($features->tcltkAvailable && $features->tcltkCflags !== '') {
         echo "Tcl/Tk cflags: {$features->tcltkCflags}\n";
@@ -181,7 +187,7 @@ function main(array $argv): int
 ";
         }
     }
-    echo "Pair tests   : {$total}\n";
+    echo "Compile tests: {$total}\n";
     echo "Jobs         : {$config->jobs}\n";
     if ($config->timeout > 0) {
         echo "Timeout      : {$config->timeout}s\n";
@@ -189,7 +195,7 @@ function main(array $argv): int
     echo "\n";
 
     if ($total === 0) {
-        echo "No public headers were modified after the last successful run.\n";
+        echo "No tracked headers were modified after the last successful run.\n";
         write_header_pair_state($config->stateFile, $currentState);
         return 0;
     }
@@ -201,22 +207,23 @@ function main(array $argv): int
     $skips = [];
     $stopScheduling = false;
 
-    /** @var array<int, array{index:int, total:int, header1:string, header2:string, features:array<int, string>}> $queue */
+    /** @var array<int, array{index:int, total:int, name:string, label:string, headers:array<int, string>, features:array<int, string>}> $queue */
     $queue = [];
     $index = 0;
-    foreach ($pairs as [$header1, $header2]) {
+    foreach ($tests as $test) {
         ++$index;
         $queue[] = [
             'index' => $index,
             'total' => $total,
-            'header1' => $header1,
-            'header2' => $header2,
-            'features' => detect_pair_features($header1, $header2),
+            'name' => $test['name'],
+            'label' => $test['label'],
+            'headers' => $test['headers'],
+            'features' => detect_test_features($test['headers']),
         ];
     }
 
     /** @var array<int, array{
-     *   meta: array{index:int, total:int, header1:string, header2:string, features:array<int, string>},
+     *   meta: array{index:int, total:int, name:string, label:string, headers:array<int, string>, features:array<int, string>},
      *   process: resource,
      *   pipes: array<int, resource>,
      *   command: string,
@@ -241,17 +248,15 @@ function main(array $argv): int
             if ($skipReason !== null) {
                 ++$skipped;
                 $skips[] = [
-                    'header1' => $meta['header1'],
-                    'header2' => $meta['header2'],
+                    'label' => $meta['label'],
                     'reason' => $skipReason,
                 ];
                 if ($config->verbose) {
                     $label = sprintf(
-                        '[%3d/%3d] %-40s + %-40s',
+                        '[%3d/%3d] %s',
                         $meta['index'],
                         $meta['total'],
-                        $meta['header1'],
-                        $meta['header2']
+                        $meta['label']
                     );
                     echo $label . " : SKIP ({$skipReason})\n";
                 }
@@ -278,11 +283,10 @@ function main(array $argv): int
 
         foreach ($completed as $result) {
             $label = sprintf(
-                '[%3d/%3d] %-40s + %-40s',
+                '[%3d/%3d] %s',
                 $result['meta']['index'],
                 $result['meta']['total'],
-                $result['meta']['header1'],
-                $result['meta']['header2']
+                $result['meta']['label']
             );
 
             if ($result['success']) {
@@ -295,8 +299,7 @@ function main(array $argv): int
 
             ++$failed;
             $failures[] = [
-                'header1' => $result['meta']['header1'],
-                'header2' => $result['meta']['header2'],
+                'label' => $result['meta']['label'],
                 'source' => $result['source'],
                 'log' => $result['log'],
                 'command' => $result['command'],
@@ -326,16 +329,16 @@ function main(array $argv): int
     echo "Total  : " . ($passed + $failed + $skipped) . "\n";
 
     if (count($skips) > 0 && $config->verbose) {
-        echo "\nSkipped pairs:\n";
+        echo "\nSkipped tests:\n";
         foreach ($skips as $skip) {
-            echo "- {$skip['header1']} + {$skip['header2']} ({$skip['reason']})\n";
+            echo "- {$skip['label']} ({$skip['reason']})\n";
         }
     }
 
     if ($failed > 0) {
-        echo "\nFailed pairs:\n";
+        echo "\nFailed tests:\n";
         foreach ($failures as $failure) {
-            echo "- {$failure['header1']} + {$failure['header2']}\n";
+            echo "- {$failure['label']}\n";
             echo "  source   : {$failure['source']}\n";
             echo "  log      : {$failure['log']}\n";
             echo "  command  : {$failure['command']}\n";
@@ -366,7 +369,7 @@ function build_config(array $argv): Config
     }
 
     $toolchains = load_test_toolchains($phpDir);
-    $requestedToolchain = 'gcc';
+    $requestedToolchain = detect_default_toolchain($toolchains);
 
     foreach (array_slice($argv, 1) as $arg) {
         if (str_starts_with($arg, '--tc=')) {
@@ -388,6 +391,7 @@ function build_config(array $argv): Config
     if (!isset($toolchains[$requestedToolchain])) {
         throw new InvalidArgumentException("unknown toolchain: {$requestedToolchain}");
     }
+    validate_toolchain_environment($requestedToolchain);
 
     $toolchain = $toolchains[$requestedToolchain];
 
@@ -406,6 +410,10 @@ function build_config(array $argv): Config
     foreach (array_slice($argv, 1) as $arg) {
         if ($arg === '--all') {
             $config->incremental = false;
+            continue;
+        }
+        if ($arg === '--full' || $arg === '--all-pairs') {
+            $config->fullPairs = true;
             continue;
         }
         if ($arg === '--incremental') {
@@ -493,6 +501,50 @@ function apply_build_paths(Config $config): void
 /**
  * @return array<string, array{compiler:string, style:string, cxxflags:array<int, string>, ldflags:array<int, string>}>
  */
+function is_visual_studio_command_prompt(): bool
+{
+    foreach (['VSCMD_VER', 'VSINSTALLDIR', 'VCINSTALLDIR', 'VisualStudioVersion'] as $name) {
+        $value = getenv($name);
+        if (is_string($value) && trim($value) !== '') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * @param array<string, array<string, mixed>> $toolchains
+ */
+function detect_default_toolchain(array $toolchains): string
+{
+    if (is_visual_studio_command_prompt() && isset($toolchains['msvc'])) {
+        return 'msvc';
+    }
+
+    if (isset($toolchains['gcc'])) {
+        return 'gcc';
+    }
+
+    $names = array_keys($toolchains);
+    if ($names === []) {
+        throw new RuntimeException('no toolchains are defined');
+    }
+
+    return (string) $names[0];
+}
+
+function validate_toolchain_environment(string $name): void
+{
+    if ($name === 'clang' && (PHP_OS_FAMILY !== 'Linux' || is_msys2())) {
+        throw new InvalidArgumentException('toolchain clang is supported only on Linux. Use --tc=clang64 on MSYS2 CLANG64, or --tc=clang-cl on Windows.');
+    }
+
+    if ($name === 'gcc' && is_visual_studio_command_prompt()) {
+        throw new InvalidArgumentException('toolchain gcc is not supported in a Visual Studio command prompt. Use --tc=msvc or --tc=clang-cl.');
+    }
+}
+
 function load_test_toolchains(string $phpDir): array
 {
     $path = $phpDir . DIRECTORY_SEPARATOR . 'test_toolchains.php';
@@ -1375,21 +1427,31 @@ function get_unavailable_feature_reason(
 }
 
 /**
+ * @param array<int, string> $headers
  * @return array<int, string>
  */
-function detect_pair_features(string $header1, string $header2): array
+function detect_test_features(array $headers): array
 {
     $features = [];
-    if ($header1 === 'xer/tk.h' || $header2 === 'xer/tk.h') {
-        $features[] = 'tcltk';
+    foreach ($headers as $header) {
+        foreach (detect_header_features($header) as $feature) {
+            $features[$feature] = $feature;
+        }
     }
-    if ($header1 === 'xer/unicode.h' || $header2 === 'xer/unicode.h') {
-        $features[] = 'icu';
-    }
-    if ($header1 === 'xer/zip.h' || $header2 === 'xer/zip.h') {
-        $features[] = 'zip';
-    }
-    return $features;
+    return array_values($features);
+}
+
+/**
+ * @return array<int, string>
+ */
+function detect_header_features(string $header): array
+{
+    return match ($header) {
+        'xer/tk.h' => ['tcltk'],
+        'xer/unicode.h' => ['icu'],
+        'xer/zip.h' => ['zip'],
+        default => [],
+    };
 }
 
 /**
@@ -1466,11 +1528,11 @@ function find_internal_dependency_headers(string $xerDir): array
 
 /**
  * @param array<int, string> $headers
- * @return array<int, array{0:string, 1:string}>
+ * @return array<int, array{name:string, label:string, headers:array<int, string>}>
  */
-function build_ordered_pairs(array $headers): array
+function build_ordered_pair_tests(array $headers): array
 {
-    $pairs = [];
+    $tests = [];
 
     $count = count($headers);
     for ($i = 0; $i < $count; ++$i) {
@@ -1478,20 +1540,58 @@ function build_ordered_pairs(array $headers): array
             if ($i === $j) {
                 continue;
             }
-            $pairs[] = [$headers[$i], $headers[$j]];
+            $header1 = $headers[$i];
+            $header2 = $headers[$j];
+            $tests[] = [
+                'name' => make_test_name([$header1, $header2]),
+                'label' => $header1 . ' + ' . $header2,
+                'headers' => [$header1, $header2],
+            ];
         }
     }
 
-    return $pairs;
+    return $tests;
 }
 
+/**
+ * @param array<int, string> $headers
+ * @return array<int, array{name:string, label:string, headers:array<int, string>}>
+ */
+function build_header_order_tests(Config $config, FeatureConfig $features, array $headers): array
+{
+    $availableHeaders = [];
+    foreach ($headers as $header) {
+        $reason = get_unavailable_feature_reason($config, $features, detect_header_features($header));
+        if ($reason !== null) {
+            continue;
+        }
+        $availableHeaders[] = $header;
+    }
+
+    $tests = [];
+    foreach ($availableHeaders as $firstHeader) {
+        $includeHeaders = [$firstHeader];
+        foreach ($availableHeaders as $header) {
+            if ($header !== $firstHeader) {
+                $includeHeaders[] = $header;
+            }
+        }
+        $tests[] = [
+            'name' => make_test_name([$firstHeader, 'all_public_headers']),
+            'label' => $firstHeader . ' + all public headers',
+            'headers' => $includeHeaders,
+        ];
+    }
+
+    return $tests;
+}
 
 /**
- * @param array<int, array{0:string, 1:string}> $pairs
+ * @param array<int, array{name:string, label:string, headers:array<int, string>}> $tests
  * @param array<int, string> $headers
- * @return array<int, array{0:string, 1:string}>
+ * @return array<int, array{name:string, label:string, headers:array<int, string>}>
  */
-function filter_pairs_by_headers(array $pairs, array $headers): array
+function filter_tests_by_headers(array $tests, array $headers): array
 {
     if (count($headers) === 0) {
         return [];
@@ -1500,9 +1600,12 @@ function filter_pairs_by_headers(array $pairs, array $headers): array
     $set = array_fill_keys($headers, true);
     $filtered = [];
 
-    foreach ($pairs as $pair) {
-        if (isset($set[$pair[0]]) || isset($set[$pair[1]])) {
-            $filtered[] = $pair;
+    foreach ($tests as $test) {
+        foreach ($test['headers'] as $header) {
+            if (isset($set[$header])) {
+                $filtered[] = $test;
+                break;
+            }
         }
     }
 
@@ -1538,7 +1641,7 @@ function make_header_pair_state(array $headers, string $projectRoot, int $timest
     ksort($fingerprints, SORT_STRING);
 
     return [
-        'version' => 3,
+        'version' => 4,
         'last_successful_run_at' => $timestamp,
         'last_successful_run_at_text' => format_timestamp($timestamp),
         'headers' => $fingerprints,
@@ -1574,7 +1677,7 @@ function read_header_pair_state(string $stateFile): ?array
         return null;
     }
 
-    if (($data['version'] ?? null) !== 3) {
+    if (($data['version'] ?? null) !== 4) {
         return null;
     }
 
@@ -1612,7 +1715,7 @@ function read_header_pair_state(string $stateFile): ?array
     ksort($normalizedHeaders, SORT_STRING);
 
     return [
-        'version' => 3,
+        'version' => 4,
         'last_successful_run_at' => $timestamp,
         'last_successful_run_at_text' => $timestampText,
         'headers' => $normalizedHeaders,
@@ -1752,9 +1855,12 @@ function format_timestamp(int $timestamp): string
     return date('Y-m-d H:i:s', $timestamp);
 }
 
-function make_test_name(string $header1, string $header2): string
+/**
+ * @param array<int, string> $parts
+ */
+function make_test_name(array $parts): string
 {
-    return sanitize_filename($header1) . '__' . sanitize_filename($header2);
+    return implode('__', array_map('sanitize_filename', $parts));
 }
 
 function sanitize_filename(string $value): string
@@ -1767,11 +1873,17 @@ function sanitize_filename(string $value): string
     return $value;
 }
 
-function make_source_code(string $header1, string $header2): string
+/**
+ * @param array<int, string> $headers
+ */
+function make_source_code(array $headers): string
 {
-    return <<<CPP
-#include <{$header1}>
-#include <{$header2}>
+    $includes = '';
+    foreach ($headers as $header) {
+        $includes .= "#include <{$header}>" . PHP_EOL;
+    }
+
+    return $includes . <<<CPP
 
 auto main() -> int
 {
@@ -1782,9 +1894,9 @@ CPP;
 }
 
 /**
- * @param array{index:int, total:int, header1:string, header2:string, features:array<int, string>} $meta
+ * @param array{index:int, total:int, name:string, label:string, headers:array<int, string>, features:array<int, string>} $meta
  * @return array{
- *   meta: array{index:int, total:int, header1:string, header2:string, features:array<int, string>},
+ *   meta: array{index:int, total:int, name:string, label:string, headers:array<int, string>, features:array<int, string>},
  *   process: resource,
  *   pipes: array<int, resource>,
  *   stdout: string,
@@ -1798,10 +1910,7 @@ CPP;
  */
 function start_compile_task(Config $config, FeatureConfig $features, array $meta): array
 {
-    $header1 = $meta['header1'];
-    $header2 = $meta['header2'];
-
-    $testName = make_test_name($header1, $header2);
+    $testName = $meta['name'];
     $sourcePath = $config->buildDir . DIRECTORY_SEPARATOR . $testName . '.cpp';
     $objectSuffix = is_msvc_like_style($config->compilerStyle) ? '.obj' : '.o';
     $objectPath = $config->buildDir . DIRECTORY_SEPARATOR . $testName . $objectSuffix;
@@ -1809,7 +1918,7 @@ function start_compile_task(Config $config, FeatureConfig $features, array $meta
     $stdoutPath = $config->buildDir . DIRECTORY_SEPARATOR . $testName . '.stdout.tmp';
     $stderrPath = $config->buildDir . DIRECTORY_SEPARATOR . $testName . '.stderr.tmp';
 
-    $source = make_source_code($header1, $header2);
+    $source = make_source_code($meta['headers']);
     file_put_contents($sourcePath, $source);
 
     $command = build_compile_command(
@@ -1955,7 +2064,7 @@ function convert_cflags_string_for_clang_cl(string $cflags): string
 
 /**
  * @param array<int, array{
- *   meta: array{index:int, total:int, header1:string, header2:string, features:array<int, string>},
+ *   meta: array{index:int, total:int, name:string, label:string, headers:array<int, string>, features:array<int, string>},
  *   process: resource,
  *   pipes: array<int, resource>,
  *   stdout: string,
@@ -1967,7 +2076,7 @@ function convert_cflags_string_for_clang_cl(string $cflags): string
  *   log: string
  * }> $running
  * @return array<int, array{
- *   meta: array{index:int, total:int, header1:string, header2:string, features:array<int, string>},
+ *   meta: array{index:int, total:int, name:string, label:string, headers:array<int, string>, features:array<int, string>},
  *   success: bool,
  *   exit_code: int,
  *   command: string,
@@ -2006,7 +2115,7 @@ function collect_completed_tasks(array &$running, Config $config): array
 
 /**
  * @param array{
- *   meta: array{index:int, total:int, header1:string, header2:string, features:array<int, string>},
+ *   meta: array{index:int, total:int, name:string, label:string, headers:array<int, string>, features:array<int, string>},
  *   process: resource,
  *   pipes: array<int, resource>,
  *   stdout: string,
@@ -2018,7 +2127,7 @@ function collect_completed_tasks(array &$running, Config $config): array
  *   log: string
  * } $task
  * @return array{
- *   meta: array{index:int, total:int, header1:string, header2:string, features:array<int, string>},
+ *   meta: array{index:int, total:int, name:string, label:string, headers:array<int, string>, features:array<int, string>},
  *   success: bool,
  *   exit_code: int,
  *   command: string,
