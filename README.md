@@ -75,7 +75,7 @@ Current supported and tested environments:
 - MSYS2 UCRT64 with GCC
 - MSYS2 CLANG64 with Clang
 - Visual Studio 2026 with clang-cl
-- Visual Studio 2026 with MSVC cl.exe (experimental)
+- Visual Studio 2026 with MSVC cl.exe
 
 Current platform scope:
 
@@ -110,7 +110,13 @@ The test scripts automatically check `vcpkg_installed\x64-windows` under the pro
 
 Tcl/Tk tests require a Windows Tcl/Tk distribution such as Magicsplat Tcl, ActiveTcl, IronTcl, or another distribution referenced from the Tcl/Tk project site. The test scripts automatically check common installation roots, preferring Tcl/Tk 9.0 over 8.6 when both are available. Typical checked roots include `%LOCALAPPDATA%\Apps\Tcl90`, `%LOCALAPPDATA%\Apps\Tcl86`, `C:\local\Tcl90`, `C:\local\Tcl86`, `C:\local\IronTcl`, `C:\Tcl`, and `C:\Program Files\Tcl`. A custom root can be specified with `XER_TEST_TCLTK_ROOT`. If it is still not detected automatically, pass explicit include and library options to the test scripts.
 
-Visual Studio 2026 with clang-cl is supported. MSVC cl.exe support is experimental in the v1.1.0 alpha series and uses the same vcpkg-based optional dependency setup.
+Visual Studio 2026 with clang-cl and MSVC cl.exe is supported in v1.1.0 and later. Both toolchains use the same vcpkg-based optional dependency setup. When using MSVC cl.exe directly, xer requires the following conformance options:
+
+```bat
+/Zc:__cplusplus /Zc:preprocessor
+```
+
+`/Zc:__cplusplus` is required so that `__cplusplus` reports the selected C++ language mode correctly. `/Zc:preprocessor` is required for standard-conforming variadic macro expansion used by xer diagnostic macros. The bundled PHP test scripts add these options automatically for `--tc=msvc`.
 
 ## Key characteristics
 

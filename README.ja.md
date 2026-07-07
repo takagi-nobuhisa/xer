@@ -78,7 +78,7 @@ xer は開発中のライブラリです。
 - GCC を用いる MSYS2 UCRT64
 - Clang を用いる MSYS2 CLANG64
 - clang-cl を用いる Visual Studio 2026
-- MSVC cl.exe を用いる Visual Studio 2026（実験的対応）
+- MSVC cl.exe を用いる Visual Studio 2026
 
 対象プラットフォームの範囲は次のとおりです。
 
@@ -111,7 +111,13 @@ vcpkg install --triplet x64-windows
 
 Tcl/Tk のテストには、Magicsplat Tcl、ActiveTcl、IronTcl など、Tcl/Tk プロジェクトサイトから参照できる Windows 向け Tcl/Tk 配布物が必要です。テストスクリプトは、Tcl/Tk 9.0 と 8.6 の両方が見つかった場合は 9.0 を優先しつつ、`%LOCALAPPDATA%\Apps\Tcl90`、`%LOCALAPPDATA%\Apps\Tcl86`、`C:\local\Tcl90`、`C:\local\Tcl86`、`C:\local\IronTcl`、`C:\Tcl`、`C:\Program Files\Tcl` などの代表的なインストール先を自動検出します。任意のインストール先を使う場合は `XER_TEST_TCLTK_ROOT` で指定できます。それでも自動検出できない場合は、テストスクリプトに明示的なインクルードパスとライブラリパスを指定してください。
 
-Visual Studio 2026 の clang-cl はテスト対象です。MSVC cl.exe は v1.1.0 α版での実験的対応として扱い、clang-cl と同じ vcpkg ベースの任意依存機能設定を使用します。
+Visual Studio 2026 の clang-cl および MSVC cl.exe は、v1.1.0 以降で対応しています。どちらも同じ vcpkg ベースの任意依存機能設定を使用します。MSVC cl.exe を直接使用する場合、xer では次の標準準拠オプションが必要です。
+
+```bat
+/Zc:__cplusplus /Zc:preprocessor
+```
+
+`/Zc:__cplusplus` は、`__cplusplus` が選択中の C++ 標準モードを正しく返すために必要です。`/Zc:preprocessor` は、xer の診断系マクロで使用している可変引数マクロを標準準拠で展開するために必要です。付属の PHP テストスクリプトでは、`--tc=msvc` の指定時にこれらのオプションを自動で追加します。
 
 ## 特徴
 
