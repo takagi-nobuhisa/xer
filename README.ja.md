@@ -69,7 +69,9 @@ xer は開発中のライブラリです。
 現時点の正式なコンパイラ対象は次のとおりです。
 
 - GCC 13.3.0 以上
-- Ubuntu 上の libc++ を用いる Clang 18.0.0 以上
+- Clang 18.0.0 以上
+- Visual Studio 2026 の clang-cl
+- Visual Studio 2026 の MSVC cl.exe
 
 現在の主なサポート対象およびテスト対象環境は次のとおりです。
 
@@ -101,7 +103,7 @@ Ubuntu で Clang を用いたテストを行う場合は、libc++ と libc++abi 
 sudo apt install libc++-18-dev libc++abi-18-dev
 ```
 
-Visual Studio 2026 の clang-cl または MSVC cl.exe で zlib および ICU を利用するテストを行う場合は、vcpkg の manifest mode を使用します。プロジェクトルートに `zlib` と `icu` を依存関係として含む `vcpkg.json` を配置し、`builtin-baseline` を追加したうえで、プロジェクトルートから次を実行します。
+Visual Studio 2026 の clang-cl または MSVC cl.exe で zlib および ICU を利用するテストを行う場合は、vcpkg の manifest mode を使用します。リポジトリには `zlib` と `icu` を依存関係として含み、`builtin-baseline` も指定した `vcpkg.json` が含まれています。プロジェクトルートから次を実行します。
 
 ```bat
 vcpkg install --triplet x64-windows

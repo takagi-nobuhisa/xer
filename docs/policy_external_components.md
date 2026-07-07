@@ -3,7 +3,7 @@
 ## Overview
 
 xer is header-only, but some practical facilities intentionally depend on external components.
-Examples include Tcl/Tk, MeCab, and ICU.
+Examples include Tcl/Tk, MeCab, ICU, and zlib.
 
 This policy defines how such dependencies are introduced, detected, tested, and documented.
 The goal is to keep ordinary headers lightweight while allowing mature external components to provide capabilities that would be unrealistic or undesirable to reimplement inside xer.
@@ -88,16 +88,29 @@ Documentation for each external-component header should mention typical link opt
 
 Although xer does not manage the user's build system, xer's own PHP test runner should know how to build and run tests for supported environments.
 
-The primary supported and tested environments are Ubuntu with GCC, Ubuntu with Clang and libc++, and MSYS2 UCRT64 with GCC.
-MSYS2 MSYS, MSYS2 MINGW64, Windows Clang, and Visual C++ are not part of the current test matrix.
+The primary supported and tested environments are:
 
-For known supported environments, the test runner may add include paths and link options needed for external-component tests.
+- Ubuntu with GCC
+- Ubuntu with Clang and libc++
+- MSYS2 UCRT64 with GCC
+- MSYS2 CLANG64 with Clang
+- Visual Studio 2026 with clang-cl
+- Visual Studio 2026 with MSVC cl.exe
+
+MSYS2 MSYS and MSYS2 MINGW64 are not supported targets and are not part of the current or planned test matrix.
+
+For known supported environments, the test runner may add include paths, link options, and runtime DLL search paths needed for external-component tests.
 
 Examples:
 
-- Tcl/Tk tests may need Tcl/Tk include paths and libraries.
-- ICU tests may need ICU libraries such as `icuuc` and the platform-specific ICU data library.
+- Tcl/Tk tests may need Tcl/Tk include paths, libraries, and runtime DLL paths.
+- ICU tests may need ICU libraries such as `icuuc`, `icuin`, and the platform-specific ICU data library.
+- zlib tests may need the zlib header and library.
 - MeCab tests may need the MeCab executable to be available at runtime rather than link-time libraries.
+
+On Visual Studio 2026 with clang-cl or MSVC cl.exe, ICU and zlib tests use vcpkg manifest mode through the repository's `vcpkg.json`. The generated `vcpkg_installed/x64-windows` directory is used for include paths, library paths, and runtime DLL lookup by the test runner, and it must not be committed or packaged.
+
+Tcl/Tk on Windows is detected from common installation roots, preferring Tcl/Tk 9.0 over 8.6 when both are available. A custom Tcl/Tk root can be specified with `XER_TEST_TCLTK_ROOT`.
 
 If a required component is not available in the test environment, component-specific tests may be skipped.
 A skipped component test should mean "this optional external component is not available here", not "the feature silently falls back at runtime".
@@ -166,6 +179,12 @@ It invokes a MeCab executable and therefore depends mainly on runtime availabili
 ICU-based Unicode normalization is provided by `<xer/unicode.h>`.
 It requires ICU C API headers at compile time and ICU libraries at link time.
 The ICU-dependent public scope is NFC normalization and NFC status checking. The code point traversal APIs in `<xer/unicode.h>` are table-free, but the public header currently also includes ICU-based normalization.
+
+### zlib
+
+ZIP archive support is provided by `<xer/zip.h>`.
+It requires the zlib development header at compile time and the zlib library at link time.
+On Visual Studio 2026 with clang-cl or MSVC cl.exe, zlib is supplied by vcpkg manifest mode for xer's own tests and examples.
 
 ---
 

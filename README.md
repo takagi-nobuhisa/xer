@@ -66,7 +66,9 @@ This project does **not** aim at full source-level compatibility with the C stan
 Current official compiler targets:
 
 - GCC 13.3.0 or later
-- Clang 18.0.0 or later on Ubuntu with libc++
+- Clang 18.0.0 or later
+- Visual Studio 2026 with clang-cl
+- Visual Studio 2026 with MSVC cl.exe
 
 Current supported and tested environments:
 
@@ -100,7 +102,7 @@ On Ubuntu, Clang testing assumes libc++ and libc++abi. For Ubuntu 24.04 with Cla
 sudo apt install libc++-18-dev libc++abi-18-dev
 ```
 
-For Visual Studio 2026 with clang-cl or MSVC cl.exe, optional zlib and ICU test dependencies can be installed through vcpkg manifest mode. Place a `vcpkg.json` with `zlib` and `icu` dependencies at the project root, add a `builtin-baseline`, and run the following command from the project root:
+For Visual Studio 2026 with clang-cl or MSVC cl.exe, optional zlib and ICU test dependencies are handled through vcpkg manifest mode. The repository includes `vcpkg.json` with `zlib` and `icu` dependencies and a `builtin-baseline`. Run the following command from the project root:
 
 ```bat
 vcpkg install --triplet x64-windows

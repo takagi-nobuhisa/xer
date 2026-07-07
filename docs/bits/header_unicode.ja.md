@@ -59,7 +59,7 @@ MSYS2 環境では、ICU データライブラリ名が `icudata` ではなく `
 g++ -std=c++23 -I. example.cpp -licuuc -licudt
 ```
 
-xer のテストランナーは、既知の環境を個別に処理します。
+xer のテストランナーは、既知の環境を個別に処理します。Visual Studio 2026 の clang-cl または MSVC cl.exe では、xer のテストとコード例は vcpkg manifest mode により `vcpkg_installed\x64-windows` にインストールされた ICU を使用します。
 
 ---
 

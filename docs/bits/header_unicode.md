@@ -57,7 +57,7 @@ On MSYS2 environments, the ICU data library may be named `icudt` rather than `ic
 g++ -std=c++23 -I. example.cpp -licuuc -licudt
 ```
 
-The xer test runner handles known environments separately.
+The xer test runner handles known environments separately. On Visual Studio 2026 with clang-cl or MSVC cl.exe, xer's tests and examples use ICU installed by vcpkg manifest mode under `vcpkg_installed\x64-windows`.
 
 ---
 

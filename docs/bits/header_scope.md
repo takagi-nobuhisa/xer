@@ -129,7 +129,7 @@ xer provides its own `scope_exit`.
 This is not a wrapper around a standard C++ `<scope>` header.
 Standard C++ does not currently provide such a header as part of the ordinary standard library.
 
-Some similar facilities exist in experimental or library-extension contexts, but xer keeps this utility small and self-contained so that it fits the library's header-only and GCC-oriented portability policy.
+Some similar facilities exist in experimental or library-extension contexts, but xer keeps this utility small and self-contained so that it fits the library's header-only and supported-toolchain portability policy.
 
 ---
 

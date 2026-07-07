@@ -33,10 +33,14 @@ Where exact behavior is reasonably definable, xer should define it clearly and i
 
 ### 2.1 Supported Compilers
 
-- The primary officially supported compiler is **GCC 13.3.0 or later**
-- **Clang 18.0.0 or later** is supported on Ubuntu when used with libc++
-- Visual C++ is not an officially supported compiler yet
-- Windows Clang support is deferred; the current Clang target is Ubuntu with libc++
+The officially supported compiler targets are:
+
+- **GCC 13.3.0 or later**
+- **Clang 18.0.0 or later**
+- **Visual Studio 2026 with clang-cl**
+- **Visual Studio 2026 with MSVC cl.exe**
+
+On Ubuntu, Clang testing uses libc++ and libc++abi. On Windows, Visual Studio 2026 clang-cl and MSVC cl.exe are treated as supported Windows toolchains.
 
 ### 2.2 Supported and Tested Environments
 
@@ -45,6 +49,9 @@ The primary supported and tested environments are:
 - **Ubuntu with GCC**
 - **Ubuntu with Clang and libc++**
 - **MSYS2 UCRT64 with GCC**
+- **MSYS2 CLANG64 with Clang**
+- **Visual Studio 2026 with clang-cl**
+- **Visual Studio 2026 with MSVC cl.exe**
 
 Ubuntu Clang testing requires libc++ and libc++abi. On Ubuntu 24.04 with Clang 18, install the following packages:
 
@@ -57,7 +64,8 @@ sudo apt install libc++-18-dev libc++abi-18-dev
 The current platform scope is:
 
 - Linux through Ubuntu
-- Windows through MSYS2 UCRT64
+- Windows through MSYS2 UCRT64 and CLANG64
+- Windows through Visual Studio 2026 with clang-cl and MSVC cl.exe
 
 ### 2.4 Unsupported MSYS2 Environments
 

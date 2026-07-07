@@ -16,7 +16,7 @@ The initial API is intentionally small. It supports sequential reading, name loo
 
 The public header checks for `<zlib.h>` with `__has_include` when available and emits a compile-time diagnostic if the header is missing. Programs using this header must also link with zlib, for example `-lz` on typical Unix-like environments.
 
-The project test runner detects `xer/zip.h` as the `zip` feature and links matching tests and examples with zlib when it is available.
+The project test runner detects `xer/zip.h` as the `zip` feature and links matching tests and examples with zlib when it is available. On Visual Studio 2026 with clang-cl or MSVC cl.exe, xer's tests and examples use zlib installed by vcpkg manifest mode under `vcpkg_installed\x64-windows`.
 
 ---
 

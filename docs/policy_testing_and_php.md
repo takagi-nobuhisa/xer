@@ -40,13 +40,13 @@ The primary supported and tested environments are:
 - Ubuntu with GCC
 - Ubuntu with Clang and libc++
 - MSYS2 UCRT64 with GCC
+- MSYS2 CLANG64 with Clang
+- Visual Studio 2026 with clang-cl
+- Visual Studio 2026 with MSVC cl.exe
 
 MSYS2 MSYS and MSYS2 MINGW64 are not supported targets.
 They are not included in the current or planned test matrix.
 If a clear need appears in the future, support for those environments may be reconsidered at that time.
-
-Windows Clang and Visual C++ are not part of the current test target.
-The current Clang target is Ubuntu with libc++.
 
 Ubuntu Clang testing requires libc++ and libc++abi.
 On Ubuntu 24.04 with Clang 18, install the following packages:
@@ -71,6 +71,9 @@ Typical examples:
 php run_tests.php
 php run_tests.php --tc=gcc
 php run_tests.php --tc=clang
+php run_tests.php --tc=clang64
+php run_tests.php --tc=clang-cl
+php run_tests.php --tc=msvc
 php run_tests.php --tc=all
 ```
 
@@ -84,9 +87,24 @@ The build output is separated by platform and toolchain, for example:
 ```text
 php/build/linux-ubuntu-x86_64/gcc/
 php/build/linux-ubuntu-x86_64/clang/
+php/build/windows-msys2-ucrt64-gcc/
+php/build/windows-msys2-clang64/
+php/build/windows-msvc-clang-cl/
+php/build/windows-msvc-cl/
 ```
 
 This prevents executable files, logs, and incremental state from being shared accidentally between different compilers.
+
+For Visual Studio 2026 with MSVC cl.exe, the test runner automatically adds the conformance options required by xer:
+
+```text
+/Zc:__cplusplus
+/Zc:preprocessor
+```
+
+`/Zc:__cplusplus` is required so that `__cplusplus` reports the selected C++ language mode correctly. `/Zc:preprocessor` is required for standard-conforming variadic macro expansion used by xer diagnostic macros.
+
+For Visual Studio 2026 with clang-cl or MSVC cl.exe, optional ICU and zlib tests use vcpkg manifest mode through the repository's `vcpkg.json`. The test runner checks `vcpkg_installed/x64-windows` under the project root and adds its include, library, and runtime DLL paths as needed. Tcl/Tk is detected from common Windows installation roots or from `XER_TEST_TCLTK_ROOT`.
 
 ---
 
