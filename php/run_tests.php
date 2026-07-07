@@ -2163,8 +2163,13 @@ function build_executable_command(array $options, string $sourceFile, string $ex
             $convertedCflags[] = '/Fo:' . $objectFile;
         }
 
+        $baseFlags = [$options['cxx'], '/nologo', '/std:c++latest', '/Zc:__cplusplus', '/EHsc', '/utf-8'];
+        if (is_msvc_style($options)) {
+            $baseFlags[] = '/Zc:preprocessor';
+        }
+
         $command = array_merge(
-            [$options['cxx'], '/nologo', '/std:c++latest', '/Zc:__cplusplus', '/EHsc', '/utf-8'],
+            $baseFlags,
             $options['cxxflags'],
             $convertedCflags,
             [$sourceFile, '/Fe:' . $executable]

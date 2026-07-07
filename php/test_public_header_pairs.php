@@ -1893,6 +1893,9 @@ function build_compile_command(
             '/EHsc',
             '/utf-8',
         ];
+        if ($compilerStyle === 'msvc') {
+            $commandParts[] = '/Zc:preprocessor';
+        }
         foreach ($cxxFlags as $flag) {
             $commandParts[] = escapeshellarg($flag);
         }
