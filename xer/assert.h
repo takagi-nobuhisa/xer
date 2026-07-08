@@ -84,7 +84,7 @@
         try {                                                        \
             try {                                                    \
                 expr;                                                \
-            } catch (exception_type) {                               \
+            } catch (const exception_type&) {                        \
                 xer_assert_caught_ = true;                           \
             }                                                        \
         } catch (...) {                                              \
@@ -97,6 +97,26 @@
         if (!xer_assert_caught_) {                                   \
             ::xer::detail::throw_assertion_failure(                  \
                 "xer_assert_throw",                                 \
+                #expr,                                               \
+                "no exception thrown",                              \
+                std::source_location::current());                    \
+        }                                                            \
+    } while (false)
+
+/**
+ * @brief Asserts that the expression throws any exception.
+ */
+#define xer_assert_throw_any(expr)                                   \
+    do {                                                             \
+        bool xer_assert_caught_ = false;                             \
+        try {                                                        \
+            expr;                                                    \
+        } catch (...) {                                              \
+            xer_assert_caught_ = true;                               \
+        }                                                            \
+        if (!xer_assert_caught_) {                                   \
+            ::xer::detail::throw_assertion_failure(                  \
+                "xer_assert_throw_any",                             \
                 #expr,                                               \
                 "no exception thrown",                              \
                 std::source_location::current());                    \

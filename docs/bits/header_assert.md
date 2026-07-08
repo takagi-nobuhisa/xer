@@ -22,6 +22,7 @@ xer_assert_eq(lhs, rhs)
 xer_assert_ne(lhs, rhs)
 xer_assert_lt(lhs, rhs)
 xer_assert_throw(expr, exception_type)
+xer_assert_throw_any(expr)
 xer_assert_nothrow(expr)
 
 class xer::assertion_error;
@@ -199,6 +200,9 @@ This macro checks that evaluating `expr` throws the specified exception type.
 
 If `expr` does not throw that exception type, it throws `xer::assertion_error`.
 
+The exception is caught by `const exception_type&`.
+Use `xer_assert_throw_any` when only the fact that an exception was thrown matters.
+
 ### Argument Order
 
 The argument order is intentional:
@@ -212,6 +216,27 @@ This order follows the project testing policy.
 
 ```cpp
 xer_assert_throw(f(), std::runtime_error);
+```
+
+
+---
+
+## `xer_assert_throw_any`
+
+```cpp
+xer_assert_throw_any(expr)
+```
+
+This macro checks that evaluating `expr` throws any exception.
+
+If `expr` does not throw, it throws `xer::assertion_error`.
+
+This macro is intended for cases where the thrown object is not a standard exception type or where the exact exception type is intentionally not part of the test.
+
+### Typical Use
+
+```cpp
+xer_assert_throw_any(f());
 ```
 
 ---

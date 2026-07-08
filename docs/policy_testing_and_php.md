@@ -217,6 +217,7 @@ The assertion macros for execution tests use the `xer_` prefix and should includ
 - `xer_assert_ne`
 - `xer_assert_lt`
 - `xer_assert_throw`
+- `xer_assert_throw_any`
 - `xer_assert_nothrow`
 
 ### `xer_assert_throw`
@@ -225,7 +226,9 @@ The argument order of `xer_assert_throw` places the expression to be evaluated f
 
 ```cpp
 xer_assert_throw(expr, exception_type)
-````
+```
+
+Use `xer_assert_throw_any(expr)` when the test only needs to verify that some exception was thrown, or when the thrown value is not a standard exception type.
 
 ---
 

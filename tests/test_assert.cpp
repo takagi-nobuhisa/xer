@@ -243,7 +243,7 @@ void test_assert_throw_success()
 {
     xer_assert_throw(throw_runtime_error(), std::runtime_error);
     xer_assert_throw(throw_logic_error(), std::exception);
-    xer_assert_throw(throw_non_std_exception(), ...);
+    xer_assert_throw_any(throw_non_std_exception());
 }
 
 /**
@@ -256,6 +256,20 @@ void test_assert_throw_no_exception()
     });
 
     require_contains(message, "xer_assert_throw failed");
+    require_contains(message, "do_nothing()");
+    require_contains(message, "no exception thrown");
+}
+
+/**
+ * @brief Tests xer_assert_throw_any when no exception is thrown.
+ */
+void test_assert_throw_any_no_exception()
+{
+    const std::string message = expect_assertion_failure([] {
+        xer_assert_throw_any(do_nothing());
+    });
+
+    require_contains(message, "xer_assert_throw_any failed");
     require_contains(message, "do_nothing()");
     require_contains(message, "no exception thrown");
 }
@@ -473,6 +487,7 @@ int main()
 
     test_assert_throw_success();
     test_assert_throw_no_exception();
+    test_assert_throw_any_no_exception();
     test_assert_throw_unexpected_type();
 
     test_assert_nothrow_success();
