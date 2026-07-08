@@ -1,5 +1,7 @@
-﻿#ifndef XER_VERSION_H_
-#define XER_VERSION_H_
+﻿#pragma once
+
+#ifndef XER_VERSION_H_INCLUDED_
+#define XER_VERSION_H_INCLUDED_
 
 #include <string_view>
 
@@ -70,4 +72,4 @@ inline constexpr std::string_view version_string = XER_VERSION_STRING;
 
 } // namespace xer
 
-#endif
+#endif // XER_VERSION_H_INCLUDED_
