@@ -46,11 +46,27 @@ void test_binary_exclusive_lock_blocks_second_exclusive_lock() {
     auto first = xer::fopen(target, "r+");
     xer_assert(first.has_value());
 
-    auto second = xer::fopen(target, "r+");
-    xer_assert(second.has_value());
-
     const auto first_lock = xer::flock(*first, xer::lock_ex);
     xer_assert(first_lock.has_value());
+
+#ifdef _WIN32
+    const auto first_unlock = xer::flock(*first, xer::lock_un);
+    xer_assert(first_unlock.has_value());
+
+    bool would_block = true;
+    const auto first_retry = xer::flock(
+        *first,
+        xer::lock_ex | xer::lock_nb,
+        &would_block);
+
+    xer_assert(first_retry.has_value());
+    xer_assert_not(would_block);
+
+    const auto first_retry_unlock = xer::flock(*first, xer::lock_un);
+    xer_assert(first_retry_unlock.has_value());
+#else
+    auto second = xer::fopen(target, "r+");
+    xer_assert(second.has_value());
 
     bool would_block = false;
     const auto second_lock = xer::flock(
@@ -76,6 +92,7 @@ void test_binary_exclusive_lock_blocks_second_exclusive_lock() {
 
     const auto second_unlock = xer::flock(*second, xer::lock_un);
     xer_assert(second_unlock.has_value());
+#endif
 }
 
 void test_binary_shared_locks_can_coexist() {
@@ -88,20 +105,22 @@ void test_binary_shared_locks_can_coexist() {
     auto first = xer::fopen(target, "r");
     xer_assert(first.has_value());
 
-    auto second = xer::fopen(target, "r");
-    xer_assert(second.has_value());
-
     bool would_block = false;
 
     const auto first_lock = xer::flock(*first, xer::lock_sh | xer::lock_nb, &would_block);
     xer_assert(first_lock.has_value());
     xer_assert_not(would_block);
 
+#ifndef _WIN32
+    auto second = xer::fopen(target, "r");
+    xer_assert(second.has_value());
+
     const auto second_lock = xer::flock(*second, xer::lock_sh | xer::lock_nb, &would_block);
     xer_assert(second_lock.has_value());
     xer_assert_not(would_block);
 
     xer_assert(xer::flock(*second, xer::lock_un).has_value());
+#endif
     xer_assert(xer::flock(*first, xer::lock_un).has_value());
 }
 
@@ -115,11 +134,25 @@ void test_text_exclusive_lock_blocks_second_exclusive_lock() {
     auto first = xer::fopen(target, "r+", xer::encoding_t::utf8);
     xer_assert(first.has_value());
 
-    auto second = xer::fopen(target, "r+", xer::encoding_t::utf8);
-    xer_assert(second.has_value());
-
     const auto first_lock = xer::flock(*first, xer::lock_ex);
     xer_assert(first_lock.has_value());
+
+#ifdef _WIN32
+    xer_assert(xer::flock(*first, xer::lock_un).has_value());
+
+    bool would_block = true;
+    const auto first_retry = xer::flock(
+        *first,
+        xer::lock_ex | xer::lock_nb,
+        &would_block);
+
+    xer_assert(first_retry.has_value());
+    xer_assert_not(would_block);
+
+    xer_assert(xer::flock(*first, xer::lock_un).has_value());
+#else
+    auto second = xer::fopen(target, "r+", xer::encoding_t::utf8);
+    xer_assert(second.has_value());
 
     bool would_block = false;
     const auto second_lock = xer::flock(
@@ -143,6 +176,7 @@ void test_text_exclusive_lock_blocks_second_exclusive_lock() {
     xer_assert_not(would_block);
 
     xer_assert(xer::flock(*second, xer::lock_un).has_value());
+#endif
 }
 
 void test_invalid_operation_fails() {

@@ -321,7 +321,15 @@ enum class open_mode {
         wmode.push_back(static_cast<wchar_t>(*p));
     }
 
+#    if defined(_MSC_VER)
+    std::FILE* file = nullptr;
+    if (_wfopen_s(&file, native_path->c_str(), wmode.c_str()) != 0) {
+        return nullptr;
+    }
+    return file;
+#    else
     return _wfopen(native_path->c_str(), wmode.c_str());
+#    endif
 #else
     return std::fopen(native_path->c_str(), mode);
 #endif

@@ -99,7 +99,7 @@ struct log_timestamp_text {
         localtime_r(&second, &tm_value);
 #endif
 
-        char buffer[20]{};
+        char buffer[64]{};
         static_cast<void>(std::snprintf(
             buffer,
             sizeof(buffer),

@@ -103,7 +103,13 @@ void test_fopen_text_file_position_ops() {
         xer_assert(native.has_value());
 
 #ifdef _WIN32
+#    if defined(_MSC_VER)
+        FILE* fp = nullptr;
+        const auto open_error = _wfopen_s(&fp, native->c_str(), L"wb");
+        xer_assert_eq(open_error, 0);
+#    else
         FILE* fp = _wfopen(native->c_str(), L"wb");
+#    endif
 #else
         FILE* fp = std::fopen(native->c_str(), "wb");
 #endif

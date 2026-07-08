@@ -18,6 +18,23 @@
 
 namespace xer {
 
+namespace detail {
+
+[[nodiscard]] inline auto open_tmpfile() noexcept -> std::FILE*
+{
+#if defined(_MSC_VER)
+    std::FILE* file = nullptr;
+    if (tmpfile_s(&file) != 0) {
+        return nullptr;
+    }
+    return file;
+#else
+    return std::tmpfile();
+#endif
+}
+
+} // namespace detail
+
 /**
  * @brief Opens a temporary binary file stream.
  *
@@ -27,7 +44,7 @@ namespace xer {
  * @return Unexpected error on failure.
  */
 [[nodiscard]] inline auto tmpfile() noexcept -> result<binary_stream> {
-    std::FILE* const file = std::tmpfile();
+    std::FILE* const file = detail::open_tmpfile();
     if (file == nullptr) {
         return std::unexpected(make_error(error_t::runtime_error));
     }
@@ -69,7 +86,7 @@ namespace xer {
         return std::unexpected(make_error(error_t::invalid_argument));
     }
 
-    std::FILE* const file = std::tmpfile();
+    std::FILE* const file = detail::open_tmpfile();
     if (file == nullptr) {
         return std::unexpected(make_error(error_t::runtime_error));
     }
