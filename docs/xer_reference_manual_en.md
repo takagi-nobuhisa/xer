@@ -1,6 +1,6 @@
 # xer C++ Utility Library Reference Manual
 
-Target version: **v1.2.0a1**
+Target version: **v1.2.0a2**
 
 ---
 
@@ -307,6 +307,7 @@ xer_assert_eq(lhs, rhs)
 xer_assert_ne(lhs, rhs)
 xer_assert_lt(lhs, rhs)
 xer_assert_throw(expr, exception_type)
+xer_assert_throw_any(expr)
 xer_assert_nothrow(expr)
 
 class xer::assertion_error;
@@ -484,6 +485,9 @@ This macro checks that evaluating `expr` throws the specified exception type.
 
 If `expr` does not throw that exception type, it throws `xer::assertion_error`.
 
+The exception is caught by `const exception_type&`.
+Use `xer_assert_throw_any` when only the fact that an exception was thrown matters.
+
 ### Argument Order
 
 The argument order is intentional:
@@ -497,6 +501,27 @@ This order follows the project testing policy.
 
 ```cpp
 xer_assert_throw(f(), std::runtime_error);
+```
+
+
+---
+
+## `xer_assert_throw_any`
+
+```cpp
+xer_assert_throw_any(expr)
+```
+
+This macro checks that evaluating `expr` throws any exception.
+
+If `expr` does not throw, it throws `xer::assertion_error`.
+
+This macro is intended for cases where the thrown object is not a standard exception type or where the exact exception type is intentionally not part of the test.
+
+### Typical Use
+
+```cpp
+xer_assert_throw_any(f());
 ```
 
 ---
@@ -13890,6 +13915,149 @@ The text stream form is suitable for UTF-8 or CP932 text-oriented communication.
 - `socket_send` and `socket_recv` may transfer only part of the supplied buffer.
 - Use `socket_send_all` and `socket_recv_exact` when a fixed amount of data must be transferred over a connected stream socket.
 - `socket_open` transfers ownership from the socket object into the resulting stream.
+
+---
+
+# `<xer/dlfcn.h>`
+
+## Purpose
+
+`<xer/dlfcn.h>` provides a small cross-platform API for loading shared libraries and resolving symbols at run time.
+
+The API follows the familiar POSIX-style naming pattern while staying inside the `xer` namespace. On POSIX platforms it wraps `dlopen`, `dlsym`, and `dlclose`; on Windows it wraps the corresponding `LoadLibraryW`, `GetProcAddress`, and `FreeLibrary` functionality.
+
+---
+
+## Main Role
+
+This header provides:
+
+- a copyable shared-library handle
+- run-time loading of shared libraries
+- typed symbol lookup without explicit casts at the call site
+- raw symbol lookup for low-level use
+- automatic unloading when the last shared handle is released
+
+---
+
+## Main Types
+
+```cpp
+class shared_library;
+```
+
+### `shared_library`
+
+`shared_library` is a lightweight copyable shared handle.
+
+Copies refer to the same native library handle. The underlying library is unloaded when the last `shared_library` object referring to that handle is released.
+
+---
+
+## Main Functions
+
+```cpp
+auto dlopen(std::string_view path) -> result<shared_library>;
+auto dlclose(shared_library& library) noexcept -> void;
+auto is_open(const shared_library& library) noexcept -> bool;
+auto native_handle(const shared_library& library) noexcept -> void*;
+
+auto dlsym(const shared_library& library, std::string_view name, void*& out) -> result<void>;
+
+template<class Function>
+auto dlsym(const shared_library& library, std::string_view name, Function*& out) -> result<void>;
+```
+
+### `dlopen`
+
+```cpp
+auto dlopen(std::string_view path) -> result<shared_library>;
+```
+
+Loads a shared library and returns a `shared_library` handle.
+
+On POSIX platforms, the initial implementation uses:
+
+```cpp
+RTLD_NOW | RTLD_LOCAL
+```
+
+On Windows, the initial implementation uses `LoadLibraryW`.
+
+The first version intentionally does not expose platform flags. If flag control becomes necessary, an overload can be added later without changing the existing API.
+
+### `dlclose`
+
+```cpp
+auto dlclose(shared_library& library) noexcept -> void;
+```
+
+Releases the target handle's reference to the loaded library.
+
+If other `shared_library` objects still refer to the same native handle, the library remains loaded.
+
+### `is_open`
+
+```cpp
+auto is_open(const shared_library& library) noexcept -> bool;
+```
+
+Returns whether the handle currently refers to a loaded library.
+
+### `native_handle`
+
+```cpp
+auto native_handle(const shared_library& library) noexcept -> void*;
+```
+
+Returns the native library handle as a raw pointer value, or `nullptr` if the handle is empty.
+
+### `dlsym`
+
+```cpp
+auto dlsym(const shared_library& library, std::string_view name, void*& out) -> result<void>;
+```
+
+Looks up a raw symbol address and stores it in `out`.
+
+```cpp
+template<class Function>
+auto dlsym(const shared_library& library, std::string_view name, Function*& out) -> result<void>;
+```
+
+Looks up a function symbol and stores it in `out`. The function type is inferred from the output pointer, so callers do not have to write an explicit cast.
+
+Example:
+
+```cpp
+using function_type = int(const char*);
+
+function_type* function = nullptr;
+auto r = xer::dlsym(library, "puts", function);
+```
+
+---
+
+## Design Notes
+
+The public header name is `<xer/dlfcn.h>` because the API intentionally follows the POSIX `dlopen` / `dlsym` / `dlclose` vocabulary.
+
+The internal implementation is placed in `<xer/bits/dlfcn.h>`.
+
+The `xer` namespace distinguishes these functions from platform APIs, so using POSIX-style names does not conflict with the global platform functions.
+
+---
+
+## Limitations
+
+The initial API does not expose `dlopen` flags or `LoadLibraryExW` flags.
+
+The default behavior is intentionally conservative:
+
+- POSIX: load with `RTLD_NOW | RTLD_LOCAL`
+- Windows: load with `LoadLibraryW`
+
+Platform-specific flag control can be added later through overloads if a concrete need appears.
 
 ---
 

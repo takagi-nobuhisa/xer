@@ -1,6 +1,6 @@
 # xer C++ Utility Library リファレンスマニュアル
 
-対象バージョン: **v1.2.0a1**
+対象バージョン: **v1.2.0a2**
 
 ---
 
@@ -284,22 +284,28 @@ auto parse_positive(int value) -> xer::result<int>
 
 ---
 
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/assert.h`
+> Reason: Japanese fragment was translated from a different English source hash.
+
 # `<xer/assert.h>`
 
-## 目的
+## Purpose
 
-`<xer/assert.h>` は、xer のアサーション機能を提供します。
+`<xer/assert.h>` provides xer's assertion facilities.
 
-これらの機能は主に xer 自身のテストプログラムで使いますが、軽量な確認用途としてライブラリ利用者に公開される場合もあります。
+These facilities are used primarily by xer's own test programs, but they may also be exposed to library users for lightweight checks.
 
-標準Cの `assert` とは異なり、xer のアサーションはプロセスを即座に終了しません。
-かわりに、例外を送出することで失敗を報告します。
+Unlike the standard C `assert`, xer assertions do not terminate the process immediately.
+Instead, they report failure by throwing an exception.
 
 ---
 
-## 主な要素
+## Main Entities
 
-少なくとも、`<xer/assert.h>` は次の要素を提供します。
+At minimum, `<xer/assert.h>` provides the following entities:
 
 ```cpp
 xer_assert(expr)
@@ -308,74 +314,75 @@ xer_assert_eq(lhs, rhs)
 xer_assert_ne(lhs, rhs)
 xer_assert_lt(lhs, rhs)
 xer_assert_throw(expr, exception_type)
+xer_assert_throw_any(expr)
 xer_assert_nothrow(expr)
 
 class xer::assertion_error;
 ```
 
-正確な実装詳細は変わる可能性がありますが、これらの名前が中核的なアサーションインターフェースを構成します。
+The exact implementation details may vary, but these names form the core assertion interface.
 
 ---
 
-## 設計上の役割
+## Design Role
 
-このヘッダーは、実行テスト内で明示的で読みやすい確認を支えるために存在します。
+This header exists to support explicit and readable checks in execution tests.
 
-このヘッダーの役割は、次のことを可能にすることです。
+Its role is to make the following possible:
 
-* テストコードで期待条件を確認する
-* 失敗時に現在のテストの流れを即座に停止する
-* ソース位置などの診断情報を保持する
-* 既定のアサーション動作としてプロセス終了を避ける
+* verify expected conditions in test code
+* stop the current test flow immediately on failure
+* preserve diagnostic information such as source location
+* avoid process termination as the default assertion behavior
 
-これにより、このアサーション機能は自動テストの実行やライブラリ動作のデバッグに適したものになります。
+This makes the assertion facilities suitable for automated test execution and for debugging library behavior.
 
 ---
 
-## 標準 `assert` との違い
+## Difference from the Standard `assert`
 
-標準CおよびC++の `assert` 機能は、通常、条件が失敗するとプロセスを中断します。
+The standard C and C++ `assert` facility typically aborts the process when a condition fails.
 
-xer は意図的に別の設計を採用しています。
+xer deliberately uses a different design.
 
-### 標準 `assert`
+### Standard `assert`
 
-* プロセスを終了することで失敗を報告する
-* 主に内部仮定をデバッグするためのもの
-* 構造化された失敗報告を求めるテストフレームワークにはあまり適していない
+* reports failure by terminating the process
+* is mainly intended for debugging internal assumptions
+* is not well suited to a test framework that wants structured failure reporting
 
-### xer のアサーション
+### xer Assertions
 
-* `xer::assertion_error` を送出することで失敗を報告する
-* 実行テストに適している
-* ソースレベルの診断用コンテキストを保持する
-* 適切な場合には、軽量な利用者側チェックにも使える
+* report failure by throwing `xer::assertion_error`
+* are suitable for execution tests
+* preserve source-level diagnostic context
+* can also be used in lightweight user-side checks when appropriate
 
-この違いは意図的なものです。
+This difference is intentional.
 
 ---
 
 ## `xer::assertion_error`
 
-`xer::assertion_error` は、xer のアサーションが失敗したときに送出される例外型です。
+`xer::assertion_error` is the exception type thrown when an xer assertion fails.
 
-### 目的
+### Purpose
 
-この型の目的は、テストランナーや周辺コードが捕捉して報告できる形で、アサーション失敗情報を運ぶことです。
+Its purpose is to carry assertion-failure information in a form that can be caught and reported by test runners or surrounding code.
 
-### 期待される内容
+### Expected Contents
 
-少なくとも、アサーション失敗の診断情報から次のことを特定できる必要があります。
+At minimum, diagnostics for an assertion failure should make it possible to identify:
 
-* どのアサーションが失敗したか
-* どこで失敗したか
-* どの式または比較が関係していたか
+* which assertion failed
+* where it failed
+* what expression or comparison was involved
 
-アサーションマクロによっては、値に関する追加情報が含まれる場合もあります。
+Depending on the assertion macro, additional value-oriented information may also be included.
 
 ---
 
-## アサーションマクロ
+## Assertion Macros
 
 ## `xer_assert`
 
@@ -383,11 +390,11 @@ xer は意図的に別の設計を採用しています。
 xer_assert(expr)
 ```
 
-このマクロは、`expr` が真であることを確認します。
+This macro checks that `expr` is true.
 
-`expr` が偽の場合、`xer::assertion_error` を送出します。
+If `expr` is false, it throws `xer::assertion_error`.
 
-### 典型的な使用例
+### Typical Use
 
 ```cpp
 xer_assert(result.has_value());
@@ -401,11 +408,11 @@ xer_assert(result.has_value());
 xer_assert_not(expr)
 ```
 
-このマクロは、`expr` が偽であることを確認します。
+This macro checks that `expr` is false.
 
-`expr` が真の場合、`xer::assertion_error` を送出します。
+If `expr` is true, it throws `xer::assertion_error`.
 
-### 典型的な使用例
+### Typical Use
 
 ```cpp
 xer_assert_not(buffer.empty());
@@ -419,15 +426,15 @@ xer_assert_not(buffer.empty());
 xer_assert_eq(lhs, rhs)
 ```
 
-このマクロは、`lhs == rhs` であることを確認します。
+This macro checks that `lhs == rhs`.
 
-比較が偽の場合、`xer::assertion_error` を送出します。
+If the comparison is false, it throws `xer::assertion_error`.
 
-### 目的
+### Purpose
 
-このマクロは、2つの値が等しいことがテスト対象の重要な条件である場合に使います。
+This macro is used when equality of two values is the important condition being tested.
 
-### 典型的な使用例
+### Typical Use
 
 ```cpp
 xer_assert_eq(value, 42);
@@ -441,11 +448,11 @@ xer_assert_eq(value, 42);
 xer_assert_ne(lhs, rhs)
 ```
 
-このマクロは、`lhs != rhs` であることを確認します。
+This macro checks that `lhs != rhs`.
 
-比較が偽の場合、`xer::assertion_error` を送出します。
+If the comparison is false, it throws `xer::assertion_error`.
 
-### 典型的な使用例
+### Typical Use
 
 ```cpp
 xer_assert_ne(ptr, nullptr);
@@ -459,15 +466,15 @@ xer_assert_ne(ptr, nullptr);
 xer_assert_lt(lhs, rhs)
 ```
 
-このマクロは、`lhs < rhs` であることを確認します。
+This macro checks that `lhs < rhs`.
 
-比較が偽の場合、`xer::assertion_error` を送出します。
+If the comparison is false, it throws `xer::assertion_error`.
 
-### 目的
+### Purpose
 
-これは、基本方針で現在定義されている順序関係向けのアサーションです。
+This is the currently defined ordering-oriented assertion in the basic policy.
 
-### 典型的な使用例
+### Typical Use
 
 ```cpp
 xer_assert_lt(index, size);
@@ -481,23 +488,47 @@ xer_assert_lt(index, size);
 xer_assert_throw(expr, exception_type)
 ```
 
-このマクロは、`expr` を評価したときに指定された例外型が送出されることを確認します。
+This macro checks that evaluating `expr` throws the specified exception type.
 
-`expr` がその例外型を送出しない場合、`xer::assertion_error` を送出します。
+If `expr` does not throw that exception type, it throws `xer::assertion_error`.
 
-### 引数の順序
+The exception is caught by `const exception_type&`.
+Use `xer_assert_throw_any` when only the fact that an exception was thrown matters.
 
-引数の順序は意図的なものです。
+### Argument Order
 
-* 第1引数: 評価する式
-* 第2引数: 期待する例外型
+The argument order is intentional:
 
-この順序はプロジェクトのテスト方針に従っています。
+* first: the expression to evaluate
+* second: the exception type expected
 
-### 典型的な使用例
+This order follows the project testing policy.
+
+### Typical Use
 
 ```cpp
 xer_assert_throw(f(), std::runtime_error);
+```
+
+
+---
+
+## `xer_assert_throw_any`
+
+```cpp
+xer_assert_throw_any(expr)
+```
+
+This macro checks that evaluating `expr` throws any exception.
+
+If `expr` does not throw, it throws `xer::assertion_error`.
+
+This macro is intended for cases where the thrown object is not a standard exception type or where the exact exception type is intentionally not part of the test.
+
+### Typical Use
+
+```cpp
+xer_assert_throw_any(f());
 ```
 
 ---
@@ -508,11 +539,11 @@ xer_assert_throw(f(), std::runtime_error);
 xer_assert_nothrow(expr)
 ```
 
-このマクロは、`expr` を評価しても例外が送出されないことを確認します。
+This macro checks that evaluating `expr` does not throw.
 
-`expr` が例外を送出した場合、`xer::assertion_error` を送出します。
+If `expr` throws, it throws `xer::assertion_error`.
 
-### 典型的な使用例
+### Typical Use
 
 ```cpp
 xer_assert_nothrow(run_test_case());
@@ -520,66 +551,66 @@ xer_assert_nothrow(run_test_case());
 
 ---
 
-## 診断方針
+## Diagnostic Policy
 
-アサーション失敗は、開発中に役立つ診断情報を提供するべきです。
+Assertion failures should provide diagnostics that are useful during development.
 
-少なくとも、次のことを特定できる必要があります。
+At minimum, they should make it possible to identify:
 
-* ソースファイル
-* 行
-* アサーションの形式
-* 比較または確認された式のテキスト
+* the source file
+* the line
+* the assertion form
+* the compared or checked expression text
 
-`xer_assert_eq` のような値比較アサーションでは、実用的な場合、観測された左辺値と右辺値を含めることも望ましいです。
+For value-comparison assertions such as `xer_assert_eq`, it is also desirable to include the observed left-hand and right-hand values when practical.
 
-ただし、アサーション機能は、あらゆる型に対して完全な整形を保証することを目的としていません。
+However, the assertion facilities are not intended to guarantee perfect formatting for every possible type.
 
-この点は重要です。
+This point is important:
 
-* 主に xer の開発と軽量なテストのためのものです
-* 実用的で読みやすいままであるべきです
-* 考えられるすべての出力ケースに対する過剰な特別扱いを積み重ねるべきではありません
-
----
-
-## 想定範囲
-
-これらのアサーションマクロは、主に次の用途を想定しています。
-
-* xer の実行テスト
-* 開発中の小さなユーティリティ確認
-* 便利な場合の軽量な利用者側検証
-
-あらゆる場面で、高機能な外部テストフレームワークを置き換えることを意図したものではありません。
+* they are primarily for xer development and lightweight testing
+* they should remain practical and readable
+* they should not accumulate excessive special handling for every conceivable output case
 
 ---
 
-## 他の方針との関係
+## Intended Scope
 
-`<xer/assert.h>` は、次の文書とあわせて理解する必要があります。
+These assertion macros are primarily intended for:
+
+* xer execution tests
+* small utility checks during development
+* lightweight user-side verification when convenient
+
+They are not intended to replace a full-featured external test framework in every scenario.
+
+---
+
+## Relationship to Other Policies
+
+`<xer/assert.h>` should be understood together with the following documents:
 
 * `policy_project_outline.md`
 * `policy_testing_and_php.md`
 
-プロジェクト概要では、アサーション失敗を通常の実行時失敗とは別扱いにする理由を説明しています。
-テスト方針では、実行テストにおける xer アサーションの役割を説明しています。
+The project outline explains why assertion failure is treated separately from ordinary runtime failure.
+The testing policy explains the role of xer assertions in execution tests.
 
 ---
 
-## ドキュメント上の注意
+## Documentation Notes
 
-このヘッダーを生成マニュアルで参照するときは、通常、次の内容を説明すれば十分です。
+When this header is referenced from a generated manual, it is usually enough to explain:
 
-* xer のアサーションは中断ではなく例外送出を行うこと
-* 利用可能なマクロ名
-* テストと軽量な検証におけるこれらのマクロの想定役割
+* that xer assertions throw instead of aborting
+* the available macro names
+* the intended role of these macros in tests and lightweight verification
 
-完全な運用哲学は、ヘッダーごとのAPI要約ではなく方針文書に属します。
+The full operational philosophy belongs in the policy documents rather than in per-header API summaries.
 
 ---
 
-## 例
+## Example
 
 ```cpp
 #include <xer/assert.h>
@@ -593,15 +624,15 @@ auto main() -> int
 }
 ```
 
-この例は一般的なスタイルを示しています。
+This example illustrates the general style:
 
-* 明示的なアサーションマクロを使う
-* 失敗時は `xer::assertion_error` を送出させる
-* 確認を読みやすく局所的に保つ
+* use explicit assertion macros
+* let failures throw `xer::assertion_error`
+* keep checks readable and localized
 
 ---
 
-## 関連項目
+## See Also
 
 * `policy_project_outline.md`
 * `policy_testing_and_php.md`
@@ -13119,6 +13150,155 @@ auto socket_open(socket&& s, encoding_t encoding) noexcept -> xer::result<text_s
 - `socket_send` と `socket_recv` は、与えられたバッファの一部だけを転送することがあります。
 - 接続済みストリームソケットで固定量のデータを転送する必要がある場合は、`socket_send_all` と `socket_recv_exact` を使います。
 - `socket_open` はソケットオブジェクトから結果のストリームへ所有権を移します。
+
+---
+
+> **未訳:** この節の日本語版はまだ最新ではありません。
+> そのため、暫定的に英語版の内容を掲載しています。
+> 
+> Header: `xer/dlfcn.h`
+> Reason: Japanese fragment is missing.
+
+# `<xer/dlfcn.h>`
+
+## Purpose
+
+`<xer/dlfcn.h>` provides a small cross-platform API for loading shared libraries and resolving symbols at run time.
+
+The API follows the familiar POSIX-style naming pattern while staying inside the `xer` namespace. On POSIX platforms it wraps `dlopen`, `dlsym`, and `dlclose`; on Windows it wraps the corresponding `LoadLibraryW`, `GetProcAddress`, and `FreeLibrary` functionality.
+
+---
+
+## Main Role
+
+This header provides:
+
+- a copyable shared-library handle
+- run-time loading of shared libraries
+- typed symbol lookup without explicit casts at the call site
+- raw symbol lookup for low-level use
+- automatic unloading when the last shared handle is released
+
+---
+
+## Main Types
+
+```cpp
+class shared_library;
+```
+
+### `shared_library`
+
+`shared_library` is a lightweight copyable shared handle.
+
+Copies refer to the same native library handle. The underlying library is unloaded when the last `shared_library` object referring to that handle is released.
+
+---
+
+## Main Functions
+
+```cpp
+auto dlopen(std::string_view path) -> result<shared_library>;
+auto dlclose(shared_library& library) noexcept -> void;
+auto is_open(const shared_library& library) noexcept -> bool;
+auto native_handle(const shared_library& library) noexcept -> void*;
+
+auto dlsym(const shared_library& library, std::string_view name, void*& out) -> result<void>;
+
+template<class Function>
+auto dlsym(const shared_library& library, std::string_view name, Function*& out) -> result<void>;
+```
+
+### `dlopen`
+
+```cpp
+auto dlopen(std::string_view path) -> result<shared_library>;
+```
+
+Loads a shared library and returns a `shared_library` handle.
+
+On POSIX platforms, the initial implementation uses:
+
+```cpp
+RTLD_NOW | RTLD_LOCAL
+```
+
+On Windows, the initial implementation uses `LoadLibraryW`.
+
+The first version intentionally does not expose platform flags. If flag control becomes necessary, an overload can be added later without changing the existing API.
+
+### `dlclose`
+
+```cpp
+auto dlclose(shared_library& library) noexcept -> void;
+```
+
+Releases the target handle's reference to the loaded library.
+
+If other `shared_library` objects still refer to the same native handle, the library remains loaded.
+
+### `is_open`
+
+```cpp
+auto is_open(const shared_library& library) noexcept -> bool;
+```
+
+Returns whether the handle currently refers to a loaded library.
+
+### `native_handle`
+
+```cpp
+auto native_handle(const shared_library& library) noexcept -> void*;
+```
+
+Returns the native library handle as a raw pointer value, or `nullptr` if the handle is empty.
+
+### `dlsym`
+
+```cpp
+auto dlsym(const shared_library& library, std::string_view name, void*& out) -> result<void>;
+```
+
+Looks up a raw symbol address and stores it in `out`.
+
+```cpp
+template<class Function>
+auto dlsym(const shared_library& library, std::string_view name, Function*& out) -> result<void>;
+```
+
+Looks up a function symbol and stores it in `out`. The function type is inferred from the output pointer, so callers do not have to write an explicit cast.
+
+Example:
+
+```cpp
+using function_type = int(const char*);
+
+function_type* function = nullptr;
+auto r = xer::dlsym(library, "puts", function);
+```
+
+---
+
+## Design Notes
+
+The public header name is `<xer/dlfcn.h>` because the API intentionally follows the POSIX `dlopen` / `dlsym` / `dlclose` vocabulary.
+
+The internal implementation is placed in `<xer/bits/dlfcn.h>`.
+
+The `xer` namespace distinguishes these functions from platform APIs, so using POSIX-style names does not conflict with the global platform functions.
+
+---
+
+## Limitations
+
+The initial API does not expose `dlopen` flags or `LoadLibraryExW` flags.
+
+The default behavior is intentionally conservative:
+
+- POSIX: load with `RTLD_NOW | RTLD_LOCAL`
+- Windows: load with `LoadLibraryW`
+
+Platform-specific flag control can be added later through overloads if a concrete need appears.
 
 ---
 
