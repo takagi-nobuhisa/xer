@@ -218,6 +218,7 @@ Current public headers:
 - `xer/iostream.h`
 - `xer/path.h`
 - `xer/dirent.h`
+- `xer/dlfcn.h`
 - `xer/socket.h`
 - `xer/tk.h`
 - `xer/stdint.h`
