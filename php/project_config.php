@@ -12,6 +12,6 @@ return [
         'major' => 1,
         'minor' => 2,
         'patch' => 0,
-        'suffix' => 'a2',
+        'suffix' => 'b1',
     ],
 ];
