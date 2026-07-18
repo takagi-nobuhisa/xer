@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 81dff97ae75d32b6246299dbe84f80c27b9fef639b5e7d1f9dc7969f517cff48 -->
+<!-- xer-reference-source-sha256: 3dd88f5b68a406b9747475291f588df720d56dee6c1c7e9eede8efccc5337690 -->
 
 # `<xer/assert.h>`
 
@@ -24,6 +24,7 @@ xer_assert_eq(lhs, rhs)
 xer_assert_ne(lhs, rhs)
 xer_assert_lt(lhs, rhs)
 xer_assert_throw(expr, exception_type)
+xer_assert_throw_any(expr)
 xer_assert_nothrow(expr)
 
 class xer::assertion_error;
@@ -201,6 +202,9 @@ xer_assert_throw(expr, exception_type)
 
 `expr` がその例外型を送出しない場合、`xer::assertion_error` を送出します。
 
+例外は `const exception_type&` で捕捉されます。
+例外が送出されたという事実だけが重要な場合は、`xer_assert_throw_any` を使います。
+
 ### 引数の順序
 
 引数の順序は意図的なものです。
@@ -214,6 +218,26 @@ xer_assert_throw(expr, exception_type)
 
 ```cpp
 xer_assert_throw(f(), std::runtime_error);
+```
+
+---
+
+## `xer_assert_throw_any`
+
+```cpp
+xer_assert_throw_any(expr)
+```
+
+このマクロは、`expr` の評価によって何らかの例外が送出されることを確認します。
+
+`expr` が例外を送出しなかった場合は、`xer::assertion_error` を送出します。
+
+このマクロは、送出されるオブジェクトが標準的な例外型ではない場合や、正確な例外型を意図的にテスト対象としない場合に使用します。
+
+### 典型的な使用例
+
+```cpp
+xer_assert_throw_any(f());
 ```
 
 ---

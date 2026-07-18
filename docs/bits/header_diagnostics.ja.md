@@ -1,4 +1,4 @@
-<!-- xer-reference-source-sha256: 474b00b92e9a9030ffb1fced47189593837f0bd89e9594995a6344f7e60d6935 -->
+<!-- xer-reference-source-sha256: ac78a32a5ad1ff32e3e99a09460718ff82ae8c87bf6bcc6414b2ac9d633831a2 -->
 
 # `<xer/diagnostics.h>`
 
